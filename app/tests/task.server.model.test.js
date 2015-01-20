@@ -6,12 +6,13 @@
 var should = require('should'),
 	mongoose = require('mongoose'),
 	User = mongoose.model('User'),
+    Action = mongoose.model('Action'),
 	Task = mongoose.model('Task');
 
 /**
  * Globals
  */
-var user, task;
+var user, action, task;
 
 /**
  * Unit tests
@@ -45,7 +46,7 @@ describe('Task Model Unit Tests:', function() {
 			});
 		});
 
-		it('should be able to show an error when try to save without name', function(done) { 
+		it('should be able to show an error when try to save without specifying an action', function(done) {
 			task.name = '';
 
 			return task.save(function(err) {
@@ -55,8 +56,9 @@ describe('Task Model Unit Tests:', function() {
 		});
 	});
 
-	afterEach(function(done) { 
+	afterEach(function(done) {
 		Task.remove().exec();
+        Action.remove().exec();
 		User.remove().exec();
 
 		done();
