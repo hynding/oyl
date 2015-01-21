@@ -27,15 +27,19 @@ describe('Task Model Unit Tests:', function() {
 			username: 'username',
 			password: 'password'
 		});
+        user.save(function() {
+            action = new Action({
+                name: 'Test action'
+            });
 
-		user.save(function() { 
-			task = new Task({
-				name: 'Task Name',
-				user: user
-			});
-
-			done();
-		});
+            action.save(function() {
+                task = new Task({
+                    actions: [action],
+                    user: user
+                });
+                done();
+            });
+        });
 	});
 
 	describe('Method Save', function() {
@@ -47,7 +51,7 @@ describe('Task Model Unit Tests:', function() {
 		});
 
 		it('should be able to show an error when try to save without specifying an action', function(done) {
-			task.name = '';
+			task.actions = [];
 
 			return task.save(function(err) {
 				should.exist(err);

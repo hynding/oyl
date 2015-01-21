@@ -57,4 +57,6 @@ var TaskSchema = new Schema({
 	}
 });
 
+TaskSchema.path('actions').validate(function(value){ return value.length; }, "You must have at least one action assigned to a task")
+
 mongoose.model('Task', TaskSchema);

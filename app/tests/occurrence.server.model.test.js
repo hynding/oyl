@@ -36,7 +36,7 @@ describe('Occurrence Model Unit Tests:', function() {
 
             action.save(function() {
                 task = new Task({
-                    action: action
+                    actions: [action]
                 });
 
                 task.save(function() {
@@ -71,6 +71,8 @@ describe('Occurrence Model Unit Tests:', function() {
 
 	afterEach(function(done) { 
 		Occurrence.remove().exec();
+        Task.remove().exec();
+        Action.remove().exec();
 		User.remove().exec();
 
 		done();

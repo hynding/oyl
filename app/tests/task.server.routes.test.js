@@ -6,12 +6,13 @@ var should = require('should'),
 	mongoose = require('mongoose'),
 	User = mongoose.model('User'),
 	Task = mongoose.model('Task'),
+    Action = mongoose.model('Action'),
 	agent = request.agent(app);
 
 /**
  * Globals
  */
-var credentials, user, task;
+var credentials, user, action, task;
 
 /**
  * Task routes tests
@@ -36,13 +37,19 @@ describe('Task CRUD tests', function() {
 		});
 
 		// Save a user to the test db and create new Task
-		user.save(function() {
-			task = {
-				name: 'Task Name'
-			};
+        user.save(function() {
+            action = new Action({
+                name: 'Test action'
+            });
 
-			done();
-		});
+            action.save(function() {
+                task = new Task({
+                    actions: [action],
+                    user: user
+                });
+                done();
+            });
+        });
 	});
 
 	it('should be able to save Task instance if logged in', function(done) {
@@ -54,7 +61,8 @@ describe('Task CRUD tests', function() {
 				if (signinErr) done(signinErr);
 
 				// Get the userId
-				var userId = user.id;
+				var userId = user.id,
+                    actionId = action.id;
 
 				// Save a new Task
 				agent.post('/tasks')
@@ -74,8 +82,8 @@ describe('Task CRUD tests', function() {
 								var tasks = tasksGetRes.body;
 
 								// Set assertions
-								(tasks[0].user._id).should.equal(userId);
-								(tasks[0].name).should.match('Task Name');
+                                (tasks[0].user._id).should.equal(userId);
+                                (tasks[0].actions[0]._id).should.equal(actionId);
 
 								// Call the assertion callback
 								done();
@@ -94,9 +102,9 @@ describe('Task CRUD tests', function() {
 			});
 	});
 
-	it('should not be able to save Task instance if no name is provided', function(done) {
+	it('should not be able to save Task instance if no action is provided', function(done) {
 		// Invalidate name field
-		task.name = '';
+		task.actions = [];
 
 		agent.post('/auth/signin')
 			.send(credentials)
@@ -114,7 +122,7 @@ describe('Task CRUD tests', function() {
 					.expect(400)
 					.end(function(taskSaveErr, taskSaveRes) {
 						// Set message assertion
-						(taskSaveRes.body.message).should.match('Please fill Task name');
+						(taskSaveRes.body.message).should.match('You must have at least one action assigned to a task');
 						
 						// Handle Task save error
 						done(taskSaveErr);
@@ -262,7 +270,8 @@ describe('Task CRUD tests', function() {
 
 	afterEach(function(done) {
 		User.remove().exec();
-		Task.remove().exec();
+        Task.remove().exec();
+        Action.remove().exec();
 		done();
 	});
 });

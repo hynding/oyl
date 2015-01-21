@@ -14,7 +14,6 @@ var mongoose = require('mongoose'),
 exports.create = function(req, res) {
 	var occurrence = new Occurrence(req.body);
 	occurrence.user = req.user;
-    occurrence.task = req.task;
 
 	occurrence.save(function(err) {
 		if (err) {
