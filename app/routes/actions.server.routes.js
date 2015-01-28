@@ -9,11 +9,15 @@ module.exports = function(app) {
 		.get(actions.list)
 		.post(users.requiresLogin, actions.create);
 
+    app.route('/actions/search/:queryString')
+        .get(actions.find);
+
 	app.route('/actions/:actionId')
 		.get(actions.read)
 		.put(users.requiresLogin, actions.hasAuthorization, actions.update)
 		.delete(users.requiresLogin, actions.hasAuthorization, actions.delete);
 
 	// Finish by binding the Action middleware
-	app.param('actionId', actions.actionByID);
+    app.param('actionId', actions.actionByID);
+    app.param('queryString', actions.actionQuery);
 };

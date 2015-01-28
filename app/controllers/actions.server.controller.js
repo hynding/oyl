@@ -85,6 +85,22 @@ exports.list = function(req, res) {
 };
 
 /**
+ * Search Actions
+ */
+exports.find = function(req, res) {
+    console.log('xxx: ', req.queryString);
+    Action.find({name: new RegExp(req.queryString, 'i')}).exec(function(err, actions) {
+        if (err) {
+            return res.status(400).send({
+                message: errorHandler.getErrorMessage(err)
+            });
+        } else {
+            res.jsonp(actions);
+        }
+    });
+};
+
+/**
  * Action middleware
  */
 exports.actionByID = function(req, res, next, id) { 
@@ -94,6 +110,11 @@ exports.actionByID = function(req, res, next, id) {
 		req.action = action ;
 		next();
 	});
+};
+
+exports.actionQuery = function(req, res, next, qs) {
+        req.queryString = qs ;
+        next();
 };
 
 /**

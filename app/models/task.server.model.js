@@ -20,7 +20,7 @@ var TaskSchema = new Schema({
 		default: '',
 		trim: true
 	},
-    recurrence: {
+    frequency: {
         type: String,
         default: 'daily'
     },
@@ -57,6 +57,6 @@ var TaskSchema = new Schema({
 	}
 });
 
-TaskSchema.path('actions').validate(function(value){ return value.length; }, "You must have at least one action assigned to a task")
+TaskSchema.path('actions').validate(function(value){ return value.length; }, 'You must have at least one action assigned to a task');
 
 mongoose.model('Task', TaskSchema);
