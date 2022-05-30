@@ -1,3 +1,5 @@
-const CommonTypography = ({ component = 'p', children }) => {
+const CommonTypography = ({ component = 'p', children = null }) => {
     return [component, children]
 }
+
+export default CommonTypography
