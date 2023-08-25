@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_resume_skill_types",
+  "info": {
+    "displayName": "Skill Field",
+    "icon": "bulletList",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "skills": {
+      "type": "component",
+      "repeatable": true,
+      "component": "resume.skills"
+    }
+  }
+}

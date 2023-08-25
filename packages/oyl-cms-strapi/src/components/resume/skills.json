@@ -1,0 +1,24 @@
+{
+  "collectionName": "components_resume_skills",
+  "info": {
+    "displayName": "Skill",
+    "icon": "cloud",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "experience": {
+      "type": "enumeration",
+      "enum": [
+        "Beginner",
+        "Intermediate",
+        "Advanced",
+        "Expert"
+      ],
+      "default": "Intermediate"
+    }
+  }
+}

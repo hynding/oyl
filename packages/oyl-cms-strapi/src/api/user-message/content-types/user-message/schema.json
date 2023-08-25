@@ -1,0 +1,32 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_messages",
+  "info": {
+    "singularName": "user-message",
+    "pluralName": "user-messages",
+    "displayName": "User Message"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "subject": {
+      "type": "string"
+    },
+    "content": {
+      "type": "richtext"
+    },
+    "emailReplyTo": {
+      "type": "email",
+      "required": true
+    },
+    "nameReplyTo": {
+      "type": "string"
+    },
+    "hasRead": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}
