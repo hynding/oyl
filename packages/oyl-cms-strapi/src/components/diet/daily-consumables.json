@@ -1,0 +1,25 @@
+{
+  "collectionName": "components_diet_daily_consumables",
+  "info": {
+    "displayName": "Daily Consumables",
+    "icon": "restaurant",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "consumable": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::consumable.consumable"
+    },
+    "servings": {
+      "type": "decimal",
+      "required": true,
+      "min": 0.01
+    },
+    "time": {
+      "type": "time",
+      "required": true
+    }
+  }
+}

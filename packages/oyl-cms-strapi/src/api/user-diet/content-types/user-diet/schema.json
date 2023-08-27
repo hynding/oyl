@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_diets",
+  "info": {
+    "singularName": "user-diet",
+    "pluralName": "user-diets",
+    "displayName": "User Diet"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "statistics": {
+      "type": "json"
+    },
+    "consumables": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::consumable.consumable"
+    }
+  }
+}
