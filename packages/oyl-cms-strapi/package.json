@@ -12,9 +12,9 @@
   "devDependencies": {},
   "dependencies": {
     "@strapi/plugin-graphql": "^4.14.5",
-    "@strapi/plugin-i18n": "4.14.5",
-    "@strapi/plugin-users-permissions": "4.14.5",
-    "@strapi/strapi": "4.14.5",
+    "@strapi/plugin-i18n": "4.25.12",
+    "@strapi/plugin-users-permissions": "4.25.12",
+    "@strapi/strapi": "4.25.12",
     "better-sqlite3": "8.5.0",
     "mysql": "^2.18.1",
     "mysql2": "^3.6.0"
