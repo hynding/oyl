@@ -1,57 +1,6 @@
-import type { Schema, Attribute } from '@strapi/strapi';
+import type { Struct, Schema } from '@strapi/strapi';
 
-export interface DietDailyConsumables extends Schema.Component {
-  collectionName: 'components_diet_daily_consumables';
-  info: {
-    displayName: 'Daily Consumables';
-    icon: 'restaurant';
-    description: '';
-  };
-  attributes: {
-    consumable: Attribute.Relation<
-      'diet.daily-consumables',
-      'oneToOne',
-      'api::consumable.consumable'
-    >;
-    servings: Attribute.Decimal &
-      Attribute.Required &
-      Attribute.SetMinMax<{
-        min: 0.01;
-      }>;
-    time: Attribute.Time & Attribute.Required;
-  };
-}
-
-export interface ResumeExperience extends Schema.Component {
-  collectionName: 'components_resume_experiences';
-  info: {
-    displayName: 'Experience';
-    icon: 'layer';
-  };
-  attributes: {
-    name: Attribute.String & Attribute.Required;
-    location: Attribute.String;
-    dateStart: Attribute.Date & Attribute.Required;
-    dateEnd: Attribute.Date;
-    description: Attribute.RichText;
-    url: Attribute.String;
-  };
-}
-
-export interface ResumeSkillType extends Schema.Component {
-  collectionName: 'components_resume_skill_types';
-  info: {
-    displayName: 'Skill Field';
-    icon: 'bulletList';
-    description: '';
-  };
-  attributes: {
-    name: Attribute.String;
-    skills: Attribute.Component<'resume.skills', true>;
-  };
-}
-
-export interface ResumeSkills extends Schema.Component {
+export interface ResumeSkills extends Struct.ComponentSchema {
   collectionName: 'components_resume_skills';
   info: {
     displayName: 'Skill';
@@ -59,21 +8,74 @@ export interface ResumeSkills extends Schema.Component {
     description: '';
   };
   attributes: {
-    name: Attribute.String;
-    experience: Attribute.Enumeration<
+    name: Schema.Attribute.String;
+    experience: Schema.Attribute.Enumeration<
       ['Beginner', 'Intermediate', 'Advanced', 'Expert']
     > &
-      Attribute.DefaultTo<'Intermediate'>;
+      Schema.Attribute.DefaultTo<'Intermediate'>;
   };
 }
 
-declare module '@strapi/types' {
-  export module Shared {
-    export interface Components {
-      'diet.daily-consumables': DietDailyConsumables;
-      'resume.experience': ResumeExperience;
-      'resume.skill-type': ResumeSkillType;
+export interface ResumeSkillType extends Struct.ComponentSchema {
+  collectionName: 'components_resume_skill_types';
+  info: {
+    displayName: 'Skill Field';
+    icon: 'bulletList';
+    description: '';
+  };
+  attributes: {
+    name: Schema.Attribute.String;
+    skills: Schema.Attribute.Component<'resume.skills', true>;
+  };
+}
+
+export interface ResumeExperience extends Struct.ComponentSchema {
+  collectionName: 'components_resume_experiences';
+  info: {
+    displayName: 'Experience';
+    icon: 'layer';
+  };
+  attributes: {
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    location: Schema.Attribute.String;
+    dateStart: Schema.Attribute.Date & Schema.Attribute.Required;
+    dateEnd: Schema.Attribute.Date;
+    description: Schema.Attribute.RichText;
+    url: Schema.Attribute.String;
+  };
+}
+
+export interface DietDailyConsumables extends Struct.ComponentSchema {
+  collectionName: 'components_diet_daily_consumables';
+  info: {
+    displayName: 'Daily Consumables';
+    icon: 'restaurant';
+    description: '';
+  };
+  attributes: {
+    consumable: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::consumable.consumable'
+    >;
+    servings: Schema.Attribute.Decimal &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0.01;
+        },
+        number
+      >;
+    time: Schema.Attribute.Time & Schema.Attribute.Required;
+  };
+}
+
+declare module '@strapi/strapi' {
+  export module Public {
+    export interface ComponentSchemas {
       'resume.skills': ResumeSkills;
+      'resume.skill-type': ResumeSkillType;
+      'resume.experience': ResumeExperience;
+      'diet.daily-consumables': DietDailyConsumables;
     }
   }
 }
