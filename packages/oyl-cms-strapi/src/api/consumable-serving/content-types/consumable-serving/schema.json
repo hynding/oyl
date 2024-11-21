@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "consumable_servings",
+  "info": {
+    "singularName": "consumable-serving",
+    "pluralName": "consumable-servings",
+    "displayName": "Consumable Serving"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
+  "attributes": {
+    "consumable": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::consumable.consumable"
+    },
+    "size": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": false
+        }
+      },
+      "type": "integer",
+      "required": true,
+      "default": 1
+    },
+    "measurement": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::consumable-measurement.consumable-measurement"
+    }
+  }
+}

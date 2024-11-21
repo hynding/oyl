@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_diet_dailies",
+  "info": {
+    "singularName": "user-diet-daily",
+    "pluralName": "user-diet-dailies",
+    "displayName": "User Diet Daily"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "diet": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::user-diet.user-diet"
+    },
+    "date": {
+      "type": "date"
+    },
+    "journal": {
+      "type": "component",
+      "repeatable": true,
+      "component": "diet.daily-consumables"
+    }
+  }
+}

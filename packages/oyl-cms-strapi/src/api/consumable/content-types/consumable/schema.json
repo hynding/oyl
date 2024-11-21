@@ -1,0 +1,33 @@
+{
+  "kind": "collectionType",
+  "collectionName": "consumables",
+  "info": {
+    "singularName": "consumable",
+    "pluralName": "consumables",
+    "displayName": "Consumable",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
+  "attributes": {
+    "name": {
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "type": "string"
+    },
+    "ingredients": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::consumable.consumable"
+    }
+  }
+}
