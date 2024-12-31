@@ -1,0 +1,55 @@
+directory:
+  consumables:
+    files:
+      - name: consumables
+        pattern: string
+        schema:
+          name: Name
+          type: object
+          keyPattern: string
+          schema:
+            name: Brand
+            type: array
+            properties: # assumes 1 serving
+              Type: string
+              Calories: number
+  dalies:
+    files:
+      - name: monthly
+        pattern: 'yyyy-mm'
+        schema:
+          type: object
+          keyPattern: 'yyyy-mm-dd'
+          schema:
+            type: object
+            keyPattern: 'hh:ii'
+            schema:
+              type: object
+              keyTypes:
+                - name: Consumed
+                  schema:
+                    type: object
+                    keyRelation: consumables
+                    schema:
+                      type: object
+                      properties:
+                        Brand: string
+                        Servings: number
+                - name: Workout
+                  schema:
+                    type: object
+                    keyTypes:
+                      - name: Location
+                        schema:
+                          type: string
+                      - name: Facility
+                        schema:
+                          type: string
+                      - name: Elliptical:
+                        type: object
+                        properties:
+                          Duration: number
+                          Calories: number
+                - name: Weight
+                  schema:
+                    type: number # assumes in pounds (lbs)

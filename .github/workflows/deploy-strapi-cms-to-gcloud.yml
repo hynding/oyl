@@ -1,0 +1,43 @@
+name: Deploy to GCloud
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Authenticate with Google Cloud
+    - name: Authenticate with GCloud
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCLOUD_SERVICE_KEY }}
+
+    # Set up Google Cloud CLI
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: your-google-cloud-project-id
+
+    # Build and push Docker image
+    - name: Build and push Docker image
+      run: |
+        export IMAGE_NAME=your-region-docker.pkg.dev/your-project-id/cloud-run-source-deploy/your-strapi-service
+        docker build -t $IMAGE_NAME .
+        docker push $IMAGE_NAME
+
+    # Deploy to Cloud Run
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy your-strapi-service \
+          --image $IMAGE_NAME \
+          --region your-region \
+          --platform managed \
+          --allow-unauthenticated
