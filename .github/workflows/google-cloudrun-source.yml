@@ -1,0 +1,124 @@
+# This workflow will deploy source code on Cloud Run when a commit is pushed to
+# the "master" branch.
+#
+# To configure this workflow:
+#
+# 1. Enable the following Google Cloud APIs:
+#
+#    - Artifact Registry (artifactregistry.googleapis.com)
+#    - Cloud Build (cloudbuild.googleapis.com)
+#    - Cloud Run (run.googleapis.com)
+#    - IAM Credentials API (iamcredentials.googleapis.com)
+#
+#    You can learn more about enabling APIs at
+#    https://support.google.com/googleapi/answer/6158841.
+#
+# 2. Create and configure a Workload Identity Provider for GitHub:
+#    https://github.com/google-github-actions/auth#preferred-direct-workload-identity-federation.
+#
+#    Depending on how you authenticate, you will need to grant an IAM principal
+#    permissions on Google Cloud:
+#
+#    - Artifact Registry Administrator (roles/artifactregistry.admin)
+#    - Cloud Run Source Developer (roles/run.sourceDeveloper)
+#
+#    You can learn more about setting IAM permissions at
+#    https://cloud.google.com/iam/docs/manage-access-other-resources.
+#
+# 3. Change the values in the "env" block to match your values.
+
+name: 'Deploy to Cloud Run from Source'
+
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Authenticate with Google Cloud
+    - name: Authenticate with GCloud
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCLOUD_SERVICE_KEY }}
+
+    # Set up Google Cloud CLI
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: organize-your-life
+
+    - name: Install Node.js and yarn
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20' # Use the Node.js version your Strapi project requires
+        cache: 'yarn'
+
+    - name: Install dependencies
+      run: |
+        cd ./packages/oyl-cms-strapi
+        yarn install
+
+    - name: Build Strapi project
+      run: |
+        cd ./packages/oyl-cms-strapi
+        yarn build
+
+      
+    - name: Deploy to Cloud Run
+      run: |
+        # Set the region for your Cloud Run deployment
+        gcloud config set compute/region us-west2
+
+        # Env variables
+        export PORT=1337 
+        export APP_KEYS=${{ secrets.STRAPI_APP_KEYS }} 
+        export API_TOKEN_SALT=${{ secrets.STRAPI_API_TOKEN_SALT }} 
+        export ADMIN_JWT_SECRET=${{ secrets.STRAPI_ADMIN_JWT_SECRET }} 
+        export TRANSFER_TOKEN_SALT=${{ secrets.STRAPI_TRANSFER_TOKEN_SALT }} 
+        export DATABASE_CLIENT=${{ secrets.STRAPI_DATABASE_CLIENT }} 
+        export DATABASE_HOST=${{ secrets.STRAPI_DATABASE_HOST }} 
+        export DATABASE_NAME=${{ secrets.STRAPI_DATABASE_NAME }} 
+        export DATABASE_USERNAME=${{ secrets.STRAPI_DATABASE_USERNAME }} 
+        export DATABASE_PASSWORD=${{ secrets.STRAPI_DATABASE_PASSWORD }} 
+        export JWT_SECRET=${{ secrets.STRAPI_JWT_SECRET }} 
+
+        # Deploy the built Strapi project to Cloud Run
+        gcloud run deploy oyl-cms-strapi \
+          --image gcr.io/organize-your-life/oyl-cms-strapi \
+          --platform managed \
+          --allow-unauthenticated \
+          --region us-west2 \
+          --port=1337 \
+          --set-env-vars PORT \
+          --set-env-vars APP_KEYS \
+          --set-env-vars API_TOKEN_SALT \
+          --set-env-vars ADMIN_JWT_SECRET \
+          --set-env-vars TRANSFER_TOKEN_SALT \
+          --set-env-vars DATABASE_CLIENT \
+          --set-env-vars DATABASE_HOST \
+          --set-env-vars DATABASE_NAME \
+          --set-env-vars DATABASE_USERNAME \
+          --set-env-vars DATABASE_PASSWORD \
+          --set-env-vars JWT_SECRET
+
+        # Optionally, expose the service with a public URL
+        gcloud run services expose oyl-cms-strapi \
+          --platform managed \
+          --region us-west2 
+
+
+    # If required, use the Cloud Run URL output in later steps
+    - name: 'Show output'
+      run: |-
+        echo ${{ steps.deploy.outputs.url }}
+env:
+  GOOGLE_CLOUD_PROJECT: organize-your-life # Your Google Cloud Project ID
