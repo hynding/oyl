@@ -24,20 +24,82 @@ jobs:
     - name: Set up Google Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
       with:
-        project_id: your-google-cloud-project-id
+        project_id: organize-your-life
 
-    # Build and push Docker image
-    - name: Build and push Docker image
+    - name: Install Node.js and yarn
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20' # Use the Node.js version your Strapi project requires
+        cache: 'yarn'
+
+    - name: Install dependencies
       run: |
-        export IMAGE_NAME=your-region-docker.pkg.dev/your-project-id/cloud-run-source-deploy/your-strapi-service
-        docker build -t $IMAGE_NAME .
-        docker push $IMAGE_NAME
+        cd ./packages/oyl-cms-strapi
+        yarn install
 
-    # Deploy to Cloud Run
+    - name: Build Strapi project
+      run: |
+        cd ./packages/oyl-cms-strapi
+        yarn build
+
+      
     - name: Deploy to Cloud Run
       run: |
-        gcloud run deploy your-strapi-service \
-          --image $IMAGE_NAME \
-          --region your-region \
+        # Set the region for your Cloud Run deployment
+        gcloud config set compute/region us-west2
+
+        # Env variables
+        export PORT=1337 
+        export APP_KEYS=${{ secrets.STRAPI_APP_KEYS }} 
+        export API_TOKEN_SALT=${{ secrets.STRAPI_API_TOKEN_SALT }} 
+        export ADMIN_JWT_SECRET=${{ secrets.STRAPI_ADMIN_JWT_SECRET }} 
+        export TRANSFER_TOKEN_SALT=${{ secrets.STRAPI_TRANSFER_TOKEN_SALT }} 
+        export DATABASE_CLIENT=${{ secrets.STRAPI_DATABASE_CLIENT }} 
+        export DATABASE_HOST=${{ secrets.STRAPI_DATABASE_HOST }} 
+        export DATABASE_NAME=${{ secrets.STRAPI_DATABASE_NAME }} 
+        export DATABASE_USERNAME=${{ secrets.STRAPI_DATABASE_USERNAME }} 
+        export DATABASE_PASSWORD=${{ secrets.STRAPI_DATABASE_PASSWORD }} 
+        export JWT_SECRET=${{ secrets.STRAPI_JWT_SECRET }} 
+
+        # Deploy the built Strapi project to Cloud Run
+        gcloud run deploy oyl-cms-strapi \
+          --image gcr.io/organize-your-life/oyl-cms-strapi \
           --platform managed \
-          --allow-unauthenticated
+          --allow-unauthenticated \
+          --region us-west2 \
+          --port=1337 \
+          --set-env-vars PORT \
+          --set-env-vars APP_KEYS \
+          --set-env-vars API_TOKEN_SALT \
+          --set-env-vars ADMIN_JWT_SECRET \
+          --set-env-vars TRANSFER_TOKEN_SALT \
+          --set-env-vars DATABASE_CLIENT \
+          --set-env-vars DATABASE_HOST \
+          --set-env-vars DATABASE_NAME \
+          --set-env-vars DATABASE_USERNAME \
+          --set-env-vars DATABASE_PASSWORD \
+          --set-env-vars JWT_SECRET
+
+        # Optionally, expose the service with a public URL
+        gcloud run services expose oyl-cms-strapi \
+          --platform managed \
+          --region us-west2 
+
+    # Build and push Docker image
+    # - name: Build and push Docker image
+    #   run: |
+    #     cd packages/oyl-cms-strapi
+    #     export IMAGE_NAME=your-region-docker.pkg.dev/your-project-id/cloud-run-source-deploy/your-strapi-service
+    #     docker build -t $IMAGE_NAME .
+    #     docker push $IMAGE_NAME
+
+    # Deploy to Cloud Run
+    # - name: Deploy to Cloud Run
+    #   run: |
+    #     gcloud run deploy oyl-cms-strapi \
+    #       --image $IMAGE_NAME \
+    #       --region your-region \
+    #       --platform managed \
+    #       --allow-unauthenticated
+env:
+  GOOGLE_CLOUD_PROJECT: organize-your-life # Your Google Cloud Project ID
