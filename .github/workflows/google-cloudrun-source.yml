@@ -100,18 +100,7 @@ jobs:
           --platform managed \
           --allow-unauthenticated \
           --region us-west2 \
-          --port=1337 \
-          --set-env-vars PORT \
-          --set-env-vars APP_KEYS \
-          --set-env-vars API_TOKEN_SALT \
-          --set-env-vars ADMIN_JWT_SECRET \
-          --set-env-vars TRANSFER_TOKEN_SALT \
-          --set-env-vars DATABASE_CLIENT \
-          --set-env-vars DATABASE_HOST \
-          --set-env-vars DATABASE_NAME \
-          --set-env-vars DATABASE_USERNAME \
-          --set-env-vars DATABASE_PASSWORD \
-          --set-env-vars JWT_SECRET
+          --port=1337
 
         # Optionally, expose the service with a public URL
         gcloud run services expose oyl-cms-strapi \
