@@ -49,9 +49,9 @@ jobs:
 
     - name: Deploy to Cloud Run
       run: |
-        gcloud run deploy $SERVICE_NAME \
+        gcloud run deploy ${{ secrets.CLOUD_RUN_SERVICE_NAME }} \
           --port=1337 \
-          --region=$REGION \
+          --region=${{ secrets.GCLOUD_REGION }} \
           --platform=managed \
           --allow-unauthenticated \
           --source=./packages/oyl-cms-strapi \
@@ -59,4 +59,4 @@ jobs:
           $(echo "${{ secrets.ENV_VARS }}" | tr '\n' ',' | sed 's/,$//')
           EOF
           )) \
-          --project=$PROJECT_ID
+          --project=${{ secrets.GCLOUD_PROJECT_ID }}
