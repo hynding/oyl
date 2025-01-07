@@ -1,93 +1,63 @@
-name: Deploy to GCloud
+name: Deploy Strapi to Google Cloud Run
 
 on:
   push:
-    branches: ["master"]
+    branches:
+      - master
+
+env:
+  PROJECT_ID: ${{ secrets.GCLOUD_PROJECT_ID }}
+  REGION: ${{ secrets.GCLOUD_REGION }}
+  GCLOUD_SERVICE_KEY: ${{ secrets.GCLOUD_SERVICE_KEY }}
+  SERVICE_NAME: ${{ secrets.CLOUD_RUN_SERVICE_NAME }}
 
 jobs:
   deploy:
+    name: Deploy to Google Cloud Run
     runs-on: ubuntu-latest
 
     steps:
-    # Checkout the code
-    - name: Checkout code
+    - name: Checkout Code
       uses: actions/checkout@v3
 
-    # Authenticate with Google Cloud
-    - name: Authenticate with GCloud
-      uses: google-github-actions/auth@v1
-      with:
-        credentials_json: ${{ secrets.GCLOUD_SERVICE_KEY }}
-
-    # Set up Google Cloud CLI
-    - name: Set up Google Cloud SDK
-      uses: google-github-actions/setup-gcloud@v1
-      with:
-        project_id: organize-your-life
-
-    - name: Install Node.js and yarn
+    - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '20' # Use the Node.js version your Strapi project requires
+        node-version: 20 # Adjust this to match Strapi's requirements
         cache: 'yarn'
 
-    - name: Install dependencies
+    - name: Install Dependencies
       run: |
         cd ./packages/oyl-cms-strapi
         yarn install
 
-    - name: Build Strapi project
+    - name: Build the Strapi App
       run: |
         cd ./packages/oyl-cms-strapi
         yarn build
 
-      
+    # - name: Authenticate with Google Cloud
+    #   env:
+    #     GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+    #   run: |
+    #     echo "${GCP_SA_KEY}" | gcloud auth activate-service-account --key-file=-
+    #     gcloud config set project [YOUR_PROJECT_ID]
+
+    - name: Authenticate with Google Cloud
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: $GCLOUD_SERVICE_KEY
+
     - name: Deploy to Cloud Run
       run: |
-        # Set the region for your Cloud Run deployment
-        gcloud config set compute/region us-west2
-
-        # Env variables
-        export PORT=1337 
-        export APP_KEYS=${{ secrets.STRAPI_APP_KEYS }} 
-        export API_TOKEN_SALT=${{ secrets.STRAPI_API_TOKEN_SALT }} 
-        export ADMIN_JWT_SECRET=${{ secrets.STRAPI_ADMIN_JWT_SECRET }} 
-        export TRANSFER_TOKEN_SALT=${{ secrets.STRAPI_TRANSFER_TOKEN_SALT }} 
-        export DATABASE_CLIENT=${{ secrets.STRAPI_DATABASE_CLIENT }} 
-        export DATABASE_HOST=${{ secrets.STRAPI_DATABASE_HOST }} 
-        export DATABASE_NAME=${{ secrets.STRAPI_DATABASE_NAME }} 
-        export DATABASE_USERNAME=${{ secrets.STRAPI_DATABASE_USERNAME }} 
-        export DATABASE_PASSWORD=${{ secrets.STRAPI_DATABASE_PASSWORD }} 
-        export JWT_SECRET=${{ secrets.STRAPI_JWT_SECRET }} 
-
-        # Deploy the built Strapi project to Cloud Run
-        gcloud run deploy oyl-cms-strapi \
-          --image gcr.io/organize-your-life/oyl-cms-strapi \
-          --platform managed \
+        gcloud run deploy $SERVICE_NAME \
+          --port=1337 \
+          --region=$REGION \
+          --platform=managed \
           --allow-unauthenticated \
-          --region us-west2 \
-          --port=1337
-
-        # Optionally, expose the service with a public URL
-        gcloud run services expose oyl-cms-strapi \
-          --platform managed \
-          --region us-west2 
-
-    # Build and push Docker image
-    # - name: Build and push Docker image
-    #   run: |
-    #     cd packages/oyl-cms-strapi
-    #     export IMAGE_NAME=your-region-docker.pkg.dev/your-project-id/cloud-run-source-deploy/your-strapi-service
-    #     docker build -t $IMAGE_NAME .
-    #     docker push $IMAGE_NAME
-
-    # Deploy to Cloud Run
-    # - name: Deploy to Cloud Run
-    #   run: |
-    #     gcloud run deploy oyl-cms-strapi \
-    #       --image $IMAGE_NAME \
-    #       --region your-region \
-    #       --platform managed \
-    #       --allow-unauthenticated
-env:
-  GOOGLE_CLOUD_PROJECT: organize-your-life # Your Google Cloud Project ID
+          --source=./packages/oyl-cms-strapi \
+          --set-env-vars=$(echo $(cat <<EOF
+          $(echo "${{ secrets.ENV_VARS }}" | tr '\n' ',' | sed 's/,$//')
+          EOF
+          )) \
+          --project=$PROJECT_ID

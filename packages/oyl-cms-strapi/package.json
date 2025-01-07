@@ -11,6 +11,7 @@
     "strapi": "strapi"
   },
   "devDependencies": {
+    "@google-cloud/run": "^1.5.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
