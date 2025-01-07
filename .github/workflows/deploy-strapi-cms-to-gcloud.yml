@@ -55,8 +55,5 @@ jobs:
           --platform=managed \
           --allow-unauthenticated \
           --source=./packages/oyl-cms-strapi \
-          --set-env-vars=$(echo $(cat <<EOF
-          $(echo "${{ secrets.ENV_VARS }}" | tr '\n' ',' | sed 's/,$//')
-          EOF
-          )) \
+          --set-env-vars ${{ secrets.ENV_VARS }} \
           --project=${{ secrets.GCLOUD_PROJECT_ID }}
