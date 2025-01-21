@@ -113,4 +113,9 @@ dist
 build
 .strapi-updater.json
 
+
+####
 docker-compose.yml
+.gcloudignore
+app.yaml
+cloudbuild.yaml
