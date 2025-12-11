@@ -1,0 +1,46 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_goals",
+  "info": {
+    "singularName": "user-goal",
+    "pluralName": "user-goals",
+    "displayName": "User Goal"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "date": {
+      "type": "datetime",
+      "required": true
+    },
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "name": {
+      "type": "string"
+    },
+    "goal": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::goal.goal"
+    },
+    "progress": {
+      "type": "integer",
+      "min": 0
+    },
+    "target": {
+      "type": "integer",
+      "min": 0
+    },
+    "data": {
+      "type": "json"
+    },
+    "deleted_at": {
+      "type": "datetime"
+    }
+  }
+}

@@ -1,18 +1,24 @@
 {
-	"name": "oyl",
-	"description": "Organize Your Life",
-	"version": "0.0.1",
-	"author": "Steve Hynding",
-	"scripts": {
-		"strapi-develop": "cd ./packages/oyl-cms-strapi && ./bin/strapi develop",
-		"strapi-start": "cd ./packages/oyl-cms-strapi && ./bin/strapi start",
-		"strapi-build": "cd ./packages/oyl-cms-strapi && ./bin/strapi build",
-		"strapi": "cd ./packages/oyl-cms-strapi && ./bin/strapi"
-	},
-	"dependencies": {},
-	"devDependencies": {
-		"@google-cloud/run": "^1.5.0",
-		"lerna": "^4.0.0",
-		"prettier": "3.3.3"
-	}
+  "name": "oyl",
+  "description": "Organize Your Life",
+  "version": "1.0.0",
+  "author": "Steve Hynding",
+  "scripts": {
+    "next": "pnpm --filter @oyl/next-oyl",
+    "mobile": "pnpm --filter @oyl/mobile-oyl",
+    "storybook": "pnpm --filter @oyl/storybook-oyl",
+    "strapi": "pnpm --filter @oyl/strapi-oyl"
+  },
+  "dependencies": {
+    "prettier": "^3.6.2"
+  },
+  "packageManager": "pnpm@10.13.1",
+  "engines": {
+    "pnpm": ">=10.6.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "farmhash"
+    ]
+  }
 }

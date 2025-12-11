@@ -1,0 +1,8 @@
+{
+    "name": "mytest",
+    "description": "mytest",
+    "type": "test",
+    "version": "0.0.1",
+    "author": "oyl",
+    "license": "MIT"
+}

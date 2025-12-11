@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_nutrition_settings",
+  "info": {
+    "singularName": "user-nutrition-setting",
+    "pluralName": "user-nutrition-settings",
+    "displayName": "User Nutrition Setting"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "nutrition_item": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::nutrition-item.nutrition-item"
+    },
+    "data": {
+      "type": "json"
+    }
+  }
+}

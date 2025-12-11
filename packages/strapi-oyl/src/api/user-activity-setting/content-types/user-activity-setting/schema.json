@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_activity_settings",
+  "info": {
+    "singularName": "user-activity-setting",
+    "pluralName": "user-activity-settings",
+    "displayName": "User Activity Setting"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "activity": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::activity.activity"
+    },
+    "data": {
+      "type": "json"
+    }
+  }
+}

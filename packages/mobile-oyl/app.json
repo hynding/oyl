@@ -1,0 +1,10 @@
+{
+  "name": "oyl-mobile",
+  "slug": "oyl-mobile",
+  "android": {
+    "package": "com.stevejubilee.oylmobile"
+  },
+  "ios": {
+    "bundleIdentifier": "com.stevejubilee.oylmobile"
+  }
+}

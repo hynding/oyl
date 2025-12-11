@@ -1,0 +1,48 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_dailies",
+  "info": {
+    "singularName": "user-daily",
+    "pluralName": "user-dailies",
+    "displayName": "User Daily"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "date": {
+      "type": "date",
+      "required": true
+    },
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "activities": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::user-activity.user-activity"
+    },
+    "goals": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::user-goal.user-goal"
+    },
+    "nutrition": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::user-nutrition.user-nutrition"
+    },
+    "journal": {
+      "type": "blocks"
+    },
+    "data": {
+      "type": "json"
+    },
+    "deleted_at": {
+      "type": "datetime"
+    }
+  }
+}

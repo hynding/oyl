@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_goal_settings",
+  "info": {
+    "singularName": "user-goal-setting",
+    "pluralName": "user-goal-settings",
+    "displayName": "User Goal Setting"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "goal": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::goal.goal"
+    },
+    "data": {
+      "type": "json"
+    }
+  }
+}

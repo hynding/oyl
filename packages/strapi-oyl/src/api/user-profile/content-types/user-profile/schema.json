@@ -1,0 +1,91 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_profiles",
+  "info": {
+    "singularName": "user-profile",
+    "pluralName": "user-profiles",
+    "displayName": "User Profile"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "profile"
+    },
+    "firstName": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": false
+        }
+      }
+    },
+    "lastName": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "birthDate": {
+      "type": "date",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "profileImage": {
+      "type": "media",
+      "pluginOptions": {
+        "i18n": {
+          "localized": false
+        }
+      },
+      "multiple": false,
+      "allowedTypes": [
+        "images"
+      ]
+    },
+    "activities": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::activity.activity"
+    },
+    "goals": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::goal.goal"
+    },
+    "nutrition_items": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::nutrition-item.nutrition-item"
+    },
+    "activity_settings": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::user-activity-setting.user-activity-setting"
+    },
+    "goal_settings": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::user-goal-setting.user-goal-setting"
+    },
+    "nutrition_settings": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::user-nutrition-setting.user-nutrition-setting"
+    }
+  }
+}

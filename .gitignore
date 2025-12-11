@@ -7,4 +7,8 @@ public/lib
 app/tests/coverage/
 .bower-*/
 .idea/
+.env
 packages/oyl-cms-twill
+
+.claude
+TODO.md

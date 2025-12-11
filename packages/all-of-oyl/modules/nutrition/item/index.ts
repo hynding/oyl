@@ -1,0 +1,1 @@
+export type { TNutritionItem, TNutritionItemData } from "./nutrition-item-types";

@@ -1,0 +1,57 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_nutritions",
+  "info": {
+    "singularName": "user-nutrition",
+    "pluralName": "user-nutritions",
+    "displayName": "User Nutrition"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "date": {
+      "type": "datetime"
+    },
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "name": {
+      "type": "string"
+    },
+    "nutrition_item": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::nutrition-item.nutrition-item"
+    },
+    "calories": {
+      "type": "integer",
+      "min": 0
+    },
+    "protein": {
+      "type": "integer",
+      "min": 0
+    },
+    "carbs": {
+      "type": "integer",
+      "min": 0
+    },
+    "fat": {
+      "type": "integer",
+      "min": 0
+    },
+    "data": {
+      "type": "json"
+    },
+    "deleted_at": {
+      "type": "datetime"
+    },
+    "servings": {
+      "type": "decimal",
+      "min": 0
+    }
+  }
+}

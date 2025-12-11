@@ -1,0 +1,45 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_activities",
+  "info": {
+    "singularName": "user-activity",
+    "pluralName": "user-activities",
+    "displayName": "User Activity"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "date": {
+      "type": "datetime",
+      "required": true
+    },
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "name": {
+      "type": "string"
+    },
+    "activity": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::activity.activity"
+    },
+    "duration": {
+      "type": "integer",
+      "required": true,
+      "default": 0,
+      "min": 0
+    },
+    "data": {
+      "type": "json",
+      "required": true
+    },
+    "deleted_at": {
+      "type": "datetime"
+    }
+  }
+}

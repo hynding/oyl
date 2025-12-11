@@ -1,0 +1,1 @@
+export type { TDataId, TDataItem } from './data-types'

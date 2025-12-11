@@ -1,0 +1,14 @@
+<template id="test-imp">
+    <script type="module">
+    </script>
+    <template>
+        <p data-bind="test">Hi</p>
+        <p data-bind="test2">Hi</p>
+        <p data-bind="test3">Hi</p>
+        <p>
+            <slot></slot>
+        </p>
+        <input type="text" data-value="test" />
+        <button data-click="increment">Increment</button>
+    </template>
+</template>

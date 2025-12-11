@@ -1,0 +1,54 @@
+services:
+  strapi:
+    platform: linux/amd64
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./packages/strapi-oyl:/app
+    # command: sh -c "npm install -g pnpm && pnpm strapi build --debug && pnpm strapi dev"
+    command: sh -c "npm install && npm run build --debug && npm run dev"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: "development"
+    ports:
+      - "3337:1337"
+  next:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: sh -c "npm install -g pnpm && pnpm next dev"
+    env_file:
+      - .env
+    environment:
+      PG_CONNECTION: "postgres://postgres:postgres@postgres:5432/oyl"
+      NODE_ENV: "local"
+    ports:
+      - "3041:3000"
+
+  postgres:
+    platform: linux/amd64
+    image: postgis/postgis:16-3.5-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5441:5432"
+    volumes:
+      - database-data-oyl:/var/lib/postgresql/data/
+    command: >
+      sh -c "
+        echo '
+          CREATE DATABASE oyl;
+        ' > /docker-entrypoint-initdb.d/00-init.sql && docker-entrypoint.sh postgres
+      "
+    healthcheck:
+      test: pg_isready -U postgres
+      start_period: 1s
+      interval: 2s
+      timeout: 1s
+      retries: 20
+
+volumes:
+  database-data-oyl:
