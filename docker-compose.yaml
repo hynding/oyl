@@ -4,9 +4,8 @@ services:
     image: node:22-alpine
     working_dir: /app
     volumes:
-      - ./packages/strapi-oyl:/app
-    # command: sh -c "npm install -g pnpm && pnpm strapi build --debug && pnpm strapi dev"
-    command: sh -c "npm install && npm run build --debug && npm run dev"
+      - ./:/app
+    command: sh -c "npm install -g pnpm && pnpm install && pnpm strapi build --debug && pnpm strapi dev"
     env_file:
       - .env
     environment:
@@ -44,8 +43,8 @@ services:
     image: node:22-alpine
     working_dir: /app
     volumes:
-      - ./packages/storybook-oyl:/app
-    command: sh -c "npm install && npm run storybook"
+      - ./:/app
+    command: sh -c "npm install -g pnpm && pnpm install && pnpm storybook storybook"
     ports:
     - "6041:6006"
 
