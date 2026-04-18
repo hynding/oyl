@@ -4,7 +4,7 @@ import type {
   TUserActivitySettings,
   TUserGoalData,
   TUserNutritionData,
-} from '@oyl/all-of/modules'
+} from '@oyl/all-of-oyl/modules'
 
 
 type DailyContext = {
@@ -61,6 +61,24 @@ const defaultActivitySettings: TUserActivitySettings = {
   hasEndDate: false,
   endDate: ''
 }
+
+export const defaultActivities: TUserActivityData[] = [
+  { id: 1, name: 'DelMe - Morning Workout', duration: 30, completed: false, time: '07:00' },
+  { id: 2, name: 'DelMe - Walk the Dog', duration: 15, completed: true, time: '18:30' },
+  { id: 3, name: 'DelMe - Meditation', duration: 10, completed: false, time: '20:00' }
+]
+
+export const defaultGoals: TUserGoalData[] = [
+  { id: 1, name: 'Daily Steps', description: 'Walk 10,000 steps', progress: 7500, target: 10000, completed: false },
+  { id: 2, name: 'Water Intake', description: 'Drink 8 glasses of water', progress: 6, target: 8, completed: false },
+  { id: 3, name: 'Reading', description: 'Read for 30 minutes', progress: 30, target: 30, completed: true }
+]
+
+export const defaultFoodItems: TUserNutritionData[] = [
+  { id: 1, name: 'Oatmeal with Berries', calories: 320, protein: 12, carbs: 54, fat: 8, time: '08:00' },
+  { id: 2, name: 'Grilled Chicken Salad', calories: 450, protein: 35, carbs: 15, fat: 28, time: '12:30' },
+  { id: 3, name: 'Apple with Almonds', calories: 190, protein: 6, carbs: 25, fat: 12, time: '15:30' }
+]
 
 const defaultContext: DailyContext = {
   selectedDate: '',

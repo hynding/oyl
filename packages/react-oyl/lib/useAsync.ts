@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 
 export type AsyncState<T, P> = {
   trigger: (...params: P[]) => Promise<void>
@@ -12,7 +12,7 @@ export default function useAsync<T, P>(asyncFunction: (...params: P[]) => Promis
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<Error | null>(null)
 
-  const trigger = async (...params: P[]) => {
+  const trigger = useCallback(async (...params: P[]) => {
     setLoading(true)
     setError(null)
     try {
@@ -23,7 +23,7 @@ export default function useAsync<T, P>(asyncFunction: (...params: P[]) => Promis
     } finally {
       setLoading(false)
     }
-  }
+  }, [asyncFunction])
 
   return { trigger, data, loading, error }
 }

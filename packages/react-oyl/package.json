@@ -1,5 +1,5 @@
 {
-  "name": "react-oyl",
+  "name": "@oyl/react-oyl",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,7 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@oyl/all-of": "workspace:*",
+    "@oyl/all-of-oyl": "workspace:*",
+    "@oyl/storybook-oyl": "workspace:*",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router": "^7.9.5"

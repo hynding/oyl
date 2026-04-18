@@ -1,2 +1,2 @@
 export { useApp } from './useApp';
-export { AppProvider } from './AppProvider';
+export { default as AppProvider } from './AppProvider';

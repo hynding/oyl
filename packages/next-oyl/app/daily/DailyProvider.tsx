@@ -7,7 +7,7 @@ import {
   TUserActivity, 
   TUserGoal, 
   TUserNutrition
-} from '@oyl/all-of/modules'
+} from '@oyl/all-of-oyl/modules'
 import useAuth from '@/hooks/useAuth'
 import useCMS from '@/hooks/useCMS'
 import { useUserDaily, useUserProfile } from '@/modules/user'
@@ -371,6 +371,7 @@ export default function DailyProvider({ children }: { children: React.ReactNode 
   const fetchSelectedDate = useCallback(async () => {
     if (user?.id && selectedDate && cms) {
       try {
+        console.log('Fetching daily data for', selectedDate, 'and user', user.id)
         // Fetch daily data for the selected date and user
         const response = await cms.collection('user-dailies').find({
           filters: {
@@ -383,6 +384,7 @@ export default function DailyProvider({ children }: { children: React.ReactNode 
             nutrition: { populate: ['nutrition_item'] } 
           }
         })
+        console.log('Daily data response:', response)
 
         if (response.data && response.data.length > 0) {
           const dailyData = response.data[0]
@@ -444,12 +446,6 @@ export default function DailyProvider({ children }: { children: React.ReactNode 
     }
   }, [user?.id, selectedDate, cms, activities, goals, foodItems])
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchSelectedDate()
-    }
-  }, [isAuthenticated, fetchSelectedDate])
-
   // Auto-save when data changes
   // useEffect(() => {
   //   if (isAuthenticated && user?.id) {
@@ -460,11 +456,19 @@ export default function DailyProvider({ children }: { children: React.ReactNode 
   //     return () => clearTimeout(timeoutId)
   //   }
   // }, [isAuthenticated, user?.id, activities, goals, foodItems, saveSelectedDate])
-  
-  if (router && !isAuthenticated) {
-    router.push('/login')
-    return null
-  }
+
+  useEffect(() => {
+    if (router && !isAuthenticated) {
+      router.push('/login')
+      return
+    }
+
+    console.log('isAuthenticated', isAuthenticated)
+
+    if (isAuthenticated) {
+      fetchSelectedDate()
+    }
+  }, [router, isAuthenticated, fetchSelectedDate])
 
   return (
     <Provider value={{

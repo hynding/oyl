@@ -4,8 +4,10 @@ import { BrowserRouter, Routes, Route } from "react-router"
 import AppHomePage from '@/modules/app/AppHomePage'
 import AppProvider from '@/modules/app/AppProvider'
 import AuthLogin from '@/modules/auth/AuthLogin'
+import ProtectedRoute from '@/modules/auth/ProtectedRoute'
 import UserDailyPage from '@/modules/user/daily/UserDailyPage'
 import UserProfilePage from '@/modules/user/profile/UserProfilePage'
+import NutritionPage from '@/modules/nutrition/NutritionPage'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
@@ -13,10 +15,11 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <AppProvider>
         <Routes >
-          <Route index element={<AppHomePage />} />
-          <Route path="daily" element={<UserDailyPage />} />
           <Route path="login" element={<AuthLogin />} />
-          <Route path="my/:settings" element={<UserProfilePage />} />
+          <Route index element={<ProtectedRoute><AppHomePage /></ProtectedRoute>} />
+          <Route path="daily" element={<ProtectedRoute><UserDailyPage /></ProtectedRoute>} />
+          <Route path="my/:settings" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+          <Route path="nutrition" element={<ProtectedRoute><NutritionPage /></ProtectedRoute>} />
         </Routes>
       </AppProvider>
     </BrowserRouter>

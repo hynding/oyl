@@ -10,5 +10,6 @@ app/tests/coverage/
 .env
 packages/oyl-cms-twill
 
+.pnpm-store/
 .claude
 TODO.md

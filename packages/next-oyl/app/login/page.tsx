@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import useAuth from '@/hooks/useAuth'
 
@@ -47,10 +47,11 @@ export default function LoginPage() {
     }))
   }
 
-  if (isAuthenticated) {
-    router.push('/daily')
-    return null
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/daily')
+    }
+  }, [isAuthenticated, router])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

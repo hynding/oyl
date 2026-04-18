@@ -1,9 +1,10 @@
+import { useCallback } from 'react'
 import useAsync from '@/lib/useAsync';
 import useAuth from '@/modules/auth/useAuth';
 
 type FetchProps = {
   domain: string;
-  apiToken?: string;
+  apiToken: string | null;
   method?: string;
 }
 
@@ -25,16 +26,20 @@ const authDataFetch = async <T>(props: FetchProps): Promise<T> => {
 
 export function useDataRemote<T, P>(domain: string) {
   const { apiToken } = useAuth()
-  const getRequest = useAsync<T, string>(async (id) => {
-    return await authDataFetch<T>({ domain: `${domain}/${id}`, apiToken })
-  })
-  const findRequest = useAsync<T, P>(async () => {
-    return await authDataFetch<T>({ domain, apiToken })
-  })
-  const saveRequest = useAsync<T, P>(async () => {
-    return await authDataFetch<T>({ domain, apiToken })
-  })
 
+  const getRequestFn = useCallback(async (id: string) => {
+    return await authDataFetch<T>({ domain: `${domain}/${id}`, apiToken })
+  }, [domain, apiToken])
+  const findRequestFn = useCallback(async () => {
+    return await authDataFetch<T>({ domain, apiToken })
+  }, [domain, apiToken])
+  const saveRequestFn = useCallback(async () => {
+    return await authDataFetch<T>({ domain, apiToken })
+  }, [domain, apiToken])
+
+  const getRequest = useAsync<T, string>(getRequestFn)
+  const findRequest = useAsync<T, P>(findRequestFn)
+  const saveRequest = useAsync<T, P>(saveRequestFn)
   return {
     get: getRequest,
     find: findRequest,

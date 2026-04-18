@@ -1,4 +1,4 @@
-import type { TDataItem } from "@/modules/data";
+import { type TDataItem } from "@/modules/data";
 
 export type TActivity = {
   name?: string

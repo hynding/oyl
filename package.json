@@ -4,10 +4,12 @@
   "version": "1.0.0",
   "author": "Steve Hynding",
   "scripts": {
+    "all-of": "pnpm --filter @oyl/all-of-oyl",
     "next": "pnpm --filter @oyl/next-oyl",
-    "mobile": "pnpm --filter @oyl/mobile-oyl",
+    "react": "pnpm --filter @oyl/react-oyl",
     "storybook": "pnpm --filter @oyl/storybook-oyl",
-    "strapi": "pnpm --filter @oyl/strapi-oyl"
+    "strapi": "pnpm --filter @oyl/strapi-oyl",
+    "vanilla": "pnpm --filter @oyl/vanilla-oyl"
   },
   "dependencies": {
     "prettier": "^3.6.2"

@@ -27,6 +27,28 @@ services:
     ports:
       - "3041:3000"
 
+  react:
+    platform: linux/amd64
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: sh -c "npm install -g pnpm && pnpm install && pnpm react dev"
+    environment:
+      - VITE_HOST=0.0.0.0
+    ports:
+      - "5041:5173"
+  
+  storybook:
+    platform: linux/amd64
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - ./packages/storybook-oyl:/app
+    command: sh -c "npm install && npm run storybook"
+    ports:
+    - "6041:6006"
+
   postgres:
     platform: linux/amd64
     image: postgis/postgis:16-3.5-alpine
