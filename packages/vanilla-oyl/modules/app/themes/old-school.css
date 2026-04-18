@@ -1,0 +1,6 @@
+[data-theme="old-school"] {
+  --color-primary: var(--color-blue-500);
+  --color-secondary: light-dark(var(--color-blue-500), #eee);
+  --color-background: #fff;
+  --color-text: #333;
+}

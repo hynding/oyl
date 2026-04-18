@@ -1,0 +1,100 @@
+{
+  "kind": "collectionType",
+  "collectionName": "words",
+  "info": {
+    "singularName": "word",
+    "pluralName": "words",
+    "displayName": "Word"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
+  "attributes": {
+    "name": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "minLength": 1,
+      "required": true,
+      "unique": true,
+      "regex": "^[a-z]+$"
+    },
+    "is_common": {
+      "type": "boolean",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "required": true,
+      "default": true
+    },
+    "is_singular": {
+      "type": "boolean",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "required": true,
+      "default": true
+    },
+    "is_plural": {
+      "type": "boolean",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "required": true,
+      "default": false
+    },
+    "pronunciation": {
+      "type": "string",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      }
+    },
+    "synonyms": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::word.word"
+    },
+    "antonyms": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::word.word"
+    },
+    "rhymes_withs": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::word.word"
+    },
+    "plural_words": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::word.word"
+    },
+    "singular_word": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::word.word"
+    },
+    "word_definitions": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::word-definition.word-definition",
+      "mappedBy": "words"
+    }
+  }
+}

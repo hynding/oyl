@@ -1,0 +1,12 @@
+{
+  "name": "@oyl/vanilla-oyl",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Vanilla JavaScript implementation of OYL",
+  "scripts": {
+    "preview": "http-server -c-1 -p 8080 --proxy http://localhost:8080? --cors"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}

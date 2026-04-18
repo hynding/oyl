@@ -1,0 +1,7 @@
+@import './modules/app/index.css';
+
+body {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 1.5em;
+    padding-left: 0.5em;
+}

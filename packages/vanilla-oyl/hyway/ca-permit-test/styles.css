@@ -1,0 +1,52 @@
+:root {
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  position: fixed;
+  display: flex;
+  width: 100%;
+  top: 0;
+  left: 0;
+  height: 32px;
+  background: black;
+
+  & h1 {
+    font-size: 1.5rem;
+    margin: 0.25rem 0.5rem;
+    color: white;
+  }
+}
+
+main {
+  margin: 32px 16px 48px 16px;
+}
+
+footer {
+  position: fixed;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  bottom: 0;
+  left: 0;
+  height: 48px;
+  background: blue;
+  color: white;
+
+  & button {
+    margin-right: 16px;
+  }
+}
+
+.hidden {
+  display: none;
+}

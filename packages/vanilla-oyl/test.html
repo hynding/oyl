@@ -1,0 +1,39 @@
+<html>
+    <head>
+        <meta name="google-signin-client_id" content="161255460863-1fv9phgn16bkgcm7nm0hiffdaqrf0upq.apps.googleusercontent.com" />
+        <script src="https://apis.google.com/js/platform.js" async defer></script>
+        <script>
+            function onSignIn(googleUser) {
+                var profile = googleUser.getBasicProfile();
+                console.log('googleUser:', googleUser);
+                console.log('profile:', profile);
+                console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+                console.log('Name: ' + profile.getName());
+                console.log('Image URL: ' + profile.getImageUrl());
+                console.log('Email: ' + profile.getEmail());
+                fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+                    method: 'POST',
+                    headers: {
+                        "Authorization": 'Bearer ' + googleUser.Ic.access_token,
+                    },
+                    body: JSON.stringify({
+                        properties: {
+                            title: 'Testing Spreadsheet'
+                        }
+                    })
+                }).then(response => {
+                    if (response.ok) {
+                        console.log('Spreadsheet created successfully');
+                    } else {
+                        console.error('Error creating spreadsheet:', response.statusText);
+                    }
+                }).catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+        </script>
+    </head>
+    <body>
+        <div class="g-signin2" data-onsuccess="onSignIn"></div>
+    </body>
+</html>

@@ -1,0 +1,656 @@
+/* ==========================================================================
+   OYL Color System - Comprehensive Color Variables
+   ========================================================================== */
+
+:root {
+  /* ==========================================================================
+     Neutral Colors - Gray Scale
+     ========================================================================== */
+
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f5f5f5;
+  --color-gray-200: #e5e5e5;
+  --color-gray-300: #d4d4d4;
+  --color-gray-400: #a3a3a3;
+  --color-gray-500: #737373;
+  --color-gray-600: #525252;
+  --color-gray-700: #404040;
+  --color-gray-800: #262626;
+  --color-gray-900: #171717;
+  --color-gray-950: #0a0a0a;
+
+  /* ==========================================================================
+     Slate Colors - Cool Gray Alternative
+     ========================================================================== */
+
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+
+  /* ==========================================================================
+     Zinc Colors - Warm Gray Alternative
+     ========================================================================== */
+
+  --color-zinc-50: #fafafa;
+  --color-zinc-100: #f4f4f5;
+  --color-zinc-200: #e4e4e7;
+  --color-zinc-300: #d4d4d8;
+  --color-zinc-400: #a1a1aa;
+  --color-zinc-500: #71717a;
+  --color-zinc-600: #52525b;
+  --color-zinc-700: #3f3f46;
+  --color-zinc-800: #27272a;
+  --color-zinc-900: #18181b;
+  --color-zinc-950: #09090b;
+
+  /* ==========================================================================
+     Stone Colors - Natural Gray Alternative
+     ========================================================================== */
+
+  --color-stone-50: #fafaf9;
+  --color-stone-100: #f5f5f4;
+  --color-stone-200: #e7e5e4;
+  --color-stone-300: #d6d3d1;
+  --color-stone-400: #a8a29e;
+  --color-stone-500: #78716c;
+  --color-stone-600: #57534e;
+  --color-stone-700: #44403c;
+  --color-stone-800: #292524;
+  --color-stone-900: #1c1917;
+  --color-stone-950: #0c0a09;
+
+  /* ==========================================================================
+     Red Colors
+     ========================================================================== */
+
+  --color-red-50: #fef2f2;
+  --color-red-100: #fee2e2;
+  --color-red-200: #fecaca;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+  --color-red-800: #991b1b;
+  --color-red-900: #7f1d1d;
+  --color-red-950: #450a0a;
+
+  /* ==========================================================================
+     Orange Colors
+     ========================================================================== */
+
+  --color-orange-50: #fff7ed;
+  --color-orange-100: #ffedd5;
+  --color-orange-200: #fed7aa;
+  --color-orange-300: #fdba74;
+  --color-orange-400: #fb923c;
+  --color-orange-500: #f97316;
+  --color-orange-600: #ea580c;
+  --color-orange-700: #c2410c;
+  --color-orange-800: #9a3412;
+  --color-orange-900: #7c2d12;
+  --color-orange-950: #431407;
+
+  /* ==========================================================================
+     Amber Colors
+     ========================================================================== */
+
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-200: #fde68a;
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  --color-amber-700: #b45309;
+  --color-amber-800: #92400e;
+  --color-amber-900: #78350f;
+  --color-amber-950: #451a03;
+
+  /* ==========================================================================
+     Yellow Colors
+     ========================================================================== */
+
+  --color-yellow-50: #fefce8;
+  --color-yellow-100: #fef9c3;
+  --color-yellow-200: #fef08a;
+  --color-yellow-300: #fde047;
+  --color-yellow-400: #facc15;
+  --color-yellow-500: #eab308;
+  --color-yellow-600: #ca8a04;
+  --color-yellow-700: #a16207;
+  --color-yellow-800: #854d0e;
+  --color-yellow-900: #713f12;
+  --color-yellow-950: #422006;
+
+  /* ==========================================================================
+     Lime Colors
+     ========================================================================== */
+
+  --color-lime-50: #f7fee7;
+  --color-lime-100: #ecfccb;
+  --color-lime-200: #d9f99d;
+  --color-lime-300: #bef264;
+  --color-lime-400: #a3e635;
+  --color-lime-500: #84cc16;
+  --color-lime-600: #65a30d;
+  --color-lime-700: #4d7c0f;
+  --color-lime-800: #3f6212;
+  --color-lime-900: #365314;
+  --color-lime-950: #1a2e05;
+
+  /* ==========================================================================
+     Green Colors
+     ========================================================================== */
+
+  --color-green-50: #f0fdf4;
+  --color-green-100: #dcfce7;
+  --color-green-200: #bbf7d0;
+  --color-green-300: #86efac;
+  --color-green-400: #4ade80;
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+  --color-green-700: #15803d;
+  --color-green-800: #166534;
+  --color-green-900: #14532d;
+  --color-green-950: #052e16;
+
+  /* ==========================================================================
+     Emerald Colors
+     ========================================================================== */
+
+  --color-emerald-50: #ecfdf5;
+  --color-emerald-100: #d1fae5;
+  --color-emerald-200: #a7f3d0;
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
+  --color-emerald-700: #047857;
+  --color-emerald-800: #065f46;
+  --color-emerald-900: #064e3b;
+  --color-emerald-950: #022c22;
+
+  /* ==========================================================================
+     Teal Colors
+     ========================================================================== */
+
+  --color-teal-50: #f0fdfa;
+  --color-teal-100: #ccfbf1;
+  --color-teal-200: #99f6e4;
+  --color-teal-300: #5eead4;
+  --color-teal-400: #2dd4bf;
+  --color-teal-500: #14b8a6;
+  --color-teal-600: #0d9488;
+  --color-teal-700: #0f766e;
+  --color-teal-800: #115e59;
+  --color-teal-900: #134e4a;
+  --color-teal-950: #042f2e;
+
+  /* ==========================================================================
+     Cyan Colors
+     ========================================================================== */
+
+  --color-cyan-50: #ecfeff;
+  --color-cyan-100: #cffafe;
+  --color-cyan-200: #a5f3fc;
+  --color-cyan-300: #67e8f9;
+  --color-cyan-400: #22d3ee;
+  --color-cyan-500: #06b6d4;
+  --color-cyan-600: #0891b2;
+  --color-cyan-700: #0e7490;
+  --color-cyan-800: #155e75;
+  --color-cyan-900: #164e63;
+  --color-cyan-950: #083344;
+
+  /* ==========================================================================
+     Sky Colors
+     ========================================================================== */
+
+  --color-sky-50: #f0f9ff;
+  --color-sky-100: #e0f2fe;
+  --color-sky-200: #bae6fd;
+  --color-sky-300: #7dd3fc;
+  --color-sky-400: #38bdf8;
+  --color-sky-500: #0ea5e9;
+  --color-sky-600: #0284c7;
+  --color-sky-700: #0369a1;
+  --color-sky-800: #075985;
+  --color-sky-900: #0c4a6e;
+  --color-sky-950: #082f49;
+
+  /* ==========================================================================
+     Blue Colors
+     ========================================================================== */
+
+  --color-blue-50: #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-blue-800: #1e40af;
+  --color-blue-900: #1e3a8a;
+  --color-blue-950: #172554;
+
+  /* ==========================================================================
+     Indigo Colors
+     ========================================================================== */
+
+  --color-indigo-50: #eef2ff;
+  --color-indigo-100: #e0e7ff;
+  --color-indigo-200: #c7d2fe;
+  --color-indigo-300: #a5b4fc;
+  --color-indigo-400: #818cf8;
+  --color-indigo-500: #6366f1;
+  --color-indigo-600: #4f46e5;
+  --color-indigo-700: #4338ca;
+  --color-indigo-800: #3730a3;
+  --color-indigo-900: #312e81;
+  --color-indigo-950: #1e1b4b;
+
+  /* ==========================================================================
+     Violet Colors
+     ========================================================================== */
+
+  --color-violet-50: #f5f3ff;
+  --color-violet-100: #ede9fe;
+  --color-violet-200: #ddd6fe;
+  --color-violet-300: #c4b5fd;
+  --color-violet-400: #a78bfa;
+  --color-violet-500: #8b5cf6;
+  --color-violet-600: #7c3aed;
+  --color-violet-700: #6d28d9;
+  --color-violet-800: #5b21b6;
+  --color-violet-900: #4c1d95;
+  --color-violet-950: #2e1065;
+
+  /* ==========================================================================
+     Purple Colors
+     ========================================================================== */
+
+  --color-purple-50: #faf5ff;
+  --color-purple-100: #f3e8ff;
+  --color-purple-200: #e9d5ff;
+  --color-purple-300: #d8b4fe;
+  --color-purple-400: #c084fc;
+  --color-purple-500: #a855f7;
+  --color-purple-600: #9333ea;
+  --color-purple-700: #7e22ce;
+  --color-purple-800: #6b21a8;
+  --color-purple-900: #581c87;
+  --color-purple-950: #3b0764;
+
+  /* ==========================================================================
+     Fuchsia Colors
+     ========================================================================== */
+
+  --color-fuchsia-50: #fdf4ff;
+  --color-fuchsia-100: #fae8ff;
+  --color-fuchsia-200: #f5d0fe;
+  --color-fuchsia-300: #f0abfc;
+  --color-fuchsia-400: #e879f9;
+  --color-fuchsia-500: #d946ef;
+  --color-fuchsia-600: #c026d3;
+  --color-fuchsia-700: #a21caf;
+  --color-fuchsia-800: #86198f;
+  --color-fuchsia-900: #701a75;
+  --color-fuchsia-950: #4a044e;
+
+  /* ==========================================================================
+     Pink Colors
+     ========================================================================== */
+
+  --color-pink-50: #fdf2f8;
+  --color-pink-100: #fce7f3;
+  --color-pink-200: #fbcfe8;
+  --color-pink-300: #f9a8d4;
+  --color-pink-400: #f472b6;
+  --color-pink-500: #ec4899;
+  --color-pink-600: #db2777;
+  --color-pink-700: #be185d;
+  --color-pink-800: #9d174d;
+  --color-pink-900: #831843;
+  --color-pink-950: #500724;
+
+  /* ==========================================================================
+     Rose Colors
+     ========================================================================== */
+
+  --color-rose-50: #fff1f2;
+  --color-rose-100: #ffe4e6;
+  --color-rose-200: #fecdd3;
+  --color-rose-300: #fda4af;
+  --color-rose-400: #fb7185;
+  --color-rose-500: #f43f5e;
+  --color-rose-600: #e11d48;
+  --color-rose-700: #be123c;
+  --color-rose-800: #9f1239;
+  --color-rose-900: #881337;
+  --color-rose-950: #4c0519;
+
+  /* ==========================================================================
+     Brand Colors - Using Blue as Primary
+     ========================================================================== */
+
+  --color-primary-50: var(--color-blue-50);
+  --color-primary-100: var(--color-blue-100);
+  --color-primary-200: var(--color-blue-200);
+  --color-primary-300: var(--color-blue-300);
+  --color-primary-400: var(--color-blue-400);
+  --color-primary-500: var(--color-blue-500);
+  --color-primary-600: var(--color-blue-600);
+  --color-primary-700: var(--color-blue-700);
+  --color-primary-800: var(--color-blue-800);
+  --color-primary-900: var(--color-blue-900);
+  --color-primary-950: var(--color-blue-950);
+
+  --color-primary: var(--color-primary-600);
+  --color-primary-light: var(--color-primary-400);
+  --color-primary-dark: var(--color-primary-800);
+
+  /* ==========================================================================
+     Secondary Colors - Using Emerald
+     ========================================================================== */
+
+  --color-secondary-50: var(--color-emerald-50);
+  --color-secondary-100: var(--color-emerald-100);
+  --color-secondary-200: var(--color-emerald-200);
+  --color-secondary-300: var(--color-emerald-300);
+  --color-secondary-400: var(--color-emerald-400);
+  --color-secondary-500: var(--color-emerald-500);
+  --color-secondary-600: var(--color-emerald-600);
+  --color-secondary-700: var(--color-emerald-700);
+  --color-secondary-800: var(--color-emerald-800);
+  --color-secondary-900: var(--color-emerald-900);
+  --color-secondary-950: var(--color-emerald-950);
+
+  --color-secondary: var(--color-secondary-600);
+  --color-secondary-light: var(--color-secondary-400);
+  --color-secondary-dark: var(--color-secondary-800);
+
+  /* ==========================================================================
+     Accent Colors - Using Purple
+     ========================================================================== */
+
+  --color-accent-50: var(--color-purple-50);
+  --color-accent-100: var(--color-purple-100);
+  --color-accent-200: var(--color-purple-200);
+  --color-accent-300: var(--color-purple-300);
+  --color-accent-400: var(--color-purple-400);
+  --color-accent-500: var(--color-purple-500);
+  --color-accent-600: var(--color-purple-600);
+  --color-accent-700: var(--color-purple-700);
+  --color-accent-800: var(--color-purple-800);
+  --color-accent-900: var(--color-purple-900);
+  --color-accent-950: var(--color-purple-950);
+
+  --color-accent: var(--color-accent-600);
+  --color-accent-light: var(--color-accent-400);
+  --color-accent-dark: var(--color-accent-800);
+
+  /* ==========================================================================
+     Semantic Colors - Success
+     ========================================================================== */
+
+  --color-success-50: var(--color-green-50);
+  --color-success-100: var(--color-green-100);
+  --color-success-200: var(--color-green-200);
+  --color-success-300: var(--color-green-300);
+  --color-success-400: var(--color-green-400);
+  --color-success-500: var(--color-green-500);
+  --color-success-600: var(--color-green-600);
+  --color-success-700: var(--color-green-700);
+  --color-success-800: var(--color-green-800);
+  --color-success-900: var(--color-green-900);
+  --color-success-950: var(--color-green-950);
+
+  --color-success: var(--color-success-600);
+  --color-success-light: var(--color-success-400);
+  --color-success-dark: var(--color-success-800);
+
+  /* ==========================================================================
+     Semantic Colors - Warning
+     ========================================================================== */
+
+  --color-warning-50: var(--color-amber-50);
+  --color-warning-100: var(--color-amber-100);
+  --color-warning-200: var(--color-amber-200);
+  --color-warning-300: var(--color-amber-300);
+  --color-warning-400: var(--color-amber-400);
+  --color-warning-500: var(--color-amber-500);
+  --color-warning-600: var(--color-amber-600);
+  --color-warning-700: var(--color-amber-700);
+  --color-warning-800: var(--color-amber-800);
+  --color-warning-900: var(--color-amber-900);
+  --color-warning-950: var(--color-amber-950);
+
+  --color-warning: var(--color-warning-600);
+  --color-warning-light: var(--color-warning-400);
+  --color-warning-dark: var(--color-warning-800);
+
+  /* ==========================================================================
+     Semantic Colors - Error/Danger
+     ========================================================================== */
+
+  --color-error-50: var(--color-red-50);
+  --color-error-100: var(--color-red-100);
+  --color-error-200: var(--color-red-200);
+  --color-error-300: var(--color-red-300);
+  --color-error-400: var(--color-red-400);
+  --color-error-500: var(--color-red-500);
+  --color-error-600: var(--color-red-600);
+  --color-error-700: var(--color-red-700);
+  --color-error-800: var(--color-red-800);
+  --color-error-900: var(--color-red-900);
+  --color-error-950: var(--color-red-950);
+
+  --color-error: var(--color-error-600);
+  --color-error-light: var(--color-error-400);
+  --color-error-dark: var(--color-error-800);
+
+  --color-danger-50: var(--color-error-50);
+  --color-danger-100: var(--color-error-100);
+  --color-danger-200: var(--color-error-200);
+  --color-danger-300: var(--color-error-300);
+  --color-danger-400: var(--color-error-400);
+  --color-danger-500: var(--color-error-500);
+  --color-danger-600: var(--color-error-600);
+  --color-danger-700: var(--color-error-700);
+  --color-danger-800: var(--color-error-800);
+  --color-danger-900: var(--color-error-900);
+  --color-danger-950: var(--color-error-950);
+
+  --color-danger: var(--color-danger-600);
+  --color-danger-light: var(--color-danger-400);
+  --color-danger-dark: var(--color-danger-800);
+
+  /* ==========================================================================
+     Semantic Colors - Info
+     ========================================================================== */
+
+  --color-info-50: var(--color-sky-50);
+  --color-info-100: var(--color-sky-100);
+  --color-info-200: var(--color-sky-200);
+  --color-info-300: var(--color-sky-300);
+  --color-info-400: var(--color-sky-400);
+  --color-info-500: var(--color-sky-500);
+  --color-info-600: var(--color-sky-600);
+  --color-info-700: var(--color-sky-700);
+  --color-info-800: var(--color-sky-800);
+  --color-info-900: var(--color-sky-900);
+  --color-info-950: var(--color-sky-950);
+
+  --color-info: var(--color-info-600);
+  --color-info-light: var(--color-info-400);
+  --color-info-dark: var(--color-info-800);
+
+  /* ==========================================================================
+     Context Colors - Background
+     ========================================================================== */
+
+  --color-background: var(--color-white);
+  --color-background-secondary: var(--color-gray-50);
+  --color-background-tertiary: var(--color-gray-100);
+  --color-background-elevated: var(--color-white);
+  --color-background-overlay: rgba(0, 0, 0, 0.5);
+  --color-background-code: var(--color-gray-100);
+  --color-background-muted: var(--color-gray-200);
+
+  /* ==========================================================================
+     Context Colors - Foreground/Text
+     ========================================================================== */
+
+  --color-foreground: var(--color-gray-900);
+  --color-foreground-secondary: var(--color-gray-700);
+  --color-foreground-tertiary: var(--color-gray-600);
+  --color-foreground-muted: var(--color-gray-500);
+  --color-foreground-disabled: var(--color-gray-400);
+
+  --color-text: var(--color-gray-900);
+  --color-text-secondary: var(--color-gray-700);
+  --color-text-tertiary: var(--color-gray-600);
+  --color-text-muted: var(--color-gray-500);
+  --color-text-disabled: var(--color-gray-400);
+  --color-text-inverse: var(--color-white);
+  --color-text-link: var(--color-primary-600);
+  --color-text-link-hover: var(--color-primary-700);
+
+  /* ==========================================================================
+     Context Colors - Borders
+     ========================================================================== */
+
+  --color-border: var(--color-gray-200);
+  --color-border-light: var(--color-gray-100);
+  --color-border-dark: var(--color-gray-300);
+  --color-border-focus: var(--color-primary-600);
+  --color-border-error: var(--color-error-600);
+  --color-border-success: var(--color-success-600);
+  --color-border-warning: var(--color-warning-600);
+  --color-border-info: var(--color-info-600);
+
+  /* ==========================================================================
+     Context Colors - Surfaces
+     ========================================================================== */
+
+  --color-surface: var(--color-white);
+  --color-surface-hover: var(--color-gray-50);
+  --color-surface-active: var(--color-gray-100);
+  --color-surface-selected: var(--color-primary-50);
+  --color-surface-disabled: var(--color-gray-50);
+  --color-surface-elevated: var(--color-white);
+}
+
+/* ==========================================================================
+   Dark Theme Color Overrides
+   ========================================================================== */
+
+.dark,
+[data-theme="dark"] {
+  /* Background Colors */
+  --color-background: var(--color-gray-950);
+  --color-background-secondary: var(--color-gray-900);
+  --color-background-tertiary: var(--color-gray-800);
+  --color-background-elevated: var(--color-gray-900);
+  --color-background-overlay: rgba(0, 0, 0, 0.7);
+  --color-background-code: var(--color-gray-800);
+  --color-background-muted: var(--color-gray-800);
+
+  /* Foreground/Text Colors */
+  --color-foreground: var(--color-gray-50);
+  --color-foreground-secondary: var(--color-gray-300);
+  --color-foreground-tertiary: var(--color-gray-400);
+  --color-foreground-muted: var(--color-gray-500);
+  --color-foreground-disabled: var(--color-gray-600);
+
+  --color-text: var(--color-gray-50);
+  --color-text-secondary: var(--color-gray-300);
+  --color-text-tertiary: var(--color-gray-400);
+  --color-text-muted: var(--color-gray-500);
+  --color-text-disabled: var(--color-gray-600);
+  --color-text-inverse: var(--color-gray-900);
+  --color-text-link: var(--color-primary-400);
+  --color-text-link-hover: var(--color-primary-300);
+
+  /* Border Colors */
+  --color-border: var(--color-gray-700);
+  --color-border-light: var(--color-gray-800);
+  --color-border-dark: var(--color-gray-600);
+  --color-border-focus: var(--color-primary-500);
+  --color-border-error: var(--color-error-500);
+  --color-border-success: var(--color-success-500);
+  --color-border-warning: var(--color-warning-500);
+  --color-border-info: var(--color-info-500);
+
+  /* Surface Colors */
+  --color-surface: var(--color-gray-900);
+  --color-surface-hover: var(--color-gray-800);
+  --color-surface-active: var(--color-gray-700);
+  --color-surface-selected: var(--color-primary-950);
+  --color-surface-disabled: var(--color-gray-800);
+  --color-surface-elevated: var(--color-gray-800);
+}
+
+/* ==========================================================================
+   System Preference Dark Mode Fallback
+   ========================================================================== */
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light):not([data-theme="light"]) {
+    /* Background Colors */
+    --color-background: var(--color-gray-950);
+    --color-background-secondary: var(--color-gray-900);
+    --color-background-tertiary: var(--color-gray-800);
+    --color-background-elevated: var(--color-gray-900);
+    --color-background-overlay: rgba(0, 0, 0, 0.7);
+    --color-background-code: var(--color-gray-800);
+    --color-background-muted: var(--color-gray-800);
+
+    /* Foreground/Text Colors */
+    --color-foreground: var(--color-gray-50);
+    --color-foreground-secondary: var(--color-gray-300);
+    --color-foreground-tertiary: var(--color-gray-400);
+    --color-foreground-muted: var(--color-gray-500);
+    --color-foreground-disabled: var(--color-gray-600);
+
+    --color-text: var(--color-gray-50);
+    --color-text-secondary: var(--color-gray-300);
+    --color-text-tertiary: var(--color-gray-400);
+    --color-text-muted: var(--color-gray-500);
+    --color-text-disabled: var(--color-gray-600);
+    --color-text-inverse: var(--color-gray-900);
+    --color-text-link: var(--color-primary-400);
+    --color-text-link-hover: var(--color-primary-300);
+
+    /* Border Colors */
+    --color-border: var(--color-gray-700);
+    --color-border-light: var(--color-gray-800);
+    --color-border-dark: var(--color-gray-600);
+    --color-border-focus: var(--color-primary-500);
+    --color-border-error: var(--color-error-500);
+    --color-border-success: var(--color-success-500);
+    --color-border-warning: var(--color-warning-500);
+    --color-border-info: var(--color-info-500);
+
+    /* Surface Colors */
+    --color-surface: var(--color-gray-900);
+    --color-surface-hover: var(--color-gray-800);
+    --color-surface-active: var(--color-gray-700);
+    --color-surface-selected: var(--color-primary-950);
+    --color-surface-disabled: var(--color-gray-800);
+    --color-surface-elevated: var(--color-gray-800);
+  }
+}

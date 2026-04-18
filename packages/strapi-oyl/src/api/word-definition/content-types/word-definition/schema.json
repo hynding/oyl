@@ -1,0 +1,48 @@
+{
+  "kind": "collectionType",
+  "collectionName": "word_definitions",
+  "info": {
+    "singularName": "word-definition",
+    "pluralName": "word-definitions",
+    "displayName": "Word Definition"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {
+    "i18n": {
+      "localized": true
+    }
+  },
+  "attributes": {
+    "word_type": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::word-type.word-type"
+    },
+    "words": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::word.word",
+      "inversedBy": "word_definitions"
+    },
+    "text": {
+      "type": "text",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "required": true
+    },
+    "example": {
+      "type": "text",
+      "pluginOptions": {
+        "i18n": {
+          "localized": true
+        }
+      },
+      "required": false
+    }
+  }
+}

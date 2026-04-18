@@ -1,0 +1,44 @@
+
+import { component } from '../component.js'
+
+export const registerTestImpComponent = (localName = 'test-imp') => component({
+    name: localName,
+    props: {
+        // testProp: {},
+        ['test-prop']: {}
+    },
+    data: {
+        test: 'Hello World'
+    },
+    computed: {
+        test2() {
+            return this.test + ' 2'
+        },
+        test3() {
+            return this.test2() + ' 3'
+        }
+    },
+    methods: {
+        increment() {
+            this.test = this.test + '!'
+        },
+        async getData() {
+            const response = await fetch('./data.json')
+            const data = await response.json()
+            this.test = data.name
+        }
+    },
+    async mounted() {
+        await this.getData()
+    },
+    template: `
+        <p data-bind="test">Hi</p>
+        <p data-bind="test2">Hi</p>
+        <p data-bind="test3">Hi</p>
+        <p>
+            <slot></slot>
+        </p>
+        <input type="text" data-value="test" />
+        <button data-click="increment">Increment</button>
+    `
+})
