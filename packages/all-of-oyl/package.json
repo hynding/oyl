@@ -13,5 +13,8 @@
     "ts-node": "^10.9.2",
     "typescript": "^5",
     "vitest": "^2.1.9"
+  },
+  "dependencies": {
+    "rrule": "^2.8.1"
   }
 }
