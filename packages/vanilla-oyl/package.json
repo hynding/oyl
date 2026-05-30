@@ -4,7 +4,7 @@
   "private": true,
   "description": "Vanilla JavaScript implementation of OYL",
   "scripts": {
-    "preview": "http-server -c-1 -p 8080 --proxy http://localhost:8080? --cors"
+    "preview": "http-server -c-1 -p 8041 --proxy http://localhost:8041? --cors"
   },
   "devDependencies": {
     "http-server": "^14.1.1"

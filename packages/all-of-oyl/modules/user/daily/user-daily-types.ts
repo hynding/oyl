@@ -1,9 +1,7 @@
-import type { TDataId, TDataItem } from "@/modules/data"
-import type { 
-  TUserActivityData,
-  TUserGoalData,
-  TUserNutritionData
-} from "@/modules/user"
+import type { TDataId, TDataItem } from "../../data"
+import type { TUserActivityData } from "../activity/user-activity-types"
+import type { TUserGoalData } from "../goal/user-goal-types"
+import type { TUserNutritionData } from "../nutrition/user-nutrition-types"
 
 export type TUserDaily = {
   date: string

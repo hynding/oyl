@@ -12,10 +12,16 @@ function renderNode(node) {
       element.append(...render(options))
       return element
     case 'object':
-      for (const [key, value] of Object.entries(options || {})) {
+      Object.entries(options || {}).forEach(([key, value]) => {
+        if (key === 'data' && typeof value === 'object') {
+          Object.entries(value).forEach(([dataKey, dataValue]) => {
+            element.dataset[dataKey] = dataValue
+          })
+          return
+        }
         const attrName = key === 'className' ? 'class' : key
         element.setAttribute(attrName, value)
-      }
+      })
       break
     default:
       break

@@ -1,7 +1,7 @@
-export const test1 = () => [
+export const test1 = (value) => [
   'div', { className: 'container' },
     ['h1', 'Hello World'],
-    ['p', 'This is a simple component.']
+    ['p', 'This is a simple component.' + value]
 ]
 export const testFragment = () => [
   ['h2', 'Fragment Title'],

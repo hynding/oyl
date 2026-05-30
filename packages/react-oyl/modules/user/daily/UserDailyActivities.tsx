@@ -28,24 +28,24 @@ export default function DailyActivities() {
     <DailySection title="Activities">
       <div className="space-y-3">
         {activities.map(activity => (
-          <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <div className="flex items-center space-x-3 flex-1">
               <input
                 type="checkbox"
                 checked={activity.completed}
                 onChange={() => toggleActivity(activity.id)}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 rounded"
               />
               <div>
-                <p className={`font-medium ${activity.completed ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+                <p className={`font-medium ${activity.completed ? 'text-gray-500 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-gray-100'}`}>
                   {activity?.name ?? activity?.activity?.name ?? 'Activity'}
                 </p>
-                <p className="text-sm text-gray-500">{activity.duration} min • {activity.time}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{activity.duration} min • {activity.time}</p>
               </div>
             </div>
             <button
               onClick={() => setShowActivitySettings(activity.id)}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
               aria-label="Settings"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,33 +65,33 @@ export default function DailyActivities() {
       >
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Activity Name</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Activity Name</label>
             <input
               type="text"
               value={activityForm.name}
               onChange={(e) => onChangeActivity('name', e.target.value)}
               placeholder="e.g., Morning Run"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 text-black dark:text-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Duration (min)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Duration (min)</label>
               <input
                 type="number"
                 value={activityForm.duration}
                 onChange={(e) => onChangeActivity('duration', Number(e.target.value))}
                 placeholder="30"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 text-black dark:text-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
               <input
                 type="time"
                 value={activityForm.time}
                 onChange={(e) => onChangeActivity('time', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 text-black dark:text-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>
@@ -104,7 +104,7 @@ export default function DailyActivities() {
             </button>
             <button
               onClick={cancelActivityForm}
-              className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+              className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors"
             >
               Cancel
             </button>

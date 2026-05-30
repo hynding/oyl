@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import useAsync from '@/lib/useAsync';
 
 const localStorageFetch = async <T>(key: string): Promise<T> => {
@@ -14,17 +15,21 @@ const localStorageSave = async <T>(key: string, value: T): Promise<T> => {
 };
 
 export function useDataLocal<T, P>(storageKey: string) {
-  const getRequest = useAsync<T, string>(async (id) => {
+  const getRequestFn = useCallback(async (id: string) => {
     return await localStorageFetch<T>(`${storageKey}/${id}`);
-  });
+  }, [storageKey])
 
-  const findRequest = useAsync<T, P>(async () => {
+  const findRequestFn = useCallback(async () => {
     return await localStorageFetch<T>(storageKey);
-  });
+  }, [storageKey])
 
-  const saveRequest = useAsync<T, P>(async (data: P) => {
+  const saveRequestFn = useCallback(async (data: P) => {
     return await localStorageSave<T>(storageKey, data as unknown as T);
-  });
+  }, [storageKey])
+
+  const getRequest = useAsync<T, string>(getRequestFn);
+  const findRequest = useAsync<T, P>(findRequestFn);
+  const saveRequest = useAsync<T, P>(saveRequestFn);
 
   return {
     get: getRequest,

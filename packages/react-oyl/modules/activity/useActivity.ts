@@ -1,4 +1,4 @@
-import { ActivityType } from './ActivityType';
+import { type ActivityType } from './ActivityType';
 
 export function useActivity(search: string = ''): ActivityType[] {
   const activities = [

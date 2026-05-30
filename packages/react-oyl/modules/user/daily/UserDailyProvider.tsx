@@ -209,6 +209,7 @@ export default function DailyProvider({ children }: { children: React.ReactNode 
   }
 
   const fetchSelectedDate = useCallback(() => {
+    console.log('Fetching data for date:', selectedDate, user)
     if (user?.id && selectedDate && fetchUserDaily) {
       fetchUserDaily(selectedDate)
     }
@@ -216,6 +217,7 @@ export default function DailyProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     if (userDailyData) {
+      console.log('Received user daily data:', userDailyData)
       setActivities(userDailyData.activities || [])
       setGoals(userDailyData.goals || [])
       setFoodItems(userDailyData.foodItems || [])

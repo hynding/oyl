@@ -8,7 +8,7 @@ export default function DailyPage() {
 
   return (
     <DailyProvider>
-      <div className="min-h-screen w-full bg-gray-50 py-8">
+      <div className="min-h-screen w-full bg-gray-50 dark:bg-gray-900 py-8">
         <div className="mx-auto px-4 sm:px-6 lg:px-8">
           <DailyHeader />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

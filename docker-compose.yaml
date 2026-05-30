@@ -1,17 +1,17 @@
 services:
   strapi:
-    platform: linux/amd64
     image: node:22-alpine
     working_dir: /app
     volumes:
       - ./:/app
-    command: sh -c "npm install -g pnpm && pnpm install && pnpm strapi build --debug && pnpm strapi dev"
+    command: sh -c "npm install -g pnpm && pnpm strapi build --debug && pnpm strapi dev"
     env_file:
       - .env
     environment:
       NODE_ENV: "development"
     ports:
       - "3337:1337"
+
   next:
     image: node:22-alpine
     working_dir: /app
@@ -27,26 +27,24 @@ services:
       - "3041:3000"
 
   react:
-    platform: linux/amd64
     image: node:22-alpine
     working_dir: /app
     volumes:
       - ./:/app
-    command: sh -c "npm install -g pnpm && pnpm install && pnpm react dev"
+    command: sh -c "npm install -g pnpm && pnpm react dev"
     environment:
       - VITE_HOST=0.0.0.0
     ports:
       - "5041:5173"
-  
+
   storybook:
-    platform: linux/amd64
     image: node:22-alpine
     working_dir: /app
     volumes:
       - ./:/app
-    command: sh -c "npm install -g pnpm && pnpm install && pnpm storybook storybook"
+    command: sh -c "npm install -g pnpm && pnpm storybook storybook"
     ports:
-    - "6041:6006"
+      - "6041:6006"
 
   postgres:
     platform: linux/amd64

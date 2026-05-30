@@ -1,7 +1,7 @@
-import type { TDataId, TDataItem } from "@/modules/data"
-import type { TUser } from "@/modules/user"
-import type { TNutritionItem } from "@/modules/nutrition"
-import { TCalendarItem, TCalendarItemSettings } from "@/modules/calendar"
+import type { TDataId, TDataItem } from "../../data"
+import type { TUser } from "../user-types"
+import type { TNutritionItem } from "../../nutrition"
+import type { TCalendarItemSettings } from "../../calendar"
 
 export type TUserNutrition = {
   user: TUser | TDataId

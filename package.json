@@ -20,7 +20,19 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "farmhash"
-    ]
+      "@swc/core",
+      "esbuild",
+      "farmhash",
+      "sharp",
+      "unrs-resolver"
+    ],
+    "ignoredBuiltDependencies": [
+      "core-js-pure"
+    ],
+    "supportedArchitectures": {
+      "os": ["current", "linux"],
+      "cpu": ["current", "arm64"],
+      "libc": ["current", "musl"]
+    }
   }
 }

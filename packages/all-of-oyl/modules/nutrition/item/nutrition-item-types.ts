@@ -1,4 +1,4 @@
-import type { TDataId, TDataItem } from "@/modules/data";
+import type { TDataItem } from "../../data";
 
 export type TNutritionItem = {
   name: string
