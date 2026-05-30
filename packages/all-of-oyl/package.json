@@ -4,12 +4,14 @@
   "private": true,
   "description": "Core package for all of OYL",
   "scripts": {
-    "generate-module": "ts-node packages/all-of-oyl/scripts/generate-module.ts"
+    "generate-module": "ts-node packages/all-of-oyl/scripts/generate-module.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/node": "^20",
     "ts-node": "^10.9.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.9"
   }
 }
