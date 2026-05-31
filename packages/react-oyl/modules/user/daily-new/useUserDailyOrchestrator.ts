@@ -70,8 +70,14 @@ export function useUserDailyOrchestrator() {
   const pinnedActivities = userDailyData.activities
   const pinnedGoals = userDailyData.goals
 
-  const todayActivities = filterActivitiesForDate(activities, pinnedActivities as Array<TUserActivityData | TDataId>, selectedDate)
-  const todayGoals = filterGoalsForDate(goals, pinnedGoals as Array<TUserGoalData | TDataId>, selectedDate)
+  const todayActivities = useMemo(
+    () => filterActivitiesForDate(activities, pinnedActivities as Array<TUserActivityData | TDataId>, selectedDate),
+    [activities, pinnedActivities, selectedDate],
+  )
+  const todayGoals = useMemo(
+    () => filterGoalsForDate(goals, pinnedGoals as Array<TUserGoalData | TDataId>, selectedDate),
+    [goals, pinnedGoals, selectedDate],
+  )
 
   // Fix 4: destructure stable function references to avoid re-running memo on
   // every render (context objects are new references each render, functions are stable).
