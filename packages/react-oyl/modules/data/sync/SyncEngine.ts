@@ -11,6 +11,7 @@ export class SyncEngine {
   private online = true
   private listeners = new Map<string, Set<SyncListener>>()
   private lastSyncedAt: string | undefined
+  private draining = false
 
   constructor(private remote: RemoteClient) {}
 
@@ -118,52 +119,59 @@ export class SyncEngine {
   }
 
   async drain(): Promise<void> {
+    if (this.draining) return
     if (!this.userId || !this.online) return
+    this.draining = true
     const userId = this.userId
-    let queue = readQueue(userId)
-    while (queue.length > 0) {
-      const op = queue[0]
-      try {
-        if (op.op === 'create') {
-          const created = await this.remote.create<{ id: string | number }>(op.path, op.body)
-          // swap tempId in mirror
-          const mirror = readMirror(userId, op.path)
-          delete mirror[op.tempId]
-          mirror[String(created.id)] = { ...(created as object), id: created.id } as MirrorRecord<unknown>
-          writeMirror(userId, op.path, mirror)
-          this.emit(op.path)
-        } else if (op.op === 'update') {
-          await this.remote.update(op.path, op.recordId, op.body)
-          const mirror = readMirror(userId, op.path)
-          const row = mirror[String(op.recordId)]
-          if (row) {
-            const { __pendingOp, ...rest } = row as MirrorRecord<unknown> & { __pendingOp?: string }
-            mirror[String(op.recordId)] = rest as MirrorRecord<unknown>
+    try {
+      let queue = readQueue(userId)
+      while (queue.length > 0) {
+        const op = queue[0]
+        try {
+          if (op.op === 'create') {
+            const created = await this.remote.create<{ id: string | number }>(op.path, op.body)
+            // swap tempId in mirror
+            const mirror = readMirror(userId, op.path)
+            delete mirror[op.tempId]
+            mirror[String(created.id)] = { ...(created as object), id: created.id } as MirrorRecord<unknown>
             writeMirror(userId, op.path, mirror)
+            this.emit(op.path)
+          } else if (op.op === 'update') {
+            await this.remote.update(op.path, op.recordId, op.body)
+            const mirror = readMirror(userId, op.path)
+            const row = mirror[String(op.recordId)]
+            if (row) {
+              const { __pendingOp, ...rest } = row as MirrorRecord<unknown> & { __pendingOp?: string }
+              mirror[String(op.recordId)] = rest as MirrorRecord<unknown>
+              writeMirror(userId, op.path, mirror)
+            }
+            this.emit(op.path)
+          } else if (op.op === 'delete') {
+            await this.remote.remove(op.path, op.recordId)
+            this.emit(op.path)
           }
-          this.emit(op.path)
-        } else if (op.op === 'delete') {
-          await this.remote.remove(op.path, op.recordId)
-          this.emit(op.path)
+        } catch (err) {
+          console.warn(`drain op ${op.op} ${op.path} failed; rolling back`, err)
+          if (op.op === 'create') {
+            const mirror = readMirror(userId, op.path)
+            delete mirror[op.tempId]
+            writeMirror(userId, op.path, mirror)
+            this.emit(op.path)
+          }
+          // drop the failing op to unblock the queue
         }
-      } catch (err) {
-        console.warn(`drain op ${op.op} ${op.path} failed; rolling back`, err)
-        if (op.op === 'create') {
-          const mirror = readMirror(userId, op.path)
-          delete mirror[op.tempId]
-          writeMirror(userId, op.path, mirror)
-          this.emit(op.path)
-        }
-        // drop the failing op to unblock the queue
+        queue = readQueue(userId).slice(1)
+        writeQueue(userId, queue)
       }
-      queue = readQueue(userId).slice(1)
-      writeQueue(userId, queue)
+    } finally {
+      this.draining = false
     }
   }
 
-  wipe(userId: string): void {
-    wipeUser(userId)
-    this.emitAll()
+  wipe(): void {
+    if (this.userId === null) throw new Error('SyncEngine.wipe(): no user set')
+    wipeUser(this.userId)
+    this.listeners.clear()
   }
 
   private emit(path: string): void {

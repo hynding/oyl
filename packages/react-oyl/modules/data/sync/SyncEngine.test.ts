@@ -58,7 +58,7 @@ describe('SyncEngine — read/write/subscribe', () => {
     e.setUser('u1')
     await e.save('user-activities', { name: 'walk' }, { skipDrain: true })
     expect(e.readAll('user-activities')).toHaveLength(1)
-    e.wipe('u1')
+    e.wipe()
     expect(e.readAll('user-activities')).toHaveLength(0)
     expect(e.state().pendingCount).toBe(0)
   })
@@ -97,5 +97,20 @@ describe('SyncEngine — drain', () => {
     await e.save('user-activities', { name: 'walk' })
     expect(e.readAll('user-activities')).toHaveLength(0)
     expect(e.state().pendingCount).toBe(0)
+  })
+
+  it('drains the queue when transitioning offline → online', async () => {
+    const remote = mockRemote()
+    ;(remote.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'srv-1', name: 'created' })
+    const engine = new SyncEngine(remote)
+    engine.setUser('u1')
+    engine.setOnline(false)               // start offline so save() doesn't drain
+    await engine.save('user-activities', { name: 'created' })
+    expect(remote.create).not.toHaveBeenCalled()
+    expect(engine.state().pendingCount).toBe(1)
+
+    engine.setOnline(true)                // transition triggers drain
+    await vi.waitFor(() => expect(engine.state().pendingCount).toBe(0))
+    expect(remote.create).toHaveBeenCalledOnce()
   })
 })
