@@ -12,8 +12,11 @@ export class SyncEngine {
   private listeners = new Map<string, Set<SyncListener>>()
   private lastSyncedAt: string | undefined
   private draining = false
+  private remote: RemoteClient
 
-  constructor(private remote: RemoteClient) {}
+  constructor(remote: RemoteClient) {
+    this.remote = remote
+  }
 
   setUser(userId: string | null): void {
     this.userId = userId

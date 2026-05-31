@@ -3,8 +3,8 @@ import type { TDataId } from '@oyl/all-of-oyl/modules'
 
 export type QueuedOp =
   | { id: string; op: 'create'; path: string; tempId: string; body: unknown; createdAt: number }
-  | { id: string; op: 'update'; path: string; recordId: TDataId; body: unknown; createdAt: number }
-  | { id: string; op: 'delete'; path: string; recordId: TDataId; createdAt: number }
+  | { id: string; op: 'update'; path: string; recordId: TDataId | string; body: unknown; createdAt: number }
+  | { id: string; op: 'delete'; path: string; recordId: TDataId | string; createdAt: number }
 
 export type SyncState = {
   pendingCount: number
