@@ -15,5 +15,12 @@ export default defineConfig({
     setupFiles: ['./src/test-setup.ts'],
     include: ['modules/**/*.test.{ts,tsx}', 'lib/**/*.test.{ts,tsx}'],
     passWithNoTests: true,
+    server: {
+      deps: {
+        // Transform the workspace-linked all-of-oyl package so its .ts
+        // source files are compiled by vitest rather than treated as CJS.
+        inline: ['@oyl/all-of-oyl'],
+      },
+    },
   },
 })
