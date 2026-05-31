@@ -1,7 +1,4 @@
-export { default as UserActivityItem } from './UserActivityItem'
-export { default as UserActivityForm } from './UserActivityForm'
-export { default as UserActivitySettingsForm } from './UserActivitySettingsForm'
+// packages/react-oyl/modules/user/activity/index.ts
 export { default as UserActivityProvider } from './UserActivityProvider'
-export { default as UserActivityViewProvider } from './UserActivityViewProvider'
-export { useUserActivityState } from './useUserActivityState'
 export { useUserActivityContext } from './user-activity-context'
+export type { UserActivityContextValue } from './user-activity-context'

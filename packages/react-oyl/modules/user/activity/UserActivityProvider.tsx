@@ -1,62 +1,35 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import { useNavigation } from '@/lib/navigation'
+// packages/react-oyl/modules/user/activity/UserActivityProvider.tsx
+import React, { useCallback } from 'react'
+import type { TDataId, TUserActivityData } from '@oyl/all-of-oyl/modules'
+import { useData } from '@/modules/data'
 import { context } from './user-activity-context'
 import { useUserActivityState } from './useUserActivityState'
-import type { TUserActivityData } from '@oyl/all-of-oyl/modules'
-import useAuth from '@/modules/auth/useAuth'
-import { useData } from '@/modules/data'
 
-const { Provider } = context
+export default function UserActivityProvider({ children }: { children: React.ReactNode }) {
+  const data = useData<TUserActivityData>('user-activities')
+  const uiState = useUserActivityState()
 
-export default function UserActivityProvider({ children, items }: { children: React.ReactNode, items?: TUserActivityData[] }) {
-  const { isAuthenticated, user } = useAuth()
-  const router = useNavigation()
-  const {
-    find: {
-      trigger: fetchUserActivities,
-      data: userActivitiesData,
-    },
-  } = useData<TUserActivityData, string>('user-activities')
+  const addActivity = useCallback(async (input: Partial<TUserActivityData>) => {
+    await data.save(input)
+  }, [data])
 
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0])
-  const [activities, setActivities] = useState<TUserActivityData[]>(items || [])
+  const updateActivity = useCallback(async (id: TDataId, patch: Partial<TUserActivityData>) => {
+    await data.update(id, patch)
+  }, [data])
 
-  const state = useUserActivityState({ activities, setActivities })
-
-  const fetchSelectedDate = useCallback(() => {
-    if (user?.id && startDate && fetchUserActivities) {
-      fetchUserActivities(startDate)
-    }
-  }, [user?.id, startDate, fetchUserActivities])
-
-  useEffect(() => {
-    if (userActivitiesData) {
-      setActivities(userActivitiesData.activities || [])
-    }
-  }, [userActivitiesData])
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchSelectedDate()
-    }
-  }, [isAuthenticated, fetchSelectedDate])
-
-  useEffect(() => {
-    if (router && !isAuthenticated) {
-      router.to('/login')
-    }
-  }, [isAuthenticated, router])
+  const removeActivity = useCallback(async (id: TDataId) => {
+    await data.remove(id)
+  }, [data])
 
   return (
-    <Provider value={{
-      startDate,
-      setStartDate,
-      endDate,
-      setEndDate,
-      ...state,
+    <context.Provider value={{
+      activities: data.find(),
+      addActivity,
+      updateActivity,
+      removeActivity,
+      ...uiState,
     }}>
       {children}
-    </Provider>
+    </context.Provider>
   )
 }
