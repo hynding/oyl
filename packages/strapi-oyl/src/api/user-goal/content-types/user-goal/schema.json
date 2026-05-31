@@ -13,7 +13,7 @@
   "attributes": {
     "date": {
       "type": "datetime",
-      "required": true
+      "required": false
     },
     "user": {
       "type": "relation",
@@ -41,6 +41,40 @@
     },
     "deleted_at": {
       "type": "datetime"
+    },
+    "parent_user_goal": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::user-goal.user-goal"
+    },
+    "category": {
+      "type": "string"
+    },
+    "current_status": {
+      "type": "enumeration",
+      "enum": [
+        "active",
+        "paused",
+        "completed",
+        "archived"
+      ]
+    },
+    "priority": {
+      "type": "enumeration",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "target_date": {
+      "type": "datetime"
+    },
+    "completed_at": {
+      "type": "datetime"
+    },
+    "note": {
+      "type": "string"
     }
   }
 }

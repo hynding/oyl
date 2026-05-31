@@ -711,6 +711,48 @@ export interface ApiTagTag extends Struct.CollectionTypeSchema {
   }
 }
 
+export interface ApiUserActivityLogUserActivityLog
+  extends Struct.CollectionTypeSchema {
+  collectionName: "user_activity_logs"
+  info: {
+    displayName: "User Activity Log"
+    pluralName: "user-activity-logs"
+    singularName: "user-activity-log"
+  }
+  options: {
+    draftAndPublish: false
+  }
+  attributes: {
+    createdAt: Schema.Attribute.DateTime
+    createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    locale: Schema.Attribute.String & Schema.Attribute.Private
+    localizations: Schema.Attribute.Relation<
+      "oneToMany",
+      "api::user-activity-log.user-activity-log"
+    > &
+      Schema.Attribute.Private
+    logged_at: Schema.Attribute.DateTime
+    mood: Schema.Attribute.Integer
+    note: Schema.Attribute.String
+    publishedAt: Schema.Attribute.DateTime
+    tags: Schema.Attribute.Relation<"oneToMany", "api::tag.tag">
+    unit: Schema.Attribute.String
+    updatedAt: Schema.Attribute.DateTime
+    updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    user: Schema.Attribute.Relation<
+      "oneToOne",
+      "plugin::users-permissions.user"
+    >
+    user_activity: Schema.Attribute.Relation<
+      "oneToOne",
+      "api::user-activity.user-activity"
+    >
+    value: Schema.Attribute.Decimal
+  }
+}
+
 export interface ApiUserActivitySettingUserActivitySetting
   extends Struct.CollectionTypeSchema {
   collectionName: "user_activity_settings"
@@ -761,11 +803,13 @@ export interface ApiUserActivityUserActivity
     createdAt: Schema.Attribute.DateTime
     createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
       Schema.Attribute.Private
-    data: Schema.Attribute.JSON & Schema.Attribute.Required
-    date: Schema.Attribute.DateTime & Schema.Attribute.Required
+    current_status: Schema.Attribute.Enumeration<
+      ["active", "paused", "archived"]
+    >
+    data: Schema.Attribute.JSON
+    date: Schema.Attribute.DateTime
     deleted_at: Schema.Attribute.DateTime
     duration: Schema.Attribute.Integer &
-      Schema.Attribute.Required &
       Schema.Attribute.SetMinMax<
         {
           min: 0
@@ -781,6 +825,12 @@ export interface ApiUserActivityUserActivity
       Schema.Attribute.Private
     name: Schema.Attribute.String
     publishedAt: Schema.Attribute.DateTime
+    schedule: Schema.Attribute.JSON
+    target: Schema.Attribute.JSON
+    target_direction: Schema.Attribute.Enumeration<["min", "max", "exact"]>
+    target_unit: Schema.Attribute.String
+    target_value: Schema.Attribute.Decimal
+    type: Schema.Attribute.Enumeration<["habit", "task", "event", "metric"]>
     updatedAt: Schema.Attribute.DateTime
     updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
       Schema.Attribute.Private
@@ -788,6 +838,7 @@ export interface ApiUserActivityUserActivity
       "oneToOne",
       "plugin::users-permissions.user"
     >
+    user_goal: Schema.Attribute.Relation<"oneToOne", "api::user-goal.user-goal">
   }
 }
 
@@ -832,6 +883,40 @@ export interface ApiUserDailyUserDaily extends Struct.CollectionTypeSchema {
       "oneToOne",
       "plugin::users-permissions.user"
     >
+  }
+}
+
+export interface ApiUserGoalMilestoneUserGoalMilestone
+  extends Struct.CollectionTypeSchema {
+  collectionName: "user_goal_milestones"
+  info: {
+    displayName: "User Goal Milestone"
+    pluralName: "user-goal-milestones"
+    singularName: "user-goal-milestone"
+  }
+  options: {
+    draftAndPublish: false
+  }
+  attributes: {
+    completed_at: Schema.Attribute.DateTime
+    createdAt: Schema.Attribute.DateTime
+    createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    locale: Schema.Attribute.String & Schema.Attribute.Private
+    localizations: Schema.Attribute.Relation<
+      "oneToMany",
+      "api::user-goal-milestone.user-goal-milestone"
+    > &
+      Schema.Attribute.Private
+    note: Schema.Attribute.String
+    publishedAt: Schema.Attribute.DateTime
+    sort_order: Schema.Attribute.Integer
+    target_date: Schema.Attribute.DateTime
+    title: Schema.Attribute.String
+    updatedAt: Schema.Attribute.DateTime
+    updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    user_goal: Schema.Attribute.Relation<"oneToOne", "api::user-goal.user-goal">
   }
 }
 
@@ -880,11 +965,16 @@ export interface ApiUserGoalUserGoal extends Struct.CollectionTypeSchema {
     draftAndPublish: false
   }
   attributes: {
+    category: Schema.Attribute.String
+    completed_at: Schema.Attribute.DateTime
     createdAt: Schema.Attribute.DateTime
     createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
       Schema.Attribute.Private
+    current_status: Schema.Attribute.Enumeration<
+      ["active", "paused", "completed", "archived"]
+    >
     data: Schema.Attribute.JSON
-    date: Schema.Attribute.DateTime & Schema.Attribute.Required
+    date: Schema.Attribute.DateTime
     deleted_at: Schema.Attribute.DateTime
     goal: Schema.Attribute.Relation<"oneToOne", "api::goal.goal">
     locale: Schema.Attribute.String & Schema.Attribute.Private
@@ -894,6 +984,12 @@ export interface ApiUserGoalUserGoal extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private
     name: Schema.Attribute.String
+    note: Schema.Attribute.String
+    parent_user_goal: Schema.Attribute.Relation<
+      "oneToOne",
+      "api::user-goal.user-goal"
+    >
+    priority: Schema.Attribute.Enumeration<["low", "medium", "high"]>
     progress: Schema.Attribute.Integer &
       Schema.Attribute.SetMinMax<
         {
@@ -909,6 +1005,7 @@ export interface ApiUserGoalUserGoal extends Struct.CollectionTypeSchema {
         },
         number
       >
+    target_date: Schema.Attribute.DateTime
     updatedAt: Schema.Attribute.DateTime
     updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
       Schema.Attribute.Private
@@ -1833,9 +1930,11 @@ declare module "@strapi/strapi" {
       "api::nutrition-search.nutrition-search": ApiNutritionSearchNutritionSearch
       "api::tag-context.tag-context": ApiTagContextTagContext
       "api::tag.tag": ApiTagTag
+      "api::user-activity-log.user-activity-log": ApiUserActivityLogUserActivityLog
       "api::user-activity-setting.user-activity-setting": ApiUserActivitySettingUserActivitySetting
       "api::user-activity.user-activity": ApiUserActivityUserActivity
       "api::user-daily.user-daily": ApiUserDailyUserDaily
+      "api::user-goal-milestone.user-goal-milestone": ApiUserGoalMilestoneUserGoalMilestone
       "api::user-goal-setting.user-goal-setting": ApiUserGoalSettingUserGoalSetting
       "api::user-goal.user-goal": ApiUserGoalUserGoal
       "api::user-nutrition-setting.user-nutrition-setting": ApiUserNutritionSettingUserNutritionSetting

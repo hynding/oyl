@@ -1,0 +1,7 @@
+/**
+ * user-goal-milestone router
+ */
+
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreRouter('api::user-goal-milestone.user-goal-milestone');

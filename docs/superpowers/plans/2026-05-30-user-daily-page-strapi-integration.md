@@ -202,7 +202,7 @@ describe('describeSchedule', () => {
 
   it('returns human text for a daily rule', () => {
     const result = describeSchedule({ rrule: 'FREQ=DAILY' })
-    expect(result.toLowerCase()).toContain('daily')
+    expect(result.toLowerCase()).toContain('every day')
   })
 })
 ```
@@ -290,9 +290,9 @@ export type TUserActivity = {
 export type TUserActivityData = TUserActivity & TDataItem
 ```
 
-- [ ] **Step 2: Update `packages/all-of-oyl/modules/user/activity/index.ts` to export the new modules**
+- [ ] **Step 2: Replace `packages/all-of-oyl/modules/user/activity/index.ts` entirely**
 
-Read the current `index.ts` first; then ensure these lines exist (add if missing):
+The old file exports `TUserActivitySettings` which is being deleted. Replace the file contents with:
 
 ```ts
 export type { TUserActivity, TUserActivityData } from './user-activity-types'
@@ -300,17 +300,28 @@ export type { TSchedule } from './schedule-types'
 export { matchesDate, describeSchedule } from './schedule'
 ```
 
-- [ ] **Step 3: Verify type-check**
+- [ ] **Step 3: Update `packages/all-of-oyl/modules/user/index.ts` to drop `TUserActivitySettings`**
+
+Change the activity re-export line from:
+```ts
+export type { TUserActivity, TUserActivityData, TUserActivitySettings } from "./activity/user-activity-types";
+```
+to:
+```ts
+export type { TUserActivity, TUserActivityData } from "./activity/user-activity-types";
+```
+
+- [ ] **Step 4: Verify type-check**
 
 ```bash
 pnpm --filter @oyl/all-of-oyl exec tsc --noEmit
 ```
-Expected: may error on consumers using deprecated fields (handled in later tasks). The file itself should type-check.
+Expected: clean type-check inside `all-of-oyl`. React-oyl consumers will break (handled later — do NOT typecheck react-oyl yet).
 
-- [ ] **Step 4: Commit (do NOT verify `react-oyl` typecheck yet — known breakage handled later)**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add packages/all-of-oyl/modules/user/activity/user-activity-types.ts packages/all-of-oyl/modules/user/activity/index.ts
+git add packages/all-of-oyl/modules/user/activity/user-activity-types.ts packages/all-of-oyl/modules/user/activity/index.ts packages/all-of-oyl/modules/user/index.ts
 git commit -m "refactor(all-of-oyl): drop deprecated TUserActivity fields, add new model"
 ```
 
@@ -453,6 +464,7 @@ git commit -m "feat(all-of-oyl): add TUserGoalMilestone type and re-export new m
 
 **Files:**
 - Modify: `packages/react-oyl/package.json`
+- Modify: `packages/all-of-oyl/modules/index.ts` (add `data` re-export so `TDataId` is reachable from `@oyl/all-of-oyl/modules`)
 - Create: `packages/react-oyl/modules/data/sync/types.ts`
 
 - [ ] **Step 1: Install uuid**
@@ -461,6 +473,16 @@ git commit -m "feat(all-of-oyl): add TUserGoalMilestone type and re-export new m
 pnpm --filter @oyl/react-oyl add uuid@^11
 pnpm --filter @oyl/react-oyl add -D @types/uuid@^10
 ```
+
+- [ ] **Step 1b: Add `data` to the all-of-oyl root module index**
+
+Append this line to `packages/all-of-oyl/modules/index.ts`:
+
+```ts
+export * from "./data";
+```
+
+(Leave existing 4 export lines unchanged.)
 
 - [ ] **Step 2: Create `sync/types.ts`**
 
@@ -501,7 +523,7 @@ export type SyncedPath = typeof SYNCED_PATHS[number]
 - [ ] **Step 3: Commit**
 
 ```bash
-git add packages/react-oyl/package.json packages/react-oyl/modules/data/sync/types.ts pnpm-lock.yaml
+git add packages/react-oyl/package.json packages/react-oyl/modules/data/sync/types.ts packages/all-of-oyl/modules/index.ts pnpm-lock.yaml
 git commit -m "feat(data): scaffold sync layer types and SYNCED_PATHS constant"
 ```
 

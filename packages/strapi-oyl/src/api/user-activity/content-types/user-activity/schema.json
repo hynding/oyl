@@ -13,7 +13,17 @@
   "attributes": {
     "date": {
       "type": "datetime",
-      "required": true
+      "required": false
+    },
+    "duration": {
+      "type": "integer",
+      "required": false,
+      "default": 0,
+      "min": 0
+    },
+    "data": {
+      "type": "json",
+      "required": false
     },
     "user": {
       "type": "relation",
@@ -28,18 +38,50 @@
       "relation": "oneToOne",
       "target": "api::activity.activity"
     },
-    "duration": {
-      "type": "integer",
-      "required": true,
-      "default": 0,
-      "min": 0
-    },
-    "data": {
-      "type": "json",
-      "required": true
-    },
     "deleted_at": {
       "type": "datetime"
+    },
+    "schedule": {
+      "type": "json"
+    },
+    "target": {
+      "type": "json"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "habit",
+        "task",
+        "event",
+        "metric"
+      ]
+    },
+    "current_status": {
+      "type": "enumeration",
+      "enum": [
+        "active",
+        "paused",
+        "archived"
+      ]
+    },
+    "user_goal": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::user-goal.user-goal"
+    },
+    "target_value": {
+      "type": "decimal"
+    },
+    "target_unit": {
+      "type": "string"
+    },
+    "target_direction": {
+      "type": "enumeration",
+      "enum": [
+        "min",
+        "max",
+        "exact"
+      ]
     }
   }
 }

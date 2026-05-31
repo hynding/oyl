@@ -1,0 +1,45 @@
+{
+  "kind": "collectionType",
+  "collectionName": "user_activity_logs",
+  "info": {
+    "singularName": "user-activity-log",
+    "pluralName": "user-activity-logs",
+    "displayName": "User Activity Log"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "user_activity": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::user-activity.user-activity"
+    },
+    "logged_at": {
+      "type": "datetime"
+    },
+    "value": {
+      "type": "decimal"
+    },
+    "unit": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    },
+    "mood": {
+      "type": "integer"
+    },
+    "tags": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::tag.tag"
+    }
+  }
+}
