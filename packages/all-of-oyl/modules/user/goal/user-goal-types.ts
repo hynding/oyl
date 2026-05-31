@@ -1,20 +1,21 @@
+// packages/all-of-oyl/modules/user/goal/user-goal-types.ts
 import type { TDataId, TDataItem } from "../../data"
 import type { TUser } from "../user-types"
 import type { TGoalData } from "../../goal"
-import type { TCalendarItemSettings } from "../../calendar"
 
 export type TUserGoal = {
-  name?: string
   user?: TUser | TDataId
   goal?: TGoalData | TDataId
+  name?: string
   progress?: number
-  description?: string
   target?: number
-  completed?: boolean
+  category?: string
+  current_status?: 'active' | 'paused' | 'completed' | 'archived'
+  priority?: 'low' | 'medium' | 'high'
+  target_date?: string
+  completed_at?: string
+  note?: string
+  parent_user_goal?: TUserGoalData | TDataId
 }
 
 export type TUserGoalData = TUserGoal & TDataItem
-
-export type TUserGoalSettings = TCalendarItemSettings & {
-  goal: TUserGoalData | TDataId
-}
