@@ -1,48 +1,66 @@
-import { useCallback } from 'react'
-import useAsync from '@/lib/useAsync';
-import useAuth from '@/modules/auth/useAuth';
+// packages/react-oyl/modules/data/useDataRemote.ts
+const BASE = 'http://localhost:3337/api'
 
-type FetchProps = {
-  domain: string;
-  apiToken: string | null;
-  method?: string;
+type RemoteClient = {
+  findAll<T>(path: string): Promise<T[]>
+  findOne<T>(path: string, id: string | number): Promise<T | undefined>
+  create<T>(path: string, body: unknown): Promise<T>
+  update<T>(path: string, id: string | number, body: unknown): Promise<T>
+  remove(path: string, id: string | number): Promise<void>
 }
 
-const authDataFetch = async <T>(props: FetchProps): Promise<T> => {
-  const { domain, apiToken, method = 'GET' } = props;
-  const res = await fetch(`http://localhost:3337/api/${domain}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${apiToken}`
-    }
-  })
-  if (res.ok) {
-    const data = await res.json()
-    return data
-  } else {
-    throw new Error('Failed to fetch data')
+const headers = (token: string | null): HeadersInit => ({
+  'Content-Type': 'application/json',
+  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+})
+
+const unwrap = <T>(json: unknown): T => {
+  if (json && typeof json === 'object' && 'data' in json) {
+    return (json as { data: T }).data
+  }
+  return json as T
+}
+
+export function createRemoteClient(getToken: () => string | null): RemoteClient {
+  return {
+    async findAll<T>(path: string): Promise<T[]> {
+      const res = await fetch(`${BASE}/${path}?populate=*`, { headers: headers(getToken()) })
+      if (!res.ok) throw new Error(`GET /${path} failed: ${res.status}`)
+      const data = unwrap<T[]>(await res.json())
+      return Array.isArray(data) ? data : []
+    },
+    async findOne<T>(path: string, id: string | number) {
+      const res = await fetch(`${BASE}/${path}/${id}?populate=*`, { headers: headers(getToken()) })
+      if (res.status === 404) return undefined
+      if (!res.ok) throw new Error(`GET /${path}/${id} failed: ${res.status}`)
+      return unwrap<T>(await res.json())
+    },
+    async create<T>(path: string, body: unknown) {
+      const res = await fetch(`${BASE}/${path}`, {
+        method: 'POST',
+        headers: headers(getToken()),
+        body: JSON.stringify({ data: body }),
+      })
+      if (!res.ok) throw new Error(`POST /${path} failed: ${res.status}`)
+      return unwrap<T>(await res.json())
+    },
+    async update<T>(path: string, id: string | number, body: unknown) {
+      const res = await fetch(`${BASE}/${path}/${id}`, {
+        method: 'PUT',
+        headers: headers(getToken()),
+        body: JSON.stringify({ data: body }),
+      })
+      if (!res.ok) throw new Error(`PUT /${path}/${id} failed: ${res.status}`)
+      return unwrap<T>(await res.json())
+    },
+    async remove(path: string, id: string | number) {
+      const res = await fetch(`${BASE}/${path}/${id}`, {
+        method: 'DELETE',
+        headers: headers(getToken()),
+      })
+      if (!res.ok && res.status !== 404) throw new Error(`DELETE /${path}/${id} failed: ${res.status}`)
+    },
   }
 }
 
-export function useDataRemote<T, P>(domain: string) {
-  const { apiToken } = useAuth()
-
-  const getRequestFn = useCallback(async (id: string) => {
-    return await authDataFetch<T>({ domain: `${domain}/${id}`, apiToken })
-  }, [domain, apiToken])
-  const findRequestFn = useCallback(async () => {
-    return await authDataFetch<T>({ domain, apiToken })
-  }, [domain, apiToken])
-  const saveRequestFn = useCallback(async () => {
-    return await authDataFetch<T>({ domain, apiToken })
-  }, [domain, apiToken])
-
-  const getRequest = useAsync<T, string>(getRequestFn)
-  const findRequest = useAsync<T, P>(findRequestFn)
-  const saveRequest = useAsync<T, P>(saveRequestFn)
-  return {
-    get: getRequest,
-    find: findRequest,
-    save: saveRequest
-  };
-}
+export type { RemoteClient }
