@@ -12,8 +12,9 @@ const empty = (date: string): TUserDailyData => ({
 export default function UserDailyProvider({ children }: { children: React.ReactNode }) {
   const [selectedDate, setSelectedDate] = useState<string>(today())
   const data = useData<TUserDailyData>('user-dailies')
+  const { refresh } = data
 
-  useEffect(() => { data.refresh() }, [selectedDate, data])
+  useEffect(() => { refresh() }, [selectedDate, refresh])
 
   const all = data.find()
   const userDailyData = all.find(d => d.date === selectedDate) ?? empty(selectedDate)
