@@ -5,3 +5,5 @@ export type { TUserGoal, TUserGoalData } from "./goal/user-goal-types";
 export type { TUserDaily, TUserDailyData } from "./daily/user-daily-types";
 export * from './activity-log'
 export * from './goal-milestone'
+export { matchesDate, describeSchedule } from './activity/schedule'
+export type { TSchedule } from './activity/schedule-types'

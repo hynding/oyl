@@ -1,6 +1,6 @@
 // packages/react-oyl/modules/user/daily-new/orchestrator-utils.ts
 import type { TDataId, TUserActivityData, TUserGoalData } from '@oyl/all-of-oyl/modules'
-import { matchesDate } from '@oyl/all-of-oyl/modules/user/activity/schedule'
+import { matchesDate } from '@oyl/all-of-oyl/modules'
 
 /** Returns the numeric id from either a full data record or a bare TDataId. */
 function extractId(item: { id?: TDataId } | TDataId): TDataId | undefined {

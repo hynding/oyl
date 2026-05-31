@@ -1,5 +1,6 @@
 // packages/react-oyl/modules/user/daily-new/useUserDailyOrchestrator.ts
 import type { TDataId, TUserActivityData, TUserGoalData, TUserGoalMilestoneData, TUserActivityLogData } from '@oyl/all-of-oyl/modules'
+import { useMemo } from 'react'
 import { useUserDailyContext } from './user-daily-context'
 import { useUserActivityContext } from '../activity/user-activity-context'
 import { useUserActivityLogContext } from '../activity-log/user-activity-log-context'
@@ -16,7 +17,7 @@ export type ActivityRow = {
   activity: TUserActivityData
   logs: TUserActivityLogData[]
   isDone: boolean
-  progress?: number
+  progress?: { value: number; target: number; direction: 'min' | 'max' | 'exact' }
 }
 
 export type GoalRow = {
@@ -41,13 +42,8 @@ export function useUserDailyOrchestrator() {
     setSettingsActivityId,
   } = useUserActivityContext()
 
-  const {
-    logs,
-    getLogsForActivity,
-    addLog,
-    updateLog,
-    removeLog,
-  } = useUserActivityLogContext()
+  const logs = useUserActivityLogContext()
+  const { getLogsForActivity, addLog, updateLog, removeLog } = logs
 
   const {
     goals,
@@ -62,11 +58,8 @@ export function useUserDailyOrchestrator() {
     setSettingsGoalId,
   } = useUserGoalContext()
 
-  const {
-    getMilestonesForGoal,
-    addMilestone,
-    toggleMilestone,
-  } = useUserGoalMilestoneContext()
+  const milestones = useUserGoalMilestoneContext()
+  const { getMilestonesForGoal, addMilestone, toggleMilestone } = milestones
 
   const syncState = useSyncState()
 
@@ -77,39 +70,47 @@ export function useUserDailyOrchestrator() {
   const pinnedActivities = userDailyData.activities
   const pinnedGoals = userDailyData.goals
 
-  const filteredActivities = filterActivitiesForDate(activities, pinnedActivities as Array<TUserActivityData | TDataId>, selectedDate)
+  const todayActivities = filterActivitiesForDate(activities, pinnedActivities as Array<TUserActivityData | TDataId>, selectedDate)
+  const todayGoals = filterGoalsForDate(goals, pinnedGoals as Array<TUserGoalData | TDataId>, selectedDate)
 
-  const activityRows: ActivityRow[] = filteredActivities.map(activity => {
-    const activityLogs = activity.id !== undefined
-      ? getLogsForActivity(activity.id, selectedDate)
-      : []
+  // Fix 4: destructure stable function references to avoid re-running memo on
+  // every render (context objects are new references each render, functions are stable).
+  const activityRows: ActivityRow[] = useMemo(() => {
+    return todayActivities.map(activity => {
+      const acLogs = activity.id !== undefined
+        ? getLogsForActivity(activity.id, selectedDate)
+        : []
 
-    // A task/habit is "done" when at least one log exists for today.
-    // For metric activities, surface the summed value as progress.
-    const isDone = activityLogs.length > 0
-    const progress = activity.type === 'metric'
-      ? activityLogs.reduce<number>((sum, l) => sum + (l.value ?? 0), 0)
-      : undefined
+      // A task/habit is "done" when at least one log exists for today.
+      const isDone = acLogs.length > 0
 
-    return { activity, logs: activityLogs, isDone, progress }
-  })
+      // Fix 2: progress is the structured shape per plan; guard on target_value + target_direction.
+      let progress: ActivityRow['progress'] | undefined
+      if (activity.target_value != null && activity.target_direction) {
+        const sum = acLogs.reduce((acc, l) => acc + (l.value ?? 0), 0)
+        progress = { value: sum, target: activity.target_value, direction: activity.target_direction }
+      }
+
+      return { activity, logs: acLogs, isDone, progress }
+    })
+  }, [todayActivities, getLogsForActivity, selectedDate])
 
   // -- derive filtered goal rows ----------------------------------------------
 
-  const filteredGoals = filterGoalsForDate(goals, pinnedGoals as Array<TUserGoalData | TDataId>, selectedDate)
+  const goalRows: GoalRow[] = useMemo(() => {
+    return todayGoals.map(goal => {
+      const goalMilestones = goal.id !== undefined ? getMilestonesForGoal(goal.id) : []
 
-  const goalRows: GoalRow[] = filteredGoals.map(goal => {
-    const milestones = goal.id !== undefined ? getMilestonesForGoal(goal.id) : []
+      // Fix 3: progressPct is a fraction [0, 1], not a percentage.
+      const rawProgress = goal.progress ?? 0
+      const target = goal.target ?? 0
+      const progressPct = target > 0 ? Math.min(1, rawProgress / target) : 0
 
-    // progress / target are optional numbers; guard against division by zero.
-    const rawProgress = goal.progress ?? 0
-    const target = goal.target ?? 0
-    const progressPct = target > 0 ? Math.min(100, Math.round((rawProgress / target) * 100)) : 0
+      const isComplete = goal.current_status === 'completed' || goal.completed_at !== undefined
 
-    const isComplete = goal.current_status === 'completed' || goal.completed_at !== undefined
-
-    return { goal, milestones, progressPct, isComplete }
-  })
+      return { goal, milestones: goalMilestones, progressPct, isComplete }
+    })
+  }, [todayGoals, getMilestonesForGoal])
 
   // -- activity mutators ------------------------------------------------------
 

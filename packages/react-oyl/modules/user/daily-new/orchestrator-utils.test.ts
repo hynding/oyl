@@ -37,6 +37,15 @@ describe('filterActivitiesForDate', () => {
     const result = filterActivitiesForDate(activities, [], DATE)
     expect(result).toHaveLength(0)
   })
+
+  it('includes pinned activities even when schedule does not match', () => {
+    // WEEKLY on Monday — 2026-05-30 is a Saturday, so schedule does not match
+    const acts = [
+      { id: 9, current_status: 'active' as const, schedule: { rrule: 'FREQ=WEEKLY;DTSTART=20260101T000000Z;BYDAY=MO' } },
+    ]
+    const result = filterActivitiesForDate(acts as unknown as TUserActivityData[], [9], DATE)
+    expect(result.map(a => a.id)).toEqual([9])
+  })
 })
 
 // ---------------------------------------------------------------------------
