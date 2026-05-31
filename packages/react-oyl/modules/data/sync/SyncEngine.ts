@@ -144,8 +144,9 @@ export class SyncEngine {
             const mirror = readMirror(userId, op.path)
             const row = mirror[String(op.recordId)]
             if (row) {
-              const { __pendingOp, ...rest } = row as MirrorRecord<unknown> & { __pendingOp?: string }
-              mirror[String(op.recordId)] = rest as MirrorRecord<unknown>
+              const stripped: MirrorRecord<unknown> = { ...row }
+              delete stripped.__pendingOp
+              mirror[String(op.recordId)] = stripped
               writeMirror(userId, op.path, mirror)
             }
             this.emit(op.path)

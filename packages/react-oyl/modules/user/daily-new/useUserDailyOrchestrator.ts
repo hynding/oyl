@@ -52,8 +52,6 @@ export function useUserDailyOrchestrator() {
     setProgress,
     markComplete,
     appendNote,
-    showAddGoalForm: _showAddGoalForm,
-    setShowAddGoalForm: _setShowAddGoalForm,
     settingsGoalId,
     setSettingsGoalId,
   } = useUserGoalContext()
