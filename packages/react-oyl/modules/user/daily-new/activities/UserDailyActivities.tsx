@@ -1,24 +1,31 @@
+// packages/react-oyl/modules/user/daily-new/activities/UserDailyActivities.tsx
+import { useState } from 'react'
 import { Section } from '@oyl/storybook-oyl'
-import { UserActivityViewProvider } from '@/modules/user/activity'
-import type { TUserActivityData } from '@oyl/all-of-oyl/modules'
-import { useUserDailyContext } from '../user-daily-context'
 import UserDailyActivitiesList from './UserDailyActivitiesList'
-import UserDailyActivitiesForm from './UserDailyActivitiesForm'
-// import UserDailyActivitiesSettings from './UserDailyActivitiesSettings'
-
-const isHydrated = (a: TUserActivityData | number): a is TUserActivityData =>
-  typeof a === 'object' && a !== null
+import UserDailyAddActivityForm from './UserDailyAddActivityForm'
+import UserDailyLogActivityForm from './UserDailyLogActivityForm'
+import UserDailyActivityLogSheet from './UserDailyActivityLogSheet'
+import UserDailyActivitySettingsSheet from './UserDailyActivitySettingsSheet'
 
 export default function UserDailyActivities() {
-  const { selectedDate, userDailyData: { activities } } = useUserDailyContext()
-  const hydrated = activities.filter(isHydrated)
+  const [showAdd, setShowAdd] = useState(false)
+  const [showLog, setShowLog] = useState(false)
+
   return (
-    <UserActivityViewProvider activities={hydrated} date={selectedDate}>
-      <Section title="Activities">
-        <UserDailyActivitiesList />
-        <UserDailyActivitiesForm />
-        {/* <UserDailyActivitiesSettings /> */}
-      </Section>
-    </UserActivityViewProvider>
+    <Section title="Activities">
+      <UserDailyActivitiesList />
+      <div className="flex gap-2 mt-3">
+        <button onClick={() => setShowAdd(s => !s)} className="px-3 py-1 text-sm rounded bg-indigo-600 text-white">
+          {showAdd ? 'Hide' : 'Add activity'}
+        </button>
+        <button onClick={() => setShowLog(s => !s)} className="px-3 py-1 text-sm rounded bg-gray-200 dark:bg-gray-700">
+          {showLog ? 'Hide' : 'Log activity'}
+        </button>
+      </div>
+      {showAdd && <div className="mt-3"><UserDailyAddActivityForm onClose={() => setShowAdd(false)} /></div>}
+      {showLog && <div className="mt-3"><UserDailyLogActivityForm onClose={() => setShowLog(false)} /></div>}
+      <UserDailyActivityLogSheet />
+      <UserDailyActivitySettingsSheet />
+    </Section>
   )
 }

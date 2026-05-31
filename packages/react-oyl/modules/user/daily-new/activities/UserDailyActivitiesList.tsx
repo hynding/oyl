@@ -1,24 +1,15 @@
-import {
-  UserActivityItem,
-  useUserActivityContext,
-} from '@/modules/user/activity'
+// packages/react-oyl/modules/user/daily-new/activities/UserDailyActivitiesList.tsx
+import UserDailyActivityRow from './UserDailyActivityRow'
+import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'
 
 export default function UserDailyActivitiesList() {
-  const { activities, toggleActivity, setShowActivitySettings } = useUserActivityContext()
+  const { activityRows } = useUserDailyOrchestrator()
+  if (activityRows.length === 0) {
+    return <p className="text-sm text-gray-500 dark:text-gray-400">No activities scheduled for this date.</p>
+  }
   return (
     <div className="space-y-3">
-      {activities.map(activity => (
-        <UserActivityItem
-          key={activity.id}
-          id={activity.id}
-          name={activity.name}
-          duration={activity.duration}
-          time={activity.time}
-          completed={activity.completed}
-          onChangeCompleted={toggleActivity}
-          onOpenSettings={setShowActivitySettings}
-        />
-      ))}
+      {activityRows.map(row => <UserDailyActivityRow key={row.activity.id} row={row} />)}
     </div>
   )
 }
