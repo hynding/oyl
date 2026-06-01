@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/useUserDailyOrchestrator.ts
+// packages/react-oyl/modules/user/daily/useUserDailyOrchestrator.ts
 import type { TDataId, TUserActivityData, TUserGoalData, TUserGoalMilestoneData, TUserActivityLogData } from '@oyl/all-of-oyl/modules'
 import { useMemo } from 'react'
 import { useUserDailyContext } from './user-daily-context'

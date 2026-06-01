@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/goals/UserDailyGoals.tsx
+// packages/react-oyl/modules/user/daily/goals/UserDailyGoals.tsx
 import { useState } from 'react'
 import { Section } from '@oyl/storybook-oyl'
 import UserDailyGoalsList from './UserDailyGoalsList'

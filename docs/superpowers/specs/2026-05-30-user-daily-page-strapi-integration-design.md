@@ -1,7 +1,7 @@
 # User Daily Page — Strapi Integration & Offline-First Sync
 
 **Date:** 2026-05-30
-**Scope:** `packages/react-oyl/modules/user/daily-new/` + supporting work in `modules/data/`, `modules/user/activity/`, `modules/user/goal/`, plus new `modules/user/activity-log/` and `modules/user/goal-milestone/`. Shared types in `packages/all-of-oyl/modules/user/`.
+**Scope:** `packages/react-oyl/modules/user/daily/` + supporting work in `modules/data/`, `modules/user/activity/`, `modules/user/goal/`, plus new `modules/user/activity-log/` and `modules/user/goal-milestone/`. Shared types in `packages/all-of-oyl/modules/user/`.
 
 ## Goal
 
@@ -297,7 +297,7 @@ Five providers, one per collection. Each:
 
 | Provider | Path | Notes |
 |---|---|---|
-| `UserDailyProvider` | `react-oyl/modules/user/daily-new/UserDailyProvider.tsx` | Refactor. Owns `selectedDate`. `userDailyData` comes from `useData('user-dailies').get(date)`. Adds `updateDaily(patch)` for future journal writes (not used in v1). |
+| `UserDailyProvider` | `react-oyl/modules/user/daily/UserDailyProvider.tsx` | Refactor. Owns `selectedDate`. `userDailyData` comes from `useData('user-dailies').get(date)`. Adds `updateDaily(patch)` for future journal writes (not used in v1). |
 | `UserActivityProvider` | `react-oyl/modules/user/activity/UserActivityProvider.tsx` | Refactor. Drops inline `useData` fetch and start/end-date state. Sources `activities` from `useData('user-activities').find()`. Keeps activity-form / settings-sheet UI state. `UserActivityViewProvider` is **deleted**. |
 | `UserActivityLogProvider` | `react-oyl/modules/user/activity-log/UserActivityLogProvider.tsx` | New. Methods: `getLogsForActivity(activityId, date)`, `addLog`, `updateLog`, `removeLog`. UI state: log-edit sheet open + draft. |
 | `UserGoalProvider` | `react-oyl/modules/user/goal/UserGoalProvider.tsx` | New. Methods: `getGoal`, `addGoal`, `updateGoal`, `removeGoal`, `markComplete`, `setProgress`, `appendNote`. UI state: goal-form + settings-sheet open + drafts. Existing standalone `useUserGoals.ts` folded in. |
@@ -306,7 +306,7 @@ Five providers, one per collection. Each:
 ### Compose helper
 
 ```tsx
-// react-oyl/modules/user/daily-new/UserDailyDataProviders.tsx
+// react-oyl/modules/user/daily/UserDailyDataProviders.tsx
 export default function UserDailyDataProviders({ children }: { children: ReactNode }) {
   return (
     <UserDailyProvider>
@@ -328,7 +328,7 @@ export default function UserDailyDataProviders({ children }: { children: ReactNo
 
 ## Section 5 — Orchestrator hook
 
-Lives at `react-oyl/modules/user/daily-new/useUserDailyOrchestrator.ts`. Pure composition — no state of its own.
+Lives at `react-oyl/modules/user/daily/useUserDailyOrchestrator.ts`. Pure composition — no state of its own.
 
 ### Row shapes
 
@@ -417,7 +417,7 @@ Single-click "done" creates a zero-data log at noon-UTC. Richer logging (value, 
 
 ## Section 6 — UI components
 
-### Activities (`react-oyl/modules/user/daily-new/activities/`)
+### Activities (`react-oyl/modules/user/daily/activities/`)
 
 | File | Status | Purpose |
 |---|---|---|
@@ -432,7 +432,7 @@ Single-click "done" creates a zero-data log at noon-UTC. Richer logging (value, 
 | `UserDailyActivitiesSettings.tsx` | **delete** | Replaced by sheet. |
 | `index.ts` | rewrite | Re-exports. |
 
-### Goals (`react-oyl/modules/user/daily-new/goals/` — all new)
+### Goals (`react-oyl/modules/user/daily/goals/` — all new)
 
 | File | Purpose |
 |---|---|
@@ -449,14 +449,14 @@ Single-click "done" creates a zero-data log at noon-UTC. Richer logging (value, 
 | File | Purpose |
 |---|---|
 | `react-oyl/modules/user/activity/UserActivityScheduleInput.tsx` | **new** — RRULE picker (presets + raw escape hatch). |
-| `react-oyl/modules/user/daily-new/UserDailySyncIndicator.tsx` | **new** — small badge next to date picker: green dot + `lastSyncedAt` online, yellow with pending count when queue non-empty, gray "Offline" when disconnected. Daily-page-only for v1. |
-| `react-oyl/modules/user/daily-new/UserDailyHeader.tsx` | Edit — mounts `UserDailySyncIndicator` alongside the date input. |
-| `react-oyl/modules/user/daily-new/UserDailyPage.tsx` | Edit — wraps content in `<UserDailyDataProviders>`, switches grid to `lg:grid-cols-2`. |
+| `react-oyl/modules/user/daily/UserDailySyncIndicator.tsx` | **new** — small badge next to date picker: green dot + `lastSyncedAt` online, yellow with pending count when queue non-empty, gray "Offline" when disconnected. Daily-page-only for v1. |
+| `react-oyl/modules/user/daily/UserDailyHeader.tsx` | Edit — mounts `UserDailySyncIndicator` alongside the date input. |
+| `react-oyl/modules/user/daily/UserDailyPage.tsx` | Edit — wraps content in `<UserDailyDataProviders>`, switches grid to `lg:grid-cols-2`. |
 
 ### Cleanup
 
-- Delete `react-oyl/modules/user/daily-new/sections/` (unused stubs).
-- Delete `react-oyl/modules/user/daily-new/PROPOSAL.md` (superseded by this spec).
+- Delete `react-oyl/modules/user/daily/sections/` (unused stubs).
+- Delete `react-oyl/modules/user/daily/PROPOSAL.md` (superseded by this spec).
 - Delete `react-oyl/modules/user/activity/UserActivityViewProvider.tsx`.
 - Verify `react-oyl/modules/user/activity/settings/`; delete if tied only to the deprecated `user-activity-setting` collection.
 
@@ -530,7 +530,7 @@ Single-click "done" creates a zero-data log at noon-UTC. Richer logging (value, 
 
 `UserGoalMilestoneProvider.tsx`, `user-goal-milestone-context.ts`, `useUserGoalMilestoneState.ts`, `index.ts`.
 
-### `packages/react-oyl/modules/user/daily-new/`
+### `packages/react-oyl/modules/user/daily/`
 
 | Path | Action |
 |---|---|

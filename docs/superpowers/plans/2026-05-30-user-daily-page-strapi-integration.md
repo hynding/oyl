@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rework `packages/react-oyl/modules/user/daily-new/` to consume the current Strapi data model (with `user-activity-log`, `user-goal-milestone`, RRULE-based schedule), persist writes through a new offline-first sync engine, and add a Goals section alongside Activities.
+**Goal:** Rework `packages/react-oyl/modules/user/daily/` to consume the current Strapi data model (with `user-activity-log`, `user-goal-milestone`, RRULE-based schedule), persist writes through a new offline-first sync engine, and add a Goals section alongside Activities.
 
 **Architecture:** Per-collection providers (Approach 3 from spec) composed by a `useUserDailyOrchestrator()` hook. Reads/writes flow through a singleton `SyncEngine` (localStorage mirror + optimistic queue + reconcile on reconnect). RRULE for activity schedules. See [`docs/superpowers/specs/2026-05-30-user-daily-page-strapi-integration-design.md`](../specs/2026-05-30-user-daily-page-strapi-integration-design.md) for full design.
 
@@ -1448,7 +1448,7 @@ export { useUserActivityContext } from './user-activity-context'
 export type { UserActivityContextValue } from './user-activity-context'
 ```
 
-(Drop exports of `UserActivityItem`, `UserActivityForm`, `UserActivitySettingsForm`, `UserActivityViewProvider`, `useUserActivityState` — they're either deleted, internal, or replaced by daily-new components.)
+(Drop exports of `UserActivityItem`, `UserActivityForm`, `UserActivitySettingsForm`, `UserActivityViewProvider`, `useUserActivityState` — they're either deleted, internal, or replaced by daily components.)
 
 - [ ] **Step 6: Commit**
 
@@ -1794,13 +1794,13 @@ git commit -m "feat(user/goal-milestone): add provider with CRUD and toggle/reor
 ### Task 20: Refactor `UserDailyProvider` to use `useDataOne`
 
 **Files:**
-- Modify: `packages/react-oyl/modules/user/daily-new/UserDailyProvider.tsx`
-- Modify: `packages/react-oyl/modules/user/daily-new/user-daily-context.ts`
+- Modify: `packages/react-oyl/modules/user/daily/UserDailyProvider.tsx`
+- Modify: `packages/react-oyl/modules/user/daily/user-daily-context.ts`
 
 - [ ] **Step 1: Replace `UserDailyProvider.tsx`**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/UserDailyProvider.tsx
+// packages/react-oyl/modules/user/daily/UserDailyProvider.tsx
 import React, { useEffect, useState } from 'react'
 import { userDailyContext } from './user-daily-context'
 import { useData } from '@/modules/data'
@@ -1835,19 +1835,19 @@ export default function UserDailyProvider({ children }: { children: React.ReactN
 - [ ] **Step 3: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/UserDailyProvider.tsx
-git commit -m "refactor(daily-new): source userDailyData from useData mirror"
+git add packages/react-oyl/modules/user/daily/UserDailyProvider.tsx
+git commit -m "refactor(daily): source userDailyData from useData mirror"
 ```
 
 ### Task 21: `UserDailyDataProviders` compose helper
 
 **Files:**
-- Create: `packages/react-oyl/modules/user/daily-new/UserDailyDataProviders.tsx`
+- Create: `packages/react-oyl/modules/user/daily/UserDailyDataProviders.tsx`
 
 - [ ] **Step 1: Create**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/UserDailyDataProviders.tsx
+// packages/react-oyl/modules/user/daily/UserDailyDataProviders.tsx
 import React from 'react'
 import UserDailyProvider from './UserDailyProvider'
 import { UserActivityProvider } from '@/modules/user/activity'
@@ -1875,8 +1875,8 @@ export default function UserDailyDataProviders({ children }: { children: React.R
 - [ ] **Step 2: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/UserDailyDataProviders.tsx
-git commit -m "feat(daily-new): add compose helper for the five data providers"
+git add packages/react-oyl/modules/user/daily/UserDailyDataProviders.tsx
+git commit -m "feat(daily): add compose helper for the five data providers"
 ```
 
 ---
@@ -1886,14 +1886,14 @@ git commit -m "feat(daily-new): add compose helper for the five data providers"
 ### Task 22: `useUserDailyOrchestrator` with derived filters and tests
 
 **Files:**
-- Create: `packages/react-oyl/modules/user/daily-new/useUserDailyOrchestrator.ts`
-- Create: `packages/react-oyl/modules/user/daily-new/orchestrator-utils.ts`
-- Create: `packages/react-oyl/modules/user/daily-new/orchestrator-utils.test.ts`
+- Create: `packages/react-oyl/modules/user/daily/useUserDailyOrchestrator.ts`
+- Create: `packages/react-oyl/modules/user/daily/orchestrator-utils.ts`
+- Create: `packages/react-oyl/modules/user/daily/orchestrator-utils.test.ts`
 
 - [ ] **Step 1: Extract pure filter helpers + tests**
 
 ```ts
-// packages/react-oyl/modules/user/daily-new/orchestrator-utils.ts
+// packages/react-oyl/modules/user/daily/orchestrator-utils.ts
 import type { TDataId, TUserActivityData, TUserGoalData } from '@oyl/all-of-oyl/modules'
 import { matchesDate } from '@oyl/all-of-oyl/modules'
 
@@ -1929,7 +1929,7 @@ export function filterGoalsForDate(
 ```
 
 ```ts
-// packages/react-oyl/modules/user/daily-new/orchestrator-utils.test.ts
+// packages/react-oyl/modules/user/daily/orchestrator-utils.test.ts
 import { describe, it, expect } from 'vitest'
 import { filterActivitiesForDate, filterGoalsForDate } from './orchestrator-utils'
 
@@ -1980,14 +1980,14 @@ describe('filterGoalsForDate', () => {
 - [ ] **Step 2: Run tests — expect pass**
 
 ```bash
-pnpm --filter @oyl/react-oyl test modules/user/daily-new/orchestrator-utils.test.ts
+pnpm --filter @oyl/react-oyl test modules/user/daily/orchestrator-utils.test.ts
 ```
 Expected: PASS.
 
 - [ ] **Step 3: Implement the hook**
 
 ```ts
-// packages/react-oyl/modules/user/daily-new/useUserDailyOrchestrator.ts
+// packages/react-oyl/modules/user/daily/useUserDailyOrchestrator.ts
 import { useCallback, useMemo } from 'react'
 import type { TDataId, TUserActivity, TUserActivityData, TUserActivityLogData, TUserGoal, TUserGoalData, TUserGoalMilestone } from '@oyl/all-of-oyl/modules'
 import { useUserDailyContext } from './user-daily-context'
@@ -2087,8 +2087,8 @@ export function useUserDailyOrchestrator() {
 - [ ] **Step 4: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/orchestrator-utils.ts packages/react-oyl/modules/user/daily-new/orchestrator-utils.test.ts packages/react-oyl/modules/user/daily-new/useUserDailyOrchestrator.ts
-git commit -m "feat(daily-new): add orchestrator hook composing 5 providers"
+git add packages/react-oyl/modules/user/daily/orchestrator-utils.ts packages/react-oyl/modules/user/daily/orchestrator-utils.test.ts packages/react-oyl/modules/user/daily/useUserDailyOrchestrator.ts
+git commit -m "feat(daily): add orchestrator hook composing 5 providers"
 ```
 
 ---
@@ -2185,12 +2185,12 @@ git commit -m "feat(user/activity): add RRULE schedule input component"
 ### Task 24: `UserDailyActivityRow`
 
 **Files:**
-- Create: `packages/react-oyl/modules/user/daily-new/activities/UserDailyActivityRow.tsx`
+- Create: `packages/react-oyl/modules/user/daily/activities/UserDailyActivityRow.tsx`
 
 - [ ] **Step 1: Component**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/activities/UserDailyActivityRow.tsx
+// packages/react-oyl/modules/user/daily/activities/UserDailyActivityRow.tsx
 import { useState } from 'react'
 import type { ActivityRow } from '../useUserDailyOrchestrator'
 import { describeSchedule } from '@oyl/all-of-oyl/modules'
@@ -2277,19 +2277,19 @@ export default function UserDailyActivityRow({ row }: Props) {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/activities/UserDailyActivityRow.tsx
-git commit -m "feat(daily-new): add per-activity row with toggle/progress/logs"
+git add packages/react-oyl/modules/user/daily/activities/UserDailyActivityRow.tsx
+git commit -m "feat(daily): add per-activity row with toggle/progress/logs"
 ```
 
 ### Task 25: `UserDailyAddActivityForm`
 
 **Files:**
-- Create: `packages/react-oyl/modules/user/daily-new/activities/UserDailyAddActivityForm.tsx`
+- Create: `packages/react-oyl/modules/user/daily/activities/UserDailyAddActivityForm.tsx`
 
 - [ ] **Step 1: Component**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/activities/UserDailyAddActivityForm.tsx
+// packages/react-oyl/modules/user/daily/activities/UserDailyAddActivityForm.tsx
 import { useState } from 'react'
 import type { TSchedule, TUserActivity } from '@oyl/all-of-oyl/modules'
 import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'
@@ -2362,19 +2362,19 @@ export default function UserDailyAddActivityForm({ onClose }: { onClose: () => v
 - [ ] **Step 2: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/activities/UserDailyAddActivityForm.tsx
-git commit -m "feat(daily-new): add inline form for creating activity templates"
+git add packages/react-oyl/modules/user/daily/activities/UserDailyAddActivityForm.tsx
+git commit -m "feat(daily): add inline form for creating activity templates"
 ```
 
 ### Task 26: `UserDailyLogActivityForm`
 
 **Files:**
-- Create: `packages/react-oyl/modules/user/daily-new/activities/UserDailyLogActivityForm.tsx`
+- Create: `packages/react-oyl/modules/user/daily/activities/UserDailyLogActivityForm.tsx`
 
 - [ ] **Step 1: Component**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/activities/UserDailyLogActivityForm.tsx
+// packages/react-oyl/modules/user/daily/activities/UserDailyLogActivityForm.tsx
 import { useState } from 'react'
 import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'
 
@@ -2428,19 +2428,19 @@ export default function UserDailyLogActivityForm({ onClose }: { onClose: () => v
 - [ ] **Step 2: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/activities/UserDailyLogActivityForm.tsx
-git commit -m "feat(daily-new): add inline form for quick-logging activity occurrences"
+git add packages/react-oyl/modules/user/daily/activities/UserDailyLogActivityForm.tsx
+git commit -m "feat(daily): add inline form for quick-logging activity occurrences"
 ```
 
 ### Task 27: `UserDailyActivityLogSheet`
 
 **Files:**
-- Create: `packages/react-oyl/modules/user/daily-new/activities/UserDailyActivityLogSheet.tsx`
+- Create: `packages/react-oyl/modules/user/daily/activities/UserDailyActivityLogSheet.tsx`
 
 - [ ] **Step 1: Component**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/activities/UserDailyActivityLogSheet.tsx
+// packages/react-oyl/modules/user/daily/activities/UserDailyActivityLogSheet.tsx
 import { useEffect, useState } from 'react'
 import { useUserActivityLogContext } from '@/modules/user/activity-log'
 
@@ -2509,19 +2509,19 @@ export default function UserDailyActivityLogSheet() {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/activities/UserDailyActivityLogSheet.tsx
-git commit -m "feat(daily-new): add modal sheet for editing/deleting activity logs"
+git add packages/react-oyl/modules/user/daily/activities/UserDailyActivityLogSheet.tsx
+git commit -m "feat(daily): add modal sheet for editing/deleting activity logs"
 ```
 
 ### Task 28: `UserDailyActivitySettingsSheet`
 
 **Files:**
-- Create: `packages/react-oyl/modules/user/daily-new/activities/UserDailyActivitySettingsSheet.tsx`
+- Create: `packages/react-oyl/modules/user/daily/activities/UserDailyActivitySettingsSheet.tsx`
 
 - [ ] **Step 1: Component**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/activities/UserDailyActivitySettingsSheet.tsx
+// packages/react-oyl/modules/user/daily/activities/UserDailyActivitySettingsSheet.tsx
 import { useEffect, useState } from 'react'
 import type { TSchedule, TUserActivity } from '@oyl/all-of-oyl/modules'
 import { UserActivityScheduleInput, useUserActivityContext } from '@/modules/user/activity'
@@ -2621,23 +2621,23 @@ export default function UserDailyActivitySettingsSheet() {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/activities/UserDailyActivitySettingsSheet.tsx
-git commit -m "feat(daily-new): add modal sheet for editing activity template"
+git add packages/react-oyl/modules/user/daily/activities/UserDailyActivitySettingsSheet.tsx
+git commit -m "feat(daily): add modal sheet for editing activity template"
 ```
 
 ### Task 29: Rewrite `UserDailyActivitiesList` and `UserDailyActivities`; delete obsolete files
 
 **Files:**
-- Modify: `packages/react-oyl/modules/user/daily-new/activities/UserDailyActivitiesList.tsx`
-- Modify: `packages/react-oyl/modules/user/daily-new/activities/UserDailyActivities.tsx`
-- Delete: `packages/react-oyl/modules/user/daily-new/activities/UserDailyActivitiesForm.tsx`
-- Delete: `packages/react-oyl/modules/user/daily-new/activities/UserDailyActivitiesSettings.tsx`
-- Modify: `packages/react-oyl/modules/user/daily-new/activities/index.ts`
+- Modify: `packages/react-oyl/modules/user/daily/activities/UserDailyActivitiesList.tsx`
+- Modify: `packages/react-oyl/modules/user/daily/activities/UserDailyActivities.tsx`
+- Delete: `packages/react-oyl/modules/user/daily/activities/UserDailyActivitiesForm.tsx`
+- Delete: `packages/react-oyl/modules/user/daily/activities/UserDailyActivitiesSettings.tsx`
+- Modify: `packages/react-oyl/modules/user/daily/activities/index.ts`
 
 - [ ] **Step 1: Replace `UserDailyActivitiesList.tsx`**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/activities/UserDailyActivitiesList.tsx
+// packages/react-oyl/modules/user/daily/activities/UserDailyActivitiesList.tsx
 import UserDailyActivityRow from './UserDailyActivityRow'
 import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'
 
@@ -2657,7 +2657,7 @@ export default function UserDailyActivitiesList() {
 - [ ] **Step 2: Replace `UserDailyActivities.tsx`**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/activities/UserDailyActivities.tsx
+// packages/react-oyl/modules/user/daily/activities/UserDailyActivities.tsx
 import { useState } from 'react'
 import { Section } from '@oyl/storybook-oyl'
 import UserDailyActivitiesList from './UserDailyActivitiesList'
@@ -2693,14 +2693,14 @@ export default function UserDailyActivities() {
 - [ ] **Step 3: Delete obsolete files**
 
 ```bash
-git rm packages/react-oyl/modules/user/daily-new/activities/UserDailyActivitiesForm.tsx
-git rm packages/react-oyl/modules/user/daily-new/activities/UserDailyActivitiesSettings.tsx
+git rm packages/react-oyl/modules/user/daily/activities/UserDailyActivitiesForm.tsx
+git rm packages/react-oyl/modules/user/daily/activities/UserDailyActivitiesSettings.tsx
 ```
 
 - [ ] **Step 4: Rewrite `index.ts`**
 
 ```ts
-// packages/react-oyl/modules/user/daily-new/activities/index.ts
+// packages/react-oyl/modules/user/daily/activities/index.ts
 export { default as UserDailyActivities } from './UserDailyActivities'
 export { default as UserDailyActivitiesList } from './UserDailyActivitiesList'
 export { default as UserDailyActivityRow } from './UserDailyActivityRow'
@@ -2709,8 +2709,8 @@ export { default as UserDailyActivityRow } from './UserDailyActivityRow'
 - [ ] **Step 5: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/activities/
-git commit -m "feat(daily-new): rewire activities section around orchestrator"
+git add packages/react-oyl/modules/user/daily/activities/
+git commit -m "feat(daily): rewire activities section around orchestrator"
 ```
 
 ---
@@ -2720,12 +2720,12 @@ git commit -m "feat(daily-new): rewire activities section around orchestrator"
 ### Task 30: `UserDailyGoalRow`
 
 **Files:**
-- Create: `packages/react-oyl/modules/user/daily-new/goals/UserDailyGoalRow.tsx`
+- Create: `packages/react-oyl/modules/user/daily/goals/UserDailyGoalRow.tsx`
 
 - [ ] **Step 1: Component**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/goals/UserDailyGoalRow.tsx
+// packages/react-oyl/modules/user/daily/goals/UserDailyGoalRow.tsx
 import { useState } from 'react'
 import type { GoalRow } from '../useUserDailyOrchestrator'
 import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'
@@ -2810,19 +2810,19 @@ export default function UserDailyGoalRow({ row }: Props) {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/goals/UserDailyGoalRow.tsx
-git commit -m "feat(daily-new): add per-goal row with progress/milestones/notes"
+git add packages/react-oyl/modules/user/daily/goals/UserDailyGoalRow.tsx
+git commit -m "feat(daily): add per-goal row with progress/milestones/notes"
 ```
 
 ### Task 31: `UserDailyAddGoalForm`
 
 **Files:**
-- Create: `packages/react-oyl/modules/user/daily-new/goals/UserDailyAddGoalForm.tsx`
+- Create: `packages/react-oyl/modules/user/daily/goals/UserDailyAddGoalForm.tsx`
 
 - [ ] **Step 1: Component**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/goals/UserDailyAddGoalForm.tsx
+// packages/react-oyl/modules/user/daily/goals/UserDailyAddGoalForm.tsx
 import { useState } from 'react'
 import type { TUserGoal } from '@oyl/all-of-oyl/modules'
 import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'
@@ -2880,19 +2880,19 @@ export default function UserDailyAddGoalForm({ onClose }: { onClose: () => void 
 - [ ] **Step 2: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/goals/UserDailyAddGoalForm.tsx
-git commit -m "feat(daily-new): add inline form for creating goals"
+git add packages/react-oyl/modules/user/daily/goals/UserDailyAddGoalForm.tsx
+git commit -m "feat(daily): add inline form for creating goals"
 ```
 
 ### Task 32: `UserDailyAddMilestoneForm`
 
 **Files:**
-- Create: `packages/react-oyl/modules/user/daily-new/goals/UserDailyAddMilestoneForm.tsx`
+- Create: `packages/react-oyl/modules/user/daily/goals/UserDailyAddMilestoneForm.tsx`
 
 - [ ] **Step 1: Component**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/goals/UserDailyAddMilestoneForm.tsx
+// packages/react-oyl/modules/user/daily/goals/UserDailyAddMilestoneForm.tsx
 import { useState } from 'react'
 import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'
 
@@ -2932,19 +2932,19 @@ export default function UserDailyAddMilestoneForm({ onClose }: { onClose: () => 
 - [ ] **Step 2: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/goals/UserDailyAddMilestoneForm.tsx
-git commit -m "feat(daily-new): add inline form for creating milestones"
+git add packages/react-oyl/modules/user/daily/goals/UserDailyAddMilestoneForm.tsx
+git commit -m "feat(daily): add inline form for creating milestones"
 ```
 
 ### Task 33: `UserDailyGoalSettingsSheet`
 
 **Files:**
-- Create: `packages/react-oyl/modules/user/daily-new/goals/UserDailyGoalSettingsSheet.tsx`
+- Create: `packages/react-oyl/modules/user/daily/goals/UserDailyGoalSettingsSheet.tsx`
 
 - [ ] **Step 1: Component**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/goals/UserDailyGoalSettingsSheet.tsx
+// packages/react-oyl/modules/user/daily/goals/UserDailyGoalSettingsSheet.tsx
 import { useEffect, useState } from 'react'
 import type { TUserGoal } from '@oyl/all-of-oyl/modules'
 import { useUserGoalContext } from '@/modules/user/goal'
@@ -3040,21 +3040,21 @@ export default function UserDailyGoalSettingsSheet() {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/goals/UserDailyGoalSettingsSheet.tsx
-git commit -m "feat(daily-new): add modal sheet for full goal edit"
+git add packages/react-oyl/modules/user/daily/goals/UserDailyGoalSettingsSheet.tsx
+git commit -m "feat(daily): add modal sheet for full goal edit"
 ```
 
 ### Task 34: `UserDailyGoalsList`, `UserDailyGoals`, and `goals/index.ts`
 
 **Files:**
-- Create: `packages/react-oyl/modules/user/daily-new/goals/UserDailyGoalsList.tsx`
-- Create: `packages/react-oyl/modules/user/daily-new/goals/UserDailyGoals.tsx`
-- Create: `packages/react-oyl/modules/user/daily-new/goals/index.ts`
+- Create: `packages/react-oyl/modules/user/daily/goals/UserDailyGoalsList.tsx`
+- Create: `packages/react-oyl/modules/user/daily/goals/UserDailyGoals.tsx`
+- Create: `packages/react-oyl/modules/user/daily/goals/index.ts`
 
 - [ ] **Step 1: `UserDailyGoalsList.tsx`**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/goals/UserDailyGoalsList.tsx
+// packages/react-oyl/modules/user/daily/goals/UserDailyGoalsList.tsx
 import UserDailyGoalRow from './UserDailyGoalRow'
 import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'
 
@@ -3074,7 +3074,7 @@ export default function UserDailyGoalsList() {
 - [ ] **Step 2: `UserDailyGoals.tsx`**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/goals/UserDailyGoals.tsx
+// packages/react-oyl/modules/user/daily/goals/UserDailyGoals.tsx
 import { useState } from 'react'
 import { Section } from '@oyl/storybook-oyl'
 import UserDailyGoalsList from './UserDailyGoalsList'
@@ -3108,7 +3108,7 @@ export default function UserDailyGoals() {
 - [ ] **Step 3: `goals/index.ts`**
 
 ```ts
-// packages/react-oyl/modules/user/daily-new/goals/index.ts
+// packages/react-oyl/modules/user/daily/goals/index.ts
 export { default as UserDailyGoals } from './UserDailyGoals'
 export { default as UserDailyGoalsList } from './UserDailyGoalsList'
 export { default as UserDailyGoalRow } from './UserDailyGoalRow'
@@ -3117,8 +3117,8 @@ export { default as UserDailyGoalRow } from './UserDailyGoalRow'
 - [ ] **Step 4: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/goals/
-git commit -m "feat(daily-new): add goals section orchestrating list + forms + sheet"
+git add packages/react-oyl/modules/user/daily/goals/
+git commit -m "feat(daily): add goals section orchestrating list + forms + sheet"
 ```
 
 ---
@@ -3128,12 +3128,12 @@ git commit -m "feat(daily-new): add goals section orchestrating list + forms + s
 ### Task 35: `UserDailySyncIndicator`
 
 **Files:**
-- Create: `packages/react-oyl/modules/user/daily-new/UserDailySyncIndicator.tsx`
+- Create: `packages/react-oyl/modules/user/daily/UserDailySyncIndicator.tsx`
 
 - [ ] **Step 1: Component**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/UserDailySyncIndicator.tsx
+// packages/react-oyl/modules/user/daily/UserDailySyncIndicator.tsx
 import { useSyncState } from '@/modules/data'
 
 export default function UserDailySyncIndicator() {
@@ -3157,20 +3157,20 @@ export default function UserDailySyncIndicator() {
 - [ ] **Step 2: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/UserDailySyncIndicator.tsx
-git commit -m "feat(daily-new): add sync state indicator badge"
+git add packages/react-oyl/modules/user/daily/UserDailySyncIndicator.tsx
+git commit -m "feat(daily): add sync state indicator badge"
 ```
 
 ### Task 36: Update `UserDailyHeader` and `UserDailyPage`
 
 **Files:**
-- Modify: `packages/react-oyl/modules/user/daily-new/UserDailyHeader.tsx`
-- Modify: `packages/react-oyl/modules/user/daily-new/UserDailyPage.tsx`
+- Modify: `packages/react-oyl/modules/user/daily/UserDailyHeader.tsx`
+- Modify: `packages/react-oyl/modules/user/daily/UserDailyPage.tsx`
 
 - [ ] **Step 1: Replace `UserDailyHeader.tsx`**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/UserDailyHeader.tsx
+// packages/react-oyl/modules/user/daily/UserDailyHeader.tsx
 import { useUserDailyContext } from './user-daily-context'
 import UserDailySyncIndicator from './UserDailySyncIndicator'
 
@@ -3201,7 +3201,7 @@ export default function UserDailyHeader() {
 - [ ] **Step 2: Replace `UserDailyPage.tsx`**
 
 ```tsx
-// packages/react-oyl/modules/user/daily-new/UserDailyPage.tsx
+// packages/react-oyl/modules/user/daily/UserDailyPage.tsx
 import UserDailyHeader from './UserDailyHeader'
 import { UserDailyActivities } from './activities'
 import { UserDailyGoals } from './goals'
@@ -3227,15 +3227,15 @@ export default function UserDailyPage() {
 - [ ] **Step 3: Commit**
 
 ```bash
-git add packages/react-oyl/modules/user/daily-new/UserDailyHeader.tsx packages/react-oyl/modules/user/daily-new/UserDailyPage.tsx
-git commit -m "feat(daily-new): wire page to data providers, add goals column"
+git add packages/react-oyl/modules/user/daily/UserDailyHeader.tsx packages/react-oyl/modules/user/daily/UserDailyPage.tsx
+git commit -m "feat(daily): wire page to data providers, add goals column"
 ```
 
 ### Task 37: Cleanup obsolete files
 
 **Files:**
-- Delete: `packages/react-oyl/modules/user/daily-new/sections/` (entire directory)
-- Delete: `packages/react-oyl/modules/user/daily-new/PROPOSAL.md`
+- Delete: `packages/react-oyl/modules/user/daily/sections/` (entire directory)
+- Delete: `packages/react-oyl/modules/user/daily/PROPOSAL.md`
 - Verify and possibly delete: `packages/react-oyl/modules/user/activity/settings/`
 
 - [ ] **Step 1: Inspect `user/activity/settings/`**
@@ -3249,8 +3249,8 @@ If the contents only reference `TUserActivitySettings` or the deprecated `user-a
 - [ ] **Step 2: Delete confirmed obsolete files**
 
 ```bash
-git rm -r packages/react-oyl/modules/user/daily-new/sections/
-git rm packages/react-oyl/modules/user/daily-new/PROPOSAL.md
+git rm -r packages/react-oyl/modules/user/daily/sections/
+git rm packages/react-oyl/modules/user/daily/PROPOSAL.md
 # If step 1 confirmed obsolete:
 git rm -r packages/react-oyl/modules/user/activity/settings/
 ```
@@ -3269,7 +3269,7 @@ If `react-oyl` typecheck fails in `user/daily/`, edit `packages/react-oyl/src/ma
 
 ```bash
 git add -A
-git commit -m "chore(daily-new): drop obsolete sections/ stubs, PROPOSAL.md, deprecated settings"
+git commit -m "chore(daily): drop obsolete sections/ stubs, PROPOSAL.md, deprecated settings"
 ```
 
 ### Task 38: Run all tests and final manual verification
@@ -3291,7 +3291,7 @@ Expected: clean (or pre-existing warnings only).
 
 - [ ] **Step 3: Manual end-to-end verification**
 
-Start Strapi (`pnpm strapi develop`) and the React app (`pnpm react dev`). Log in. Navigate to the daily-new page. Verify each:
+Start Strapi (`pnpm strapi develop`) and the React app (`pnpm react dev`). Log in. Navigate to the daily page. Verify each:
 
 - [ ] Initial load shows "Loading your data…" briefly, then the page.
 - [ ] Sync indicator near the date picker shows green dot + "Synced HH:MM:SS".

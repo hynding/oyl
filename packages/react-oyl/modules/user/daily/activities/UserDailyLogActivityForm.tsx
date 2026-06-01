@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/activities/UserDailyLogActivityForm.tsx
+// packages/react-oyl/modules/user/daily/activities/UserDailyLogActivityForm.tsx
 import { useState } from 'react'
 import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'
 

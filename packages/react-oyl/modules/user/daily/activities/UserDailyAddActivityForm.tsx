@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/activities/UserDailyAddActivityForm.tsx
+// packages/react-oyl/modules/user/daily/activities/UserDailyAddActivityForm.tsx
 import { useState } from 'react'
 import type { TSchedule, TUserActivity } from '@oyl/all-of-oyl/modules'
 import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'

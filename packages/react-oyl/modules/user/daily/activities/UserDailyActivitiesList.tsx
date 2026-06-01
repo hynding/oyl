@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/activities/UserDailyActivitiesList.tsx
+// packages/react-oyl/modules/user/daily/activities/UserDailyActivitiesList.tsx
 import UserDailyActivityRow from './UserDailyActivityRow'
 import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'
 

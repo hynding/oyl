@@ -6,7 +6,6 @@ import AppProvider from '@/modules/app/AppProvider'
 import AuthLogin from '@/modules/auth/AuthLogin'
 import ProtectedRoute from '@/modules/auth/ProtectedRoute'
 import UserDailyPage from '@/modules/user/daily/UserDailyPage'
-import UserDailyNewPage from '@/modules/user/daily-new/UserDailyPage'
 import UserProfilePage from '@/modules/user/profile/UserProfilePage'
 import NutritionPage from '@/modules/nutrition/NutritionPage'
 import DataPage from '@/modules/data/DataPage'
@@ -20,7 +19,6 @@ createRoot(document.getElementById('root')!).render(
           <Route path="login" element={<AuthLogin />} />
           <Route index element={<ProtectedRoute><AppHomePage /></ProtectedRoute>} />
           <Route path="daily" element={<ProtectedRoute><UserDailyPage /></ProtectedRoute>} />
-          <Route path="daily-new" element={<ProtectedRoute><UserDailyNewPage /></ProtectedRoute>} />
           <Route path="data" element={<DataPage />} />
           <Route path="my/:settings" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
           <Route path="nutrition" element={<ProtectedRoute><NutritionPage /></ProtectedRoute>} />

@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/activities/UserDailyActivityRow.tsx
+// packages/react-oyl/modules/user/daily/activities/UserDailyActivityRow.tsx
 import { useState } from 'react'
 import { describeSchedule } from '@oyl/all-of-oyl/modules'
 import type { ActivityRow } from '../useUserDailyOrchestrator'

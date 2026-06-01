@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/orchestrator-utils.ts
+// packages/react-oyl/modules/user/daily/orchestrator-utils.ts
 import type { TDataId, TUserActivityData, TUserGoalData } from '@oyl/all-of-oyl/modules'
 import { matchesDate } from '@oyl/all-of-oyl/modules'
 

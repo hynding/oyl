@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/orchestrator-utils.test.ts
+// packages/react-oyl/modules/user/daily/orchestrator-utils.test.ts
 import { describe, it, expect } from 'vitest'
 import type { TUserActivityData, TUserGoalData } from '@oyl/all-of-oyl/modules'
 import { filterActivitiesForDate, filterGoalsForDate } from './orchestrator-utils'

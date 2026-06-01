@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/activities/UserDailyActivitySettingsSheet.tsx
+// packages/react-oyl/modules/user/daily/activities/UserDailyActivitySettingsSheet.tsx
 import { useEffect, useState } from 'react'
 import type { TSchedule, TUserActivity } from '@oyl/all-of-oyl/modules'
 import { UserActivityScheduleInput, useUserActivityContext } from '@/modules/user/activity'

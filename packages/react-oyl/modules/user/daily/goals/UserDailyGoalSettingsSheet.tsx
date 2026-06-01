@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/goals/UserDailyGoalSettingsSheet.tsx
+// packages/react-oyl/modules/user/daily/goals/UserDailyGoalSettingsSheet.tsx
 import { useEffect, useState } from 'react'
 import type { TUserGoal } from '@oyl/all-of-oyl/modules'
 import { useUserGoalContext } from '@/modules/user/goal'

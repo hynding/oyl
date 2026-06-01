@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/goals/UserDailyGoalsList.tsx
+// packages/react-oyl/modules/user/daily/goals/UserDailyGoalsList.tsx
 import UserDailyGoalRow from './UserDailyGoalRow'
 import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'
 

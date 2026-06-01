@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/activities/UserDailyActivityLogSheet.tsx
+// packages/react-oyl/modules/user/daily/activities/UserDailyActivityLogSheet.tsx
 import { useEffect, useState } from 'react'
 import { useUserActivityLogContext } from '@/modules/user/activity-log'
 

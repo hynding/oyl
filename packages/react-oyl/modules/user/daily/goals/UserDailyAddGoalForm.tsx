@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/goals/UserDailyAddGoalForm.tsx
+// packages/react-oyl/modules/user/daily/goals/UserDailyAddGoalForm.tsx
 import { useState } from 'react'
 import type { TUserGoal } from '@oyl/all-of-oyl/modules'
 import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'

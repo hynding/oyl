@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/UserDailySyncIndicator.tsx
+// packages/react-oyl/modules/user/daily/UserDailySyncIndicator.tsx
 import { useSyncState } from '@/modules/data'
 
 export default function UserDailySyncIndicator() {

@@ -1,4 +1,4 @@
-// packages/react-oyl/modules/user/daily-new/goals/UserDailyGoalRow.tsx
+// packages/react-oyl/modules/user/daily/goals/UserDailyGoalRow.tsx
 import { useState } from 'react'
 import type { GoalRow } from '../useUserDailyOrchestrator'
 import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'
