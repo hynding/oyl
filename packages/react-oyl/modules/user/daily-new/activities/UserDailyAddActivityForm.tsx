@@ -34,15 +34,15 @@ export default function UserDailyAddActivityForm({ onClose }: { onClose: () => v
 
   return (
     <form onSubmit={submit} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-3">
-      <input type="text" placeholder="Activity name" required value={name} onChange={e => setName(e.target.value)}
+      <input id="activity-name" name="name" type="text" placeholder="Activity name" required value={name} onChange={e => setName(e.target.value)}
         className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100" />
       <div className="grid grid-cols-2 gap-2">
-        <select value={type} onChange={e => setType(e.target.value as typeof type)}
+        <select id="activity-type" name="type" value={type} onChange={e => setType(e.target.value as typeof type)}
           className="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100">
           <option value="habit">Habit</option><option value="task">Task</option>
           <option value="event">Event</option><option value="metric">Metric</option>
         </select>
-        <select value={userGoalId} onChange={e => setUserGoalId(e.target.value)}
+        <select id="activity-goal" name="userGoalId" value={userGoalId} onChange={e => setUserGoalId(e.target.value)}
           className="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100">
           <option value="">(no linked goal)</option>
           {goals.map(g => <option key={g.id} value={g.id !== undefined ? String(g.id) : ''}>{g.name}</option>)}
@@ -50,11 +50,11 @@ export default function UserDailyAddActivityForm({ onClose }: { onClose: () => v
       </div>
       <UserActivityScheduleInput value={schedule} onChange={setSchedule} />
       <div className="grid grid-cols-3 gap-2">
-        <input type="number" placeholder="Target value" value={targetValue} onChange={e => setTargetValue(e.target.value)}
+        <input id="activity-target-value" name="targetValue" type="number" placeholder="Target value" value={targetValue} onChange={e => setTargetValue(e.target.value)}
           className="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100" />
-        <input type="text" placeholder="Unit" value={targetUnit} onChange={e => setTargetUnit(e.target.value)}
+        <input id="activity-target-unit" name="targetUnit" type="text" placeholder="Unit" value={targetUnit} onChange={e => setTargetUnit(e.target.value)}
           className="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100" />
-        <select value={targetDirection} onChange={e => setTargetDirection(e.target.value as typeof targetDirection)}
+        <select id="activity-target-direction" name="targetDirection" value={targetDirection} onChange={e => setTargetDirection(e.target.value as typeof targetDirection)}
           className="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100">
           <option value="min">At least</option><option value="max">At most</option><option value="exact">Exactly</option>
         </select>

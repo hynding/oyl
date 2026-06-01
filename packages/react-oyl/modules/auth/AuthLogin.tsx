@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigation } from '@/lib/navigation'
 import useAuth from './useAuth'
 import { useApp } from '@/modules/app/useApp'
@@ -55,10 +55,11 @@ export default function LoginPage() {
     navigate.to('/daily')
   }
 
-  if (isAuthenticated) {
-    navigate.to('/daily')
-    return null
-  }
+  useEffect(() => {
+    if (isAuthenticated) navigate.to('/daily')
+  }, [isAuthenticated, navigate])
+
+  if (isAuthenticated) return null
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">

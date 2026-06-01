@@ -12,7 +12,10 @@ export default function UserDailyHeader() {
           <p className="text-gray-600 dark:text-gray-400 mt-1">Track your activities, goals, and nutrition</p>
         </div>
         <div className="flex flex-col items-end gap-2">
+          <label htmlFor="user-daily-date" className="sr-only">Selected date</label>
           <input
+            id="user-daily-date"
+            name="selectedDate"
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}

@@ -36,7 +36,7 @@ export function createRemoteClient(getToken: () => string | null): RemoteClient 
       return unwrap<T>(await res.json())
     },
     async create<T>(path: string, body: unknown) {
-      const res = await fetch(`${BASE}/${path}`, {
+      const res = await fetch(`${BASE}/${path}?populate=*`, {
         method: 'POST',
         headers: headers(getToken()),
         body: JSON.stringify({ data: body }),
@@ -45,7 +45,7 @@ export function createRemoteClient(getToken: () => string | null): RemoteClient 
       return unwrap<T>(await res.json())
     },
     async update<T>(path: string, id: string | number, body: unknown) {
-      const res = await fetch(`${BASE}/${path}/${id}`, {
+      const res = await fetch(`${BASE}/${path}/${id}?populate=*`, {
         method: 'PUT',
         headers: headers(getToken()),
         body: JSON.stringify({ data: body }),

@@ -6,6 +6,13 @@ import { readMirror, writeMirror, readQueue, writeQueue, wipeUser } from './stor
 
 type SaveOptions = { skipDrain?: boolean }
 
+type Snapshot = {
+  mirror: Record<string, MirrorRecord<unknown>>
+  list: MirrorRecord<unknown>[]
+}
+
+const EMPTY_LIST: MirrorRecord<unknown>[] = Object.freeze([]) as MirrorRecord<unknown>[]
+
 export class SyncEngine {
   private userId: string | null = null
   private online = true
@@ -13,6 +20,7 @@ export class SyncEngine {
   private lastSyncedAt: string | undefined
   private draining = false
   private remote: RemoteClient
+  private snapshots = new Map<string, Snapshot>()
 
   constructor(remote: RemoteClient) {
     this.remote = remote
@@ -20,6 +28,7 @@ export class SyncEngine {
 
   setUser(userId: string | null): void {
     this.userId = userId
+    this.snapshots.clear()
     this.emitAll()
   }
 
@@ -40,13 +49,22 @@ export class SyncEngine {
   }
 
   readAll<T>(path: string): MirrorRecord<T>[] {
-    if (!this.userId) return []
-    return Object.values(readMirror<T>(this.userId, path))
+    if (!this.userId) return EMPTY_LIST as MirrorRecord<T>[]
+    return this.getSnapshot(path).list as MirrorRecord<T>[]
   }
 
   readOne<T>(path: string, id: string | number): MirrorRecord<T> | undefined {
     if (!this.userId) return undefined
-    return readMirror<T>(this.userId, path)[String(id)]
+    return this.getSnapshot(path).mirror[String(id)] as MirrorRecord<T> | undefined
+  }
+
+  private getSnapshot(path: string): Snapshot {
+    const cached = this.snapshots.get(path)
+    if (cached) return cached
+    const mirror = readMirror(this.userId!, path)
+    const snap: Snapshot = { mirror, list: Object.values(mirror) }
+    this.snapshots.set(path, snap)
+    return snap
   }
 
   subscribe(path: string, cb: SyncListener): () => void {
@@ -175,14 +193,17 @@ export class SyncEngine {
   wipe(): void {
     if (this.userId === null) throw new Error('SyncEngine.wipe(): no user set')
     wipeUser(this.userId)
+    this.snapshots.clear()
     this.listeners.clear()
   }
 
   private emit(path: string): void {
+    this.snapshots.delete(path)
     this.listeners.get(path)?.forEach(cb => cb())
   }
 
   private emitAll(): void {
+    this.snapshots.clear()
     for (const set of this.listeners.values()) set.forEach(cb => cb())
   }
 }
