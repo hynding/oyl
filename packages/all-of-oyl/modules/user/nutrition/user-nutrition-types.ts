@@ -1,12 +1,20 @@
 import type { TDataId, TDataItem } from "../../data"
 import type { TUser } from "../user-types"
-import type { TNutritionItem } from "../../nutrition"
+import type { TNutritionItemData } from "../../nutrition"
 import type { TCalendarItemSettings } from "../../calendar"
 
 export type TUserNutrition = {
   user: TUser | TDataId
-  nutrition_item: TNutritionItem | TDataId
-  amount: number
+  nutrition_item: TNutritionItemData | TDataId
+  name: string
+  date: string
+  servings: number
+  calories?: number | null
+  protein?: number | null
+  carbs?: number | null
+  fat?: number | null
+  deleted_at?: string | null
+  data?: Record<string, unknown>
 }
 
 export type TUserNutritionData = TUserNutrition & TDataItem
