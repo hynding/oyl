@@ -96,6 +96,12 @@ Rationale: the totals strip + search + log list is wider than the activity/goal 
     "protein_per_100":  { "type": "decimal", "min": 0 },
     "carbs_per_100":    { "type": "decimal", "min": 0 },
     "fat_per_100":      { "type": "decimal", "min": 0 },
+    "package_quantity": { "type": "string" },                       // NEW — OFF `quantity`, e.g. "500 g"
+    "nutri_score": { "type": "enumeration",                         // NEW — A–E grade
+                     "enum": ["a", "b", "c", "d", "e"] },
+    "nutri_score_value": { "type": "integer" },                     // NEW — numeric Nutri-Score
+    "nova_group": { "type": "integer", "min": 1, "max": 4 },        // NEW — processing classification
+    "allergens": { "type": "json" },                                // NEW — string[] (normalized, no `en:` prefix)
     "source":   { "type": "enumeration",                            // NEW
                   "enum": ["user", "openfoodfacts"], "default": "user", "required": true },
     "creator":  { "type": "relation", "relation": "oneToOne",       // existing
@@ -136,18 +142,58 @@ Keeps `query` (unique), `results` JSON, `uuid`. Stores normalized query → arra
 
 ### `openfoodfacts-client.ts`
 
-Pure typed fetch wrapper, no React.
+Pure typed fetch wrapper, no React. Targets **OFF API v3** (the current recommended version; v2 is deprecated, the existing in-tree code uses v2 and is being replaced).
 
 ```ts
 searchByQuery(query: string, signal: AbortSignal): Promise<OFFProductSummary[]>
 fetchByBarcode(barcode: string, signal: AbortSignal): Promise<OFFProduct | null>
 ```
 
-Fields requested: `code, product_name, brands, image_url, serving_size, serving_quantity, nutriments` (subset of existing usage).
+Fields requested: barcode, product name, brands, image URL, serving size/quantity, nutriments — exact v3 field names to be confirmed against the v3 spec during implementation (v3 response shapes differ from v2 in places, particularly around the search response envelope and nutriment keys). The `normalizeProduct()` mapper described below is written against v3 docs at implementation time, not copied from the existing v2 code.
 
-**User-Agent caveat:** browsers strip custom `User-Agent` on `fetch`; the existing code's `'User-Agent': 'OYL/1.0'` header is a no-op. We document this in a code comment and append a query param for attribution.
+### Base URL & environments
 
-> **TODO before shipping:** verify OFF's attribution conventions. The current plan appends `&ref=oyl-app` as a referrer hint, but this is a placeholder — confirm against OFF's official guidance (their wiki or the staff feedback channel) before merging. If they prefer a different identifier (e.g. registered app key, `User-Agent` via server proxy), adjust accordingly.
+Base URL is parameterized via env var so dev points at OFF's staging environment and prod points at production. Per OFF guidance: *"While testing your applications, make all API requests to the staging environment."*
+
+| Env | Base URL |
+|---|---|
+| Dev | `https://world.openfoodfacts.net/api/v3` (staging) |
+| Prod | `https://world.openfoodfacts.org/api/v3` |
+
+**Staging basic auth:** OFF's staging may require `Authorization: Basic ${btoa('off:off')}` (used to prevent search-engine indexing). The client detects this conditionally — if the base URL contains `openfoodfacts.net`, attach the staging basic-auth header. Production calls send no `Authorization` header. Handled inside `openfoodfacts-client.ts` so consumers don't think about it.
+
+Single env var, two values:
+
+```
+# react-oyl/.env.example
+VITE_OFF_BASE_URL=https://world.openfoodfacts.net/api/v3   # prod override: https://world.openfoodfacts.org/api/v3
+```
+
+### Client identification
+
+OFF wants `User-Agent: AppName/Version (ContactEmail)` to avoid bot classification, but browsers strip custom `User-Agent` from `fetch`. OFF allows web clients to identify themselves via custom non-forbidden headers instead. Every OFF request sets:
+
+| Header | Source |
+|---|---|
+| `X-App-Name` | `import.meta.env.VITE_OFF_APP_NAME` |
+| `X-App-Version` | `import.meta.env.VITE_OFF_APP_VERSION` |
+| `X-Client-Id` | `import.meta.env.VITE_OFF_CLIENT_ID` |
+
+Full `.env.example`:
+
+```
+# react-oyl/.env.example
+VITE_OFF_BASE_URL=https://world.openfoodfacts.net/api/v3
+VITE_OFF_APP_NAME=OYL/1.0
+VITE_OFF_APP_VERSION=1.0
+VITE_OFF_CLIENT_ID=https://github.com/hynding/oyl
+```
+
+Reading the values lives in `openfoodfacts-client.ts` (one place, easy to mock in tests). Missing env vars at build time log a single dev-mode warning; OFF calls still proceed (degraded identification, not blocked).
+
+### Rate limits
+
+OFF enforces **15 req/min/IP for product reads** and **10 req/min/IP for search reads**, but explicitly states: *"If your requests come from your users directly (ex: mobile app), the rate limits apply per user."* Browser-direct gives each user their own quota — a server proxy would concentrate all users on one IP. This is the primary architectural reason to keep OFF traffic in the browser.
 
 Per-request `AbortController` allows cancellation on new keystrokes.
 
@@ -181,18 +227,58 @@ State: `{ localResults, offResults, offLoading, offError, searchOff }`.
 
 ### `normalizeProduct()` — OFF → our schema
 
-OFF gives macros as `per_100g` or `per_serving`. We always store per 100 of `serving_unit`:
+`normalizeProduct()` produces two outputs in a single pass: (1) the typed column values, and (2) the curated `data` JSON subset. Exact v3 field names verified against the v3 spec at implementation time (v3 differs from v2 in several keys).
 
-| Our field | Source |
+**Column values** — OFF gives macros as per-100 (g or ml) and/or per-serving; we always store **per 100 of `serving_unit`**.
+
+| Our column | Source (semantic) |
 |---|---|
-| `serving_unit` | `'g'` if `nutriments['energy-kcal_100g']` exists; `'ml'` if `..._100ml`; else `'serving'` |
-| `serving_size` | `serving_quantity` (numeric) or null |
-| `calories_per_100` | `nutriments['energy-kcal_100g']` (or `_100ml`, preferring g) |
-| `protein_per_100` | `nutriments['proteins_100g']` (or `_100ml`) |
-| `carbs_per_100` | `nutriments['carbohydrates_100g']` (or `_100ml`) |
-| `fat_per_100` | `nutriments['fat_100g']` (or `_100ml`) |
+| `name` | OFF product name; fall back to `generic_name` then `code` |
+| `brand` | First entry of OFF `brands` (string-split on comma, trimmed) |
+| `image_url` | OFF `image_front_small_url` (thumbnail; full URL kept in `data`) |
+| `serving_unit` | `'g'` if a per-100g macro is present; `'ml'` if per-100ml is present; else `'serving'` (preferring g when both present) |
+| `serving_size` | OFF's `serving_quantity` (numeric) or null |
+| `package_quantity` | OFF's `quantity` string (e.g. "500 g") or null |
+| `calories_per_100` | OFF's energy in kcal per 100 of `serving_unit` |
+| `protein_per_100` | OFF's protein per 100 of `serving_unit` |
+| `carbs_per_100` | OFF's carbohydrates per 100 of `serving_unit` |
+| `fat_per_100` | OFF's fat per 100 of `serving_unit` |
+| `nutri_score` | OFF's `nutriscore_grade` (lowercase a–e) or null |
+| `nutri_score_value` | OFF's `nutriscore_score` (integer) or null |
+| `nova_group` | OFF's `nova_group` (1–4) or null |
+| `allergens` | OFF's `allergens_tags` array, with `en:` prefixes stripped (e.g. `['gluten', 'milk']`) or null |
+| `source` | `'openfoodfacts'` |
 
-Missing values stay null. Form shows them as "—" with editable inputs.
+Missing values stay null. Forms render null fields as "—" with editable inputs.
+
+**Curated `data` JSON subset** — kept so future features don't require re-fetching OFF for items we've already cached:
+
+```ts
+data = {
+  generic_name: string | null,         // language-neutral name fallback
+  categories_tags: string[],           // e.g. ['en:beverages', 'en:plant-based-milks']
+  ingredients_text: string | null,     // free-form, English only
+  ecoscore_grade: 'a'|'b'|'c'|'d'|'e' | null,
+  nutrient_levels: {                   // OFF's traffic-light low/moderate/high
+    fat?: 'low'|'moderate'|'high',
+    'saturated-fat'?: 'low'|'moderate'|'high',
+    sugars?: 'low'|'moderate'|'high',
+    salt?: 'low'|'moderate'|'high',
+  } | null,
+  labels_tags: string[],               // e.g. ['en:organic', 'en:fair-trade']
+  image_front_url: string | null,      // full-size image (small URL is promoted to column)
+  traces_tags: string[],               // may-contain allergens, normalized like `allergens`
+  off_last_modified_t: number | null,  // OFF's last_modified_t, lets us detect staleness later
+}
+```
+
+**Deliberately not stored:**
+- All translations (`*_en`, `*_fr`, …) beyond what's pulled into English fields above
+- Edit history metadata (`last_modified_by`, `correctors_tags`, `editors_tags`, etc.)
+- Image variants beyond the small thumb (column) and full URL (`data.image_front_url`) — no `*_2x_url`, no `selected_images.*` arrays
+- The raw `nutriments` object — only the promoted-to-column macros are kept
+
+This is the v1 subset. If a future feature needs another field, add it to the `data` schema and the normalizer; existing cached items are re-fetched only when explicitly invalidated (out of scope for v1).
 
 ### Rate-limit posture
 
@@ -268,10 +354,15 @@ export type TNutritionItem = {
   image_url?: string | null
   serving_size?: number | null
   serving_unit: 'g' | 'ml' | 'serving'
+  package_quantity?: string | null
   calories_per_100?: number | null
   protein_per_100?: number | null
   carbs_per_100?: number | null
   fat_per_100?: number | null
+  nutri_score?: 'a' | 'b' | 'c' | 'd' | 'e' | null
+  nutri_score_value?: number | null
+  nova_group?: 1 | 2 | 3 | 4 | null
+  allergens?: string[] | null
   source: 'user' | 'openfoodfacts'
   data?: Record<string, unknown>
 }
@@ -328,6 +419,8 @@ The old `amount: number` on `TUserNutrition` is removed (never persisted; schema
 
 **`UserDailyNutritionSearchInput`** — `<Autocomplete>` from `@oyl/storybook-oyl`. `onInputChange` drives `useNutritionSearch` (debounced inside the hook). Options assembled: Tier-1 recents, Tier-2 globals, sentinel "Search OpenFoodFacts…" row. When OFF results loaded, OFF rows append below local results. Selecting `__off_search__` triggers `searchOff()` (loading spinner; dropdown stays open). Selecting any item branches: OFF row → find-or-create nutrition-item; any row → open add-log mini-form.
 
+Row description line composition: `<brand> · <package_quantity> · <Nutri-Score badge> <NOVA badge>` — each segment shown only when present. Nutri-Score renders as a small colored letter badge (A green → E red); NOVA renders as a small numeric badge (1 green → 4 red). Allergens, when present, appear on a second line as `Contains: gluten, milk` (English labels derived from the normalized tokens).
+
 **`UserDailyBarcodeButton` + `UserDailyBarcodeScanner`** — button beside the search input. Click → modal with scanner. `useBarcodeScanner`:
 - Feature-detect `'BarcodeDetector' in window`. If yes: `getUserMedia({ video: { facingMode: 'environment' } })`, scan at ~5fps, formats `['ean_13', 'ean_8', 'upc_a', 'upc_e']`.
 - Else: dynamic `import('@zxing/browser')`, `BrowserMultiFormatReader.decodeFromVideoDevice()`.
@@ -337,7 +430,7 @@ The old `amount: number` on `TUserNutrition` is removed (never persisted; schema
 
 **`UserDailyNutritionList` + `UserDailyNutritionRow`** — sorted chronologically. Row: time (HH:mm in user's profile timezone), name + brand, servings (inline editable number input, 400ms debounce commit), computed kcal, kebab menu with Edit time / Remove.
 
-**`UserDailyAddNutritionForm`** — wraps search + scan + post-selection mini-form. Owns modal state. Mini-form pre-fills `time` (now, rounded to nearest minute) and `servings` (1).
+**`UserDailyAddNutritionForm`** — wraps search + scan + post-selection mini-form. Owns modal state. Mini-form pre-fills `time` (now, rounded to nearest minute) and `servings` (1). When the selected item has `allergens`, the mini-form surfaces a prominent "Contains: …" callout above the submit button so users see allergens before logging.
 
 ### State ownership
 
@@ -403,7 +496,7 @@ Styling: Tailwind utilities only. No new CSS modules.
 
 **`react-oyl/modules/nutrition/openfoodfacts/`**
 - `openfoodfacts-client.test.ts`: URL construction, `AbortSignal` pass-through, 404 → null, 5xx throws.
-- `normalizeProduct.test.ts`: `_100g` → `'g'`, `_100ml` → `'ml'`, fallback `'serving'`, null preservation, brand-prefix stripping.
+- `normalizeProduct.test.ts`: `_100g` → `'g'`, `_100ml` → `'ml'`, fallback `'serving'`, null preservation, brand-prefix stripping, `en:`-prefix stripping on `allergens_tags`, Nutri-Score/NOVA promoted to columns, curated `data` subset excludes raw `nutriments` and translation fields.
 - `useNutritionSearch.test.ts` (RTL + MSW): tier merge, sentinel rendering, cache read-through, cache miss → OFF + write, cache write failure doesn't fail user search, abort on new query.
 
 **`react-oyl/modules/user/daily/`**
@@ -452,4 +545,4 @@ No test suite per existing package conventions; schema validated at boot. Contro
 
 ## Open questions / TODOs before merge
 
-- **OFF attribution:** `&ref=oyl-app` query param is a placeholder. Verify OFF's official attribution conventions before shipping; adjust if they prefer a different identifier or recommend a server-proxy `User-Agent` approach.
+- **`.env.example` for the OFF identification vars** must be added to the `react-oyl` package (`VITE_OFF_APP_NAME`, `VITE_OFF_APP_VERSION`, `VITE_OFF_CLIENT_ID`) and referenced in the package README so contributors set them locally. CI / deployment env needs the same vars.
