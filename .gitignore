@@ -12,4 +12,5 @@ packages/oyl-cms-twill
 
 .pnpm-store/
 .claude
+.remember
 TODO.md

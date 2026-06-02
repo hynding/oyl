@@ -1,7 +1,7 @@
-/**
- * user-goal-setting controller
- */
+// user-goal-setting controller
+//
+// Owner-scoped via the shared factory. See src/utils/README.md.
 
-import { factories } from '@strapi/strapi'
+import { createUserScopedController } from '../../../utils/user-scoped-controller'
 
-export default factories.createCoreController('api::user-goal-setting.user-goal-setting');
+export default createUserScopedController('api::user-goal-setting.user-goal-setting')

@@ -57,6 +57,15 @@
         "images"
       ]
     },
+    "timezone": {
+      "type": "string",
+      "default": "UTC",
+      "pluginOptions": {
+        "i18n": {
+          "localized": false
+        }
+      }
+    },
     "activities": {
       "type": "relation",
       "relation": "oneToMany",

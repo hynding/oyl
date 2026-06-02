@@ -694,7 +694,7 @@ export interface ApiTagTag extends Struct.CollectionTypeSchema {
       }>
     locale: Schema.Attribute.String
     localizations: Schema.Attribute.Relation<"oneToMany", "api::tag.tag">
-    Name: Schema.Attribute.String &
+    name: Schema.Attribute.String &
       Schema.Attribute.Required &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
@@ -1195,6 +1195,13 @@ export interface ApiUserProfileUserProfile extends Struct.CollectionTypeSchema {
         }
       }>
     publishedAt: Schema.Attribute.DateTime
+    timezone: Schema.Attribute.String &
+      Schema.Attribute.SetPluginOptions<{
+        i18n: {
+          localized: false
+        }
+      }> &
+      Schema.Attribute.DefaultTo<"UTC">
     updatedAt: Schema.Attribute.DateTime
     updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
       Schema.Attribute.Private
@@ -1604,46 +1611,6 @@ export interface PluginReviewWorkflowsWorkflowStage
   }
 }
 
-export interface PluginStrapiPluginDataOwnershipGuardPluginSetting
-  extends Struct.CollectionTypeSchema {
-  collectionName: "plugin_settings"
-  info: {
-    displayName: "plugin-setting"
-    pluralName: "plugin-settings"
-    singularName: "plugin-setting"
-  }
-  options: {
-    comment: ""
-    draftAndPublish: false
-  }
-  pluginOptions: {
-    "content-manager": {
-      visible: false
-    }
-    "content-type-builder": {
-      visible: false
-    }
-  }
-  attributes: {
-    createdAt: Schema.Attribute.DateTime
-    createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
-      Schema.Attribute.Private
-    handler: Schema.Attribute.String
-    locale: Schema.Attribute.String & Schema.Attribute.Private
-    localizations: Schema.Attribute.Relation<
-      "oneToMany",
-      "plugin::strapi-plugin-data-ownership-guard.plugin-setting"
-    > &
-      Schema.Attribute.Private
-    method: Schema.Attribute.String
-    path: Schema.Attribute.String
-    publishedAt: Schema.Attribute.DateTime
-    updatedAt: Schema.Attribute.DateTime
-    updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
-      Schema.Attribute.Private
-  }
-}
-
 export interface PluginUploadFile extends Struct.CollectionTypeSchema {
   collectionName: "files"
   info: {
@@ -1948,7 +1915,6 @@ declare module "@strapi/strapi" {
       "plugin::i18n.locale": PluginI18NLocale
       "plugin::review-workflows.workflow": PluginReviewWorkflowsWorkflow
       "plugin::review-workflows.workflow-stage": PluginReviewWorkflowsWorkflowStage
-      "plugin::strapi-plugin-data-ownership-guard.plugin-setting": PluginStrapiPluginDataOwnershipGuardPluginSetting
       "plugin::upload.file": PluginUploadFile
       "plugin::upload.folder": PluginUploadFolder
       "plugin::users-permissions.permission": PluginUsersPermissionsPermission

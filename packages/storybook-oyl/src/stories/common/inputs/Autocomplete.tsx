@@ -16,6 +16,7 @@ export interface AutocompleteProps {
   isLoading?: boolean
   onInputChange?: (value: string) => void
   minLength?: number
+  initialValue?: string
 }
 
 export const Autocomplete = ({
@@ -25,9 +26,10 @@ export const Autocomplete = ({
   className = '',
   isLoading = false,
   onInputChange,
-  minLength = 0
+  minLength = 0,
+  initialValue = ''
 }: AutocompleteProps) => {
-  const [inputValue, setInputValue] = useState('')
+  const [inputValue, setInputValue] = useState(initialValue)
   const [isOpen, setIsOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)

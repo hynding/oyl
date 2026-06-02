@@ -5,6 +5,7 @@ export type TUserProfile = {
   user?: TUser | TDataId;
   bio: string;
   avatar_url: string;
+  timezone: string;
 }
 
 export type TUserProfileData = TUserProfile & TDataItem;

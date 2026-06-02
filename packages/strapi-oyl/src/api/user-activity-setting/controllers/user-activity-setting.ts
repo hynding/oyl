@@ -1,7 +1,7 @@
-/**
- * user-activity-setting controller
- */
+// user-activity-setting controller
+//
+// Owner-scoped via the shared factory. See src/utils/README.md.
 
-import { factories } from '@strapi/strapi'
+import { createUserScopedController } from '../../../utils/user-scoped-controller'
 
-export default factories.createCoreController('api::user-activity-setting.user-activity-setting');
+export default createUserScopedController('api::user-activity-setting.user-activity-setting')

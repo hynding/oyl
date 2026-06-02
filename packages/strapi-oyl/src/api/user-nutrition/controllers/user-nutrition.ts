@@ -1,7 +1,7 @@
-/**
- * user-nutrition controller
- */
+// user-nutrition controller
+//
+// Owner-scoped via the shared factory. See src/utils/README.md.
 
-import { factories } from '@strapi/strapi'
+import { createUserScopedController } from '../../../utils/user-scoped-controller'
 
-export default factories.createCoreController('api::user-nutrition.user-nutrition');
+export default createUserScopedController('api::user-nutrition.user-nutrition')
