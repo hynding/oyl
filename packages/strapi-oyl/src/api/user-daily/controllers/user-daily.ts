@@ -53,7 +53,7 @@ export default createUserScopedController(UID, {}, ({ strapi }) => ({
       documentId,
       activities = [],
       goals = [],
-      nutrition = [],
+      nutritions = [],
       journal,
     } = ctx.request.body ?? {}
 
@@ -148,7 +148,7 @@ export default createUserScopedController(UID, {}, ({ strapi }) => ({
     )
 
     const nutritionIds = await Promise.all(
-      nutrition.map(async (item: any) => {
+      nutritions.map(async (item: any) => {
         const nutritionDate = new Date(`${date} ${item.time || '00:00'}`).toISOString()
         let nutritionItemId = item.nutrition?.id
         let docId = item.documentId
@@ -195,7 +195,7 @@ export default createUserScopedController(UID, {}, ({ strapi }) => ({
           journal,
           activities: activityIds,
           goals: goalIds,
-          nutrition: nutritionIds,
+          nutritions: nutritionIds,
         },
       })
     }
@@ -206,7 +206,7 @@ export default createUserScopedController(UID, {}, ({ strapi }) => ({
         journal,
         activities: activityIds,
         goals: goalIds,
-        nutrition: nutritionIds,
+        nutritions: nutritionIds,
       },
     })
   },
