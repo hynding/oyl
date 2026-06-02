@@ -24,6 +24,13 @@ function normalize(q: string): string {
   return q.trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
+function prefixMatch(item: TNutritionItemData, query: string): boolean {
+  const q = normalize(query)
+  if (!q) return false
+  const name = (item.name ?? '').toLowerCase()
+  return name.startsWith(q)
+}
+
 export function useNutritionSearch({ query, recentItems, offClient, cache, fetchGlobals, debounceMs = 200 }: UseNutritionSearchArgs) {
   const [localResults, setLocalResults] = useState<LocalResult[]>([])
   const [offResults, setOffResults] = useState<OFFProductSummary[]>([])
@@ -44,7 +51,7 @@ export function useNutritionSearch({ query, recentItems, offClient, cache, fetch
       abortRef.current?.abort()
       const controller = new AbortController()
       abortRef.current = controller
-      const tier1 = recentItemsRef.current.slice()
+      const tier1 = recentItemsRef.current.filter(i => prefixMatch(i, query))
       const recentIds = new Set(tier1.map(i => i.documentId))
       const globals = await fetchGlobalsRef.current(query, controller.signal).catch(() => [] as TNutritionItemData[])
       const tier2 = globals.filter(g => !recentIds.has(g.documentId))

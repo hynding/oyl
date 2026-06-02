@@ -73,7 +73,7 @@ describe('useNutritionSearch', () => {
     const offClient = { searchByQuery: vi.fn().mockRejectedValue(new Error('503')), fetchByBarcode: vi.fn() }
     const cache = { findSearch: vi.fn().mockResolvedValue(null), saveSearch: vi.fn() }
     const { result } = renderHook(() => useNutritionSearch({
-      query: 'boom',
+      query: 'oat',
       recentItems: [recent],
       offClient: offClient as never,
       cache: cache as never,
