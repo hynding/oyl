@@ -14,6 +14,7 @@
   "dependencies": {
     "@oyl/all-of-oyl": "workspace:*",
     "@oyl/storybook-oyl": "workspace:*",
+    "@zxing/browser": "^0.2.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router": "^7.9.5",
@@ -22,6 +23,9 @@
   "devDependencies": {
     "@eslint/js": "^9.36.0",
     "@tailwindcss/vite": "^4.1.17",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^24.6.0",
     "@types/react": "^19.1.16",
@@ -34,6 +38,7 @@
     "eslint-plugin-react-refresh": "^0.4.22",
     "globals": "^16.4.0",
     "jsdom": "^25.0.1",
+    "msw": "^2.14.6",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
     "typescript": "~5.9.3",
