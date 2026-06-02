@@ -492,56 +492,123 @@ Styling: Tailwind utilities only. No new CSS modules.
 
 ## Testing strategy
 
-### Unit tests (Vitest, colocated)
+Three layers: **unit** (pure functions and hooks in isolation), **integration** (components + their providers, network mocked via MSW), and **e2e** (real browser against a real running stack).
 
-**`react-oyl/modules/nutrition/openfoodfacts/`**
-- `openfoodfacts-client.test.ts`: URL construction, `AbortSignal` pass-through, 404 → null, 5xx throws.
-- `normalizeProduct.test.ts`: `_100g` → `'g'`, `_100ml` → `'ml'`, fallback `'serving'`, null preservation, brand-prefix stripping, `en:`-prefix stripping on `allergens_tags`, Nutri-Score/NOVA promoted to columns, curated `data` subset excludes raw `nutriments` and translation fields.
-- `useNutritionSearch.test.ts` (RTL + MSW): tier merge, sentinel rendering, cache read-through, cache miss → OFF + write, cache write failure doesn't fail user search, abort on new query.
+### Existing tooling
 
-**`react-oyl/modules/user/daily/`**
-- Extend `orchestrator-utils.test.ts`:
-  - `filterNutritionsForDate` — timezone-aware date filter, excludes `deleted_at`, chronological sort.
-  - `computeDailyTotals` — sum with mixed null/present macros, undefined progress when target undefined, ratio math.
-  - `dedupRecentItems` — dedup by documentId, most-recent sort.
+- `react-oyl` uses **Vitest + jsdom + @testing-library/react** (3 existing test files: `orchestrator-utils.test.ts`, `SyncEngine.test.ts`, `storage.test.ts`).
+- No e2e tooling yet. **This feature introduces Playwright** as the project's first e2e harness (configured in a new root-level `e2e/` workspace package — see "E2E tests" below).
+- MSW for network mocking inside integration tests (introduced by this feature; pinned to a project-wide version).
 
-### Integration tests
+---
 
-**`react-oyl/modules/user/daily/nutrition/UserDailyNutrition.test.tsx`** (RTL + MSW):
-- Renders totals, recent chips, search, scan button, list.
-- Search → select recent → mini-form → submit → row appears, totals update.
-- Search → sentinel → mocked OFF → row appears → select → find-or-create item → log entry.
-- Edit servings inline → totals update after debounce.
-- Remove row → soft-deletes, row disappears, totals decrease.
+### Unit tests (Vitest, colocated `*.test.ts(x)`)
 
-### Barcode scanner
+#### `react-oyl/modules/nutrition/openfoodfacts/`
+- **`openfoodfacts-client.test.ts`**: URL construction for both endpoints; staging basic-auth header attached only when base URL contains `.net`; `X-App-Name`/`X-App-Version`/`X-Client-Id` headers attached from env; missing env vars produce a single dev warning, not a throw; `AbortSignal` pass-through; 404 on barcode → null; 5xx throws typed error; abort error swallowed (rethrown as `AbortError`).
+- **`normalizeProduct.test.ts`**: `_100g` macros → `serving_unit: 'g'`; `_100ml` → `'ml'`; both present → prefers `'g'`; neither → `'serving'`; null macros stay null (no zero coercion); `brands` first-entry extraction + comma split + trim; `image_url` prefers `image_front_small_url`, full URL goes to `data.image_front_url`; `nutriscore_grade` lowercased; `nova_group` clamped to 1–4 or null; `allergens_tags` strips `en:` prefix; curated `data` subset includes documented fields only (no raw `nutriments`, no translations); generic_name fallback when product_name missing.
+- **`useNutritionSearch.test.ts`** (RTL + MSW): tier-1/tier-2 merge order and dedup by documentId; sentinel row appears when query length ≥ 1 and OFF results not yet loaded; debounce semantics (200ms); cache read-through hits return without OFF call; cache miss triggers OFF + write-through; cache write failure does not fail the user search; new query aborts in-flight OFF call; `offError` surfaces on 5xx; loading state transitions.
+- **`useBarcodeScanner.test.ts`**: BarcodeDetector path detection; falls back to dynamic ZXing import when `'BarcodeDetector' in window` is false; falls back to ZXing when first decode throws `NotSupportedError`; `getUserMedia` permission denied → emits typed error; no camera available → emits typed error; first successful decode emits barcode and stops the stream; cleanup tears down media tracks on unmount.
 
-Unit-tested via mocking `BarcodeDetector` and `getUserMedia`. Full camera flow manually tested in real browsers via a documented checklist:
-- Native BarcodeDetector path (Chrome, Edge)
-- ZXing fallback path (Firefox)
-- Permission-denied fallback
-- Manual barcode entry path
+#### `react-oyl/modules/user/daily/`
+- Extend **`orchestrator-utils.test.ts`**:
+  - `filterNutritionsForDate(nutritions, date, timezone)` — timezone-aware date-portion match; excludes `deleted_at != null`; sorts chronologically ascending; rows with `nutrition_item == null` still pass through (snapshot mode).
+  - `computeDailyTotals(rows, targets?)` — sums macros with mixed null/present values; produces `progress` only for metrics with both current and target; ratio math (boundary cases: target 0 → undefined progress, current 0 → 0 progress); fractional servings.
+  - `dedupRecentItems(nutritions, limit)` — dedups by `nutrition_item.documentId`; sorts by most-recent log date; respects limit; ignores rows with `nutrition_item == null`.
 
-Checklist filed alongside this spec at `docs/superpowers/specs/2026-06-02-user-daily-nutrition-manual-tests.md` during implementation.
+#### `react-oyl/modules/user/nutrition/`
+- **`useRecentNutritionItems.test.ts`**: dedup + sort + limit (mirrors orchestrator-utils tests but at the hook layer).
+- **`useUserNutritionSettings.test.ts`**: returns first record's `data` JSON; undefined when no records; updates reactively when the underlying provider state changes.
+- **`UserNutritionProvider.test.tsx`**: `addNutrition` calls `data.save`; `updateNutrition` calls `data.update`; `removeNutrition` calls `data.update` with `deleted_at` set (soft delete, not hard delete); context value is stable across re-renders.
 
-### Strapi
+#### `react-oyl/modules/user/daily/nutrition/` — component unit tests
+Each component tested in isolation with its required providers stubbed. All use RTL + `userEvent` (no Enzyme-style shallow rendering).
 
-No test suite per existing package conventions; schema validated at boot. Controller customizations (upsert on nutrition-search, soft-delete on user-nutrition, find-or-create on nutrition-item create-by-barcode) exercised via the React integration tests against the dev API.
+- **`UserDailyNutritionTotals.test.tsx`**: renders four metrics; with targets → shows `current / target` + bar; without targets → shows current only; progress color thresholds (green `0 < p < 1`, amber `1 ≤ p < 1.1`, red `≥ 1.1`); accessible bar (role + aria-valuenow/min/max).
+- **`UserDailyNutritionQuickAdd.test.tsx`**: renders nothing when list empty; renders up to 8 chips; chip click opens mini-form pre-filled with `{ servings: 1, time: now }`; submit calls `addNutritionLog` with correct args; Esc/blur cancels.
+- **`UserDailyNutritionSearchInput.test.tsx`**: dropdown assembles in tier order; sentinel "Search OpenFoodFacts" row visible when query ≥ 1 char and OFF not yet loaded; clicking sentinel calls `searchOff()` and keeps dropdown open; row description shows `<brand> · <package_quantity> · <Nutri-Score badge> <NOVA badge>` with each segment hidden when missing; allergens line "Contains: …" rendered when present; selecting an OFF row triggers find-or-create flow; debounce drives `onInputChange` correctly.
+- **`UserDailyBarcodeButton.test.tsx`**: opens modal on click; modal contains scanner.
+- **`UserDailyBarcodeScanner.test.tsx`** (mocks `BarcodeDetector`, `getUserMedia`, dynamic ZXing import): renders video element when permission granted; renders manual-entry input when permission denied or no camera; manual entry submits and triggers find-or-create; first decode closes modal and triggers find-or-create; subsequent decodes ignored.
+- **`UserDailyAddNutritionForm.test.tsx`**: pre-fills `time` (now, rounded to nearest minute) and `servings` (1); rejects servings ≤ 0 (no PUT fires); allergen callout rendered above submit when item has allergens; submit calls `addNutritionLog` with correct args; closes on success.
+- **`UserDailyNutritionRow.test.tsx`**: time rendered in user profile timezone; servings inline-edit input commits via 400ms debounce; kebab menu has Edit time / Remove; Remove triggers soft-delete confirmation; snapshot fallback renders when `item == null`.
+- **`UserDailyNutritionList.test.tsx`**: sort order chronological ascending; empty state copy.
+
+---
+
+### Integration tests (Vitest + RTL + MSW)
+
+Integration tests render `UserDailyNutrition` inside `UserDailyDataProviders` against MSW handlers for Strapi endpoints and OFF v3. They are colocated under `react-oyl/modules/user/daily/nutrition/__integration__/`.
+
+- **`add-from-recent.test.tsx`**: Pre-seed user-nutritions history. Render section. Tier-1 recent chip appears. Click chip → mini-form → submit. Assert: row in list, totals updated, MSW saw a `POST /user-nutritions` with snapshot fields populated.
+- **`add-from-global.test.tsx`**: Pre-seed Strapi `nutrition-items` (no user history). Type in search. Tier-2 row appears (no "recent" badge). Select → mini-form → submit. Assert: row in list, totals updated.
+- **`add-from-off.test.tsx`**: Empty local. Type query. Sentinel row visible. Click sentinel → MSW returns OFF result. OFF row appears. Select → MSW returns OFF product detail → `POST /nutrition-items` find-or-create → `POST /user-nutritions`. Assert: row in list. Assert: nutrition-search cache `POST` was made with normalized query.
+- **`add-from-off-cache-hit.test.tsx`**: Pre-seed nutrition-search cache. Click sentinel → assert no OFF HTTP call fires; results render from cache.
+- **`add-from-barcode.test.tsx`**: Mock `BarcodeDetector` to emit a barcode on the first frame. Open scanner. Assert: `GET /nutrition-items?filters[barcode][$eq]=…` fires first; on cache miss, OFF `GET` fires; on success, `POST /nutrition-items` fires with `barcode` set; mini-form opens with the new item.
+- **`add-from-barcode-cache-hit.test.tsx`**: Pre-seed nutrition-item with that barcode. Scan. Assert: no OFF call; existing item used; mini-form opens.
+- **`edit-servings.test.tsx`**: Pre-seed a log. Type new servings in row input. Assert: debounced PUT after 400ms; totals recompute from `log.servings × item.macros_per_100 × item.serving_size`.
+- **`remove-log.test.tsx`**: Pre-seed a log. Open kebab → Remove → confirm. Assert: PUT with `deleted_at` set (not DELETE); row disappears; totals decrease.
+- **`allergen-warning.test.tsx`**: Pre-seed an item with allergens. Select it. Assert: "Contains: gluten, milk" rendered in mini-form before submit.
+- **`off-error.test.tsx`**: MSW returns 503 for OFF search. Click sentinel. Assert: inline error in dropdown; local results still rendered; sentinel still clickable.
+- **`off-empty.test.tsx`**: MSW returns empty array for OFF search. Click sentinel. Assert: "No OpenFoodFacts results for '<query>'" rendered with a "+ Add '<query>' manually" row that opens the add-form with a user-source item.
+- **`offline-scan.test.tsx`**: Simulate offline (sync engine `online: false`). Open scanner. Decode. Assert: offline message rendered; no `POST /nutrition-items` fires.
+- **`timezone-midnight.test.tsx`**: User profile timezone = `America/New_York`. Selected date = today. Edit a log's time to 00:10 next-day local (still today's UTC date for some users). Assert: log moves out of today's `nutritionRows`.
+- **`section-composition.test.tsx`**: Top-level smoke: renders totals + chips + search + scan + list. Each subcomponent has its expected `data-testid`.
+
+---
+
+### E2E tests (Playwright)
+
+Introducing Playwright as the project's first e2e layer. Configured at the repo root in a new `e2e/` workspace package; tests live in `e2e/tests/`.
+
+**Setup**:
+- `e2e/playwright.config.ts` with `webServer` configs that start Strapi (`pnpm strapi develop`) and Vite dev (`pnpm react dev`) on fixed ports before tests run.
+- Strapi seeded via a `beforeAll` fixture that creates a known test user + API token, plus a small set of nutrition-items (mix of `source: 'user'` and `source: 'openfoodfacts'`).
+- OFF traffic intercepted via `page.route('**/openfoodfacts.net/**', …)` so e2e never hits the real OFF API. Fixtures return canned v3 responses for a handful of barcodes/queries.
+- Test runs against Chromium (primary) and Firefox (BarcodeDetector fallback path); WebKit deferred.
+
+**Scenarios** (one spec file each; each starts authenticated on the daily page):
+
+- **`nutrition-empty-state.spec.ts`**: New user, no logs. Section renders with empty list, no totals progress bars, search and scan buttons visible.
+- **`add-and-see-totals.spec.ts`**: Type "oat", select a tier-2 global item, submit `2.5` servings, time `08:30`. Verify: row appears with time `08:30`, totals strip updated, page reload preserves state.
+- **`off-search-and-cache.spec.ts`**: Type a query with no local results, click "Search OpenFoodFacts" sentinel. Verify: OFF request fires (intercepted), result appears, selecting creates the nutrition-item server-side, second identical query hits the cache (intercepted OFF count stays at 1).
+- **`barcode-scan-happy.spec.ts`**: Use Playwright's `--use-fake-device-for-media-stream` + a fixture video of a barcode (or mock `BarcodeDetector` via `page.evaluate`). Scan a known barcode that's in the OFF fixture. Verify: nutrition-item created, mini-form opens, submission logs the entry.
+- **`barcode-scan-unknown.spec.ts`**: Scan a barcode the OFF fixture returns 404 for. Verify: graceful fallback — add-log form opens with barcode pre-filled and macros empty.
+- **`barcode-manual-fallback.spec.ts`**: Deny camera permission. Verify: manual barcode entry input shown; submitting a known barcode runs the same find-or-create flow.
+- **`edit-servings.spec.ts`**: Edit a row's servings inline. Verify: totals recompute live, persisted after reload.
+- **`soft-delete.spec.ts`**: Remove a row via the kebab. Verify: row disappears, totals decrease, the user-nutrition record on the server has `deleted_at` set (not absent).
+- **`offline-graceful.spec.ts`**: Use Playwright's `context.setOffline(true)`. Scan a barcode for a not-yet-cached item. Verify: clear offline message; no client crash. Edit servings on an existing log → succeeds (queued by sync engine, flushed when back online).
+- **`allergen-warning.spec.ts`**: Select an item with `allergens: ['gluten', 'milk']`. Verify: "Contains: gluten, milk" callout visible above submit.
+- **`quick-add-recent.spec.ts`**: After logging "oatmeal" once, reload, click the oatmeal chip in QuickAdd, submit. Verify: second log appears, totals double.
+- **`targets-progress.spec.ts`**: Set user-nutrition-setting targets (via API fixture). Verify: totals strip renders progress bars; over-target metrics render in red.
+
+**Skipped from automation, kept as manual checklist** (`docs/superpowers/specs/2026-06-02-user-daily-nutrition-manual-tests.md`):
+- Native `BarcodeDetector` path on Chrome with a real device camera.
+- ZXing fallback on real Firefox with a real device camera.
+- Permission prompt UX on iOS Safari.
+
+---
+
+### Strapi-side tests
+
+The Strapi package has no test suite today; this feature does not introduce one. The Strapi behaviors that matter (upsert on `nutrition-search`, soft-delete on `user-nutrition`, find-or-create-by-barcode on `nutrition-item`) are exercised by the **integration tests** (via MSW assertions on the requests we send) and by the **e2e tests** (via real Strapi responses). If a future feature warrants Strapi-side unit tests, we add Vitest there as a separate effort.
+
+---
 
 ### Not tested
 
-- OFF API itself (mocked at `openfoodfacts-client` boundary).
-- `Autocomplete` storybook component (own stories).
-- Sync engine offline queue (existing `SyncEngine.test.ts`).
-- Real camera streams (manual checklist).
+- OFF API itself (mocked at the `openfoodfacts-client` boundary and at the Playwright `page.route` boundary).
+- `@oyl/storybook-oyl` `Autocomplete` (covered by its own stories).
+- Sync engine offline queue mechanics (covered by existing `SyncEngine.test.ts`).
+- Real camera-stream decode performance (manual checklist).
 
 ### Verification before complete
 
-- `pnpm --filter @oyl/react-oyl test` passes
+- `pnpm --filter @oyl/react-oyl test` passes (all unit + integration)
+- `pnpm --filter @oyl/e2e test` passes against a locally running dev stack
 - `pnpm --filter @oyl/react-oyl exec tsc -b --noEmit` clean on modified files
 - `pnpm --filter @oyl/react-oyl exec eslint modules/user/daily/nutrition modules/user/nutrition modules/nutrition` clean
 - `pnpm --filter @oyl/strapi-oyl exec tsc --noEmit` clean; Strapi boots without schema errors
-- Manual-test checklist run in dev browser
+- Manual-test checklist run in dev browser on Chrome + Firefox
 
 ## Open questions / TODOs before merge
 
