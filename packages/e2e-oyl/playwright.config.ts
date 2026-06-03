@@ -1,7 +1,25 @@
 import { defineConfig, devices } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 
 const STRAPI_PORT = Number(process.env.E2E_STRAPI_PORT ?? 3337)
 const VITE_PORT = Number(process.env.E2E_VITE_PORT ?? 5173)
+
+// Load the e2e Strapi env (isolated SQLite, dev-only secrets) so the harness
+// never touches whatever the developer's local .env points at.
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const strapiEnv: Record<string, string> = Object.fromEntries(
+  readFileSync(join(__dirname, '.env.e2e'), 'utf8')
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l && !l.startsWith('#'))
+    .map(l => {
+      const i = l.indexOf('=')
+      return [l.slice(0, i), l.slice(i + 1)] as const
+    }),
+)
+strapiEnv.PORT = String(STRAPI_PORT)
 
 export default defineConfig({
   testDir: './tests',
@@ -20,12 +38,13 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `PORT=${STRAPI_PORT} pnpm --filter @oyl/strapi-oyl develop`,
+      command: `pnpm --filter @oyl/strapi-oyl develop`,
       port: STRAPI_PORT,
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,
       stdout: 'pipe',
       stderr: 'pipe',
+      env: strapiEnv,
     },
     {
       command: `pnpm --filter @oyl/react-oyl dev -- --port ${VITE_PORT}`,
