@@ -4,7 +4,8 @@ import { createOFFClient } from './openfoodfacts-client'
 const FIELDS = 'code,product_name,brands,image_front_small_url,nutriscore_grade,nova_group'
 
 describe('openfoodfacts-client', () => {
-  let fetchSpy: ReturnType<typeof vi.spyOn>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let fetchSpy: any
 
   beforeEach(() => {
     fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
@@ -81,8 +82,8 @@ describe('openfoodfacts-client', () => {
       baseUrl: 'https://world.openfoodfacts.net/api/v3',
       appName: 'OYL/1.0', appVersion: '1.0', clientId: 'x',
     })
-    fetchSpy.mockImplementationOnce((_, init) => {
-      expect((init as RequestInit).signal).toBeDefined()
+    fetchSpy.mockImplementationOnce((_: unknown, init: RequestInit) => {
+      expect(init.signal).toBeDefined()
       return Promise.reject(new DOMException('aborted', 'AbortError'))
     })
     await expect(client.searchByQuery('x', controller.signal)).rejects.toThrow(/abort/i)
