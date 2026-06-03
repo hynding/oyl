@@ -16,7 +16,7 @@ pnpm --filter @oyl/e2e-oyl install:browsers
 - `E2E_TEST_USER_EMAIL` (default `e2e-user@oyl.local`)
 - `E2E_TEST_USER_PASSWORD` (default `e2e-password-123`)
 
-If Strapi's `.env` has `PORT=1337`, set `E2E_STRAPI_PORT=1337` when running tests AND change the React app's `BASE` URL in `useDataRemote.ts` — the React app currently hardcodes `localhost:3337`.
+The React app reads `VITE_STRAPI_API_BASE_URL` (default `http://localhost:3337/api` to match the docker-compose `3337:1337` host mapping). The Playwright config sets this env var on the Vite dev server it launches, derived from `E2E_STRAPI_PORT`. If you run Strapi standalone on a different port, override `E2E_STRAPI_PORT` and the React server inside the e2e harness will pick up the matching base URL automatically.
 
 ## Run
 

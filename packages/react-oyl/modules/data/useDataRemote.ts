@@ -1,5 +1,7 @@
 // packages/react-oyl/modules/data/useDataRemote.ts
-const BASE = 'http://localhost:3337/api'
+// Strapi API base URL. Configurable via VITE_STRAPI_API_BASE_URL; the default
+// matches the host-side port mapping in docker-compose.yaml (3337:1337).
+const BASE = import.meta.env.VITE_STRAPI_API_BASE_URL ?? 'http://localhost:3337/api'
 
 type RemoteClient = {
   findAll<T>(path: string): Promise<T[]>

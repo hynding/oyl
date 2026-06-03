@@ -34,6 +34,7 @@ services:
     command: sh -c "npm install -g pnpm && pnpm react dev"
     environment:
       - VITE_HOST=0.0.0.0
+      - VITE_STRAPI_API_BASE_URL=http://localhost:3337/api
     ports:
       - "5041:5173"
 
