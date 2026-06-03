@@ -7,7 +7,6 @@ import AuthLogin from '@/modules/auth/AuthLogin'
 import ProtectedRoute from '@/modules/auth/ProtectedRoute'
 import UserDailyPage from '@/modules/user/daily/UserDailyPage'
 import UserProfilePage from '@/modules/user/profile/UserProfilePage'
-import NutritionPage from '@/modules/nutrition/NutritionPage'
 import DataPage from '@/modules/data/DataPage'
 import './index.css'
 
@@ -21,7 +20,6 @@ createRoot(document.getElementById('root')!).render(
           <Route path="daily" element={<ProtectedRoute><UserDailyPage /></ProtectedRoute>} />
           <Route path="data" element={<DataPage />} />
           <Route path="my/:settings" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
-          <Route path="nutrition" element={<ProtectedRoute><NutritionPage /></ProtectedRoute>} />
         </Routes>
       </AppProvider>
     </BrowserRouter>
