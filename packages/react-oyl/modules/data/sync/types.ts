@@ -26,6 +26,7 @@ export const SYNCED_PATHS = [
   'user-activity-logs',
   'user-goals',
   'user-goal-milestones',
+  'user-nutritions',
 ] as const
 
 export type SyncedPath = typeof SYNCED_PATHS[number]
