@@ -1,13 +1,16 @@
 // packages/react-oyl/modules/user/daily/useUserDailyOrchestrator.ts
-import type { TDataId, TUserActivityData, TUserGoalData, TUserGoalMilestoneData, TUserActivityLogData } from '@oyl/all-of-oyl/modules'
+import type { TDataId, TUserActivityData, TUserGoalData, TUserGoalMilestoneData, TUserActivityLogData, TNutritionItemData, TUserNutritionData } from '@oyl/all-of-oyl/modules'
 import { useMemo } from 'react'
 import { useUserDailyContext } from './user-daily-context'
 import { useUserActivityContext } from '../activity/user-activity-context'
 import { useUserActivityLogContext } from '../activity-log/user-activity-log-context'
 import { useUserGoalContext } from '../goal/user-goal-context'
 import { useUserGoalMilestoneContext } from '../goal-milestone/user-goal-milestone-context'
+import { useUserNutritionContext, useRecentNutritionItems, useUserNutritionSettings } from '../nutrition'
+import { useUserProfile } from '../profile/useUserProfile'
 import { useSyncState } from '../../data'
-import { filterActivitiesForDate, filterGoalsForDate } from './orchestrator-utils'
+import { filterActivitiesForDate, filterGoalsForDate, filterNutritionsForDate, computeDailyTotals } from './orchestrator-utils'
+import type { NutritionRow, DailyTotals } from './orchestrator-utils'
 
 // ---------------------------------------------------------------------------
 // Derived row shapes
@@ -155,6 +158,50 @@ export function useUserDailyOrchestrator() {
     await appendNote(id, text)
   }
 
+  // -- nutrition ---------------------------------------------------------------
+  const { nutritions, addNutrition, updateNutrition, removeNutrition } = useUserNutritionContext()
+  const recentNutritionItems = useRecentNutritionItems(8)
+  const { targets } = useUserNutritionSettings()
+  const { timezone } = useUserProfile()
+  const tz = timezone || 'UTC'
+
+  const nutritionRows: NutritionRow[] = useMemo(() => {
+    return filterNutritionsForDate(nutritions, selectedDate, tz).map(log => ({
+      log,
+      item: (log.nutrition_item && typeof log.nutrition_item === 'object' && 'documentId' in log.nutrition_item)
+        ? (log.nutrition_item as TNutritionItemData)
+        : null,
+    }))
+  }, [nutritions, selectedDate, tz])
+
+  const dailyTotals: DailyTotals = useMemo(
+    () => computeDailyTotals(nutritionRows, targets ?? {}),
+    [nutritionRows, targets],
+  )
+
+  async function addNutritionLog(args: { nutritionItemDocumentId: string; servings: number; datetime: string; item: TNutritionItemData }) {
+    const { item, nutritionItemDocumentId, servings, datetime } = args
+    const factor = (item.serving_size ?? 100) / 100
+    await addNutrition({
+      nutrition_item: nutritionItemDocumentId as unknown as TUserNutritionData['nutrition_item'],
+      servings,
+      date: datetime,
+      name: item.brand ? `${item.name} — ${item.brand}` : item.name,
+      calories: item.calories_per_100 != null ? Number(item.calories_per_100) * servings * factor : null,
+      protein: item.protein_per_100 != null ? Number(item.protein_per_100) * servings * factor : null,
+      carbs: item.carbs_per_100 != null ? Number(item.carbs_per_100) * servings * factor : null,
+      fat: item.fat_per_100 != null ? Number(item.fat_per_100) * servings * factor : null,
+    })
+  }
+
+  async function updateNutritionServings(id: TDataId, servings: number) {
+    await updateNutrition(id, { servings })
+  }
+
+  async function removeNutritionLog(id: TDataId) {
+    await removeNutrition(id)
+  }
+
   // -- expose -----------------------------------------------------------------
 
   return {
@@ -191,5 +238,13 @@ export function useUserDailyOrchestrator() {
 
     // raw logs (available if consumers need them)
     logs,
+
+    // nutrition
+    nutritionRows,
+    dailyTotals,
+    recentNutritionItems,
+    addNutritionLog,
+    updateNutritionServings,
+    removeNutritionLog,
   }
 }
