@@ -2,6 +2,7 @@
 import UserDailyHeader from './UserDailyHeader'
 import { UserDailyActivities } from './activities'
 import { UserDailyGoals } from './goals'
+import { UserDailyNutrition } from './nutrition'
 import UserDailyDataProviders from './UserDailyDataProviders'
 
 export default function UserDailyPage() {
@@ -13,6 +14,9 @@ export default function UserDailyPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <UserDailyActivities />
             <UserDailyGoals />
+          </div>
+          <div className="mt-8">
+            <UserDailyNutrition />
           </div>
         </div>
       </div>
