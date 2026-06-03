@@ -87,7 +87,7 @@ export function buildHandlers(store: IntegrationStore) {
         store.offSearch?.(q) ?? { products: [], count: 0, page: 1, page_count: 0, page_size: 0 },
       )
     }),
-    http.get(/.*\/api\/v3\/product\/.+/, ({ params, request }) => {
+    http.get(/.*\/api\/v3\/product\/.+/, ({ request }) => {
       const url = new URL(request.url)
       const code = url.pathname.split('/').pop() ?? ''
       store.events.push(`OFF product ${code}`)
