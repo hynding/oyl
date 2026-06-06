@@ -9,3 +9,4 @@ export { default as UserActivitySettingsSheet } from './UserActivitySettingsShee
 export { default as UserActivityRow } from './UserActivityRow'
 export type { UserActivityRowProgress } from './UserActivityRow'
 export { default as UserActivitiesList } from './UserActivitiesList'
+export { default as UserActivitiesPage, UserActivitiesPageBody } from './UserActivitiesPage'
