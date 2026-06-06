@@ -68,7 +68,7 @@ export default function UserNutritionItemRow({
         </div>
         <div className="text-xs text-gray-500 flex items-center gap-2">
           {lastLoggedAt && <span>Last logged {formatDate(lastLoggedAt, timezone)}</span>}
-          {logCount != null && <span>· logged {logCount} times</span>}
+          {logCount != null && <span>· logged {logCount} {logCount === 1 ? 'time' : 'times'}</span>}
         </div>
       </div>
       <button

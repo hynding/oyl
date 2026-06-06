@@ -81,4 +81,16 @@ describe('derivePantryItems', () => {
     expect(result).toHaveLength(1)
     expect(result[0].item.documentId).toBe('a')
   })
+
+  it('carries the most-recent log’s item snapshot', () => {
+    const older = mk('a', '2026-06-01T08:00:00.000Z')
+    const newer = {
+      ...mk('a', '2026-06-03T08:00:00.000Z'),
+      nutrition_item: { documentId: 'a', id: 1, name: 'Renamed item', serving_unit: 'g', source: 'user' } as TNutritionItemData,
+    } as TUserNutritionData
+    const result = derivePantryItems([older, newer])
+    expect(result).toHaveLength(1)
+    expect(result[0].item.name).toBe('Renamed item')
+    expect(result[0].logCount).toBe(2)
+  })
 })

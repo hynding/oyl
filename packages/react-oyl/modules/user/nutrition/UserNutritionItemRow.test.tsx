@@ -44,11 +44,15 @@ describe('UserNutritionItemRow', () => {
     expect(screen.getByText(/2026-06-04/)).toBeInTheDocument()
   })
 
-  it('renders logCount when provided', () => {
-    render(
+  it('renders logCount when provided with correct pluralization', () => {
+    const { rerender } = render(
       <UserNutritionItemRow item={baseItem} timezone="UTC" logCount={5} onLogAgain={vi.fn()} />,
     )
     expect(screen.getByText(/logged 5 times/i)).toBeInTheDocument()
+    rerender(
+      <UserNutritionItemRow item={baseItem} timezone="UTC" logCount={1} onLogAgain={vi.fn()} />,
+    )
+    expect(screen.getByText(/logged 1 time(?!s)/i)).toBeInTheDocument()
   })
 
   it('clicking "Log again" calls onLogAgain with the item', () => {

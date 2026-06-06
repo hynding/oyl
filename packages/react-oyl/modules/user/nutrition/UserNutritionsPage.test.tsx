@@ -41,11 +41,23 @@ vi.mock('@/modules/user/profile/useUserProfile', () => ({
   }),
 }))
 
+const defaultNutritions: TUserNutritionData[] = [
+  {
+    id: 1, documentId: 'log-1', date: '2026-06-02T08:00:00.000Z', servings: 1, name: 'Oatmeal', user: 1,
+    nutrition_item: { documentId: 'i-oat', id: 1, name: 'Oatmeal', serving_unit: 'g', source: 'user' } as TNutritionItemData,
+  } as TUserNutritionData,
+  {
+    id: 2, documentId: 'log-2', date: '2026-06-04T08:00:00.000Z', servings: 1, name: 'Banana', user: 1,
+    nutrition_item: { documentId: 'i-ban', id: 2, name: 'Banana', serving_unit: 'g', source: 'user' } as TNutritionItemData,
+  } as TUserNutritionData,
+]
+
 describe('UserNutritionsPage', () => {
   afterEach(() => {
     nutritionCtx.addNutrition.mockClear()
     nutritionCtx.updateNutrition.mockClear()
     nutritionCtx.removeNutrition.mockClear()
+    nutritions.splice(0, nutritions.length, ...defaultNutritions)
   })
 
   it('renders heading "My Nutrition" and pantry items derived from context', () => {
@@ -56,25 +68,9 @@ describe('UserNutritionsPage', () => {
   })
 
   it('renders empty state when nutritions is empty', () => {
-    const originalLength = nutritions.length
     nutritions.splice(0, nutritions.length)
-    try {
-      render(<UserNutritionsPage />)
-      expect(screen.getByText(/nothing in your pantry yet/i)).toBeInTheDocument()
-    } finally {
-      // restore fixture for subsequent tests in this file
-      nutritions.push(
-        {
-          id: 1, documentId: 'log-1', date: '2026-06-02T08:00:00.000Z', servings: 1, name: 'Oatmeal', user: 1,
-          nutrition_item: { documentId: 'i-oat', id: 1, name: 'Oatmeal', serving_unit: 'g', source: 'user' } as TNutritionItemData,
-        } as TUserNutritionData,
-        {
-          id: 2, documentId: 'log-2', date: '2026-06-04T08:00:00.000Z', servings: 1, name: 'Banana', user: 1,
-          nutrition_item: { documentId: 'i-ban', id: 2, name: 'Banana', serving_unit: 'g', source: 'user' } as TNutritionItemData,
-        } as TUserNutritionData,
-      )
-      expect(originalLength).toBe(2)
-    }
+    render(<UserNutritionsPage />)
+    expect(screen.getByText(/nothing in your pantry yet/i)).toBeInTheDocument()
   })
 
   it('clicking "Log again" reveals the UserNutritionLogForm with the picked item', () => {
