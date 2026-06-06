@@ -1,7 +1,7 @@
 // packages/react-oyl/modules/user/daily/orchestrator-utils.test.ts
 import { describe, it, expect } from 'vitest'
-import type { TUserActivityData, TUserGoalData } from '@oyl/all-of-oyl/modules'
-import { filterActivitiesForDate, filterGoalsForDate } from './orchestrator-utils'
+import type { TUserActivityData, TUserGoalData, TUserNutritionData, TNutritionItemData } from '@oyl/all-of-oyl/modules'
+import { filterActivitiesForDate, filterGoalsForDate, filterNutritionsForDate, computeDailyTotals } from './orchestrator-utils'
 
 const DATE = '2026-05-30'
 
@@ -78,5 +78,66 @@ describe('filterGoalsForDate', () => {
 
     const result = filterGoalsForDate(goals, [12, 13], DATE)
     expect(result.map(g => g.id)).toEqual([12, 13])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// filterNutritionsForDate / computeDailyTotals
+// ---------------------------------------------------------------------------
+
+function mkLog(opts: Partial<TUserNutritionData> & { item?: Partial<TNutritionItemData> }): TUserNutritionData {
+  return {
+    id: 1, documentId: 'log',
+    date: '2026-06-02T12:00:00.000Z',
+    servings: 1,
+    user: 1,
+    name: 'X',
+    nutrition_item: opts.item
+      ? ({ id: 1, documentId: 'item', name: 'X', serving_unit: 'g', source: 'user', serving_size: 100, calories_per_100: 100, ...opts.item } as TNutritionItemData)
+      : (1 as unknown as TNutritionItemData),
+    ...opts,
+  } as TUserNutritionData
+}
+
+describe('filterNutritionsForDate', () => {
+  it('keeps logs whose local date matches and excludes deleted', () => {
+    const logs = [
+      mkLog({ id: 1, date: '2026-06-02T03:00:00.000Z' }),
+      mkLog({ id: 2, date: '2026-06-02T22:00:00.000Z' }),
+      mkLog({ id: 3, date: '2026-06-03T01:00:00.000Z' }),
+      { ...mkLog({ id: 4, date: '2026-06-02T15:00:00.000Z' }), deleted_at: 'now' } as TUserNutritionData,
+    ]
+    const result = filterNutritionsForDate(logs, '2026-06-02', 'UTC')
+    expect(result.map(l => l.id)).toEqual([1, 2])
+  })
+
+  it('sorts chronologically ascending', () => {
+    const logs = [
+      mkLog({ id: 1, date: '2026-06-02T22:00:00.000Z' }),
+      mkLog({ id: 2, date: '2026-06-02T08:00:00.000Z' }),
+    ]
+    expect(filterNutritionsForDate(logs, '2026-06-02', 'UTC').map(l => l.id)).toEqual([2, 1])
+  })
+})
+
+describe('computeDailyTotals', () => {
+  it('sums macros computed from servings × item per-100 × serving_size/100', () => {
+    const rows = [
+      { log: mkLog({ servings: 2, item: { calories_per_100: 100, serving_size: 100 } }), item: { id: 1, documentId: 'i', name: 'X', serving_unit: 'g', source: 'user', serving_size: 100, calories_per_100: 100 } as TNutritionItemData },
+    ]
+    const totals = computeDailyTotals(rows as never, { calories: 1000 })
+    expect(totals.calories).toBe(200)
+    expect(totals.progress.calories).toBeCloseTo(0.2)
+  })
+
+  it('returns undefined progress when target missing', () => {
+    const totals = computeDailyTotals([], {})
+    expect(totals.progress.calories).toBeUndefined()
+  })
+
+  it('falls back to snapshot macros when item is null', () => {
+    const log = { ...mkLog({ servings: 1, calories: 250 }), nutrition_item: null as unknown as TNutritionItemData }
+    const totals = computeDailyTotals([{ log: log as TUserNutritionData, item: null } as never], {})
+    expect(totals.calories).toBe(250)
   })
 })

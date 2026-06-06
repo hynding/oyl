@@ -5,6 +5,7 @@
   "author": "Steve Hynding",
   "scripts": {
     "all-of": "pnpm --filter @oyl/all-of-oyl",
+    "e2e": "pnpm --filter @oyl/e2e-oyl",
     "next": "pnpm --filter @oyl/next-oyl",
     "react": "pnpm --filter @oyl/react-oyl",
     "storybook": "pnpm --filter @oyl/storybook-oyl",

@@ -1,30 +1,19 @@
-import { createContext } from 'react';
+import { createContext, useContext } from 'react'
+import type { TDataId, TUserNutritionData } from '@oyl/all-of-oyl/modules'
 
-interface Product {
-  code: string;
-  product_name: string;
-  brands?: string;
-  categories_tags?: string[];
-  nutrition_grades?: string;
-  nutriments?: Record<string, string | number>;
-  image_url?: string;
+export type UserNutritionContextValue = {
+  nutritions: TUserNutritionData[]
+  addNutrition: (input: Partial<TUserNutritionData>) => Promise<void>
+  updateNutrition: (id: TDataId, patch: Partial<TUserNutritionData>) => Promise<void>
+  removeNutrition: (id: TDataId) => Promise<void>
 }
 
-interface NutritionContextValue {
-  searchResults: Product[];
-  loading: boolean;
-  error: string | null;
-  searchProducts: (query: string, options?: {
-    categories?: string;
-    nutritionGrade?: string;
-    fields?: string[];
-    pageSize?: number;
-  }) => Promise<void>;
-  clearResults: () => void;
+const defaultValue: UserNutritionContextValue = {
+  nutritions: [],
+  addNutrition: async () => {},
+  updateNutrition: async () => {},
+  removeNutrition: async () => {},
 }
 
-const NutritionContext = createContext<NutritionContextValue | undefined>(undefined);
-
-export const Provider = NutritionContext.Provider;
-export default NutritionContext;
-export type { Product, NutritionContextValue };
+export const context = createContext<UserNutritionContextValue>(defaultValue)
+export const useUserNutritionContext = () => useContext(context)

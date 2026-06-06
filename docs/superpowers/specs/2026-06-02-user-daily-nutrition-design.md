@@ -96,6 +96,12 @@ Rationale: the totals strip + search + log list is wider than the activity/goal 
     "protein_per_100":  { "type": "decimal", "min": 0 },
     "carbs_per_100":    { "type": "decimal", "min": 0 },
     "fat_per_100":      { "type": "decimal", "min": 0 },
+    "package_quantity": { "type": "string" },                       // NEW — OFF `quantity`, e.g. "500 g"
+    "nutri_score": { "type": "enumeration",                         // NEW — A–E grade
+                     "enum": ["a", "b", "c", "d", "e"] },
+    "nutri_score_value": { "type": "integer" },                     // NEW — numeric Nutri-Score
+    "nova_group": { "type": "integer", "min": 1, "max": 4 },        // NEW — processing classification
+    "allergens": { "type": "json" },                                // NEW — string[] (normalized, no `en:` prefix)
     "source":   { "type": "enumeration",                            // NEW
                   "enum": ["user", "openfoodfacts"], "default": "user", "required": true },
     "creator":  { "type": "relation", "relation": "oneToOne",       // existing
@@ -136,18 +142,58 @@ Keeps `query` (unique), `results` JSON, `uuid`. Stores normalized query → arra
 
 ### `openfoodfacts-client.ts`
 
-Pure typed fetch wrapper, no React.
+Pure typed fetch wrapper, no React. Targets **OFF API v3** (the current recommended version; v2 is deprecated, the existing in-tree code uses v2 and is being replaced).
 
 ```ts
 searchByQuery(query: string, signal: AbortSignal): Promise<OFFProductSummary[]>
 fetchByBarcode(barcode: string, signal: AbortSignal): Promise<OFFProduct | null>
 ```
 
-Fields requested: `code, product_name, brands, image_url, serving_size, serving_quantity, nutriments` (subset of existing usage).
+Fields requested: barcode, product name, brands, image URL, serving size/quantity, nutriments — exact v3 field names to be confirmed against the v3 spec during implementation (v3 response shapes differ from v2 in places, particularly around the search response envelope and nutriment keys). The `normalizeProduct()` mapper described below is written against v3 docs at implementation time, not copied from the existing v2 code.
 
-**User-Agent caveat:** browsers strip custom `User-Agent` on `fetch`; the existing code's `'User-Agent': 'OYL/1.0'` header is a no-op. We document this in a code comment and append a query param for attribution.
+### Base URL & environments
 
-> **TODO before shipping:** verify OFF's attribution conventions. The current plan appends `&ref=oyl-app` as a referrer hint, but this is a placeholder — confirm against OFF's official guidance (their wiki or the staff feedback channel) before merging. If they prefer a different identifier (e.g. registered app key, `User-Agent` via server proxy), adjust accordingly.
+Base URL is parameterized via env var so dev points at OFF's staging environment and prod points at production. Per OFF guidance: *"While testing your applications, make all API requests to the staging environment."*
+
+| Env | Base URL |
+|---|---|
+| Dev | `https://world.openfoodfacts.net/api/v3` (staging) |
+| Prod | `https://world.openfoodfacts.org/api/v3` |
+
+**Staging basic auth:** OFF's staging may require `Authorization: Basic ${btoa('off:off')}` (used to prevent search-engine indexing). The client detects this conditionally — if the base URL contains `openfoodfacts.net`, attach the staging basic-auth header. Production calls send no `Authorization` header. Handled inside `openfoodfacts-client.ts` so consumers don't think about it.
+
+Single env var, two values:
+
+```
+# react-oyl/.env.example
+VITE_OFF_BASE_URL=https://world.openfoodfacts.net/api/v3   # prod override: https://world.openfoodfacts.org/api/v3
+```
+
+### Client identification
+
+OFF wants `User-Agent: AppName/Version (ContactEmail)` to avoid bot classification, but browsers strip custom `User-Agent` from `fetch`. OFF allows web clients to identify themselves via custom non-forbidden headers instead. Every OFF request sets:
+
+| Header | Source |
+|---|---|
+| `X-App-Name` | `import.meta.env.VITE_OFF_APP_NAME` |
+| `X-App-Version` | `import.meta.env.VITE_OFF_APP_VERSION` |
+| `X-Client-Id` | `import.meta.env.VITE_OFF_CLIENT_ID` |
+
+Full `.env.example`:
+
+```
+# react-oyl/.env.example
+VITE_OFF_BASE_URL=https://world.openfoodfacts.net/api/v3
+VITE_OFF_APP_NAME=OYL/1.0
+VITE_OFF_APP_VERSION=1.0
+VITE_OFF_CLIENT_ID=https://github.com/hynding/oyl
+```
+
+Reading the values lives in `openfoodfacts-client.ts` (one place, easy to mock in tests). Missing env vars at build time log a single dev-mode warning; OFF calls still proceed (degraded identification, not blocked).
+
+### Rate limits
+
+OFF enforces **15 req/min/IP for product reads** and **10 req/min/IP for search reads**, but explicitly states: *"If your requests come from your users directly (ex: mobile app), the rate limits apply per user."* Browser-direct gives each user their own quota — a server proxy would concentrate all users on one IP. This is the primary architectural reason to keep OFF traffic in the browser.
 
 Per-request `AbortController` allows cancellation on new keystrokes.
 
@@ -181,18 +227,58 @@ State: `{ localResults, offResults, offLoading, offError, searchOff }`.
 
 ### `normalizeProduct()` — OFF → our schema
 
-OFF gives macros as `per_100g` or `per_serving`. We always store per 100 of `serving_unit`:
+`normalizeProduct()` produces two outputs in a single pass: (1) the typed column values, and (2) the curated `data` JSON subset. Exact v3 field names verified against the v3 spec at implementation time (v3 differs from v2 in several keys).
 
-| Our field | Source |
+**Column values** — OFF gives macros as per-100 (g or ml) and/or per-serving; we always store **per 100 of `serving_unit`**.
+
+| Our column | Source (semantic) |
 |---|---|
-| `serving_unit` | `'g'` if `nutriments['energy-kcal_100g']` exists; `'ml'` if `..._100ml`; else `'serving'` |
-| `serving_size` | `serving_quantity` (numeric) or null |
-| `calories_per_100` | `nutriments['energy-kcal_100g']` (or `_100ml`, preferring g) |
-| `protein_per_100` | `nutriments['proteins_100g']` (or `_100ml`) |
-| `carbs_per_100` | `nutriments['carbohydrates_100g']` (or `_100ml`) |
-| `fat_per_100` | `nutriments['fat_100g']` (or `_100ml`) |
+| `name` | OFF product name; fall back to `generic_name` then `code` |
+| `brand` | First entry of OFF `brands` (string-split on comma, trimmed) |
+| `image_url` | OFF `image_front_small_url` (thumbnail; full URL kept in `data`) |
+| `serving_unit` | `'g'` if a per-100g macro is present; `'ml'` if per-100ml is present; else `'serving'` (preferring g when both present) |
+| `serving_size` | OFF's `serving_quantity` (numeric) or null |
+| `package_quantity` | OFF's `quantity` string (e.g. "500 g") or null |
+| `calories_per_100` | OFF's energy in kcal per 100 of `serving_unit` |
+| `protein_per_100` | OFF's protein per 100 of `serving_unit` |
+| `carbs_per_100` | OFF's carbohydrates per 100 of `serving_unit` |
+| `fat_per_100` | OFF's fat per 100 of `serving_unit` |
+| `nutri_score` | OFF's `nutriscore_grade` (lowercase a–e) or null |
+| `nutri_score_value` | OFF's `nutriscore_score` (integer) or null |
+| `nova_group` | OFF's `nova_group` (1–4) or null |
+| `allergens` | OFF's `allergens_tags` array, with `en:` prefixes stripped (e.g. `['gluten', 'milk']`) or null |
+| `source` | `'openfoodfacts'` |
 
-Missing values stay null. Form shows them as "—" with editable inputs.
+Missing values stay null. Forms render null fields as "—" with editable inputs.
+
+**Curated `data` JSON subset** — kept so future features don't require re-fetching OFF for items we've already cached:
+
+```ts
+data = {
+  generic_name: string | null,         // language-neutral name fallback
+  categories_tags: string[],           // e.g. ['en:beverages', 'en:plant-based-milks']
+  ingredients_text: string | null,     // free-form, English only
+  ecoscore_grade: 'a'|'b'|'c'|'d'|'e' | null,
+  nutrient_levels: {                   // OFF's traffic-light low/moderate/high
+    fat?: 'low'|'moderate'|'high',
+    'saturated-fat'?: 'low'|'moderate'|'high',
+    sugars?: 'low'|'moderate'|'high',
+    salt?: 'low'|'moderate'|'high',
+  } | null,
+  labels_tags: string[],               // e.g. ['en:organic', 'en:fair-trade']
+  image_front_url: string | null,      // full-size image (small URL is promoted to column)
+  traces_tags: string[],               // may-contain allergens, normalized like `allergens`
+  off_last_modified_t: number | null,  // OFF's last_modified_t, lets us detect staleness later
+}
+```
+
+**Deliberately not stored:**
+- All translations (`*_en`, `*_fr`, …) beyond what's pulled into English fields above
+- Edit history metadata (`last_modified_by`, `correctors_tags`, `editors_tags`, etc.)
+- Image variants beyond the small thumb (column) and full URL (`data.image_front_url`) — no `*_2x_url`, no `selected_images.*` arrays
+- The raw `nutriments` object — only the promoted-to-column macros are kept
+
+This is the v1 subset. If a future feature needs another field, add it to the `data` schema and the normalizer; existing cached items are re-fetched only when explicitly invalidated (out of scope for v1).
 
 ### Rate-limit posture
 
@@ -268,10 +354,15 @@ export type TNutritionItem = {
   image_url?: string | null
   serving_size?: number | null
   serving_unit: 'g' | 'ml' | 'serving'
+  package_quantity?: string | null
   calories_per_100?: number | null
   protein_per_100?: number | null
   carbs_per_100?: number | null
   fat_per_100?: number | null
+  nutri_score?: 'a' | 'b' | 'c' | 'd' | 'e' | null
+  nutri_score_value?: number | null
+  nova_group?: 1 | 2 | 3 | 4 | null
+  allergens?: string[] | null
   source: 'user' | 'openfoodfacts'
   data?: Record<string, unknown>
 }
@@ -328,6 +419,8 @@ The old `amount: number` on `TUserNutrition` is removed (never persisted; schema
 
 **`UserDailyNutritionSearchInput`** — `<Autocomplete>` from `@oyl/storybook-oyl`. `onInputChange` drives `useNutritionSearch` (debounced inside the hook). Options assembled: Tier-1 recents, Tier-2 globals, sentinel "Search OpenFoodFacts…" row. When OFF results loaded, OFF rows append below local results. Selecting `__off_search__` triggers `searchOff()` (loading spinner; dropdown stays open). Selecting any item branches: OFF row → find-or-create nutrition-item; any row → open add-log mini-form.
 
+Row description line composition: `<brand> · <package_quantity> · <Nutri-Score badge> <NOVA badge>` — each segment shown only when present. Nutri-Score renders as a small colored letter badge (A green → E red); NOVA renders as a small numeric badge (1 green → 4 red). Allergens, when present, appear on a second line as `Contains: gluten, milk` (English labels derived from the normalized tokens).
+
 **`UserDailyBarcodeButton` + `UserDailyBarcodeScanner`** — button beside the search input. Click → modal with scanner. `useBarcodeScanner`:
 - Feature-detect `'BarcodeDetector' in window`. If yes: `getUserMedia({ video: { facingMode: 'environment' } })`, scan at ~5fps, formats `['ean_13', 'ean_8', 'upc_a', 'upc_e']`.
 - Else: dynamic `import('@zxing/browser')`, `BrowserMultiFormatReader.decodeFromVideoDevice()`.
@@ -337,7 +430,7 @@ The old `amount: number` on `TUserNutrition` is removed (never persisted; schema
 
 **`UserDailyNutritionList` + `UserDailyNutritionRow`** — sorted chronologically. Row: time (HH:mm in user's profile timezone), name + brand, servings (inline editable number input, 400ms debounce commit), computed kcal, kebab menu with Edit time / Remove.
 
-**`UserDailyAddNutritionForm`** — wraps search + scan + post-selection mini-form. Owns modal state. Mini-form pre-fills `time` (now, rounded to nearest minute) and `servings` (1).
+**`UserDailyAddNutritionForm`** — wraps search + scan + post-selection mini-form. Owns modal state. Mini-form pre-fills `time` (now, rounded to nearest minute) and `servings` (1). When the selected item has `allergens`, the mini-form surfaces a prominent "Contains: …" callout above the submit button so users see allergens before logging.
 
 ### State ownership
 
@@ -399,57 +492,124 @@ Styling: Tailwind utilities only. No new CSS modules.
 
 ## Testing strategy
 
-### Unit tests (Vitest, colocated)
+Three layers: **unit** (pure functions and hooks in isolation), **integration** (components + their providers, network mocked via MSW), and **e2e** (real browser against a real running stack).
 
-**`react-oyl/modules/nutrition/openfoodfacts/`**
-- `openfoodfacts-client.test.ts`: URL construction, `AbortSignal` pass-through, 404 → null, 5xx throws.
-- `normalizeProduct.test.ts`: `_100g` → `'g'`, `_100ml` → `'ml'`, fallback `'serving'`, null preservation, brand-prefix stripping.
-- `useNutritionSearch.test.ts` (RTL + MSW): tier merge, sentinel rendering, cache read-through, cache miss → OFF + write, cache write failure doesn't fail user search, abort on new query.
+### Existing tooling
 
-**`react-oyl/modules/user/daily/`**
-- Extend `orchestrator-utils.test.ts`:
-  - `filterNutritionsForDate` — timezone-aware date filter, excludes `deleted_at`, chronological sort.
-  - `computeDailyTotals` — sum with mixed null/present macros, undefined progress when target undefined, ratio math.
-  - `dedupRecentItems` — dedup by documentId, most-recent sort.
+- `react-oyl` uses **Vitest + jsdom + @testing-library/react** (3 existing test files: `orchestrator-utils.test.ts`, `SyncEngine.test.ts`, `storage.test.ts`).
+- No e2e tooling yet. **This feature introduces Playwright** as the project's first e2e harness (configured in a new root-level `e2e/` workspace package — see "E2E tests" below).
+- MSW for network mocking inside integration tests (introduced by this feature; pinned to a project-wide version).
 
-### Integration tests
+---
 
-**`react-oyl/modules/user/daily/nutrition/UserDailyNutrition.test.tsx`** (RTL + MSW):
-- Renders totals, recent chips, search, scan button, list.
-- Search → select recent → mini-form → submit → row appears, totals update.
-- Search → sentinel → mocked OFF → row appears → select → find-or-create item → log entry.
-- Edit servings inline → totals update after debounce.
-- Remove row → soft-deletes, row disappears, totals decrease.
+### Unit tests (Vitest, colocated `*.test.ts(x)`)
 
-### Barcode scanner
+#### `react-oyl/modules/nutrition/openfoodfacts/`
+- **`openfoodfacts-client.test.ts`**: URL construction for both endpoints; staging basic-auth header attached only when base URL contains `.net`; `X-App-Name`/`X-App-Version`/`X-Client-Id` headers attached from env; missing env vars produce a single dev warning, not a throw; `AbortSignal` pass-through; 404 on barcode → null; 5xx throws typed error; abort error swallowed (rethrown as `AbortError`).
+- **`normalizeProduct.test.ts`**: `_100g` macros → `serving_unit: 'g'`; `_100ml` → `'ml'`; both present → prefers `'g'`; neither → `'serving'`; null macros stay null (no zero coercion); `brands` first-entry extraction + comma split + trim; `image_url` prefers `image_front_small_url`, full URL goes to `data.image_front_url`; `nutriscore_grade` lowercased; `nova_group` clamped to 1–4 or null; `allergens_tags` strips `en:` prefix; curated `data` subset includes documented fields only (no raw `nutriments`, no translations); generic_name fallback when product_name missing.
+- **`useNutritionSearch.test.ts`** (RTL + MSW): tier-1/tier-2 merge order and dedup by documentId; sentinel row appears when query length ≥ 1 and OFF results not yet loaded; debounce semantics (200ms); cache read-through hits return without OFF call; cache miss triggers OFF + write-through; cache write failure does not fail the user search; new query aborts in-flight OFF call; `offError` surfaces on 5xx; loading state transitions.
+- **`useBarcodeScanner.test.ts`**: BarcodeDetector path detection; falls back to dynamic ZXing import when `'BarcodeDetector' in window` is false; falls back to ZXing when first decode throws `NotSupportedError`; `getUserMedia` permission denied → emits typed error; no camera available → emits typed error; first successful decode emits barcode and stops the stream; cleanup tears down media tracks on unmount.
 
-Unit-tested via mocking `BarcodeDetector` and `getUserMedia`. Full camera flow manually tested in real browsers via a documented checklist:
-- Native BarcodeDetector path (Chrome, Edge)
-- ZXing fallback path (Firefox)
-- Permission-denied fallback
-- Manual barcode entry path
+#### `react-oyl/modules/user/daily/`
+- Extend **`orchestrator-utils.test.ts`**:
+  - `filterNutritionsForDate(nutritions, date, timezone)` — timezone-aware date-portion match; excludes `deleted_at != null`; sorts chronologically ascending; rows with `nutrition_item == null` still pass through (snapshot mode).
+  - `computeDailyTotals(rows, targets?)` — sums macros with mixed null/present values; produces `progress` only for metrics with both current and target; ratio math (boundary cases: target 0 → undefined progress, current 0 → 0 progress); fractional servings.
+  - `dedupRecentItems(nutritions, limit)` — dedups by `nutrition_item.documentId`; sorts by most-recent log date; respects limit; ignores rows with `nutrition_item == null`.
 
-Checklist filed alongside this spec at `docs/superpowers/specs/2026-06-02-user-daily-nutrition-manual-tests.md` during implementation.
+#### `react-oyl/modules/user/nutrition/`
+- **`useRecentNutritionItems.test.ts`**: dedup + sort + limit (mirrors orchestrator-utils tests but at the hook layer).
+- **`useUserNutritionSettings.test.ts`**: returns first record's `data` JSON; undefined when no records; updates reactively when the underlying provider state changes.
+- **`UserNutritionProvider.test.tsx`**: `addNutrition` calls `data.save`; `updateNutrition` calls `data.update`; `removeNutrition` calls `data.update` with `deleted_at` set (soft delete, not hard delete); context value is stable across re-renders.
 
-### Strapi
+#### `react-oyl/modules/user/daily/nutrition/` — component unit tests
+Each component tested in isolation with its required providers stubbed. All use RTL + `userEvent` (no Enzyme-style shallow rendering).
 
-No test suite per existing package conventions; schema validated at boot. Controller customizations (upsert on nutrition-search, soft-delete on user-nutrition, find-or-create on nutrition-item create-by-barcode) exercised via the React integration tests against the dev API.
+- **`UserDailyNutritionTotals.test.tsx`**: renders four metrics; with targets → shows `current / target` + bar; without targets → shows current only; progress color thresholds (green `0 < p < 1`, amber `1 ≤ p < 1.1`, red `≥ 1.1`); accessible bar (role + aria-valuenow/min/max).
+- **`UserDailyNutritionQuickAdd.test.tsx`**: renders nothing when list empty; renders up to 8 chips; chip click opens mini-form pre-filled with `{ servings: 1, time: now }`; submit calls `addNutritionLog` with correct args; Esc/blur cancels.
+- **`UserDailyNutritionSearchInput.test.tsx`**: dropdown assembles in tier order; sentinel "Search OpenFoodFacts" row visible when query ≥ 1 char and OFF not yet loaded; clicking sentinel calls `searchOff()` and keeps dropdown open; row description shows `<brand> · <package_quantity> · <Nutri-Score badge> <NOVA badge>` with each segment hidden when missing; allergens line "Contains: …" rendered when present; selecting an OFF row triggers find-or-create flow; debounce drives `onInputChange` correctly.
+- **`UserDailyBarcodeButton.test.tsx`**: opens modal on click; modal contains scanner.
+- **`UserDailyBarcodeScanner.test.tsx`** (mocks `BarcodeDetector`, `getUserMedia`, dynamic ZXing import): renders video element when permission granted; renders manual-entry input when permission denied or no camera; manual entry submits and triggers find-or-create; first decode closes modal and triggers find-or-create; subsequent decodes ignored.
+- **`UserDailyAddNutritionForm.test.tsx`**: pre-fills `time` (now, rounded to nearest minute) and `servings` (1); rejects servings ≤ 0 (no PUT fires); allergen callout rendered above submit when item has allergens; submit calls `addNutritionLog` with correct args; closes on success.
+- **`UserDailyNutritionRow.test.tsx`**: time rendered in user profile timezone; servings inline-edit input commits via 400ms debounce; kebab menu has Edit time / Remove; Remove triggers soft-delete confirmation; snapshot fallback renders when `item == null`.
+- **`UserDailyNutritionList.test.tsx`**: sort order chronological ascending; empty state copy.
+
+---
+
+### Integration tests (Vitest + RTL + MSW)
+
+Integration tests render `UserDailyNutrition` inside `UserDailyDataProviders` against MSW handlers for Strapi endpoints and OFF v3. They are colocated under `react-oyl/modules/user/daily/nutrition/__integration__/`.
+
+- **`add-from-recent.test.tsx`**: Pre-seed user-nutritions history. Render section. Tier-1 recent chip appears. Click chip → mini-form → submit. Assert: row in list, totals updated, MSW saw a `POST /user-nutritions` with snapshot fields populated.
+- **`add-from-global.test.tsx`**: Pre-seed Strapi `nutrition-items` (no user history). Type in search. Tier-2 row appears (no "recent" badge). Select → mini-form → submit. Assert: row in list, totals updated.
+- **`add-from-off.test.tsx`**: Empty local. Type query. Sentinel row visible. Click sentinel → MSW returns OFF result. OFF row appears. Select → MSW returns OFF product detail → `POST /nutrition-items` find-or-create → `POST /user-nutritions`. Assert: row in list. Assert: nutrition-search cache `POST` was made with normalized query.
+- **`add-from-off-cache-hit.test.tsx`**: Pre-seed nutrition-search cache. Click sentinel → assert no OFF HTTP call fires; results render from cache.
+- **`add-from-barcode.test.tsx`**: Mock `BarcodeDetector` to emit a barcode on the first frame. Open scanner. Assert: `GET /nutrition-items?filters[barcode][$eq]=…` fires first; on cache miss, OFF `GET` fires; on success, `POST /nutrition-items` fires with `barcode` set; mini-form opens with the new item.
+- **`add-from-barcode-cache-hit.test.tsx`**: Pre-seed nutrition-item with that barcode. Scan. Assert: no OFF call; existing item used; mini-form opens.
+- **`edit-servings.test.tsx`**: Pre-seed a log. Type new servings in row input. Assert: debounced PUT after 400ms; totals recompute from `log.servings × item.macros_per_100 × item.serving_size`.
+- **`remove-log.test.tsx`**: Pre-seed a log. Open kebab → Remove → confirm. Assert: PUT with `deleted_at` set (not DELETE); row disappears; totals decrease.
+- **`allergen-warning.test.tsx`**: Pre-seed an item with allergens. Select it. Assert: "Contains: gluten, milk" rendered in mini-form before submit.
+- **`off-error.test.tsx`**: MSW returns 503 for OFF search. Click sentinel. Assert: inline error in dropdown; local results still rendered; sentinel still clickable.
+- **`off-empty.test.tsx`**: MSW returns empty array for OFF search. Click sentinel. Assert: "No OpenFoodFacts results for '<query>'" rendered with a "+ Add '<query>' manually" row that opens the add-form with a user-source item.
+- **`offline-scan.test.tsx`**: Simulate offline (sync engine `online: false`). Open scanner. Decode. Assert: offline message rendered; no `POST /nutrition-items` fires.
+- **`timezone-midnight.test.tsx`**: User profile timezone = `America/New_York`. Selected date = today. Edit a log's time to 00:10 next-day local (still today's UTC date for some users). Assert: log moves out of today's `nutritionRows`.
+- **`section-composition.test.tsx`**: Top-level smoke: renders totals + chips + search + scan + list. Each subcomponent has its expected `data-testid`.
+
+---
+
+### E2E tests (Playwright)
+
+Introducing Playwright as the project's first e2e layer. Configured at the repo root in a new `e2e/` workspace package; tests live in `e2e/tests/`.
+
+**Setup**:
+- `e2e/playwright.config.ts` with `webServer` configs that start Strapi (`pnpm strapi develop`) and Vite dev (`pnpm react dev`) on fixed ports before tests run.
+- Strapi seeded via a `beforeAll` fixture that creates a known test user + API token, plus a small set of nutrition-items (mix of `source: 'user'` and `source: 'openfoodfacts'`).
+- OFF traffic intercepted via `page.route('**/openfoodfacts.net/**', …)` so e2e never hits the real OFF API. Fixtures return canned v3 responses for a handful of barcodes/queries.
+- Test runs against Chromium (primary) and Firefox (BarcodeDetector fallback path); WebKit deferred.
+
+**Scenarios** (one spec file each; each starts authenticated on the daily page):
+
+- **`nutrition-empty-state.spec.ts`**: New user, no logs. Section renders with empty list, no totals progress bars, search and scan buttons visible.
+- **`add-and-see-totals.spec.ts`**: Type "oat", select a tier-2 global item, submit `2.5` servings, time `08:30`. Verify: row appears with time `08:30`, totals strip updated, page reload preserves state.
+- **`off-search-and-cache.spec.ts`**: Type a query with no local results, click "Search OpenFoodFacts" sentinel. Verify: OFF request fires (intercepted), result appears, selecting creates the nutrition-item server-side, second identical query hits the cache (intercepted OFF count stays at 1).
+- **`barcode-scan-happy.spec.ts`**: Use Playwright's `--use-fake-device-for-media-stream` + a fixture video of a barcode (or mock `BarcodeDetector` via `page.evaluate`). Scan a known barcode that's in the OFF fixture. Verify: nutrition-item created, mini-form opens, submission logs the entry.
+- **`barcode-scan-unknown.spec.ts`**: Scan a barcode the OFF fixture returns 404 for. Verify: graceful fallback — add-log form opens with barcode pre-filled and macros empty.
+- **`barcode-manual-fallback.spec.ts`**: Deny camera permission. Verify: manual barcode entry input shown; submitting a known barcode runs the same find-or-create flow.
+- **`edit-servings.spec.ts`**: Edit a row's servings inline. Verify: totals recompute live, persisted after reload.
+- **`soft-delete.spec.ts`**: Remove a row via the kebab. Verify: row disappears, totals decrease, the user-nutrition record on the server has `deleted_at` set (not absent).
+- **`offline-graceful.spec.ts`**: Use Playwright's `context.setOffline(true)`. Scan a barcode for a not-yet-cached item. Verify: clear offline message; no client crash. Edit servings on an existing log → succeeds (queued by sync engine, flushed when back online).
+- **`allergen-warning.spec.ts`**: Select an item with `allergens: ['gluten', 'milk']`. Verify: "Contains: gluten, milk" callout visible above submit.
+- **`quick-add-recent.spec.ts`**: After logging "oatmeal" once, reload, click the oatmeal chip in QuickAdd, submit. Verify: second log appears, totals double.
+- **`targets-progress.spec.ts`**: Set user-nutrition-setting targets (via API fixture). Verify: totals strip renders progress bars; over-target metrics render in red.
+
+**Skipped from automation, kept as manual checklist** (`docs/superpowers/specs/2026-06-02-user-daily-nutrition-manual-tests.md`):
+- Native `BarcodeDetector` path on Chrome with a real device camera.
+- ZXing fallback on real Firefox with a real device camera.
+- Permission prompt UX on iOS Safari.
+
+---
+
+### Strapi-side tests
+
+The Strapi package has no test suite today; this feature does not introduce one. The Strapi behaviors that matter (upsert on `nutrition-search`, soft-delete on `user-nutrition`, find-or-create-by-barcode on `nutrition-item`) are exercised by the **integration tests** (via MSW assertions on the requests we send) and by the **e2e tests** (via real Strapi responses). If a future feature warrants Strapi-side unit tests, we add Vitest there as a separate effort.
+
+---
 
 ### Not tested
 
-- OFF API itself (mocked at `openfoodfacts-client` boundary).
-- `Autocomplete` storybook component (own stories).
-- Sync engine offline queue (existing `SyncEngine.test.ts`).
-- Real camera streams (manual checklist).
+- OFF API itself (mocked at the `openfoodfacts-client` boundary and at the Playwright `page.route` boundary).
+- `@oyl/storybook-oyl` `Autocomplete` (covered by its own stories).
+- Sync engine offline queue mechanics (covered by existing `SyncEngine.test.ts`).
+- Real camera-stream decode performance (manual checklist).
 
 ### Verification before complete
 
-- `pnpm --filter @oyl/react-oyl test` passes
+- `pnpm --filter @oyl/react-oyl test` passes (all unit + integration)
+- `pnpm --filter @oyl/e2e test` passes against a locally running dev stack
 - `pnpm --filter @oyl/react-oyl exec tsc -b --noEmit` clean on modified files
 - `pnpm --filter @oyl/react-oyl exec eslint modules/user/daily/nutrition modules/user/nutrition modules/nutrition` clean
 - `pnpm --filter @oyl/strapi-oyl exec tsc --noEmit` clean; Strapi boots without schema errors
-- Manual-test checklist run in dev browser
+- Manual-test checklist run in dev browser on Chrome + Firefox
 
 ## Open questions / TODOs before merge
 
-- **OFF attribution:** `&ref=oyl-app` query param is a placeholder. Verify OFF's official attribution conventions before shipping; adjust if they prefer a different identifier or recommend a server-proxy `User-Agent` approach.
+- **`.env.example` for the OFF identification vars** must be added to the `react-oyl` package (`VITE_OFF_APP_NAME`, `VITE_OFF_APP_VERSION`, `VITE_OFF_CLIENT_ID`) and referenced in the package README so contributors set them locally. CI / deployment env needs the same vars.

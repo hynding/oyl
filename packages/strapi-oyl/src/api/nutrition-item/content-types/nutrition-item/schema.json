@@ -6,46 +6,27 @@
     "pluralName": "nutrition-items",
     "displayName": "Nutrition Item"
   },
-  "options": {
-    "draftAndPublish": false
-  },
-  "pluginOptions": {
-    "i18n": {
-      "localized": true
-    }
-  },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": { "i18n": { "localized": true } },
   "attributes": {
-    "uuid": {
-      "type": "uid",
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      }
-    },
-    "name": {
-      "type": "string",
-      "pluginOptions": {
-        "i18n": {
-          "localized": true
-        }
-      },
-      "required": true,
-      "unique": true
-    },
-    "creator": {
-      "type": "relation",
-      "relation": "oneToOne",
-      "target": "plugin::users-permissions.user",
-      "private": true
-    },
-    "data": {
-      "type": "json",
-      "pluginOptions": {
-        "i18n": {
-          "localized": false
-        }
-      }
-    }
+    "uuid": { "type": "uid", "pluginOptions": { "i18n": { "localized": true } } },
+    "name": { "type": "string", "required": true, "pluginOptions": { "i18n": { "localized": true } } },
+    "barcode": { "type": "string", "unique": true },
+    "brand": { "type": "string" },
+    "image_url": { "type": "string" },
+    "serving_size": { "type": "decimal", "min": 0 },
+    "serving_unit": { "type": "enumeration", "enum": ["g", "ml", "serving"], "default": "g" },
+    "package_quantity": { "type": "string" },
+    "calories_per_100": { "type": "decimal", "min": 0 },
+    "protein_per_100": { "type": "decimal", "min": 0 },
+    "carbs_per_100": { "type": "decimal", "min": 0 },
+    "fat_per_100": { "type": "decimal", "min": 0 },
+    "nutri_score": { "type": "enumeration", "enum": ["a", "b", "c", "d", "e"] },
+    "nutri_score_value": { "type": "integer" },
+    "nova_group": { "type": "integer", "min": 1, "max": 4 },
+    "allergens": { "type": "json" },
+    "source": { "type": "enumeration", "enum": ["user", "openfoodfacts"], "default": "user", "required": true },
+    "creator": { "type": "relation", "relation": "oneToOne", "target": "plugin::users-permissions.user", "private": true },
+    "data": { "type": "json", "pluginOptions": { "i18n": { "localized": false } } }
   }
 }

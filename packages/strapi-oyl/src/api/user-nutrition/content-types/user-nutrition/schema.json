@@ -28,19 +28,19 @@
       "target": "api::nutrition-item.nutrition-item"
     },
     "calories": {
-      "type": "integer",
+      "type": "decimal",
       "min": 0
     },
     "protein": {
-      "type": "integer",
+      "type": "decimal",
       "min": 0
     },
     "carbs": {
-      "type": "integer",
+      "type": "decimal",
       "min": 0
     },
     "fat": {
-      "type": "integer",
+      "type": "decimal",
       "min": 0
     },
     "data": {
