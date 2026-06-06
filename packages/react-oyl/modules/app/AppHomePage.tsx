@@ -4,6 +4,7 @@ const navLinks = [
   { to: '/daily', label: 'Daily' },
   { to: '/my/activities', label: 'My activities' },
   { to: '/my/goals', label: 'My goals' },
+  { to: '/my/nutrition', label: 'My nutrition' },
 ]
 
 export default function Home() {
