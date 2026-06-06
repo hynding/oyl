@@ -527,6 +527,23 @@ export interface ApiNutritionItemNutritionItem
     }
   }
   attributes: {
+    allergens: Schema.Attribute.JSON
+    barcode: Schema.Attribute.String & Schema.Attribute.Unique
+    brand: Schema.Attribute.String
+    calories_per_100: Schema.Attribute.Decimal &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0
+        },
+        number
+      >
+    carbs_per_100: Schema.Attribute.Decimal &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0
+        },
+        number
+      >
     createdAt: Schema.Attribute.DateTime
     createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
       Schema.Attribute.Private
@@ -541,6 +558,14 @@ export interface ApiNutritionItemNutritionItem
           localized: false
         }
       }>
+    fat_per_100: Schema.Attribute.Decimal &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0
+        },
+        number
+      >
+    image_url: Schema.Attribute.String
     locale: Schema.Attribute.String
     localizations: Schema.Attribute.Relation<
       "oneToMany",
@@ -548,13 +573,42 @@ export interface ApiNutritionItemNutritionItem
     >
     name: Schema.Attribute.String &
       Schema.Attribute.Required &
-      Schema.Attribute.Unique &
       Schema.Attribute.SetPluginOptions<{
         i18n: {
           localized: true
         }
       }>
+    nova_group: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 4
+          min: 1
+        },
+        number
+      >
+    nutri_score: Schema.Attribute.Enumeration<["a", "b", "c", "d", "e"]>
+    nutri_score_value: Schema.Attribute.Integer
+    package_quantity: Schema.Attribute.String
+    protein_per_100: Schema.Attribute.Decimal &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0
+        },
+        number
+      >
     publishedAt: Schema.Attribute.DateTime
+    serving_size: Schema.Attribute.Decimal &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0
+        },
+        number
+      >
+    serving_unit: Schema.Attribute.Enumeration<["g", "ml", "serving"]> &
+      Schema.Attribute.DefaultTo<"g">
+    source: Schema.Attribute.Enumeration<["user", "openfoodfacts"]> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<"user">
     updatedAt: Schema.Attribute.DateTime
     updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
       Schema.Attribute.Private
@@ -1065,14 +1119,14 @@ export interface ApiUserNutritionUserNutrition
     draftAndPublish: false
   }
   attributes: {
-    calories: Schema.Attribute.Integer &
+    calories: Schema.Attribute.Decimal &
       Schema.Attribute.SetMinMax<
         {
           min: 0
         },
         number
       >
-    carbs: Schema.Attribute.Integer &
+    carbs: Schema.Attribute.Decimal &
       Schema.Attribute.SetMinMax<
         {
           min: 0
@@ -1085,7 +1139,7 @@ export interface ApiUserNutritionUserNutrition
     data: Schema.Attribute.JSON
     date: Schema.Attribute.DateTime
     deleted_at: Schema.Attribute.DateTime
-    fat: Schema.Attribute.Integer &
+    fat: Schema.Attribute.Decimal &
       Schema.Attribute.SetMinMax<
         {
           min: 0
@@ -1103,7 +1157,7 @@ export interface ApiUserNutritionUserNutrition
       "oneToOne",
       "api::nutrition-item.nutrition-item"
     >
-    protein: Schema.Attribute.Integer &
+    protein: Schema.Attribute.Decimal &
       Schema.Attribute.SetMinMax<
         {
           min: 0
