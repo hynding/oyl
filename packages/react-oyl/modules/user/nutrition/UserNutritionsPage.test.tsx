@@ -31,6 +31,10 @@ vi.mock('@/modules/user/nutrition', async (importOriginal) => {
   }
 })
 
+vi.mock('./user-nutrition-context', () => ({
+  useUserNutritionContext: () => nutritionCtx,
+}))
+
 vi.mock('@/modules/user/profile/useUserProfile', () => ({
   useUserProfile: () => ({
     documentId: 'p-1', timezone: 'UTC', loading: false, error: null, setTimezone: vi.fn(),

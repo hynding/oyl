@@ -1,11 +1,9 @@
-import { useMemo } from 'react'
 import PageShell from '@/modules/app/PageShell'
 import {
   UserNutritionItemRow,
   UserNutritionItemsList,
   UserNutritionProvider,
-  derivePantryItems,
-  useUserNutritionContext,
+  useUserPantry,
 } from '@/modules/user/nutrition'
 import { useUserProfile } from '@/modules/user/profile/useUserProfile'
 
@@ -18,10 +16,9 @@ export default function UserNutritionsPage() {
 }
 
 export function UserNutritionsPageBody() {
-  const { nutritions } = useUserNutritionContext() // mounted so pantry derivation has the context to read
   const { timezone } = useUserProfile()
   const tz = timezone || 'UTC'
-  const pantry = useMemo(() => derivePantryItems(nutritions), [nutritions])
+  const pantry = useUserPantry()
 
   return (
     <PageShell title="My Nutrition">
