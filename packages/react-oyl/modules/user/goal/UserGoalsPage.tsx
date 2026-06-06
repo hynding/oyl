@@ -46,20 +46,24 @@ export function UserGoalsPageBody() {
       <UserGoalsList
         items={goals}
         emptyMessage="No goals yet."
-        renderItem={g => g.id == null ? null : (
-          <UserGoalRow
-            key={g.id}
-            goal={g}
-            milestones={getMilestonesForGoal(g.id)}
-            progressPct={deriveProgressPct(g)}
-            isComplete={deriveIsComplete(g)}
-            onSetProgress={value => setProgress(g.id!, value)}
-            onMarkComplete={() => markComplete(g.id!)}
-            onToggleMilestone={toggleMilestone}
-            onAppendNote={text => appendNote(g.id!, text)}
-            onOpenSettings={setSettingsGoalId}
-          />
-        )}
+        renderItem={g => {
+          const id = g.id
+          if (id == null) return null
+          return (
+            <UserGoalRow
+              key={id}
+              goal={g}
+              milestones={getMilestonesForGoal(id)}
+              progressPct={deriveProgressPct(g)}
+              isComplete={deriveIsComplete(g)}
+              onSetProgress={value => setProgress(id, value)}
+              onMarkComplete={() => markComplete(id)}
+              onToggleMilestone={toggleMilestone}
+              onAppendNote={text => appendNote(id, text)}
+              onOpenSettings={setSettingsGoalId}
+            />
+          )
+        }}
       />
     </PageShell>
   )
