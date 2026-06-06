@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import type { TUserActivityData, TUserGoalData } from '@oyl/all-of-oyl/modules'
 import UserActivitiesPage from './UserActivitiesPage'
@@ -56,6 +56,10 @@ vi.mock('@/modules/user/goal', async (importOriginal) => {
 })
 
 describe('UserActivitiesPage', () => {
+  afterEach(() => {
+    activityCtx.showAddActivityForm = false
+  })
+
   it('renders all activities from context under a "My Activities" heading', () => {
     render(<UserActivitiesPage />)
     expect(screen.getByRole('heading', { name: 'My Activities' })).toBeInTheDocument()
@@ -80,6 +84,5 @@ describe('UserActivitiesPage', () => {
     await waitFor(() => expect(activityCtx.addActivity).toHaveBeenCalled())
     expect(activityCtx.addActivity.mock.calls[0][0]).toMatchObject({ name: 'Stretch' })
     expect(activityCtx.setShowAddActivityForm).toHaveBeenCalledWith(false)
-    activityCtx.showAddActivityForm = false
   })
 })
