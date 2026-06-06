@@ -4,6 +4,7 @@ import {
   UserGoalForm,
   UserGoalProvider,
   UserGoalRow,
+  UserGoalSettingsSheet,
   UserGoalsList,
   useUserGoalContext,
 } from '@/modules/user/goal'
@@ -36,14 +37,19 @@ export function UserGoalsPageBody() {
   const {
     goals,
     addGoal,
+    updateGoal,
+    removeGoal,
     setProgress,
     markComplete,
     appendNote,
+    settingsGoalId,
     setSettingsGoalId,
     showAddGoalForm,
     setShowAddGoalForm,
   } = useUserGoalContext()
   const { getMilestonesForGoal, toggleMilestone } = useUserGoalMilestoneContext()
+  const editingGoal = goals.find(g => g.id === settingsGoalId) ?? null
+  const editingId = editingGoal?.id
 
   return (
     <PageShell title="My Goals">
@@ -82,6 +88,15 @@ export function UserGoalsPageBody() {
             setShowAddGoalForm(false)
           }}
           onCancel={() => setShowAddGoalForm(false)}
+        />
+      )}
+      {editingGoal && editingId != null && (
+        <UserGoalSettingsSheet
+          goal={editingGoal}
+          goals={goals}
+          onSave={patch => updateGoal(editingId, patch)}
+          onDelete={() => removeGoal(editingId)}
+          onClose={() => setSettingsGoalId(null)}
         />
       )}
     </PageShell>

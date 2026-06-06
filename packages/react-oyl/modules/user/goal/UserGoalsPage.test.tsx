@@ -55,6 +55,7 @@ vi.mock('@/modules/user/goal-milestone', async (importOriginal) => {
 describe('UserGoalsPage', () => {
   afterEach(() => {
     goalCtx.showAddGoalForm = false
+    goalCtx.settingsGoalId = null
   })
 
   it('renders all goals from context under "My Goals"', () => {
@@ -81,5 +82,32 @@ describe('UserGoalsPage', () => {
     await waitFor(() => expect(goalCtx.addGoal).toHaveBeenCalled())
     expect(goalCtx.addGoal.mock.calls[0][0]).toMatchObject({ name: 'Meditate' })
     expect(goalCtx.setShowAddGoalForm).toHaveBeenCalledWith(false)
+  })
+
+  it('renders UserGoalSettingsSheet when settingsGoalId matches a goal', () => {
+    goalCtx.settingsGoalId = 1
+    render(<UserGoalsPage />)
+    expect(screen.getByRole('heading', { name: /goal settings/i })).toBeInTheDocument()
+  })
+
+  it('sheet Save calls updateGoal with the goal id and patch, then clears settingsGoalId', async () => {
+    goalCtx.settingsGoalId = 1
+    goalCtx.updateGoal.mockClear()
+    goalCtx.setSettingsGoalId.mockClear()
+    render(<UserGoalsPage />)
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+    await waitFor(() => expect(goalCtx.updateGoal).toHaveBeenCalled())
+    expect(goalCtx.updateGoal.mock.calls[0][0]).toBe(1)
+    expect(goalCtx.setSettingsGoalId).toHaveBeenCalledWith(null)
+  })
+
+  it('sheet Delete calls removeGoal and clears settingsGoalId', async () => {
+    goalCtx.settingsGoalId = 1
+    goalCtx.removeGoal.mockClear()
+    goalCtx.setSettingsGoalId.mockClear()
+    render(<UserGoalsPage />)
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+    await waitFor(() => expect(goalCtx.removeGoal).toHaveBeenCalledWith(1))
+    expect(goalCtx.setSettingsGoalId).toHaveBeenCalledWith(null)
   })
 })
