@@ -1,8 +1,8 @@
 import type { TDataId } from '@oyl/all-of-oyl/modules'
-import type { NutritionRow } from '../orchestrator-utils'
-import UserDailyNutritionRow from './UserDailyNutritionRow'
+import type { NutritionRow } from './types'
+import UserNutritionRow from './UserNutritionRow'
 
-export default function UserDailyNutritionList({
+export default function UserNutritionList({
   rows, timezone, onServingsChange, onRemove,
 }: {
   rows: NutritionRow[]
@@ -16,7 +16,7 @@ export default function UserDailyNutritionList({
   return (
     <div className="relative">
       {rows.map(row => (
-        <UserDailyNutritionRow
+        <UserNutritionRow
           key={row.log.id}
           row={row}
           timezone={timezone}

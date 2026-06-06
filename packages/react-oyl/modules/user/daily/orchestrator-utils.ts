@@ -1,6 +1,9 @@
 // packages/react-oyl/modules/user/daily/orchestrator-utils.ts
-import type { TDataId, TUserActivityData, TUserGoalData, TUserNutritionData, TNutritionItemData } from '@oyl/all-of-oyl/modules'
+import type { TDataId, TUserActivityData, TUserGoalData, TUserNutritionData } from '@oyl/all-of-oyl/modules'
 import { matchesDate } from '@oyl/all-of-oyl/modules'
+import type { DailyTotals, NutritionRow } from '@/modules/user/nutrition/types'
+
+export type { DailyTotals, NutritionRow }
 
 /** Returns the numeric id from either a full data record or a bare TDataId. */
 function extractId(item: { id?: TDataId } | TDataId): TDataId | undefined {
@@ -43,17 +46,6 @@ export function filterGoalsForDate(
     if (g.target_date && g.target_date < date) return false
     return true
   })
-}
-
-export type NutritionRow = {
-  log: TUserNutritionData
-  item: TNutritionItemData | null
-}
-
-export type DailyTotals = {
-  calories: number; protein: number; carbs: number; fat: number
-  targets: { calories?: number; protein?: number; carbs?: number; fat?: number }
-  progress: { calories?: number; protein?: number; carbs?: number; fat?: number }
 }
 
 function localDate(iso: string, timezone: string): string {

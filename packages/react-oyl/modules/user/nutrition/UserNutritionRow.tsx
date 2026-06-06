@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { NutritionRow } from '../orchestrator-utils'
+import type { NutritionRow } from './types'
 
 function formatTime(iso: string, timezone: string): string {
   return new Intl.DateTimeFormat('en-GB', {
@@ -15,7 +15,7 @@ function computeCalories(row: NutritionRow, currentServings: number): number {
   return Math.round(Number(log.calories ?? 0))
 }
 
-export default function UserDailyNutritionRow({
+export default function UserNutritionRow({
   row, timezone, onServingsChange, onRemove,
 }: {
   row: NutritionRow

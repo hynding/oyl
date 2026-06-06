@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import UserDailyNutritionRow from './UserDailyNutritionRow'
-import type { NutritionRow } from '../orchestrator-utils'
+import UserNutritionRow from './UserNutritionRow'
+import type { NutritionRow } from './types'
 
 const row: NutritionRow = {
   log: {
@@ -12,9 +12,9 @@ const row: NutritionRow = {
   item: { documentId: 'i1', id: 1, name: 'Oatmeal', serving_unit: 'g', source: 'user', serving_size: 100, calories_per_100: 380 } as never,
 }
 
-describe('UserDailyNutritionRow', () => {
+describe('UserNutritionRow', () => {
   it('renders name, time, kcal', () => {
-    render(<UserDailyNutritionRow row={row} timezone="UTC" onServingsChange={vi.fn()} onRemove={vi.fn()} />)
+    render(<UserNutritionRow row={row} timezone="UTC" onServingsChange={vi.fn()} onRemove={vi.fn()} />)
     expect(screen.getByText('Oatmeal')).toBeInTheDocument()
     expect(screen.getByText(/08:30/)).toBeInTheDocument()
     expect(screen.getByText(/380/)).toBeInTheDocument()
@@ -23,7 +23,7 @@ describe('UserDailyNutritionRow', () => {
   it('debounces servings change', async () => {
     vi.useFakeTimers()
     const onServingsChange = vi.fn()
-    render(<UserDailyNutritionRow row={row} timezone="UTC" onServingsChange={onServingsChange} onRemove={vi.fn()} />)
+    render(<UserNutritionRow row={row} timezone="UTC" onServingsChange={onServingsChange} onRemove={vi.fn()} />)
     const input = screen.getByLabelText(/servings/i)
     fireEvent.change(input, { target: { value: '2' } })
     expect(onServingsChange).not.toHaveBeenCalled()
@@ -34,7 +34,7 @@ describe('UserDailyNutritionRow', () => {
 
   it('Remove confirms then calls onRemove', async () => {
     const onRemove = vi.fn()
-    render(<UserDailyNutritionRow row={row} timezone="UTC" onServingsChange={vi.fn()} onRemove={onRemove} />)
+    render(<UserNutritionRow row={row} timezone="UTC" onServingsChange={vi.fn()} onRemove={onRemove} />)
     fireEvent.click(screen.getByRole('button', { name: /more/i }))
     fireEvent.click(screen.getByRole('menuitem', { name: /remove/i }))
     await waitFor(() => expect(screen.getByRole('button', { name: /confirm/i })).toBeInTheDocument())

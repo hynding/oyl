@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import UserDailyNutritionSearchInput from './UserDailyNutritionSearchInput'
+import UserNutritionSearchInput from './UserNutritionSearchInput'
 import type { LocalResult } from '@/modules/nutrition/openfoodfacts'
 
 const tier1: LocalResult = {
@@ -8,9 +8,9 @@ const tier1: LocalResult = {
   item: { id: 1, documentId: 'r', name: 'Oatmeal', brand: 'Generic', serving_unit: 'g', source: 'user', nutri_score: 'b', nova_group: 2, allergens: ['gluten'] } as never,
 }
 
-describe('UserDailyNutritionSearchInput', () => {
+describe('UserNutritionSearchInput', () => {
   it('renders tier-1 row with Nutri-Score and NOVA badges and allergens line', () => {
-    render(<UserDailyNutritionSearchInput
+    render(<UserNutritionSearchInput
       localResults={[tier1]}
       offResults={[]} offLoading={false} offError={null}
       onQueryChange={vi.fn()} onSelect={vi.fn()} onSearchOff={vi.fn()}
@@ -26,7 +26,7 @@ describe('UserDailyNutritionSearchInput', () => {
 
   it('clicking sentinel calls onSearchOff', () => {
     const onSearchOff = vi.fn()
-    render(<UserDailyNutritionSearchInput
+    render(<UserNutritionSearchInput
       localResults={[]} offResults={[]} offLoading={false} offError={null}
       onQueryChange={vi.fn()} onSelect={vi.fn()} onSearchOff={onSearchOff}
     />)

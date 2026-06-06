@@ -11,12 +11,14 @@ import {
 import type { LocalResult, NutritionSearchCache, OFFProductSummary } from '@/modules/nutrition/openfoodfacts'
 import { createRemoteClient } from '@/modules/data/useDataRemote'
 import useAuth from '@/modules/auth/useAuth'
-import UserDailyNutritionTotals from './UserDailyNutritionTotals'
-import UserDailyNutritionList from './UserDailyNutritionList'
-import UserDailyNutritionQuickAdd from './UserDailyNutritionQuickAdd'
-import UserDailyNutritionSearchInput from './UserDailyNutritionSearchInput'
-import UserDailyBarcodeButton from './UserDailyBarcodeButton'
-import UserDailyAddNutritionForm from './UserDailyAddNutritionForm'
+import {
+  UserBarcodeButton,
+  UserNutritionList,
+  UserNutritionLogForm,
+  UserNutritionQuickAdd,
+  UserNutritionSearchInput,
+  UserNutritionTotals,
+} from '@/modules/user/nutrition'
 
 type CachedSearch = { query: string; results: OFFProductSummary[] }
 
@@ -100,11 +102,11 @@ export default function UserDailyNutrition() {
 
   return (
     <Section title="Nutrition">
-      <UserDailyNutritionTotals totals={dailyTotals} />
-      <UserDailyNutritionQuickAdd items={recentNutritionItems} onPick={setPicked} />
+      <UserNutritionTotals totals={dailyTotals} />
+      <UserNutritionQuickAdd items={recentNutritionItems} onPick={setPicked} />
       <div className="flex gap-2 mt-2">
         <div className="flex-1">
-          <UserDailyNutritionSearchInput
+          <UserNutritionSearchInput
             localResults={search.localResults}
             offResults={search.offResults}
             offLoading={search.offLoading}
@@ -114,11 +116,11 @@ export default function UserDailyNutrition() {
             onSearchOff={search.searchOff}
           />
         </div>
-        <UserDailyBarcodeButton onBarcode={handleBarcode} />
+        <UserBarcodeButton onBarcode={handleBarcode} />
       </div>
       {picked && (
         <div className="mt-2">
-          <UserDailyAddNutritionForm
+          <UserNutritionLogForm
             item={picked}
             selectedDate={selectedDate}
             onSubmit={submit}
@@ -127,7 +129,7 @@ export default function UserDailyNutrition() {
         </div>
       )}
       <div className="mt-3">
-        <UserDailyNutritionList
+        <UserNutritionList
           rows={nutritionRows}
           timezone={tz}
           onServingsChange={updateNutritionServings}

@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import UserDailyNutritionTotals from './UserDailyNutritionTotals'
+import UserNutritionTotals from './UserNutritionTotals'
 
-describe('UserDailyNutritionTotals', () => {
+describe('UserNutritionTotals', () => {
   it('renders four metrics with current values when no targets', () => {
-    render(<UserDailyNutritionTotals totals={{
+    render(<UserNutritionTotals totals={{
       calories: 1200, protein: 90, carbs: 130, fat: 40,
       targets: {}, progress: {},
     }} />)
@@ -15,7 +15,7 @@ describe('UserDailyNutritionTotals', () => {
   })
 
   it('renders bars when target present', () => {
-    render(<UserDailyNutritionTotals totals={{
+    render(<UserNutritionTotals totals={{
       calories: 2200, protein: 80, carbs: 130, fat: 40,
       targets: { calories: 2000, protein: 100 },
       progress: { calories: 1.1, protein: 0.8 },

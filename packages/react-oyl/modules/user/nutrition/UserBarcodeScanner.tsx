@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useBarcodeScanner } from '@/modules/nutrition/openfoodfacts'
 
-export default function UserDailyBarcodeScanner({
+export default function UserBarcodeScanner({
   open, onClose, onBarcode,
 }: { open: boolean; onClose: () => void; onBarcode: (barcode: string) => void }) {
   const videoRef = useRef<HTMLVideoElement | null>(null)

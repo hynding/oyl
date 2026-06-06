@@ -24,7 +24,7 @@ function nutriColor(g: 'a'|'b'|'c'|'d'|'e'): string {
   return map[g]
 }
 
-export default function UserDailyNutritionSearchInput({
+export default function UserNutritionSearchInput({
   localResults, offResults, offLoading, offError, onQueryChange, onSelect, onSearchOff,
 }: Props) {
   const [query, setQuery] = useState('')

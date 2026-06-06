@@ -1,14 +1,14 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import UserDailyBarcodeButton from './UserDailyBarcodeButton'
+import UserBarcodeButton from './UserBarcodeButton'
 
-vi.mock('./UserDailyBarcodeScanner', () => ({
+vi.mock('./UserBarcodeScanner', () => ({
   default: ({ open }: { open: boolean }) => open ? <div data-testid="scanner">scanner</div> : null,
 }))
 
-describe('UserDailyBarcodeButton', () => {
+describe('UserBarcodeButton', () => {
   it('opens scanner on click', () => {
-    render(<UserDailyBarcodeButton onBarcode={vi.fn()} />)
+    render(<UserBarcodeButton onBarcode={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: /scan/i }))
     expect(screen.getByTestId('scanner')).toBeInTheDocument()
   })

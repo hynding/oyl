@@ -6,7 +6,7 @@ function defaultTime(): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-export default function UserDailyAddNutritionForm({
+export default function UserNutritionLogForm({
   item, selectedDate, onSubmit, onCancel,
 }: {
   item: TNutritionItemData

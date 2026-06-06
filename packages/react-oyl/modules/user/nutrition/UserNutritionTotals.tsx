@@ -1,4 +1,4 @@
-import type { DailyTotals } from '../orchestrator-utils'
+import type { DailyTotals } from './types'
 
 function barColor(p: number): string {
   if (p < 1) return 'bg-green-500'
@@ -29,7 +29,7 @@ function Metric({ name, label, value, target, progress }: { name: string; label:
   )
 }
 
-export default function UserDailyNutritionTotals({ totals }: { totals: DailyTotals }) {
+export default function UserNutritionTotals({ totals }: { totals: DailyTotals }) {
   return (
     <div className="flex flex-wrap gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
       <Metric name="calories" label="kcal" value={totals.calories} target={totals.targets.calories} progress={totals.progress.calories} />

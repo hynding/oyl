@@ -1,6 +1,6 @@
 import type { TNutritionItemData } from '@oyl/all-of-oyl/modules'
 
-export default function UserDailyNutritionQuickAdd({ items, onPick }: { items: TNutritionItemData[]; onPick: (item: TNutritionItemData) => void }) {
+export default function UserNutritionQuickAdd({ items, onPick }: { items: TNutritionItemData[]; onPick: (item: TNutritionItemData) => void }) {
   if (items.length === 0) return null
   return (
     <div className="flex gap-2 overflow-x-auto py-2">
