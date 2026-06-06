@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
-import type { TUserActivityData, TUserGoalData } from '@oyl/all-of-oyl/modules'
+import type { TDataId, TUserActivityData, TUserGoalData } from '@oyl/all-of-oyl/modules'
 import UserActivitiesPage from './UserActivitiesPage'
 
 const activities: TUserActivityData[] = [
@@ -11,12 +11,12 @@ const activities: TUserActivityData[] = [
 
 const activityCtx = {
   activities,
-  addActivity: vi.fn(async () => {}),
-  updateActivity: vi.fn(async () => {}),
-  removeActivity: vi.fn(async () => {}),
+  addActivity: vi.fn(async (_input: Partial<TUserActivityData>) => {}),
+  updateActivity: vi.fn(async (_id: TDataId, _patch: Partial<TUserActivityData>) => {}),
+  removeActivity: vi.fn(async (_id: TDataId) => {}),
   showAddActivityForm: false,
   setShowAddActivityForm: vi.fn(),
-  settingsActivityId: null,
+  settingsActivityId: null as TDataId | null,
   setSettingsActivityId: vi.fn(),
 }
 
