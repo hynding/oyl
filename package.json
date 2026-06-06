@@ -10,7 +10,10 @@
     "react": "pnpm --filter @oyl/react-oyl",
     "storybook": "pnpm --filter @oyl/storybook-oyl",
     "strapi": "pnpm --filter @oyl/strapi-oyl",
-    "vanilla": "pnpm --filter @oyl/vanilla-oyl"
+    "vanilla": "pnpm --filter @oyl/vanilla-oyl",
+    "test": "pnpm --filter './packages/*' --if-present test",
+    "lint": "pnpm --filter './packages/*' --if-present lint",
+    "typecheck": "pnpm --filter './packages/*' --if-present typecheck"
   },
   "dependencies": {
     "prettier": "^3.6.2"

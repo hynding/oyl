@@ -1,73 +1,40 @@
-# React + TypeScript + Vite
+# @oyl/react-oyl
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Primary web client for OYL. Vite + React 19 + Tailwind 4, talks to `@oyl/strapi-oyl` over HTTP.
 
-Currently, two official plugins are available:
+## Layout
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- `src/` — Vite entry (`main.tsx`, `App.tsx`), global styles, test setup.
+- `modules/` — feature modules: `activity`, `auth`, `calendar`, `data`, `goal`, `nutrition`, `user`, `app`.
+- `lib/` — cross-feature utilities (`navigation.ts`, `useAsync.ts`).
+- `public/` — static assets.
 
-## React Compiler
+Shared domain logic lives in `@oyl/all-of-oyl` (workspace dep) — prefer adding it there if `next-oyl` would benefit too.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Run
 
-## Expanding the ESLint configuration
+```bash
+pnpm --filter @oyl/react-oyl dev     # http://localhost:5173
+pnpm --filter @oyl/react-oyl build
+pnpm --filter @oyl/react-oyl preview
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Or via the root shortcut:
+pnpm react dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+In Docker (`docker compose up react`) the app is served on host port **5041** and points at Strapi on **3337**.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Configuration
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- `VITE_STRAPI_API_BASE_URL` — Strapi API root. Defaults to `http://localhost:3337/api` to match the compose mapping. Override when running Strapi natively (`http://localhost:1337/api`) or when the e2e harness assigns a different port.
+
+## Tests and checks
+
+```bash
+pnpm --filter @oyl/react-oyl test         # Vitest
+pnpm --filter @oyl/react-oyl test:watch
+pnpm --filter @oyl/react-oyl lint
+pnpm --filter @oyl/react-oyl exec tsc -b --noEmit
 ```
+
+Uses TS project references — typecheck with `tsc -b`, not plain `tsc`.

@@ -11,7 +11,7 @@ type Snapshot = {
   list: MirrorRecord<unknown>[]
 }
 
-const EMPTY_LIST: MirrorRecord<unknown>[] = Object.freeze([]) as MirrorRecord<unknown>[]
+const EMPTY_LIST = Object.freeze([] as MirrorRecord<unknown>[])
 
 export class SyncEngine {
   private userId: string | null = null
