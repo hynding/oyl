@@ -72,6 +72,7 @@ export default function UserNutritionItemRow({
         </div>
       </div>
       <button
+        type="button"
         onClick={() => onLogAgain(item)}
         className="px-3 py-1 text-sm rounded bg-indigo-600 text-white"
       >
