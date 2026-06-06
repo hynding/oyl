@@ -1,6 +1,7 @@
 import type { TUserGoalData } from '@oyl/all-of-oyl/modules'
 import PageShell from '@/modules/app/PageShell'
 import {
+  UserGoalForm,
   UserGoalProvider,
   UserGoalRow,
   UserGoalsList,
@@ -34,10 +35,13 @@ export default function UserGoalsPage() {
 export function UserGoalsPageBody() {
   const {
     goals,
+    addGoal,
     setProgress,
     markComplete,
     appendNote,
     setSettingsGoalId,
+    showAddGoalForm,
+    setShowAddGoalForm,
   } = useUserGoalContext()
   const { getMilestonesForGoal, toggleMilestone } = useUserGoalMilestoneContext()
 
@@ -65,6 +69,21 @@ export function UserGoalsPageBody() {
           )
         }}
       />
+      <button
+        onClick={() => setShowAddGoalForm(!showAddGoalForm)}
+        className="px-3 py-1 text-sm rounded bg-indigo-600 text-white"
+      >
+        {showAddGoalForm ? 'Cancel' : 'Add goal'}
+      </button>
+      {showAddGoalForm && (
+        <UserGoalForm
+          onSubmit={async values => {
+            await addGoal(values)
+            setShowAddGoalForm(false)
+          }}
+          onCancel={() => setShowAddGoalForm(false)}
+        />
+      )}
     </PageShell>
   )
 }

@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import type { TDataId, TUserGoalData, TUserGoalMilestoneData } from '@oyl/all-of-oyl/modules'
 import UserGoalsPage from './UserGoalsPage'
@@ -53,10 +53,33 @@ vi.mock('@/modules/user/goal-milestone', async (importOriginal) => {
 })
 
 describe('UserGoalsPage', () => {
+  afterEach(() => {
+    goalCtx.showAddGoalForm = false
+  })
+
   it('renders all goals from context under "My Goals"', () => {
     render(<UserGoalsPage />)
     expect(screen.getByRole('heading', { name: 'My Goals' })).toBeInTheDocument()
     expect(screen.getByText('Run 5k')).toBeInTheDocument()
     expect(screen.getByText('Read 12 books')).toBeInTheDocument()
+  })
+
+  it('clicking "Add goal" toggles the form open via context', () => {
+    goalCtx.setShowAddGoalForm.mockClear()
+    render(<UserGoalsPage />)
+    fireEvent.click(screen.getByRole('button', { name: /add goal/i }))
+    expect(goalCtx.setShowAddGoalForm).toHaveBeenCalledWith(true)
+  })
+
+  it('renders the form when showAddGoalForm is true and submits via addGoal', async () => {
+    goalCtx.showAddGoalForm = true
+    goalCtx.addGoal.mockClear()
+    goalCtx.setShowAddGoalForm.mockClear()
+    render(<UserGoalsPage />)
+    fireEvent.change(screen.getByPlaceholderText(/name/i), { target: { value: 'Meditate' } })
+    fireEvent.click(screen.getByRole('button', { name: /^add goal$/i }))
+    await waitFor(() => expect(goalCtx.addGoal).toHaveBeenCalled())
+    expect(goalCtx.addGoal.mock.calls[0][0]).toMatchObject({ name: 'Meditate' })
+    expect(goalCtx.setShowAddGoalForm).toHaveBeenCalledWith(false)
   })
 })
