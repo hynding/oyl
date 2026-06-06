@@ -1,7 +1,12 @@
-export default function Home() {
-  // const result = await fetch('http://localhost:3000/api/user', { method: 'POST', body: JSON.stringify({ name: 'John Doe' }) })
-  // const data = await result.json()
+import { Link } from 'react-router'
 
+const navLinks = [
+  { to: '/daily', label: 'Daily' },
+  { to: '/my/activities', label: 'My activities' },
+  { to: '/my/goals', label: 'My goals' },
+]
+
+export default function Home() {
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <header>
@@ -17,6 +22,17 @@ export default function Home() {
           <h2>Today is {new Date().toLocaleDateString()}</h2>
           <div>What have you consumed today?</div>
         </div>
+        <nav aria-label="Primary" className="flex flex-wrap gap-3">
+          {navLinks.map(link => (
+            <Link
+              key={link.to}
+              to={link.to}
+              className="px-3 py-2 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
       </main>
       <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
 
