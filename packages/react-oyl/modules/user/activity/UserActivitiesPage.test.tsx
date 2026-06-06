@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import type { TUserActivityData, TUserGoalData } from '@oyl/all-of-oyl/modules'
@@ -61,5 +61,25 @@ describe('UserActivitiesPage', () => {
     expect(screen.getByRole('heading', { name: 'My Activities' })).toBeInTheDocument()
     expect(screen.getByText('Walk')).toBeInTheDocument()
     expect(screen.getByText('Read')).toBeInTheDocument()
+  })
+
+  it('clicking "Add activity" toggles the form open via context', () => {
+    activityCtx.setShowAddActivityForm.mockClear()
+    render(<UserActivitiesPage />)
+    fireEvent.click(screen.getByRole('button', { name: /add activity/i }))
+    expect(activityCtx.setShowAddActivityForm).toHaveBeenCalledWith(true)
+  })
+
+  it('renders the form when showAddActivityForm is true and submits via addActivity', async () => {
+    activityCtx.showAddActivityForm = true
+    activityCtx.addActivity.mockClear()
+    activityCtx.setShowAddActivityForm.mockClear()
+    render(<UserActivitiesPage />)
+    fireEvent.change(screen.getByPlaceholderText(/name/i), { target: { value: 'Stretch' } })
+    fireEvent.click(screen.getByRole('button', { name: /^add activity$/i }))
+    await waitFor(() => expect(activityCtx.addActivity).toHaveBeenCalled())
+    expect(activityCtx.addActivity.mock.calls[0][0]).toMatchObject({ name: 'Stretch' })
+    expect(activityCtx.setShowAddActivityForm).toHaveBeenCalledWith(false)
+    activityCtx.showAddActivityForm = false
   })
 })

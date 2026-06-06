@@ -1,6 +1,7 @@
 import PageShell from '@/modules/app/PageShell'
 import {
   UserActivitiesList,
+  UserActivityForm,
   UserActivityProvider,
   UserActivityRow,
   useUserActivityContext,
@@ -18,8 +19,14 @@ export default function UserActivitiesPage() {
 }
 
 export function UserActivitiesPageBody() {
-  const { activities, setSettingsActivityId } = useUserActivityContext()
-  useUserGoalContext() // mounted so form/sheet have goals available
+  const {
+    activities,
+    addActivity,
+    setSettingsActivityId,
+    showAddActivityForm,
+    setShowAddActivityForm,
+  } = useUserActivityContext()
+  const { goals } = useUserGoalContext()
 
   return (
     <PageShell title="My Activities">
@@ -34,6 +41,22 @@ export function UserActivitiesPageBody() {
           />
         )}
       />
+      <button
+        onClick={() => setShowAddActivityForm(!showAddActivityForm)}
+        className="px-3 py-1 text-sm rounded bg-indigo-600 text-white"
+      >
+        {showAddActivityForm ? 'Cancel' : 'Add activity'}
+      </button>
+      {showAddActivityForm && (
+        <UserActivityForm
+          goals={goals}
+          onSubmit={async values => {
+            await addActivity(values)
+            setShowAddActivityForm(false)
+          }}
+          onCancel={() => setShowAddActivityForm(false)}
+        />
+      )}
     </PageShell>
   )
 }
