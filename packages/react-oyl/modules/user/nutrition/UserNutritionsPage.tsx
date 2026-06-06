@@ -57,6 +57,7 @@ export function UserNutritionsPageBody() {
         <UserNutritionLogForm
           item={picked}
           selectedDate={today}
+          timezone={tz}
           onSubmit={async ({ servings, datetime }) => {
             await addNutrition({
               nutrition_item: picked,

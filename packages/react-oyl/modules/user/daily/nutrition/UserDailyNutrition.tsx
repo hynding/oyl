@@ -123,6 +123,7 @@ export default function UserDailyNutrition() {
           <UserNutritionLogForm
             item={picked}
             selectedDate={selectedDate}
+            timezone={tz}
             onSubmit={submit}
             onCancel={() => setPicked(null)}
           />

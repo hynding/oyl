@@ -6,11 +6,31 @@ function defaultTime(): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+// Convert a wall-clock "YYYY-MM-DD HH:mm" in `timezone` to an ISO UTC string.
+// The browser has no built-in way to construct a Date in an arbitrary IANA
+// timezone, so we use a fixed-point trick: interpret the input as if it were
+// UTC, ask Intl what wall-clock that UTC instant would display in `timezone`,
+// and use the difference as the offset.
+function wallClockToUtcIso(date: string, time: string, timezone: string): string {
+  const asUtc = new Date(`${date}T${time}:00.000Z`)
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(asUtc)
+  const get = (type: string) => Number(parts.find(p => p.type === type)?.value ?? '0')
+  const wallHour = get('hour') === 24 ? 0 : get('hour')
+  const wallMs = Date.UTC(get('year'), get('month') - 1, get('day'), wallHour, get('minute'), get('second'))
+  const offsetMs = asUtc.getTime() - wallMs
+  return new Date(asUtc.getTime() + offsetMs).toISOString()
+}
+
 export default function UserNutritionLogForm({
-  item, selectedDate, onSubmit, onCancel,
+  item, selectedDate, timezone, onSubmit, onCancel,
 }: {
   item: TNutritionItemData
   selectedDate: string
+  timezone: string
   onSubmit: (args: { servings: number; datetime: string }) => void
   onCancel: () => void
 }) {
@@ -34,11 +54,12 @@ export default function UserNutritionLogForm({
       </div>
       <div className="flex gap-2">
         <button
+          type="button"
           disabled={!valid}
-          onClick={() => onSubmit({ servings, datetime: `${selectedDate}T${time}:00.000Z` })}
+          onClick={() => onSubmit({ servings, datetime: wallClockToUtcIso(selectedDate, time, timezone) })}
           className="px-3 py-1 rounded bg-indigo-600 text-white disabled:opacity-50"
         >Log</button>
-        <button onClick={onCancel} className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700">Cancel</button>
+        <button type="button" onClick={onCancel} className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700">Cancel</button>
       </div>
     </div>
   )
