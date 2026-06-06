@@ -58,6 +58,7 @@ vi.mock('@/modules/user/goal', async (importOriginal) => {
 describe('UserActivitiesPage', () => {
   afterEach(() => {
     activityCtx.showAddActivityForm = false
+    activityCtx.settingsActivityId = null
   })
 
   it('renders all activities from context under a "My Activities" heading', () => {
@@ -84,5 +85,32 @@ describe('UserActivitiesPage', () => {
     await waitFor(() => expect(activityCtx.addActivity).toHaveBeenCalled())
     expect(activityCtx.addActivity.mock.calls[0][0]).toMatchObject({ name: 'Stretch' })
     expect(activityCtx.setShowAddActivityForm).toHaveBeenCalledWith(false)
+  })
+
+  it('renders UserActivitySettingsSheet when settingsActivityId matches an activity', () => {
+    activityCtx.settingsActivityId = 1
+    render(<UserActivitiesPage />)
+    expect(screen.getByRole('heading', { name: /activity settings/i })).toBeInTheDocument()
+  })
+
+  it('sheet Save calls updateActivity with the patch and clears settingsActivityId', async () => {
+    activityCtx.settingsActivityId = 1
+    activityCtx.updateActivity.mockClear()
+    activityCtx.setSettingsActivityId.mockClear()
+    render(<UserActivitiesPage />)
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+    await waitFor(() => expect(activityCtx.updateActivity).toHaveBeenCalled())
+    expect(activityCtx.updateActivity.mock.calls[0][0]).toBe(1)
+    expect(activityCtx.setSettingsActivityId).toHaveBeenCalledWith(null)
+  })
+
+  it('sheet Delete calls removeActivity and clears settingsActivityId', async () => {
+    activityCtx.settingsActivityId = 1
+    activityCtx.removeActivity.mockClear()
+    activityCtx.setSettingsActivityId.mockClear()
+    render(<UserActivitiesPage />)
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+    await waitFor(() => expect(activityCtx.removeActivity).toHaveBeenCalledWith(1))
+    expect(activityCtx.setSettingsActivityId).toHaveBeenCalledWith(null)
   })
 })

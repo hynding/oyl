@@ -4,6 +4,7 @@ import {
   UserActivityForm,
   UserActivityProvider,
   UserActivityRow,
+  UserActivitySettingsSheet,
   useUserActivityContext,
 } from '@/modules/user/activity'
 import { UserGoalProvider, useUserGoalContext } from '@/modules/user/goal'
@@ -22,11 +23,15 @@ export function UserActivitiesPageBody() {
   const {
     activities,
     addActivity,
+    updateActivity,
+    removeActivity,
+    settingsActivityId,
     setSettingsActivityId,
     showAddActivityForm,
     setShowAddActivityForm,
   } = useUserActivityContext()
   const { goals } = useUserGoalContext()
+  const editingActivity = activities.find(a => a.id === settingsActivityId) ?? null
 
   return (
     <PageShell title="My Activities">
@@ -55,6 +60,15 @@ export function UserActivitiesPageBody() {
             setShowAddActivityForm(false)
           }}
           onCancel={() => setShowAddActivityForm(false)}
+        />
+      )}
+      {editingActivity && editingActivity.id != null && (
+        <UserActivitySettingsSheet
+          activity={editingActivity}
+          goals={goals}
+          onSave={patch => updateActivity(editingActivity.id!, patch)}
+          onDelete={() => removeActivity(editingActivity.id!)}
+          onClose={() => setSettingsActivityId(null)}
         />
       )}
     </PageShell>
