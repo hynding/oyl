@@ -1,15 +1,15 @@
 // packages/react-oyl/modules/user/daily/goals/UserDailyGoalsList.tsx
+import { UserGoalsList } from '@/modules/user/goal'
 import UserDailyGoalRow from './UserDailyGoalRow'
 import { useUserDailyOrchestrator } from '../useUserDailyOrchestrator'
 
 export default function UserDailyGoalsList() {
   const { goalRows } = useUserDailyOrchestrator()
-  if (goalRows.length === 0) {
-    return <p className="text-sm text-gray-500 dark:text-gray-400">No goals for this date.</p>
-  }
   return (
-    <div className="space-y-3">
-      {goalRows.map(row => <UserDailyGoalRow key={row.goal.id} row={row} />)}
-    </div>
+    <UserGoalsList
+      items={goalRows}
+      emptyMessage="No goals for this date."
+      renderItem={row => <UserDailyGoalRow key={row.goal.id} row={row} />}
+    />
   )
 }
