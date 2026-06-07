@@ -24,7 +24,43 @@ async function grantAuthenticatedDevPermissions(strapi: Core.Strapi) {
   }
 
   const apiUids = Object.keys(strapi.contentTypes).filter(uid => uid.startsWith('api::'));
+  // Actions that must be granted on relation *targets* so that
+  // throwRestrictedRelations lets a write through. Strapi 5 checks
+  // `<target-uid>.find` whenever a relation key is included in the body —
+  // see @strapi/utils/dist/validate/visitors/throw-restricted-relations.mjs.
+  // Without this, every user-scoped controller's auto-injected `user`
+  // relation (`plugin::users-permissions.user`) fails validation with
+  // "Invalid key user" on a fresh DB.
+  const relationTargetActions = new Set<string>();
+  for (const uid of apiUids) {
+    const ct = strapi.contentTypes[uid as keyof typeof strapi.contentTypes];
+    const attrs = (ct as { attributes?: Record<string, { type?: string; target?: string }> })
+      .attributes;
+    if (!attrs) continue;
+    for (const attr of Object.values(attrs)) {
+      if (attr.type === 'relation' && typeof attr.target === 'string') {
+        relationTargetActions.add(`${attr.target}.find`);
+      }
+    }
+  }
+
   let granted = 0;
+  const grantAction = async (actionString: string) => {
+    const existing = await strapi.db.query('plugin::users-permissions.permission').findOne({
+      where: { action: actionString, role: role.id },
+    });
+    if (existing) return;
+    try {
+      await strapi.db.query('plugin::users-permissions.permission').create({
+        data: { action: actionString, role: role.id },
+      });
+      granted++;
+    } catch (err) {
+      strapi.log.debug(
+        `[dev-bootstrap] could not grant ${actionString}: ${(err as Error).message}`,
+      );
+    }
+  };
 
   for (const uid of apiUids) {
     const [, apiAndCt] = uid.split('::');
@@ -38,27 +74,18 @@ async function grantAuthenticatedDevPermissions(strapi: Core.Strapi) {
       : DEV_PERMISSION_ACTIONS;
 
     for (const action of availableActions) {
-      const actionString = `api::${apiName}.${ctName}.${action}`;
-      const existing = await strapi.db.query('plugin::users-permissions.permission').findOne({
-        where: { action: actionString, role: role.id },
-      });
-      if (existing) continue;
-      try {
-        await strapi.db.query('plugin::users-permissions.permission').create({
-          data: { action: actionString, role: role.id },
-        });
-        granted++;
-      } catch (err) {
-        strapi.log.debug(
-          `[dev-bootstrap] could not grant ${actionString}: ${(err as Error).message}`,
-        );
-      }
+      await grantAction(`api::${apiName}.${ctName}.${action}`);
     }
+  }
+
+  // Grant `.find` on every relation target referenced by an api::* content type.
+  for (const action of relationTargetActions) {
+    await grantAction(action);
   }
 
   if (granted > 0) {
     strapi.log.info(
-      `[dev-bootstrap] Granted ${granted} CRUD permission(s) to the Authenticated role`,
+      `[dev-bootstrap] Granted ${granted} permission(s) to the Authenticated role`,
     );
   }
 }
