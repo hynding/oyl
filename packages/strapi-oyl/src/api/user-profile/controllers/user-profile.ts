@@ -10,12 +10,23 @@
 import { errors } from '@strapi/utils'
 import { createUserScopedController } from '../../../utils/user-scoped-controller'
 
-// Intl.supportedValuesOf is available on Node 18+ but not in this project's TS lib target.
-const VALID_TIMEZONES = new Set<string>((Intl as any).supportedValuesOf('timeZone'))
+// `Intl.supportedValuesOf('timeZone')` only returns canonical IANA names —
+// common aliases (UTC, GMT, US/Pacific) are excluded even though
+// Intl.DateTimeFormat accepts them. Construct a DateTimeFormat to delegate
+// the check to the runtime's full timezone database, alias resolution
+// included.
+function isValidTimezone(tz: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: tz })
+    return true
+  } catch {
+    return false
+  }
+}
 
 function assertValidTimezone(ctx: any) {
   const tz = ctx.request.body?.data?.timezone
-  if (tz != null && !VALID_TIMEZONES.has(tz)) {
+  if (tz != null && !isValidTimezone(tz)) {
     throw new errors.ValidationError(`Invalid IANA timezone: ${tz}`)
   }
 }
