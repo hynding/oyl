@@ -48,7 +48,6 @@ End-to-end via the docker verify stack (`pnpm verify`):
 
 ### Known follow-ups (not fixed)
 
-- **`Intl.supportedValuesOf('timeZone')` excludes the `UTC` alias.** `Etc/UTC` is included, but bare `UTC` is rejected as "Invalid IANA timezone". `assertValidTimezone` in `user-profile.ts` carries the quirk forward — either broaden the allow-list or use `Intl.DateTimeFormat` resolution which handles aliases. Tangential to this round of fixes.
 - **The `extend` pattern still has surface area for misuse.** Anyone who writes `super.<action>` inside an extend block will get the broken behavior back. The README rewrite is the primary defense; the typing on `extend` could be tightened further (e.g. forbidding methods whose body contains `super` references), but that's not enforceable in TypeScript without significant gymnastics.
 
 ### Commits
@@ -58,3 +57,4 @@ End-to-end via the docker verify stack (`pnpm verify`):
 - `d462842` — user-profile find no longer relies on broken extend super
 - `62a36e4` — user-profile create/update no longer rely on broken extend super
 - `c076fa2` — refactor: pass scoped CRUD actions to user-scoped extend
+- `06eff2b` — user-profile timezone validator accepts IANA aliases (UTC, GMT, US/Pacific) by delegating to `Intl.DateTimeFormat`
