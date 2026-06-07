@@ -1,0 +1,64 @@
+# Isolated verification stack — separate from the dev compose in `docker-compose.yaml`.
+#
+# Usage (or via the root `pnpm verify` / `pnpm verify:down` shortcuts):
+#   docker compose -f docker-compose.verify.yml --project-name oyl-verify up -d --build --wait
+#   docker compose -f docker-compose.verify.yml --project-name oyl-verify down -v
+#
+# Ports (host → container) are intentionally distinct from the dev compose so
+# the two can coexist:
+#   Strapi (verify): 13337 → 1337
+#   React  (verify): 15041 → 5173
+#
+# The verify image (Dockerfile.verify) bakes source in at build time and runs
+# `pnpm install --frozen-lockfile` inside the image so native deps build for
+# the container's platform. Strapi uses SQLite; a named volume holds the DB
+# so `down -v` is a true clean slate.
+
+services:
+  strapi:
+    build:
+      context: .
+      dockerfile: Dockerfile.verify
+    command: pnpm strapi develop
+    environment:
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: 1337
+      DATABASE_CLIENT: sqlite
+      DATABASE_FILENAME: .tmp/data-verify.db
+      # Dummy secrets for the verify Strapi — fresh per `up`, no .env import.
+      APP_KEYS: "verify-key-a,verify-key-b"
+      API_TOKEN_SALT: "verify-api-token-salt"
+      JWT_SECRET: "verify-jwt-secret"
+      ADMIN_JWT_SECRET: "verify-admin-jwt-secret"
+      TRANSFER_TOKEN_SALT: "verify-transfer-token-salt"
+      ENCRYPTION_KEY: "verify-encryption-key"
+    volumes:
+      # SQLite DB lives in a named volume so `down -v` clears it.
+      - strapi-verify-data:/workspace/packages/strapi-oyl/.tmp
+    ports:
+      - "13337:1337"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:1337/_health"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 90s
+
+  react:
+    build:
+      context: .
+      dockerfile: Dockerfile.verify
+    command: pnpm react dev
+    environment:
+      VITE_HOST: 0.0.0.0
+      # The browser hits Strapi at the host-mapped verify port.
+      VITE_STRAPI_API_BASE_URL: http://localhost:13337/api
+    ports:
+      - "15041:5173"
+    depends_on:
+      strapi:
+        condition: service_healthy
+
+volumes:
+  strapi-verify-data:

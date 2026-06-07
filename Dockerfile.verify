@@ -1,0 +1,37 @@
+# Verify-stack image. Builds once per `pnpm verify:up --build` and is shared by
+# both the strapi and react services (compose overrides the command per service).
+#
+# Uses host architecture (no --platform pin) so M-series Macs build natively.
+# Separate from the root Dockerfile so production-targeted changes there don't
+# disturb the verify flow and vice versa.
+
+FROM node:22-alpine
+
+WORKDIR /workspace
+
+# Tools the image needs at build time. wget supports the strapi healthcheck;
+# the others are pulled in transitively by build scripts for native deps.
+RUN apk add --no-cache wget python3 make g++
+
+RUN corepack enable && corepack prepare pnpm@10.13.1 --activate
+
+# Stage manifests first so a code-only change doesn't bust the install layer.
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages/all-of-oyl/package.json ./packages/all-of-oyl/
+COPY packages/e2e-oyl/package.json ./packages/e2e-oyl/
+COPY packages/next-oyl/package.json ./packages/next-oyl/
+COPY packages/react-oyl/package.json ./packages/react-oyl/
+COPY packages/storybook-oyl/package.json ./packages/storybook-oyl/
+COPY packages/strapi-oyl/package.json ./packages/strapi-oyl/
+COPY packages/vanilla-oyl/package.json ./packages/vanilla-oyl/
+
+# Install workspace deps. better-sqlite3's prebuild-install needs to run during
+# install so Strapi can open the SQLite DB at runtime — that's why it must
+# appear in root package.json's pnpm.onlyBuiltDependencies.
+RUN pnpm install --frozen-lockfile
+
+# Source comes after install so source edits don't invalidate the dep layer.
+COPY . .
+
+# Default command: strapi. The react service overrides this in compose.
+CMD ["pnpm", "strapi", "develop"]

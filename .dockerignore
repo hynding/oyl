@@ -1,1 +1,29 @@
-node_modules/
+# node_modules are installed fresh inside the image — don't ship host copies
+node_modules
+**/node_modules
+
+# Strapi build artifacts and runtime files
+**/.tmp
+**/.cache
+**/dist
+**/.strapi
+
+# Vite / Next build outputs
+**/.vite
+**/.next
+
+# Editor and OS noise
+.git
+.idea
+.vscode
+.DS_Store
+
+# Local env files — verify stack provides its own via compose
+.env
+.env.local
+.env.*.local
+
+# Test artifacts
+**/test-results
+**/playwright-report
+**/.playwright

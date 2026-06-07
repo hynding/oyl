@@ -28,7 +28,7 @@ export type SeedContext = {
   seededItem: { documentId: string; id: number }
 }
 
-async function ensureLoggedIn(): Promise<{ jwt: string; user: { id: number; username: string; email: string } }> {
+export async function ensureLoggedIn(): Promise<{ jwt: string; user: { id: number; username: string; email: string } }> {
   // Try login first — most runs hit this path.
   const loginRes = await fetch(`${STRAPI_BASE}/auth/local`, {
     method: 'POST',

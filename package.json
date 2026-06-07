@@ -13,7 +13,11 @@
     "vanilla": "pnpm --filter @oyl/vanilla-oyl",
     "test": "pnpm --filter './packages/*' --if-present test",
     "lint": "pnpm --filter './packages/*' --if-present lint",
-    "typecheck": "pnpm --filter './packages/*' --if-present typecheck"
+    "typecheck": "pnpm --filter './packages/*' --if-present typecheck",
+    "verify:up": "docker compose -f docker-compose.verify.yml --project-name oyl-verify up -d --build --wait",
+    "verify:seed": "E2E_STRAPI_PORT=13337 pnpm --filter @oyl/e2e-oyl seed",
+    "verify:down": "docker compose -f docker-compose.verify.yml --project-name oyl-verify down -v",
+    "verify": "pnpm verify:up && pnpm verify:seed"
   },
   "dependencies": {
     "prettier": "^3.6.2"
@@ -25,6 +29,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@swc/core",
+      "better-sqlite3",
       "esbuild",
       "farmhash",
       "sharp",
