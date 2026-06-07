@@ -48,7 +48,7 @@ End-to-end via the docker verify stack (`pnpm verify`):
 
 ### Known follow-ups (not fixed)
 
-- **The `extend` pattern still has surface area for misuse.** Anyone who writes `super.<action>` inside an extend block will get the broken behavior back. The README rewrite is the primary defense; the typing on `extend` could be tightened further (e.g. forbidding methods whose body contains `super` references), but that's not enforceable in TypeScript without significant gymnastics.
+None outstanding.
 
 ### Commits
 
@@ -58,3 +58,4 @@ End-to-end via the docker verify stack (`pnpm verify`):
 - `62a36e4` — user-profile create/update no longer rely on broken extend super
 - `c076fa2` — refactor: pass scoped CRUD actions to user-scoped extend
 - `06eff2b` — user-profile timezone validator accepts IANA aliases (UTC, GMT, US/Pacific) by delegating to `Intl.DateTimeFormat`
+- `3e59f74` — boot-time guard rejects extends that contain `super.<action>` text; turns the silent runtime crash into a startup error with a README pointer
