@@ -16,8 +16,14 @@
 // See src/utils/README.md for the pattern.
 
 import { errors } from '@strapi/utils'
-import { createUserScopedController, injectOwnerFilter } from '../../../utils/user-scoped-controller'
+import {
+  assertDocumentOwned,
+  createUserScopedController,
+  injectOwnerFilter,
+} from '../../../utils/user-scoped-controller'
 import { isAdmin } from '../../../utils/is-admin'
+
+const UID = 'api::user-profile.user-profile' as const
 
 // Intl.supportedValuesOf is available on Node 18+ but not in this project's TS lib target.
 const VALID_TIMEZONES = new Set<string>((Intl as any).supportedValuesOf('timeZone'))
@@ -29,36 +35,58 @@ function assertValidTimezone(ctx: any) {
   }
 }
 
+function requireUser(ctx: any): any {
+  if (!ctx.state.user) {
+    throw new errors.UnauthorizedError('You must be authenticated')
+  }
+  return ctx.state.user
+}
+
+// `this` inside an extend method is the merged userCtrl whose prototype is
+// the Strapi base controller (set by factories.createCoreController). Reach
+// it explicitly because `super.<action>` from this extend's literal can't.
+type BaseCtrl = { find: Fn; create: Fn; update: Fn }
+type Fn = (ctx: any) => Promise<unknown>
+function baseOf(self: object): BaseCtrl {
+  return Reflect.getPrototypeOf(self) as BaseCtrl
+}
+
 export default createUserScopedController(
-  'api::user-profile.user-profile',
+  UID,
   {},
   () => ({
     async find(ctx: any) {
-      if (!ctx.state.user) {
-        throw new errors.UnauthorizedError('You must be authenticated')
-      }
-      if (!isAdmin(ctx.state.user)) {
-        injectOwnerFilter(ctx, ctx.state.user.id)
+      const user = requireUser(ctx)
+      if (!isAdmin(user)) {
+        injectOwnerFilter(ctx, user.id)
       }
       ctx.query = {
         ...ctx.query,
         populate: ['activities', 'goals', 'nutrition_items'],
       }
-      // `this` here is the merged userCtrl whose prototype is the Strapi
-      // base controller (set by factories.createCoreController). Reach it
-      // explicitly because `super.find` from this extend's literal can't.
-      const baseCtrl = Reflect.getPrototypeOf(this as object) as { find: (ctx: any) => Promise<unknown> }
-      return await baseCtrl.find.call(this, ctx)
+      return await baseOf(this as object).find.call(this, ctx)
     },
     async create(ctx: any) {
       assertValidTimezone(ctx)
-      // @ts-ignore
-      return await super.create(ctx)
+      const user = requireUser(ctx)
+      if (!isAdmin(user)) {
+        ctx.request.body = ctx.request.body ?? {}
+        const data = (ctx.request.body.data = ctx.request.body.data ?? {})
+        data.user = user.id
+      }
+      return await baseOf(this as object).create.call(this, ctx)
     },
     async update(ctx: any) {
       assertValidTimezone(ctx)
-      // @ts-ignore
-      return await super.update(ctx)
+      const user = requireUser(ctx)
+      if (!isAdmin(user)) {
+        await assertDocumentOwned(strapi, UID, ctx.params.id, user.id)
+        // Prevent transferring ownership via update — mirror the factory's behavior.
+        if (ctx.request.body?.data) {
+          ctx.request.body.data.user = user.id
+        }
+      }
+      return await baseOf(this as object).update.call(this, ctx)
     },
   }),
 )
