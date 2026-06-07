@@ -3,11 +3,11 @@ import { createUserScopedController } from '../../../utils/user-scoped-controlle
 
 const UID = 'api::user-nutrition.user-nutrition' as const
 
-export default createUserScopedController(UID, {}, () => ({
+export default createUserScopedController(UID, {}, ({ scoped }) => ({
   async delete(ctx: any) {
-    // The factory's update path already enforces ownership.
+    // Reroute delete to the owner-scoped update so the row is soft-deleted
+    // (deleted_at set) instead of physically removed.
     ctx.request.body = { data: { deleted_at: new Date().toISOString() } }
-    // @ts-ignore -- super.update is the owner-scoped factory action.
-    return await super.update(ctx)
+    return await scoped.update(ctx)
   },
 }))

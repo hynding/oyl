@@ -111,12 +111,18 @@ Longer chains work the same way: `ownerPath: 'a.b.c.user'`.
 
 When you need an action that isn't standard CRUD (`saveByDate`,
 `findOneByDate`, etc.), pass an `extend` function. It receives
-`{ strapi }` and returns the extra methods.
+`{ strapi, scoped }` and returns the extra methods.
 
 ```ts
-createUserScopedController(UID, {}, ({ strapi }) => ({
+createUserScopedController(UID, {}, ({ strapi, scoped }) => ({
   async findOneByDate(ctx) {
     // ... custom logic
+  },
+  // Override a standard action and still delegate to the owner-scoped
+  // version by calling scoped.<action>(ctx) — see the rule below.
+  async delete(ctx) {
+    ctx.request.body = { data: { deleted_at: new Date().toISOString() } }
+    return await scoped.update(ctx)
   },
 }))
 ```
@@ -133,12 +139,14 @@ createUserScopedController(UID, {}, ({ strapi }) => ({
      throws `NotFoundError` if the row isn't owned by `userId`. Call before
      any update or delete that targets a specific `documentId` from the body.
 
-2. **`super.find` etc. don't work from `extend` methods** (the [[HomeObject]]
-   of the extend literal isn't the controller's prototype). If you need the
-   factory's owner-scoped `find` inside a custom action, call `this.find(ctx)`
-   instead of `super.find(ctx)`. Or, more commonly, just call
-   `strapi.documents(uid).findMany(ctx.query)` directly after
-   `injectOwnerFilter`.
+2. **Don't use `super.<action>` from `extend` methods.** Object-literal
+   methods carry [[HomeObject]] from the literal they were defined in, and
+   Strapi's `setPrototypeOf` runs on the merged userCtrl — not on the
+   extend's inner literal. As a result, `super.find` from inside an extend
+   method silently resolves to `undefined`. Use the `scoped` parameter
+   instead: `scoped.find(ctx)`, `scoped.update(ctx)`, etc. The scoped
+   actions are pre-bound to the controller's [[HomeObject]] so their own
+   `super.<action>` calls resolve correctly.
 
 See [`api/user-daily/controllers/user-daily.ts`](../api/user-daily/controllers/user-daily.ts)
 for a worked example combining default CRUD + two custom actions.

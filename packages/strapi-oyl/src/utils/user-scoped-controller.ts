@@ -24,7 +24,20 @@ export type UserScopedOptions = {
   adminRoles?: string[]
 }
 
-type ControllerExtend = (params: { strapi: any }) => Record<string, any>
+// The owner-scoped CRUD actions the factory wraps around. These are exposed
+// to `extend` so custom controllers can compose around them instead of using
+// `super.<action>`, which doesn't survive Strapi's prototype setup when the
+// method is defined in the extend's own object literal — see the note in
+// `packages/strapi-oyl/src/utils/README.md`.
+export type ScopedActions = {
+  find: (ctx: any) => Promise<unknown>
+  findOne: (ctx: any) => Promise<unknown>
+  create: (ctx: any) => Promise<unknown>
+  update: (ctx: any) => Promise<unknown>
+  delete: (ctx: any) => Promise<unknown>
+}
+
+type ControllerExtend = (params: { strapi: any; scoped: ScopedActions }) => Record<string, any>
 
 export function createUserScopedController(
   uid: any,
@@ -71,7 +84,11 @@ export function createUserScopedController(
       if (getOwnerIdAtPath(parent, tailPath) !== userId) throw new errors.NotFoundError()
     }
 
-    return {
+    // Build the owner-scoped CRUD in a single object literal whose methods
+    // carry [[HomeObject]] pointing at the literal Strapi will call
+    // `Object.setPrototypeOf` on. That's what makes `super.<action>` resolve
+    // to the Strapi base controller at runtime.
+    const userCtrl = {
       async find(ctx: any) {
         const user = requireAuth(ctx)
         if (!isAdmin(user, adminRoles)) {
@@ -141,9 +158,24 @@ export function createUserScopedController(
         // @ts-ignore
         return await super.delete(ctx)
       },
-
-      ...(extend ? extend({ strapi }) : {}),
     }
+
+    // Capture bound references to the scoped methods BEFORE extend overrides
+    // them. Each scoped.* runs against the original userCtrl literal so its
+    // super.X still resolves through Strapi's prototype setup, even when
+    // called from an extend method whose own [[HomeObject]] would not.
+    const scoped: ScopedActions = {
+      find: userCtrl.find.bind(userCtrl),
+      findOne: userCtrl.findOne.bind(userCtrl),
+      create: userCtrl.create.bind(userCtrl),
+      update: userCtrl.update.bind(userCtrl),
+      delete: userCtrl.delete.bind(userCtrl),
+    }
+
+    if (extend) {
+      Object.assign(userCtrl, extend({ strapi, scoped }))
+    }
+    return userCtrl
   })
 }
 
