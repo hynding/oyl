@@ -173,10 +173,34 @@ export function createUserScopedController(
     }
 
     if (extend) {
+      assertNoForbiddenSuper(uid, extend)
       Object.assign(userCtrl, extend({ strapi, scoped }))
     }
     return userCtrl
   })
+}
+
+// Boot-time check that prevents the [[HomeObject]] footgun documented in
+// utils/README.md: `super.<action>` inside an extend method silently
+// resolves to `undefined` because the extend's literal is not the object
+// Strapi calls setPrototypeOf on. Catch the pattern textually before the
+// controller is wired up so the error fires at module-load time with a
+// clear remediation, not at first request with a cryptic
+// "(intermediate value).find is not a function".
+const FORBIDDEN_SUPER = /\bsuper\s*\.\s*(find|findOne|create|update|delete)\b/
+function assertNoForbiddenSuper(uid: string, extend: ControllerExtend) {
+  const source = extend.toString()
+  const match = source.match(FORBIDDEN_SUPER)
+  if (match) {
+    throw new Error(
+      `[user-scoped-controller] extend for "${uid}" calls ${match[0]}. ` +
+      `super.<action> inside an extend method does not resolve to the ` +
+      `Strapi base controller because the method's [[HomeObject]] is the ` +
+      `extend's own object literal, not the merged userCtrl Strapi sets ` +
+      `the prototype on. Use the scoped.<action> parameter instead — ` +
+      `see packages/strapi-oyl/src/utils/README.md ("Custom actions").`,
+    )
+  }
 }
 
 // Re-exported so custom controllers (like user-daily) can enforce the same
