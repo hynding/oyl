@@ -16,9 +16,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@strapi/plugin-users-permissions": "5.42.1",
-    "@strapi/strapi": "5.42.1",
-    "@strapi/utils": "5.42.1",
+    "@strapi/plugin-users-permissions": "5.47.1",
+    "@strapi/strapi": "5.47.1",
+    "@strapi/utils": "5.47.1",
     "better-sqlite3": "^12.10.0",
     "mysql2": "^3.15.1",
     "pg": "8.8.0",
