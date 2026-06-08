@@ -13,7 +13,9 @@ function extractId(item: { id?: TDataId } | TDataId): TDataId | undefined {
 
 /**
  * Returns activities that are active AND match the given date (via schedule)
- * OR whose id appears in the daily pin list.
+ * OR whose id appears in the daily pin list. An active activity with no
+ * schedule is treated as ongoing and shown every day; users add these via the
+ * daily-page form and expect them to appear immediately.
  */
 export function filterActivitiesForDate(
   allActivities: TUserActivityData[],
@@ -24,7 +26,9 @@ export function filterActivitiesForDate(
 
   return allActivities.filter(a => {
     if (a.id !== undefined && pinIds.has(a.id)) return true
-    return a.current_status === 'active' && matchesDate(a.schedule, date)
+    if (a.current_status !== 'active') return false
+    if (!a.schedule?.rrule) return true
+    return matchesDate(a.schedule, date)
   })
 }
 

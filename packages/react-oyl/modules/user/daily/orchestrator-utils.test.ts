@@ -46,6 +46,28 @@ describe('filterActivitiesForDate', () => {
     const result = filterActivitiesForDate(acts as unknown as TUserActivityData[], [9], DATE)
     expect(result.map(a => a.id)).toEqual([9])
   })
+
+  it('includes an active activity with no schedule (undefined or null)', () => {
+    // Activities added without picking a schedule (or returned from Strapi as null)
+    // should still appear on the daily page so the user can interact with them.
+    const activities = [
+      { id: 5, current_status: 'active', schedule: undefined },
+      { id: 6, current_status: 'active', schedule: null },
+    ] as unknown as TUserActivityData[]
+
+    const result = filterActivitiesForDate(activities, [], DATE)
+    expect(result.map(a => a.id)).toEqual([5, 6])
+  })
+
+  it('still excludes a non-active activity with no schedule', () => {
+    const activities = [
+      { id: 7, current_status: 'paused', schedule: undefined },
+      { id: 8, current_status: 'archived', schedule: null },
+    ] as unknown as TUserActivityData[]
+
+    const result = filterActivitiesForDate(activities, [], DATE)
+    expect(result).toHaveLength(0)
+  })
 })
 
 // ---------------------------------------------------------------------------
