@@ -6,9 +6,17 @@ export type QueuedOp =
   | { id: string; op: 'update'; path: string; recordId: TDataId | string; body: unknown; createdAt: number }
   | { id: string; op: 'delete'; path: string; recordId: TDataId | string; createdAt: number }
 
+export type SyncError = {
+  op: 'create' | 'update' | 'delete'
+  path: string
+  message: string
+  at: string
+}
+
 export type SyncState = {
   pendingCount: number
   lastSyncedAt?: string
+  lastError?: SyncError
   online: boolean
 }
 

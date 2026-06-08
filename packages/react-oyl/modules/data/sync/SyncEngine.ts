@@ -1,7 +1,7 @@
 // packages/react-oyl/modules/data/sync/SyncEngine.ts
 import { v4 as uuid } from 'uuid'
 import type { RemoteClient } from '../useDataRemote'
-import type { MirrorRecord, QueuedOp, SyncListener, SyncState } from './types'
+import type { MirrorRecord, QueuedOp, SyncError, SyncListener, SyncState } from './types'
 import { readMirror, writeMirror, readQueue, writeQueue, wipeUser } from './storage'
 
 type SaveOptions = { skipDrain?: boolean }
@@ -18,6 +18,7 @@ export class SyncEngine {
   private online = true
   private listeners = new Map<string, Set<SyncListener>>()
   private lastSyncedAt: string | undefined
+  private lastError: SyncError | undefined
   private draining = false
   private remote: RemoteClient
   private snapshots = new Map<string, Snapshot>()
@@ -44,6 +45,7 @@ export class SyncEngine {
     return {
       pendingCount: this.userId ? readQueue(this.userId).length : 0,
       lastSyncedAt: this.lastSyncedAt,
+      lastError: this.lastError,
       online: this.online,
     }
   }
@@ -172,8 +174,15 @@ export class SyncEngine {
             await this.remote.remove(op.path, op.recordId)
             this.emit(op.path)
           }
+          this.lastError = undefined
         } catch (err) {
           console.warn(`drain op ${op.op} ${op.path} failed; rolling back`, err)
+          this.lastError = {
+            op: op.op,
+            path: op.path,
+            message: err instanceof Error ? err.message : String(err),
+            at: new Date().toISOString(),
+          }
           if (op.op === 'create') {
             const mirror = readMirror(userId, op.path)
             delete mirror[op.tempId]

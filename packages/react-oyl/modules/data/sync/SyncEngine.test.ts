@@ -99,6 +99,34 @@ describe('SyncEngine — drain', () => {
     expect(e.state().pendingCount).toBe(0)
   })
 
+  it('drain failure populates state().lastError', async () => {
+    const remote = mockRemote()
+    ;(remote.create as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('boom'))
+    const e = new SyncEngine(remote)
+    e.setUser('u1')
+    e.setOnline(true)
+    await e.save('user-activities', { name: 'walk' })
+    expect(e.state().lastError).toMatchObject({
+      op: 'create',
+      path: 'user-activities',
+      message: 'boom',
+    })
+  })
+
+  it('drain success clears a previous lastError', async () => {
+    const remote = mockRemote()
+    ;(remote.create as ReturnType<typeof vi.fn>)
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce({ id: 1, name: 'ok' })
+    const e = new SyncEngine(remote)
+    e.setUser('u1')
+    e.setOnline(true)
+    await e.save('user-activities', { name: 'fails' })
+    expect(e.state().lastError).toBeDefined()
+    await e.save('user-activities', { name: 'works' })
+    expect(e.state().lastError).toBeUndefined()
+  })
+
   it('drains the queue when transitioning offline → online', async () => {
     const remote = mockRemote()
     ;(remote.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'srv-1', name: 'created' })
