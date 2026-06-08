@@ -13,7 +13,7 @@
     "@types/node": "^20",
     "ts-node": "^10.9.2",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^4.1.8"
   },
   "dependencies": {
     "rrule": "^2.8.1"

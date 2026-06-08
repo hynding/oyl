@@ -18,12 +18,12 @@ const goals = [
 ] as never[]
 
 describe('UserActivityForm', () => {
-  let onSubmit: ReturnType<typeof vi.fn>
-  let onCancel: ReturnType<typeof vi.fn>
+  let onSubmit: ReturnType<typeof vi.fn<(...args: any[]) => any>>
+  let onCancel: ReturnType<typeof vi.fn<(...args: any[]) => any>>
 
   beforeEach(() => {
-    onSubmit = vi.fn().mockResolvedValue(undefined)
-    onCancel = vi.fn()
+    onSubmit = vi.fn<(...args: any[]) => any>().mockResolvedValue(undefined)
+    onCancel = vi.fn<(...args: any[]) => any>()
   })
 
   it('submits with shaped values including current_status defaulting to active', async () => {

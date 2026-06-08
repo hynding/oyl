@@ -16,10 +16,10 @@ const baseActivity = {
 } as never
 
 describe('UserActivityRow', () => {
-  let onOpenSettings: ReturnType<typeof vi.fn>
+  let onOpenSettings: ReturnType<typeof vi.fn<(...args: any[]) => any>>
 
   beforeEach(() => {
-    onOpenSettings = vi.fn()
+    onOpenSettings = vi.fn<(...args: any[]) => any>()
   })
 
   it('renders name, schedule, and type', () => {

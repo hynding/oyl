@@ -18,14 +18,14 @@ const parentGoal = { id: 9, name: 'Be healthy' } as never
 const otherGoal = { id: 12, name: 'Climb a mountain' } as never
 
 describe('UserGoalSettingsSheet', () => {
-  let onSave: ReturnType<typeof vi.fn>
-  let onDelete: ReturnType<typeof vi.fn>
-  let onClose: ReturnType<typeof vi.fn>
+  let onSave: ReturnType<typeof vi.fn<(...args: any[]) => any>>
+  let onDelete: ReturnType<typeof vi.fn<(...args: any[]) => any>>
+  let onClose: ReturnType<typeof vi.fn<(...args: any[]) => any>>
 
   beforeEach(() => {
-    onSave = vi.fn().mockResolvedValue(undefined)
-    onDelete = vi.fn().mockResolvedValue(undefined)
-    onClose = vi.fn()
+    onSave = vi.fn<(...args: any[]) => any>().mockResolvedValue(undefined)
+    onDelete = vi.fn<(...args: any[]) => any>().mockResolvedValue(undefined)
+    onClose = vi.fn<(...args: any[]) => any>()
   })
 
   it('populates form from goal (parent_user_goal as id)', () => {

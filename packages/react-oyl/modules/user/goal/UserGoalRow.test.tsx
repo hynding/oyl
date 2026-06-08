@@ -13,19 +13,19 @@ const baseGoal = {
 } as never
 
 type Handlers = {
-  onSetProgress: ReturnType<typeof vi.fn>
-  onMarkComplete: ReturnType<typeof vi.fn>
-  onToggleMilestone: ReturnType<typeof vi.fn>
-  onAppendNote: ReturnType<typeof vi.fn>
-  onOpenSettings: ReturnType<typeof vi.fn>
+  onSetProgress: ReturnType<typeof vi.fn<(...args: any[]) => any>>
+  onMarkComplete: ReturnType<typeof vi.fn<(...args: any[]) => any>>
+  onToggleMilestone: ReturnType<typeof vi.fn<(...args: any[]) => any>>
+  onAppendNote: ReturnType<typeof vi.fn<(...args: any[]) => any>>
+  onOpenSettings: ReturnType<typeof vi.fn<(...args: any[]) => any>>
 }
 
 const makeHandlers = (): Handlers => ({
-  onSetProgress: vi.fn(),
-  onMarkComplete: vi.fn(),
-  onToggleMilestone: vi.fn(),
-  onAppendNote: vi.fn(),
-  onOpenSettings: vi.fn(),
+  onSetProgress: vi.fn<(...args: any[]) => any>(),
+  onMarkComplete: vi.fn<(...args: any[]) => any>(),
+  onToggleMilestone: vi.fn<(...args: any[]) => any>(),
+  onAppendNote: vi.fn<(...args: any[]) => any>(),
+  onOpenSettings: vi.fn<(...args: any[]) => any>(),
 })
 
 describe('UserGoalRow', () => {

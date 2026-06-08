@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { storybookTest } from "@storybook/addon-vitest/vitest-plugin"
+import { playwright } from "@vitest/browser-playwright"
 import tailwindcss from "@tailwindcss/vite"
 
 const dirname =
@@ -35,7 +36,7 @@ export default defineConfig({
           browser: {
             enabled: true,
             headless: true,
-            provider: "playwright",
+            provider: playwright(),
             instances: [
               {
                 browser: "chromium",

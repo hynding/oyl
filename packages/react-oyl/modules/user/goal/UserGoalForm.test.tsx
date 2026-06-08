@@ -3,12 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import UserGoalForm from './UserGoalForm'
 
 describe('UserGoalForm', () => {
-  let onSubmit: ReturnType<typeof vi.fn>
-  let onCancel: ReturnType<typeof vi.fn>
+  let onSubmit: ReturnType<typeof vi.fn<(...args: any[]) => any>>
+  let onCancel: ReturnType<typeof vi.fn<(...args: any[]) => any>>
 
   beforeEach(() => {
-    onSubmit = vi.fn().mockResolvedValue(undefined)
-    onCancel = vi.fn()
+    onSubmit = vi.fn<(...args: any[]) => any>().mockResolvedValue(undefined)
+    onCancel = vi.fn<(...args: any[]) => any>()
   })
 
   it('submits with shaped values incl. defaults (current_status, progress)', async () => {
