@@ -49,15 +49,18 @@ Tests are colocated: `core/money.test.ts` next to `core/money.ts`, etc.
 
 - **`Id`** — branded string; `Id.create()` generates (crypto.randomUUID), `Id.of(string)` validates.
 - **`DayKey`** — a calendar day as `YYYY-MM-DD`. Constructed from a `Date` + explicit IANA timezone, so "today's calories" never bleeds across midnight. Comparable, supports `addDays(n)`, ranges.
-- **`Cadence`** — simple recurrence: every N `days | weeks | months | years`. `nextAfter(day): DayKey`. Used by subscriptions, maintenance, occasions. (Deliberately not rrule; if complex recurrence is ever needed, `Cadence` is the seam to extend.)
+- **`Cadence`** — simple recurrence: every N `days | weeks | months | years`. `nextAfter(day): DayKey`. Month/year steps clamp to the last day of shorter months (Jan 31 + 1 month = Feb 28/29). Used by subscriptions, maintenance, occasions. (Deliberately not rrule; if complex recurrence is ever needed, `Cadence` is the seam to extend.)
 - **`Quantity`** — `amount` + `unit` string (`30 min`, `2 servings`, `8000 steps`). Arithmetic only between matching units; mismatches throw.
-- **`Money`** — integer minor units + ISO currency code. No float arithmetic. `Money.usd(4210)` is $42.10. Add/subtract require matching currency. `toNumber()` exposes major units for metric emission.
-- **`MetricKey`** — dot-namespaced string (`nutrition.calories`, `finance.spend.groceries`). Validated format; the cross-domain contract between entries and everything that reads them.
+- **`Money`** — integer minor units + ISO currency code + minor-unit exponent (defaults to 2; pass explicitly for outliers like JPY's 0). No float arithmetic. `Money.usd(4210)` is $42.10. Add/subtract require matching currency. `toNumber()` exposes major units for metric emission.
+- **`MetricKey`** — dot-namespaced string (`nutrition.calories`, `finance.spend.groceries`): two or more segments joined by `.`, each segment matching `[a-z0-9_]+`. Validated format; the cross-domain contract between entries and everything that reads them.
+
+**One slug grammar everywhere.** Activity slugs, transaction categories, note tags, and `LifeArea` slugs all share the segment rule `[a-z0-9_]+` — because each of them gets embedded into a `MetricKey` segment. One validator in `core/`, reused by every domain.
 
 ## Journal: records of what happened
 
 - **`Entry`** (abstract): `id`, `occurredAt` (Date), optional `note`, `metrics()`.
-- **`Journal`**: `add(entry)` / `remove(id)`, definition catalogs, `on(day)`, `between(range)`, `totalOf(metric, range)` — the single aggregation path everything shares.
+- **`Journal`**: constructed with an explicit IANA timezone — the one place the timezone decision lives. Entries store instants (`occurredAt`); the Journal buckets them into `DayKey`s using its timezone, so `on(day)`, `between(range)`, and every period window agree on where days begin. (Entries logged while traveling land on the day of your home journal — an accepted simplification.)
+- Query surface: `add(entry)` / `remove(id)`, definition catalogs, `on(day)`, `between(range)`, `totalOf(metric, range)`, and `totalsByPrefix(prefix, range): ReadonlyMap<MetricKey, number>` — the enumerating sibling of `totalOf` that powers "top spending categories" and "minutes per activity" without a second aggregation path.
 
 ### Entry subclasses and what they emit
 
@@ -87,8 +90,8 @@ Definitions live in typed catalogs on the `Journal`. Entries capture a snapshot 
 - **`Task`** — the plain to-do; optional `projectId`, optional `cadence` (recurring chores: completing a recurring task spawns the next occurrence via `Cadence.nextAfter`).
 - **`Project`** — a named group of tasks, optional `areaId`; `progress(planner)` = done/total of its tasks.
 - **`Appointment`** — a plan with a specific `startsAt` (Date) and optional duration; calendar/time-blocking primitive.
-- **`PlannedMeal`** — FoodItem + servings + day; fulfilled by a `Consumption`. Planner can emit a grocery list: aggregate FoodItems across a date range.
-- **`Planner`** (root): `add/remove`, `dueOn(day)`, `overdue(day)`, `upcoming(range)`, `completionRate(range)`.
+- **`PlannedMeal`** — FoodItem + servings + day; fulfilled by a `Consumption`. `planner.groceryList(range): ReadonlyMap<Id, Quantity>` aggregates servings per FoodItem id across the range's planned meals.
+- **`Planner`** (root): `add/remove`, `dueOn(day)`, `overdue(day)` (open plans with `due < day`), `upcoming(range)`, `completionRate(range)` (done ÷ (done + open) among plans due in the range; canceled plans are excluded from both sides).
 
 **Planned vs. actual** is the payoff of fulfillment links: the planner knows what was intended, the journal knows what happened, and the link makes adherence computable (meals followed, tasks done on time) without either side knowing the other's internals.
 
@@ -98,7 +101,7 @@ Not time-series — these live beside the Journal, keyed collections with one sh
 
 - **`Document`** — name, kind (passport/insurance/warranty/...), optional `expiresOn`.
 - **`Possession`** — name, optional location, optional `warrantyUntil`, optional purchase info (Money, date).
-- **`Subscription`** — name, `amount: Money`, `cadence: Cadence`, `nextRenewal: DayKey`, category. `renew()` advances `nextRenewal` and yields a `Transaction` for the Journal — the registry that *generates* finance entries. `vault.subscriptionTotal(per: month)` answers "what do my subscriptions cost?"
+- **`Subscription`** — name, `amount: Money`, `cadence: Cadence`, `nextRenewal: DayKey`, category, optional `accountId`. `renew(on: DayKey)` advances `nextRenewal` and returns a `Transaction` (dated `on`, charged to `accountId`) for the caller to add to the Journal — the registry that *generates* finance entries. `vault.subscriptionTotal(per: month)` answers "what do my subscriptions cost?"
 - **`MaintenanceItem`** — what (e.g., "HVAC filter"), optional possession link, `cadence`, `lastDoneOn`; `dueOn()` = `cadence.nextAfter(lastDoneOn)`. `markDone(day)` advances it.
 - **`Contact`** — name, optional `lastContactedOn`, occasions (named day+cadence, e.g. birthday yearly); `staleness(day)` supports "you haven't talked to Sam in 3 months" nudges.
 - **`GiftIdea`** — text + contact link; surfaces alongside that contact's next occasion.
@@ -118,6 +121,7 @@ new Goal({ metric: "sleep.hours", target: 7, direction: "atLeast", period: "day"
 ```
 
 - `period`: `day | week | month`. `direction`: `atLeast | atMost`. Optional `areaId`.
+- Period windows are deterministic: a `day` is the `DayKey` itself; a `week` is the ISO week (Monday–Sunday) containing it; a `month` is its calendar month. All derived from `DayKey`, so the Journal's timezone decision flows through unchanged.
 - `progressOn(journal, day): GoalProgress` — resolves the period window containing `day`, sums via `journal.totalOf`, returns `{ current, target, ratio, met, paused }`. `ratio` clamped to [0, 1]: attainment for `atLeast`, consumption-of-allowance for `atMost`.
 
 ### Pause semantics (humane tracking)
@@ -132,11 +136,13 @@ Streaks motivate until life intervenes — then a broken 90-day streak makes peo
 
 Sugar over the goal engine: per-category, per-month spending control. `budget.spent(journal, month)`, `budget.remaining(journal, month)` (Money), built on `finance.spend.<category>` totals. No second aggregation implementation.
 
+Metric totals are major-unit numbers, so `Budget` reconstructs `Money` by rounding to minor units. Each emitted value originates from an exact minor-unit amount, so float drift across a realistic month of transactions stays far below half a cent — and the rounding makes it exact again.
+
 ### insights/
 
 Pure functions over the Journal (and Planner where noted) — zero new data entry, pure read-side analysis:
 
-- **`streak(journal, goal, asOf): number`** — consecutive periods (ending at `asOf`) where the goal was met. Works for any goal, any domain. Paused periods are bridged, not broken.
+- **`streak(journal, goal, asOf): number`** — consecutive periods (ending at `asOf`) where the goal was met. Works for any goal, any domain. Paused periods are bridged, not broken. The in-progress period containing `asOf` is asymmetric by direction: for `atLeast` it counts as soon as it's met (you ran your 150 minutes by Wednesday); for `atMost` it's excluded until complete (you can't have "kept under budget" for a month that isn't over).
 - **`review(journal, planner, goals, period): Review`** — the weekly/monthly/annual review object: per-goal progress and streaks, top spending categories, activity totals, planner completion rate, period-over-period deltas, and a **per-area rollup** (goals met, activity minutes, and projects touched per `LifeArea` — the life-wheel data). A `Review` is plain data an app can render.
 - **`correlate(journal, metricA, metricB, range): number`** — Pearson correlation over daily totals of two metrics ("does mood track sleep?", "does spending spike when exercise drops?"). Returns NaN-safe r in [-1, 1]; requires a minimum number of overlapping days (else `undefined`).
 
@@ -165,7 +171,7 @@ Plus `InMemoryRepository<T>` — the reference implementation, used by tests. Ap
 - **Immutability split.** Value objects and entries are deeply immutable (`readonly` fields). Aggregate roots (`Journal`, `Planner`, `Vault`) and stateful entities (`Goal` pause state, `Task` status) mutate in place — they're in-memory aggregates, and copy-on-write would buy nothing here. All getters return readonly views (`ReadonlyArray`, `ReadonlyMap`); internal collections never escape.
 - **Equality semantics.** Entities compare by `id`; value objects by value. No generic deep-equal utility — each class states its own rule.
 - **Explicit time, no hidden clock.** Nothing in the domain calls `Date.now()` or reads the system timezone. Every time-sensitive operation takes its reference point as a parameter (`occurredAt`, `asOf`, `day`, `tz`). This makes every test deterministic without clock mocking and every result reproducible.
-- **Serialization built in.** Every persistable class has `toJSON(): PlainShape` and a static `fromJSON(shape)`. `Entry` and `Plan` subclasses carry a `kind` discriminant so a single dispatcher can revive a heterogeneous list. Dates serialize as ISO strings, `DayKey` as `YYYY-MM-DD`, `Money` as `{ minor, currency }`. Round-tripping (`fromJSON(toJSON(x))` equals `x`) is a standing test for every class.
+- **Serialization built in.** Every persistable class has `toJSON(): PlainShape` and a static `fromJSON(shape)`. `Entry` and `Plan` subclasses carry a `kind` discriminant so a single dispatcher can revive a heterogeneous list. Dates serialize as ISO strings, `DayKey` as `YYYY-MM-DD`, `Money` as `{ minor, currency, exponent }`. Malformed input throws `DomainError('MALFORMED_JSON')`. No version field in the shapes — structural validation suffices until the first breaking change (YAGNI). Round-tripping (`fromJSON(toJSON(x))` equals `x`) is a standing test for every class.
 - **Inheritance budget: two.** `Entry` and `Plan` are the only abstract classes; everything else composes. New behavior enters via the `metrics()` and `Due` contracts, not subclass trees.
 - **Import discipline.** Domain modules (`activity/`, `nutrition/`, `finance/`, `goal/`, `track/`, `plan/`, `vault/`) import from `core/` only — never from each other. `insights/` may import anything. `index.ts` is the only barrel; files are kebab-case, one class per file, named exports only (no `default`).
 - **Strict TypeScript.** `strict`, `noUncheckedIndexedAccess`, and `exactOptionalPropertyTypes` on for `src/`. No `any`; `unknown` only at the `fromJSON` boundary, narrowed immediately. ESM modules.
@@ -195,4 +201,4 @@ Each phase is independently shippable and gets its own implementation plan. Orde
 
 ## Out of scope
 
-Complex recurrence (rrule — `Cadence` is the extension seam), multi-currency conversion, goal milestones, sync/offline semantics, notification delivery (the domain surfaces dues; apps decide how to notify), and any UI or API concerns.
+Complex recurrence (rrule — `Cadence` is the extension seam), multi-currency conversion, goal milestones, sync/offline semantics, notification delivery (the domain surfaces dues; apps decide how to notify), and any UI or API concerns. Wiring `src/index.ts` into the package's `exports` map (so apps import it alongside the legacy `modules/*`) is an integration step taken when the first consumer adopts the new core, not part of this design.
