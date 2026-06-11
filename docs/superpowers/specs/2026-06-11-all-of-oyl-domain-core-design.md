@@ -5,80 +5,128 @@
 
 ## Purpose
 
-A DRY, minimalistic set of TypeScript classes that can drive an "Organize Your Life" application: tracking activities, goals, diet/nutrition, and finances. Pure domain layer — no HTTP, no Strapi, no storage technology. Built test-first with Vitest.
+A DRY, minimalistic set of TypeScript classes that can drive a complete "Organize Your Life" application: what you **did** (activities, meals, spending, sleep, mood, vitals), what you **intend** (tasks, projects, appointments, meal plans), what you **have** (documents, possessions, subscriptions, contacts), and what it all **means** (goals, budgets, streaks, reviews, correlations). Pure domain layer — no HTTP, no Strapi, no storage technology. Built test-first with Vitest.
 
-## The unifying idea: a Journal of metric-emitting Entries
+## Architecture: three roots and a read side
 
-A workout, a meal, and a coffee purchase are all *timestamped records of something you did*. The core models exactly that, once:
+Everything hangs off three aggregate roots plus one read-side module, all sharing the same core value objects:
 
-- **`Entry`** (abstract): `id`, `occurredAt` (Date), optional `note`, and one required contract: `metrics(): ReadonlyMap<MetricKey, number>` — what this moment contributed to your life, in numbers.
-- **`Journal`**: the aggregate root for one person's life. Holds entries and definition catalogs, and answers questions: `on(day)`, `between(range)`, `totalOf(metric, range)`.
-- **`Goal`**: targets a metric key with a direction and period. Never knows which domain produced the number. One progress algorithm, written once.
+| Root | Question it answers | Contents |
+|---|---|---|
+| **`Journal`** | What happened? | Timestamped `Entry` records that emit metrics |
+| **`Planner`** | What's supposed to happen? | `Plan` items (tasks, appointments, planned meals) with due dates and fulfillment links |
+| **`Vault`** | What do I have? | Registry items (documents, possessions, subscriptions, contacts) that surface due dates |
+| **`insights/`** | What does it mean? | Pure functions over the Journal: goals feed off it; streaks, reviews, correlations |
 
-The library is **single-user by design**: a `Journal` is one person's life. Multi-user apps instantiate one per user. No `userId` plumbing anywhere.
+The library is **single-user by design**: one `Journal`/`Planner`/`Vault` triple is one person's life. Multi-user apps instantiate per user. No `userId` plumbing anywhere.
+
+### The two unifying contracts
+
+1. **Metrics (Journal side):** every `Entry` implements `metrics(): ReadonlyMap<MetricKey, number>` — what that moment contributed to your life, in numbers. Goals, budgets, streaks, reviews, and correlations all reduce to one operation, `journal.totalOf(metric, range)`, implemented once.
+2. **Dues (Planner/Vault side):** plans and many vault items implement `Due { dueOn(): DayKey | undefined }`. Reminders, overdue lists, and "upcoming" feeds all reduce to one operation, collecting and sorting dues — also implemented once.
 
 ## Directory layout
 
 ```
 packages/all-of-oyl/src/
-  core/        Id, DayKey, Quantity, Money, MetricKey, Entry, Journal,
-               Repository<T> interface, InMemoryRepository<T>
+  core/        Id, DayKey, Cadence, Quantity, Money, MetricKey, DomainError,
+               Entry (abstract), Journal, Plan (abstract), Planner, Vault,
+               Due interface, Repository<T>, InMemoryRepository<T>
   activity/    Activity (definition), ActivityLog (entry)
   nutrition/   FoodItem (definition), Consumption (entry)
   finance/     Account (definition), Transaction (entry), Budget
   goal/        Goal, GoalProgress
+  track/       Measurement (entry), Note (entry)
+  plan/        Task, Project, Appointment, PlannedMeal
+  vault/       Document, Possession, Subscription, MaintenanceItem, Contact, GiftIdea
+  insights/    streaks, review, correlate
   index.ts     public surface
 ```
 
 Tests are colocated: `core/money.test.ts` next to `core/money.ts`, etc.
 
-## Core components
-
-### Value objects (immutable, constructor-validated, `equals()`)
+## Core value objects (immutable, constructor-validated, `equals()`)
 
 - **`Id`** — branded string; `Id.create()` generates (crypto.randomUUID), `Id.of(string)` validates.
-- **`DayKey`** — a calendar day as `YYYY-MM-DD`. Constructed from a `Date` + explicit IANA timezone, so "today's calories" never bleeds across midnight. Comparable, supports `next()`, `addDays(n)`, ranges.
+- **`DayKey`** — a calendar day as `YYYY-MM-DD`. Constructed from a `Date` + explicit IANA timezone, so "today's calories" never bleeds across midnight. Comparable, supports `addDays(n)`, ranges.
+- **`Cadence`** — simple recurrence: every N `days | weeks | months | years`. `nextAfter(day): DayKey`. Used by subscriptions, maintenance, occasions. (Deliberately not rrule; if complex recurrence is ever needed, `Cadence` is the seam to extend.)
 - **`Quantity`** — `amount` + `unit` string (`30 min`, `2 servings`, `8000 steps`). Arithmetic only between matching units; mismatches throw.
 - **`Money`** — integer minor units + ISO currency code. No float arithmetic. `Money.usd(4210)` is $42.10. Add/subtract require matching currency. `toNumber()` exposes major units for metric emission.
-- **`MetricKey`** — dot-namespaced string (`nutrition.calories`, `finance.spend.groceries`, `activity.run.minutes`). Validated format; the cross-domain contract between entries and goals.
+- **`MetricKey`** — dot-namespaced string (`nutrition.calories`, `finance.spend.groceries`). Validated format; the cross-domain contract between entries and everything that reads them.
+
+## Journal: records of what happened
+
+- **`Entry`** (abstract): `id`, `occurredAt` (Date), optional `note`, `metrics()`.
+- **`Journal`**: `add(entry)` / `remove(id)`, definition catalogs, `on(day)`, `between(range)`, `totalOf(metric, range)` — the single aggregation path everything shares.
 
 ### Entry subclasses and what they emit
 
-| Class | Domain | Emits (examples) |
+| Class | Module | Emits (examples) |
 |---|---|---|
-| `ActivityLog` | activity | `activity.<slug>.count: 1`, `activity.<slug>.minutes`, plus any logged quantities (`activity.run.km`) |
-| `Consumption` | nutrition | `nutrition.calories`, `nutrition.protein`, `nutrition.carbs`, `nutrition.fat` — computed as FoodItem nutrients × servings |
-| `Transaction` | finance | expense: `finance.spend.<category>`; income: `finance.income.<category>` — in major currency units |
+| `ActivityLog` | activity | `activity.<slug>.count: 1`, `activity.<slug>.minutes`, plus any logged quantities (`activity.run.km`). Doubles as time tracking — minutes against an activity *is* "where my hours go". |
+| `Consumption` | nutrition | `nutrition.calories/protein/carbs/fat`, `nutrition.water_ml` — FoodItem nutrients × servings |
+| `Transaction` | finance | expense: `finance.spend.<category>`; income: `finance.income.<category>` — major currency units |
+| `Measurement` | track | One generic class for any numeric observation: `body.weight_kg`, `body.bp_systolic`, `sleep.hours`, `mood.score`, `screen.minutes`, `home.kwh`. Constructed as `new Measurement({ metric, value, occurredAt })`. Conventional keys documented in the module. |
+| `Note` | track | Free-text journaling/gratitude: `text`, optional `tags`; emits `note.count: 1` (and `note.<tag>.count` per tag) so streaks like "journal daily" work |
+
+`Measurement` is the deliberate DRY move: sleep, mood, vitals, screen time, and utilities are all *one* class with conventional metric keys — five suggested domains for the cost of zero new abstractions.
 
 ### Definitions vs. entries
 
-Each domain splits into a reusable **definition** and dated **entries** that reference it by id:
+Each concrete domain splits into a reusable **definition** and dated **entries** that reference it by id:
 
-- **`Activity`** — name, slug, optional default unit. The thing you do ("Run", "Meditate").
-- **`FoodItem`** — name, nutrients per serving (calories/protein/carbs/fat).
+- **`Activity`** — name, slug, optional default unit ("Run", "Meditate").
+- **`FoodItem`** — name, nutrients per serving (calories/protein/carbs/fat/water).
 - **`Account`** — name, currency. Transactions belong to an account; currency must match.
 
-Definitions live in typed catalogs on the `Journal`. Entries are constructed against a definition (e.g., `Consumption` takes the `FoodItem`, captures the nutrient snapshot at log time so later edits to the catalog don't rewrite history).
+Definitions live in typed catalogs on the `Journal`. Entries capture a snapshot of the definition's values at log time (e.g., `Consumption` copies nutrients), so later catalog edits never rewrite history.
 
-### Journal
+## Planner: intentions and their fulfillment
 
-- `add(entry)` / `remove(id)` / catalogs for definitions.
-- `on(day: DayKey): Entry[]`, `between(start, end): Entry[]`
-- `totalOf(metric: MetricKey, range): number` — the single aggregation path everything shares.
+- **`Plan`** (abstract): `id`, `title`, optional `due` (DayKey), `status` (`open | done | canceled`), optional `fulfilledBy: Id[]` linking to the Journal entries that satisfied it. `complete(entryId?)` sets status and records the link.
+- **`Task`** — the plain to-do; optional `projectId`, optional `cadence` (recurring chores: completing a recurring task spawns the next occurrence via `Cadence.nextAfter`).
+- **`Project`** — a named group of tasks; `progress(planner)` = done/total of its tasks.
+- **`Appointment`** — a plan with a specific `startsAt` (Date) and optional duration; calendar/time-blocking primitive.
+- **`PlannedMeal`** — FoodItem + servings + day; fulfilled by a `Consumption`. Planner can emit a grocery list: aggregate FoodItems across a date range.
+- **`Planner`** (root): `add/remove`, `dueOn(day)`, `overdue(day)`, `upcoming(range)`, `completionRate(range)`.
+
+**Planned vs. actual** is the payoff of fulfillment links: the planner knows what was intended, the journal knows what happened, and the link makes adherence computable (meals followed, tasks done on time) without either side knowing the other's internals.
+
+## Vault: registries of what you have
+
+Not time-series — these live beside the Journal, keyed collections with one shared trait: anything with a future date implements `Due`, and `vault.upcoming(range)` collects them all into a single reminder feed (document expiries, subscription renewals, maintenance due, birthdays).
+
+- **`Document`** — name, kind (passport/insurance/warranty/...), optional `expiresOn`.
+- **`Possession`** — name, optional location, optional `warrantyUntil`, optional purchase info (Money, date).
+- **`Subscription`** — name, `amount: Money`, `cadence: Cadence`, `nextRenewal: DayKey`, category. `renew()` advances `nextRenewal` and yields a `Transaction` for the Journal — the registry that *generates* finance entries. `vault.subscriptionTotal(per: month)` answers "what do my subscriptions cost?"
+- **`MaintenanceItem`** — what (e.g., "HVAC filter"), optional possession link, `cadence`, `lastDoneOn`; `dueOn()` = `cadence.nextAfter(lastDoneOn)`. `markDone(day)` advances it.
+- **`Contact`** — name, optional `lastContactedOn`, occasions (named day+cadence, e.g. birthday yearly); `staleness(day)` supports "you haven't talked to Sam in 3 months" nudges.
+- **`GiftIdea`** — text + contact link; surfaces alongside that contact's next occasion.
+
+## Goals, budgets, and insights (the read side)
 
 ### Goal
 
 ```ts
 new Goal({ metric: "nutrition.calories", target: 2200, direction: "atMost", period: "day" })
 new Goal({ metric: "activity.run.minutes", target: 150, direction: "atLeast", period: "week" })
+new Goal({ metric: "sleep.hours", target: 7, direction: "atLeast", period: "day" })
 ```
 
 - `period`: `day | week | month`. `direction`: `atLeast | atMost`.
-- `progressOn(journal, day): GoalProgress` — resolves the period window containing `day`, sums via `journal.totalOf`, returns `{ current, target, ratio, met }`. `ratio` is attainment for `atLeast`, consumption-of-allowance for `atMost`, clamped to [0, 1].
+- `progressOn(journal, day): GoalProgress` — resolves the period window containing `day`, sums via `journal.totalOf`, returns `{ current, target, ratio, met }`. `ratio` clamped to [0, 1]: attainment for `atLeast`, consumption-of-allowance for `atMost`.
 
 ### Budget
 
-Sugar over the goal engine: a `Budget` is per-category, per-month spending control. `budget.spent(journal, month)`, `budget.remaining(journal, month)` (Money), built on the same `finance.spend.<category>` metric totals. No second aggregation implementation.
+Sugar over the goal engine: per-category, per-month spending control. `budget.spent(journal, month)`, `budget.remaining(journal, month)` (Money), built on `finance.spend.<category>` totals. No second aggregation implementation.
+
+### insights/
+
+Pure functions over the Journal (and Planner where noted) — zero new data entry, pure read-side analysis:
+
+- **`streak(journal, goal, asOf): number`** — consecutive periods (ending at `asOf`) where the goal was met. Works for any goal, any domain.
+- **`review(journal, planner, goals, period): Review`** — the weekly/monthly/annual review object: per-goal progress and streaks, top spending categories, activity totals, planner completion rate, and period-over-period deltas. A `Review` is plain data an app can render.
+- **`correlate(journal, metricA, metricB, range): number`** — Pearson correlation over daily totals of two metrics ("does mood track sleep?", "does spending spike when exercise drops?"). Returns NaN-safe r in [-1, 1]; requires a minimum number of overlapping days (else `undefined`).
 
 ## Persistence boundary
 
@@ -95,33 +143,30 @@ interface Repository<T extends { id: Id }> {
 
 Plus `InMemoryRepository<T>` — the reference implementation, used by tests. Apps supply real adapters; the domain never imports one.
 
-`Journal` itself is a plain in-memory aggregate, not repository-backed: apps load entries/definitions from their repositories and hydrate a `Journal` to ask questions of it. This keeps every `Journal` method synchronous and trivially testable.
+`Journal`, `Planner`, and `Vault` are plain in-memory aggregates, not repository-backed: apps load items from their repositories and hydrate the roots to ask questions of them. This keeps every method synchronous and trivially testable.
 
 ## Error handling
 
-- Invalid construction throws `DomainError` (single error class, `code` field) — invalid id format, negative servings, mismatched currency/unit arithmetic, malformed metric keys, target ≤ 0.
+- Invalid construction throws `DomainError` (single error class, `code` field) — invalid id format, negative servings, mismatched currency/unit arithmetic, malformed metric keys, target ≤ 0, completing an already-canceled plan.
 - Queries never throw for "not found"; they return `undefined` / empty arrays / zero totals.
 
 ## Testing & TDD
 
 - Vitest, strict red-green-refactor. Each class begins life as a failing test.
-- Build order (each step depends only on previous): **value objects → Entry + Journal → activity → nutrition → finance → Goal → Budget**.
-- No mocking frameworks needed: the domain is pure; tests construct real objects and use `InMemoryRepository`.
-- Behavioral coverage targets: timezone edges for `DayKey`, currency/unit mismatch rejection, snapshot semantics of `Consumption`, period-window resolution for weekly/monthly goals, atMost vs atLeast ratio semantics.
+- No mocking frameworks: the domain is pure; tests construct real objects and use `InMemoryRepository`.
+- Behavioral coverage targets: timezone edges for `DayKey`, `Cadence` month-end arithmetic (Jan 31 + 1 month), currency/unit mismatch rejection, snapshot semantics of `Consumption`, period-window resolution for weekly/monthly goals, atMost vs atLeast ratio semantics, recurring-task respawn, subscription `renew()` producing a correct `Transaction`, streak boundary conditions, correlation with missing days.
 
-## Out of scope (v1)
+## Build phases
 
-Recurrence/scheduling (rrule), goal milestones, multi-currency conversion, sync/offline, any UI or API concerns.
+Each phase is independently shippable and gets its own implementation plan. Order matters: every phase depends only on what came before.
 
-## Future life-organizing domains (suggestions)
+1. **Core spine** — value objects (`Id`, `DayKey`, `Cadence`, `Quantity`, `Money`, `MetricKey`, `DomainError`), `Entry`, `Journal`, `Repository`/`InMemoryRepository`.
+2. **Recording domains** — activity, nutrition, finance, plus `track/` (`Measurement`, `Note`). After this phase the app can log a whole life.
+3. **Goals & budgets** — `Goal`, `GoalProgress`, `Budget`.
+4. **Planner** — `Plan`, `Task`, `Project`, `Appointment`, `PlannedMeal`, fulfillment links, grocery list.
+5. **Vault** — all six registries, the shared `Due` feed, subscription→transaction generation.
+6. **Insights** — `streak`, `review`, `correlate`.
 
-The spine makes these cheap — each is just another Entry subclass and/or definition, no core changes:
+## Out of scope
 
-1. **Sleep & mood** (`sleep.hours`, `mood.score`) — highest-value next addition; instantly enriches goal tracking.
-2. **Medication & supplements** — scheduled consumables.
-3. **Time blocking / calendar commitments.**
-4. **Household maintenance & chores** — recurring activities.
-5. **Reading / learning log.**
-6. **Relationships** — last-contacted nudges.
-7. **Net-worth snapshots & savings goals** — links finance to goals.
-8. **Weekly review** — a meta-entry summarizing goal adherence.
+Complex recurrence (rrule — `Cadence` is the extension seam), multi-currency conversion, goal milestones, sync/offline semantics, notification delivery (the domain surfaces dues; apps decide how to notify), and any UI or API concerns.
