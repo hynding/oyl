@@ -52,4 +52,17 @@ describe('Cadence', () => {
     expect(Cadence.of(2, 'weeks').toJSON()).toEqual({ n: 2, unit: 'weeks' })
     expect(Cadence.fromJSON({ n: 2, unit: 'weeks' }).equals(Cadence.of(2, 'weeks'))).toBe(true)
   })
+
+  it.each([null, 42, {}, { n: 2 }, { unit: 'weeks' }, { n: '2', unit: 'weeks' }, { n: 2, unit: 'fortnights' }])(
+    'fromJSON rejects malformed shape %j with MALFORMED_JSON',
+    (shape) => {
+      let caught: unknown
+      try {
+        Cadence.fromJSON(shape)
+      } catch (e) {
+        caught = e
+      }
+      expect((caught as DomainError)?.code).toBe('MALFORMED_JSON')
+    },
+  )
 })

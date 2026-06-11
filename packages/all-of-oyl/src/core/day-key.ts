@@ -2,13 +2,30 @@ import { DomainError } from './domain-error'
 
 const DAY_RE = /^(\d{4})-(\d{2})-(\d{2})$/
 
-export function assertTimezone(tz: string): string {
+const FORMATTERS = new Map<string, Intl.DateTimeFormat>()
+
+function formatterFor(tz: string): Intl.DateTimeFormat {
+  const cached = FORMATTERS.get(tz)
+  if (cached) return cached
+  let formatter: Intl.DateTimeFormat
   try {
-    new Intl.DateTimeFormat('en-CA', { timeZone: tz })
-    return tz
+    // en-CA formats as YYYY-MM-DD
+    formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })
   } catch {
     throw new DomainError('INVALID_TIMEZONE', `unknown IANA timezone: "${tz}"`)
   }
+  FORMATTERS.set(tz, formatter)
+  return formatter
+}
+
+export function assertTimezone(tz: string): string {
+  formatterFor(tz)
+  return tz
 }
 
 export class DayKey {
@@ -20,15 +37,7 @@ export class DayKey {
 
   /** Bucket an instant into a calendar day in an explicit IANA timezone. */
   static from(instant: Date, tz: string): DayKey {
-    assertTimezone(tz)
-    // en-CA formats as YYYY-MM-DD
-    const formatted = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(instant)
-    return new DayKey(formatted)
+    return new DayKey(formatterFor(tz).format(instant))
   }
 
   static of(value: string): DayKey {

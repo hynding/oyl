@@ -47,4 +47,17 @@ describe('Quantity', () => {
     expect(Quantity.of(2, 'servings').toJSON()).toEqual({ amount: 2, unit: 'servings' })
     expect(Quantity.fromJSON({ amount: 2, unit: 'servings' }).amount).toBe(2)
   })
+
+  it.each([null, 42, {}, { amount: 2 }, { unit: 'min' }, { amount: '2', unit: 'min' }])(
+    'fromJSON rejects malformed shape %j with MALFORMED_JSON',
+    (shape) => {
+      let caught: unknown
+      try {
+        Quantity.fromJSON(shape)
+      } catch (e) {
+        caught = e
+      }
+      expect((caught as DomainError)?.code).toBe('MALFORMED_JSON')
+    },
+  )
 })

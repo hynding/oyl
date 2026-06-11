@@ -57,4 +57,17 @@ describe('Money', () => {
     expect(Money.fromMajor(42.1, 'USD', 2).minor).toBe(4210)
     expect(Money.fromMajor(0.30000000000000004, 'USD', 2).minor).toBe(30)
   })
+
+  it.each([null, 42, {}, { minor: 100 }, { minor: 100, currency: 'USD' }, { minor: '100', currency: 'USD', exponent: 2 }])(
+    'fromJSON rejects malformed shape %j with MALFORMED_JSON',
+    (shape) => {
+      let caught: unknown
+      try {
+        Money.fromJSON(shape)
+      } catch (e) {
+        caught = e
+      }
+      expect((caught as DomainError)?.code).toBe('MALFORMED_JSON')
+    },
+  )
 })
