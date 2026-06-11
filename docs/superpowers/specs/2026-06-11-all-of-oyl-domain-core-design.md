@@ -157,6 +157,20 @@ Plus `InMemoryRepository<T>` — the reference implementation, used by tests. Ap
 
 `Journal`, `Planner`, and `Vault` are plain in-memory aggregates, not repository-backed: apps load items from their repositories and hydrate the roots to ask questions of them. This keeps every method synchronous and trivially testable.
 
+## Code design decisions
+
+- **Zero runtime dependencies.** The package keeps no production deps (the existing `rrule` is not used by `src/`). Ids come from `crypto.randomUUID()`; timezone math uses the platform `Intl` APIs. A pure domain layer that needs nothing installed is maximally portable across the Vite/Next/Strapi consumers.
+- **Two tiers of value object.** `Id` and `MetricKey` are **branded strings** (`string & { readonly __brand: 'Id' }`) created through validating factory functions — zero allocation, `===` equality, JSON-native. `Money`, `Quantity`, `DayKey`, and `Cadence` are **classes** with `equals()`, since they carry structure and behavior. Don't pay for a class where a brand suffices.
+- **Construction style.** One pattern everywhere: constructors take a single named-props object and validate; static factories exist only where they add meaning (`Money.usd(4210)`, `DayKey.from(date, tz)`, `Id.create()`). No builders, no `init()` methods — an object that exists is valid.
+- **Immutability split.** Value objects and entries are deeply immutable (`readonly` fields). Aggregate roots (`Journal`, `Planner`, `Vault`) and stateful entities (`Goal` pause state, `Task` status) mutate in place — they're in-memory aggregates, and copy-on-write would buy nothing here. All getters return readonly views (`ReadonlyArray`, `ReadonlyMap`); internal collections never escape.
+- **Equality semantics.** Entities compare by `id`; value objects by value. No generic deep-equal utility — each class states its own rule.
+- **Explicit time, no hidden clock.** Nothing in the domain calls `Date.now()` or reads the system timezone. Every time-sensitive operation takes its reference point as a parameter (`occurredAt`, `asOf`, `day`, `tz`). This makes every test deterministic without clock mocking and every result reproducible.
+- **Serialization built in.** Every persistable class has `toJSON(): PlainShape` and a static `fromJSON(shape)`. `Entry` and `Plan` subclasses carry a `kind` discriminant so a single dispatcher can revive a heterogeneous list. Dates serialize as ISO strings, `DayKey` as `YYYY-MM-DD`, `Money` as `{ minor, currency }`. Round-tripping (`fromJSON(toJSON(x))` equals `x`) is a standing test for every class.
+- **Inheritance budget: two.** `Entry` and `Plan` are the only abstract classes; everything else composes. New behavior enters via the `metrics()` and `Due` contracts, not subclass trees.
+- **Import discipline.** Domain modules (`activity/`, `nutrition/`, `finance/`, `goal/`, `track/`, `plan/`, `vault/`) import from `core/` only — never from each other. `insights/` may import anything. `index.ts` is the only barrel; files are kebab-case, one class per file, named exports only (no `default`).
+- **Strict TypeScript.** `strict`, `noUncheckedIndexedAccess`, and `exactOptionalPropertyTypes` on for `src/`. No `any`; `unknown` only at the `fromJSON` boundary, narrowed immediately. ESM modules.
+- **Errors are exceptions, results are values.** Invalid operations throw `DomainError` with a `code` from a closed union type (`'INVALID_ID' | 'CURRENCY_MISMATCH' | ...`); queries return `undefined`/empty/zero. No Result/Either types — this is an in-process domain layer, not an IO boundary.
+
 ## Error handling
 
 - Invalid construction throws `DomainError` (single error class, `code` field) — invalid id format, negative servings, mismatched currency/unit arithmetic, malformed metric keys, target ≤ 0, completing an already-canceled plan.
