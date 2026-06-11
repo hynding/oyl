@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { DomainError } from './domain-error'
 
 export type Id = string & { readonly __brand: 'Id' }
@@ -5,7 +6,7 @@ export type Id = string & { readonly __brand: 'Id' }
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 function create(): Id {
-  return crypto.randomUUID() as Id
+  return randomUUID() as Id
 }
 
 function of(value: string): Id {
