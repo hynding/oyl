@@ -5,7 +5,7 @@
 
 ## Purpose
 
-A DRY, minimalistic set of TypeScript classes that can drive a complete "Organize Your Life" application: what you **did** (activities, meals, spending, sleep, mood, vitals), what you **intend** (tasks, projects, appointments, meal plans), what you **have** (documents, possessions, subscriptions, contacts), and what it all **means** (goals, budgets, streaks, reviews, correlations). Pure domain layer — no HTTP, no Strapi, no storage technology. Built test-first with Vitest.
+A DRY, minimalistic set of TypeScript classes that can drive a complete "Organize Your Life" application: what you **did** (activities, meals, spending, sleep, mood, vitals), what you **intend** (tasks, projects, appointments, meal plans), what you **have** (documents, possessions, subscriptions, contacts), what it all **means** (goals, budgets, streaks, reviews, correlations), and **who you share it with** (a user shape, connections, and scoped progress/day-plan sharing). Pure domain layer — no HTTP, no Strapi, no storage technology. Built test-first with Vitest.
 
 ## Architecture: three roots and a read side
 
@@ -17,8 +17,9 @@ Everything hangs off three aggregate roots plus one read-side module, all sharin
 | **`Planner`** | What's supposed to happen? | `Plan` items (tasks, appointments, planned meals) with due dates and fulfillment links |
 | **`Vault`** | What do I have? | Registry items (documents, possessions, subscriptions, contacts) that surface due dates |
 | **`insights/`** | What does it mean? | Pure functions over the Journal: goals feed off it; streaks, reviews, correlations |
+| **`user/` + `share/`** | Who am I, and who sees what? | `User` profile; `Connection` and scoped `Grant`s for sharing progress and day plans |
 
-The library is **single-user by design**: one `Journal`/`Planner`/`Vault` triple is one person's life. Multi-user apps instantiate per user. No `userId` plumbing anywhere.
+The roots are **per-person by design**: one `Journal`/`Planner`/`Vault` triple is one person's life, so no `userId` ever appears inside them. The person themself has a shape (`user/`), and people connect to each other through explicit, scoped grants (`share/`) — see "Users, security, and sharing." Cross-user orchestration (auth, lookup, transport) belongs to the app.
 
 ### The two unifying contracts
 
@@ -37,9 +38,11 @@ packages/all-of-oyl/src/
   finance/     Account (definition), Transaction (entry)
   goal/        Goal, GoalProgress, Budget
   track/       Measurement (entry), Note (entry)
-  plan/        Task, Project, Appointment, PlannedMeal, Planner (root)
+  plan/        Task, Project, Appointment, PlannedMeal, DayPlan, Planner (root)
   vault/       Document, Possession, Subscription, Contact, GiftIdea, Vault (root)
-  insights/    streaks, review, correlate
+  user/        User (profile)
+  share/       Connection, Grant
+  insights/    streaks, review, correlate, sharedProgress
   index.ts     public surface
 ```
 
@@ -62,7 +65,7 @@ Tests are colocated: `core/money.test.ts` next to `core/money.ts`, etc.
 ## Journal: records of what happened
 
 - **`Entry`** (abstract): `id`, `occurredAt` (Date), optional `note`, `metrics()`.
-- **`Journal`**: constructed with an explicit IANA timezone — the one place the timezone decision lives. Entries store instants (`occurredAt`); the Journal buckets them into `DayKey`s using its timezone, so `entriesOn(day)`, `entriesIn(range)`, and every period window agree on where days begin. (Entries logged while traveling land on the day of your home journal — an accepted simplification.)
+- **`Journal`**: constructed with an explicit IANA timezone — the one place the timezone decision lives; apps pass `user.timezone` when hydrating a person's roots. Entries store instants (`occurredAt`); the Journal buckets them into `DayKey`s using its timezone, so `entriesOn(day)`, `entriesIn(range)`, and every period window agree on where days begin. (Entries logged while traveling land on the day of your home journal — an accepted simplification.)
 - Query surface: `add(entry)` / `remove(id)`, `entriesOn(day)`, `entriesIn(range)` (collection queries are named for what they return; bare `on()` would read like an event-listener registration), `span(): DayRange | undefined` (first to last entry day — bounds streak walks and review deltas), `aggregate(metric, range, kind: 'sum' | 'avg' | 'last')`, `totalOf(metric, range)` (alias for `aggregate(..., 'sum')`), and `totalsByPrefix(prefix, range): ReadonlyMap<MetricKey, number>` — the enumerating sibling of `totalOf` that powers "top spending categories" and "minutes per activity" without a second aggregation path.
 
 **Counters vs. gauges.** Summing is right for counters (calories, minutes, dollars) but nonsense for gauges — two weigh-ins of 80 kg are not 160 kg. Hence the `kind` parameter: `'last'` (most recent value in range) and `'avg'` serve gauge metrics like `body.weight_kg` and `mood.score`. Goals carry a matching optional `aggregation` (default `'sum'`), so "weigh at most 80 kg" is `{ metric: "body.weight_kg", target: 80, direction: "atMost", period: "day", aggregation: "last" }`.
@@ -96,7 +99,8 @@ Definitions live in **`Catalog<T>`** instances (a small keyed collection in `cor
 - **`Project`** — a named group of tasks, optional `areaId`; `progress(planner)` = done/total of its tasks.
 - **`Appointment`** — a plan with a specific `startsAt` (Date) and optional duration; calendar/time-blocking primitive. Its `due` day is derived at construction from `startsAt` + an explicit IANA timezone argument (same no-hidden-clock rule as everywhere else).
 - **`PlannedMeal`** — Food + servings + day; fulfilled by a `Consumption`. `planner.groceryList(range): ReadonlyMap<Id, Quantity>` aggregates servings per Food id across the range's planned meals.
-- **`Planner`** (root): `add/remove`, `dueOn(day)`, `overdue(day)` (open plans with `due < day`), `upcoming(range)`, `completionRate(range)` (done ÷ (done + open) among plans due in the range; canceled plans are excluded from both sides).
+- **`DayPlan`** — the day-by-day planning primitive: one per `DayKey`, an ordered list of slots, each referencing a plan id with an optional time box (`start`/`end` times). `planner.agendaFor(day)` derives the default agenda (appointments sorted by `startsAt`, then tasks due, then planned meals); a `DayPlan` is the user's edited version of that — reordered, time-boxed, with slots they chose to defer. At most one `DayPlan` per day; `planner.dayPlanFor(day)` returns it or the derived default.
+- **`Planner`** (root): `add/remove`, `dueOn(day)`, `overdue(day)` (open plans with `due < day`), `upcoming(range)`, `agendaFor(day)`, `dayPlanFor(day)`, `completionRate(range)` (done ÷ (done + open) among plans due in the range; canceled plans are excluded from both sides).
 
 **Planned vs. actual** is the payoff of fulfillment links: the planner knows what was intended, the journal knows what happened, and the link makes adherence computable (meals followed, tasks done on time) without either side knowing the other's internals.
 
@@ -109,6 +113,36 @@ Not time-series — these live beside the Journal, keyed collections with one sh
 - **`Subscription`** — name, `amount: Money`, `cadence: Cadence`, `nextRenewal: DayKey`, category, optional `accountId`. `renew(on: DayKey)` advances `nextRenewal` and returns a `Transaction` (dated `on`, charged to `accountId`) for the caller to add to the Journal — the registry that *generates* finance entries. `vault.monthlySubscriptionTotal(): Money` answers "what do my subscriptions cost per month?" (annual amounts prorated).
 - **`Contact`** — name, optional `lastContactedOn`, occasions (name + anchor `DayKey` + `Cadence`, e.g. birthday = anchor date, yearly); an occasion's `nextDueOn(asOf)` is its next occurrence on or after `asOf`, correct across year boundaries. `staleness(day)` supports "you haven't talked to Sam in 3 months" nudges.
 - **`GiftIdea`** — text + contact link; surfaces alongside that contact's next occasion.
+
+## Users, security, and sharing
+
+### The user shape
+
+**`User`** (`user/` module, imports core only) is the person's *profile*, not their credentials: `id`, `displayName`, `timezone` (IANA — the value every root is hydrated with), `defaultCurrency`, optional `units` preference (`metric | imperial`). Deliberately excluded: email, password hashes, OAuth identities, sessions — authentication identity is the app/backend's record, linked to the domain `User` by id. The domain holds the minimum PII that features actually need (a display name), which keeps the whole layer cheap to protect and trivial to erase.
+
+### Connections and grants
+
+Two small classes in `share/` (imports core only — scopes reference goals/areas by `Id` and metrics by `MetricKey`, never by type):
+
+- **`Connection`** — a pair of user ids with a status machine: `invited → accepted`, either side may move to `blocked`; only `accepted` carries any visibility. Invitations expire-able by the app; the domain just enforces legal transitions (`accept()` on a blocked connection throws).
+- **`Grant`** — *what* one user lets a specific connection see. Fields: `connectionId`, `scope`, optional `expiresOn`, `revokedAt`. Scopes are a closed union:
+  - `goal-progress(goalId)` — that goal's `GoalProgress` + streak, nothing else
+  - `area-summary(areaId)` — the per-area rollup from reviews
+  - `metric(prefix)` — daily aggregates under a metric prefix (e.g., `activity.run`)
+  - `day-plan` — the shared day-by-day view for co-planning (partner, trainer, accountability buddy)
+
+### Security model (domain-level)
+
+- **Default-deny.** Nothing is visible across users without an `accepted` Connection *and* a live (unrevoked, unexpired) Grant. There is no query path that crosses users — sharing is not a filter on someone else's Journal; it is a separate, explicit projection.
+- **Derived data only.** Grants expose progress, streaks, summaries, and agendas — never raw entries. A friend sees "ran 150 min this week, streak 12," not your GPS-adjacent activity log, your meals, or a transaction. Raw-entry sharing deliberately does not exist in v1.
+- **One projection function.** `insights/sharedProgress({ journal, planner, goals, grants, viewerId, asOf })` builds the complete view a viewer is entitled to, from their grants alone. Apps render only what it returns — there is exactly one place where cross-user visibility logic lives, so there is exactly one place it can be wrong.
+- **Revocation is immediate and total**: `grant.revoke(on)` makes the grant dead for all future projections; nothing is grandfathered.
+- **Erasure-friendly by construction.** Everything a person owns hangs off roots and catalogs keyed by their id; deleting a user is deleting those aggregates plus their connections/grants. No tombstones, no orphaned references to chase.
+- **Out of the domain, named explicitly**: authentication, sessions/tokens, transport security, at-rest encryption, and rate limiting are app/backend obligations. The domain's contribution to security is a sharing model that is *small enough to audit*.
+
+### Day-by-day planning, shared
+
+`DayPlan` (see Planner) is the unit of co-planning: a `day-plan` grant lets a partner or coach view your agenda alongside theirs. Mutation stays owner-only in v1 — shared *editing* is a future concern, flagged in "Extending the app's purpose," because concurrent edits demand conflict semantics the domain shouldn't improvise.
 
 ## Life areas: the top-level taxonomy
 
@@ -177,7 +211,7 @@ Plus `InMemoryRepository<T>` — the reference implementation, used by tests. Ap
 - **Explicit time, no hidden clock.** Nothing in the domain calls `Date.now()` or reads the system timezone. Every time-sensitive operation takes its reference point as a parameter (`occurredAt`, `asOf`, `day`, `tz`). This makes every test deterministic without clock mocking and every result reproducible.
 - **Serialization built in.** Every persistable class has `toJSON(): PlainShape` and a static `fromJSON(shape)`. `Entry` and `Plan` subclasses carry a `kind` discriminant so a single dispatcher can revive a heterogeneous list. Dates serialize as ISO strings, `DayKey` as `YYYY-MM-DD`, `Money` as `{ minor, currency, exponent }`. Malformed input throws `DomainError('MALFORMED_JSON')`. No version field in the shapes — structural validation suffices until the first breaking change (YAGNI). Round-tripping (`fromJSON(toJSON(x))` equals `x`) is a standing test for every class.
 - **Inheritance budget: two.** `Entry` and `Plan` are the only abstract classes; everything else composes. New behavior enters via the `metrics()` and `Due` contracts, not subclass trees.
-- **Import discipline.** Domain modules (`activity/`, `nutrition/`, `finance/`, `goal/`, `track/`, `plan/`, `vault/`) import from `core/` only — never from each other. `insights/` may import anything. `index.ts` is the only barrel; files are kebab-case, one class per file, named exports only (no `default`).
+- **Import discipline.** Domain modules (`activity/`, `nutrition/`, `finance/`, `goal/`, `track/`, `plan/`, `vault/`, `user/`, `share/`) import from `core/` only — never from each other. `insights/` may import anything. `index.ts` is the only barrel; files are kebab-case, one class per file, named exports only (no `default`).
 - **Strict TypeScript.** `strict`, `noUncheckedIndexedAccess`, and `exactOptionalPropertyTypes` on for `src/`. No `any`; `unknown` only at the `fromJSON` boundary, narrowed immediately. ESM modules.
 - **Errors are exceptions, results are values.** Invalid operations throw `DomainError` with a `code` from a closed union type (`'INVALID_ID' | 'CURRENCY_MISMATCH' | ...`); queries return `undefined`/empty/zero. No Result/Either types — this is an in-process domain layer, not an IO boundary.
 
@@ -203,18 +237,19 @@ Every name in the public surface follows one of these rules; a name that fits no
 
 - Vitest, strict red-green-refactor. Each class begins life as a failing test.
 - No mocking frameworks: the domain is pure; tests construct real objects and use `InMemoryRepository`.
-- Behavioral coverage targets: timezone edges for `DayKey`, `Cadence` month-end arithmetic (Jan 31 + 1 month), currency/unit mismatch rejection, snapshot semantics of `Consumption`, period-window resolution for weekly/monthly goals, atMost vs atLeast ratio semantics, recurring-task respawn, subscription `renew()` producing a correct `Transaction`, streak boundary conditions, streak bridging across paused ranges (incl. open-ended pause + resume), pause ranges overlapping period boundaries, gauge aggregation (`last`/`avg` with multiple same-day measurements, empty ranges), occasion recurrence across year boundaries (incl. Feb 29 birthdays), per-area rollup with untagged items, correlation with missing days.
+- Behavioral coverage targets: timezone edges for `DayKey`, `Cadence` month-end arithmetic (Jan 31 + 1 month), currency/unit mismatch rejection, snapshot semantics of `Consumption`, period-window resolution for weekly/monthly goals, atMost vs atLeast ratio semantics, recurring-task respawn, subscription `renew()` producing a correct `Transaction`, streak boundary conditions, streak bridging across paused ranges (incl. open-ended pause + resume), pause ranges overlapping period boundaries, gauge aggregation (`last`/`avg` with multiple same-day measurements, empty ranges), occasion recurrence across year boundaries (incl. Feb 29 birthdays), per-area rollup with untagged items, correlation with missing days, connection state machine (illegal transitions throw; blocked carries no visibility), default-deny in `sharedProgress` (no connection / no grant / revoked / expired all yield nothing), grant scoping (a `goal-progress` grant leaks no other goal), and `agendaFor` ordering with overlapping time boxes.
 
 ## Build phases
 
 Each phase is independently shippable and gets its own implementation plan. Order matters: every phase depends only on what came before.
 
-1. **Core spine** — value objects (`Id`, `DayKey`, `DayRange`, `Cadence`, `Quantity`, `Money`, `MetricKey`, `DomainError`), `LifeArea`, `Catalog`, `Entry`, `Journal` (incl. aggregation kinds), `Repository`/`InMemoryRepository`.
+1. **Core spine** — value objects (`Id`, `DayKey`, `DayRange`, `Cadence`, `Quantity`, `Money`, `MetricKey`, `DomainError`), `LifeArea`, `Catalog`, `Entry`, `Journal` (incl. aggregation kinds), `Repository`/`InMemoryRepository`, plus `User` (the profile every root is hydrated from).
 2. **Recording domains** — activity, nutrition, finance, plus `track/` (`Measurement`, `Note`). After this phase the app can log a whole life.
 3. **Goals & budgets** — `Goal` (incl. pause semantics), `GoalProgress`, `Budget`.
-4. **Planner** — `Task`, `Project`, `Appointment`, `PlannedMeal`, `Planner` root, fulfillment links, grocery list (`Plan` abstract ships in phase 1 with core).
+4. **Planner** — `Task`, `Project`, `Appointment`, `PlannedMeal`, `DayPlan`/`agendaFor`, `Planner` root, fulfillment links, grocery list (`Plan` abstract ships in phase 1 with core).
 5. **Vault** — the five registries, the shared `Due` feed, subscription→transaction generation.
 6. **Insights** — `streak`, `review`, `correlate`.
+7. **Sharing** — `Connection`, `Grant`, `insights/sharedProgress`. Last on purpose: it projects everything the earlier phases build.
 
 ## Extending the app's purpose
 
@@ -231,8 +266,10 @@ The purpose *will* grow (sleep coaching, career tracking, household sharing — 
 
 **The reviver lives in `index.ts`.** Deserializing a heterogeneous entry list needs a `kind → fromJSON` map that knows every subclass — and the barrel is the *only* file allowed to know all modules. `reviveEntry(json)` / `revivePlan(json)` are assembled there, never in `core/` (which can't import upward) and never in a domain module (which can't import siblings). An unknown `kind` throws `DomainError('UNKNOWN_KIND')` — louder and safer than silently dropping a user's data.
 
-**What growth must never do:** add a second aggregation path, a second recurrence-of-duty mechanism, a third abstract class, or a cross-domain import. If a new feature seems to need one of these, the feature is mis-factored — recheck against the `metrics()`/`Due` contracts first.
+**Known future concerns, parked deliberately:** shared *editing* of day plans (concurrent mutation needs conflict semantics — owner-only writes until then), grant scopes for raw entries (privacy decision, not a technical one), and group connections (households/teams — model as multiple pairwise connections until that visibly hurts).
+
+**What growth must never do:** add a second aggregation path, a second recurrence-of-duty mechanism, a third abstract class, a cross-domain import, or a second place where cross-user visibility is decided (`sharedProgress` is the only one). If a new feature seems to need one of these, the feature is mis-factored — recheck against the `metrics()`/`Due` contracts first.
 
 ## Out of scope
 
-Complex recurrence (rrule — `Cadence` is the extension seam), multi-currency conversion, goal milestones, sync/offline semantics, notification delivery (the domain surfaces dues; apps decide how to notify), and any UI or API concerns. Wiring `src/index.ts` into the package's `exports` map (so apps import it alongside the legacy `modules/*`) is an integration step taken when the first consumer adopts the new core, not part of this design.
+Complex recurrence (rrule — `Cadence` is the extension seam), multi-currency conversion, goal milestones, sync/offline semantics, notification delivery (the domain surfaces dues; apps decide how to notify), authentication/sessions/tokens, transport and at-rest encryption, user discovery/search, and any UI or API concerns. Wiring `src/index.ts` into the package's `exports` map (so apps import it alongside the legacy `modules/*`) is an integration step taken when the first consumer adopts the new core, not part of this design.
