@@ -17,6 +17,8 @@ export class Journal {
   /** Insertion order is the documented tie-break for 'last'. */
   private readonly entries: Entry[] = []
   private readonly byId = new Set<Id>()
+  /** Entries are immutable and tz is fixed, so an entry's day never changes. */
+  private readonly dayCache = new WeakMap<Entry, DayKey>()
 
   constructor(tz: string) {
     this.tz = assertTimezone(tz)
@@ -33,12 +35,18 @@ export class Journal {
   /** Idempotent — removing a missing id is a no-op. */
   remove(id: Id): void {
     if (!this.byId.delete(id)) return
+    // Set and array must mutate together — no throwing calls between them.
     const index = this.entries.findIndex((e) => e.id === id)
     this.entries.splice(index, 1)
   }
 
   dayOf(entry: Entry): DayKey {
-    return DayKey.from(entry.occurredAt, this.tz)
+    let d = this.dayCache.get(entry)
+    if (!d) {
+      d = DayKey.from(entry.occurredAt, this.tz)
+      this.dayCache.set(entry, d)
+    }
+    return d
   }
 
   entriesOn(day: DayKey): readonly Entry[] {

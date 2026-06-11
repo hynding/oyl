@@ -66,6 +66,8 @@ describe('InMemoryRepository', () => {
     const includingDeleted = await repo.list({ includeDeleted: true })
     expect(includingDeleted).toHaveLength(1)
     expect(includingDeleted[0]?.meta?.deletedAt).toBeInstanceOf(Date)
+    const meta = includingDeleted[0]?.meta
+    expect(meta?.updatedAt.getTime()).toBe(meta?.deletedAt?.getTime())
   })
 
   it('purge removes entirely; idempotent; save after purge recreates', async () => {

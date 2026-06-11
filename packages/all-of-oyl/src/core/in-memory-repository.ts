@@ -53,7 +53,8 @@ export class InMemoryRepository<T extends { id: Id; meta?: PersistedMeta }> impl
   async delete(id: Id): Promise<void> {
     const stored = this.records.get(id)
     if (!stored || !stored.meta || stored.meta.deletedAt) return
-    stored.meta = { ...stored.meta, updatedAt: this.clock(), revision: stored.meta.revision + 1, deletedAt: this.clock() }
+    const now = this.clock()
+    stored.meta = { ...stored.meta, updatedAt: now, revision: stored.meta.revision + 1, deletedAt: now }
   }
 
   async purge(id: Id): Promise<void> {
