@@ -9,7 +9,7 @@
     "exactOptionalPropertyTypes": true,
     "allowJs": false,
     "jsx": "preserve",
-    "types": ["vitest/globals", "node"],
+    "types": ["vitest/globals"],
     "incremental": false
   },
   "include": ["./**/*.ts"]
