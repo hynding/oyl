@@ -1,5 +1,6 @@
 import { DomainError } from './domain-error'
 
+// Platform global (Node 19+/browsers/edge); typed locally because the src tsconfig restricts `types` to vitest/globals.
 declare const crypto: { randomUUID(): string }
 
 export type Id = string & { readonly __brand: 'Id' }

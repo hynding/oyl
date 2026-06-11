@@ -9,7 +9,7 @@ export class LifeArea {
   readonly slug: string
   /** Repo-owned storage bookkeeping; outside the immutability rule. */
   meta?: PersistedMeta
-  /** Tolerant reader: unknown JSON fields preserved through round-trips. */
+  /** Tolerant reader: unknown JSON fields preserved through round-trips. Only ever spread into fresh object literals — never Object.assign or bracket-assign onto an existing object (prototype-pollution guard). */
   private readonly extra: Record<string, unknown>
 
   constructor(props: { id?: Id; name: string; slug: string }, extra: Record<string, unknown> = {}) {
