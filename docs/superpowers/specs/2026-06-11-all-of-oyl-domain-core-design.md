@@ -30,8 +30,8 @@ The library is **single-user by design**: one `Journal`/`Planner`/`Vault` triple
 ```
 packages/all-of-oyl/src/
   core/        Id, DayKey, Cadence, Quantity, Money, MetricKey, DomainError,
-               Entry (abstract), Journal, Plan (abstract), Planner, Vault,
-               Due interface, Repository<T>, InMemoryRepository<T>
+               LifeArea, Entry (abstract), Journal, Plan (abstract), Planner,
+               Vault, Due interface, Repository<T>, InMemoryRepository<T>
   activity/    Activity (definition), ActivityLog (entry)
   nutrition/   FoodItem (definition), Consumption (entry)
   finance/     Account (definition), Transaction (entry), Budget
@@ -75,7 +75,7 @@ Tests are colocated: `core/money.test.ts` next to `core/money.ts`, etc.
 
 Each concrete domain splits into a reusable **definition** and dated **entries** that reference it by id:
 
-- **`Activity`** — name, slug, optional default unit ("Run", "Meditate").
+- **`Activity`** — name, slug, optional default unit, optional `areaId` ("Run", "Meditate").
 - **`FoodItem`** — name, nutrients per serving (calories/protein/carbs/fat/water).
 - **`Account`** — name, currency. Transactions belong to an account; currency must match.
 
@@ -85,7 +85,7 @@ Definitions live in typed catalogs on the `Journal`. Entries capture a snapshot 
 
 - **`Plan`** (abstract): `id`, `title`, optional `due` (DayKey), `status` (`open | done | canceled`), optional `fulfilledBy: Id[]` linking to the Journal entries that satisfied it. `complete(entryId?)` sets status and records the link.
 - **`Task`** — the plain to-do; optional `projectId`, optional `cadence` (recurring chores: completing a recurring task spawns the next occurrence via `Cadence.nextAfter`).
-- **`Project`** — a named group of tasks; `progress(planner)` = done/total of its tasks.
+- **`Project`** — a named group of tasks, optional `areaId`; `progress(planner)` = done/total of its tasks.
 - **`Appointment`** — a plan with a specific `startsAt` (Date) and optional duration; calendar/time-blocking primitive.
 - **`PlannedMeal`** — FoodItem + servings + day; fulfilled by a `Consumption`. Planner can emit a grocery list: aggregate FoodItems across a date range.
 - **`Planner`** (root): `add/remove`, `dueOn(day)`, `overdue(day)`, `upcoming(range)`, `completionRate(range)`.
@@ -103,6 +103,10 @@ Not time-series — these live beside the Journal, keyed collections with one sh
 - **`Contact`** — name, optional `lastContactedOn`, occasions (named day+cadence, e.g. birthday yearly); `staleness(day)` supports "you haven't talked to Sam in 3 months" nudges.
 - **`GiftIdea`** — text + contact link; surfaces alongside that contact's next occasion.
 
+## Life areas: the top-level taxonomy
+
+People organize their lives by *area* — health, family, career, money, growth — not by data type. **`LifeArea`** (in `core/`) is a minimal definition: `id`, `name`, `slug`. Apps hold the catalog (a user typically has 4–8). `Activity`, `Goal`, and `Project` carry an optional `areaId`. That single tag is enough for the read side to answer *"which areas am I investing in, and which am I neglecting?"* — the life-wheel view. Untagged items roll up into an implicit "unassigned" bucket; areas are an overlay, never a requirement.
+
 ## Goals, budgets, and insights (the read side)
 
 ### Goal
@@ -113,8 +117,16 @@ new Goal({ metric: "activity.run.minutes", target: 150, direction: "atLeast", pe
 new Goal({ metric: "sleep.hours", target: 7, direction: "atLeast", period: "day" })
 ```
 
-- `period`: `day | week | month`. `direction`: `atLeast | atMost`.
-- `progressOn(journal, day): GoalProgress` — resolves the period window containing `day`, sums via `journal.totalOf`, returns `{ current, target, ratio, met }`. `ratio` clamped to [0, 1]: attainment for `atLeast`, consumption-of-allowance for `atMost`.
+- `period`: `day | week | month`. `direction`: `atLeast | atMost`. Optional `areaId`.
+- `progressOn(journal, day): GoalProgress` — resolves the period window containing `day`, sums via `journal.totalOf`, returns `{ current, target, ratio, met, paused }`. `ratio` clamped to [0, 1]: attainment for `atLeast`, consumption-of-allowance for `atMost`.
+
+### Pause semantics (humane tracking)
+
+Streaks motivate until life intervenes — then a broken 90-day streak makes people quit the app. Goals support paused ranges:
+
+- `goal.pause(from: DayKey, to?: DayKey)` — `to` omitted means "until resumed" (vacation mode); `goal.resume(on: DayKey)` closes an open pause. Ranges with `to < from` throw `DomainError`.
+- A period window that overlaps any paused range is **paused**: `progressOn` still reports numbers but sets `paused: true`, and `met` is not asserted either way.
+- Streak math **bridges** paused periods: they neither break nor extend a streak. A 30-day streak, a two-week pause, and a met day resumes at 31.
 
 ### Budget
 
@@ -124,8 +136,8 @@ Sugar over the goal engine: per-category, per-month spending control. `budget.sp
 
 Pure functions over the Journal (and Planner where noted) — zero new data entry, pure read-side analysis:
 
-- **`streak(journal, goal, asOf): number`** — consecutive periods (ending at `asOf`) where the goal was met. Works for any goal, any domain.
-- **`review(journal, planner, goals, period): Review`** — the weekly/monthly/annual review object: per-goal progress and streaks, top spending categories, activity totals, planner completion rate, and period-over-period deltas. A `Review` is plain data an app can render.
+- **`streak(journal, goal, asOf): number`** — consecutive periods (ending at `asOf`) where the goal was met. Works for any goal, any domain. Paused periods are bridged, not broken.
+- **`review(journal, planner, goals, period): Review`** — the weekly/monthly/annual review object: per-goal progress and streaks, top spending categories, activity totals, planner completion rate, period-over-period deltas, and a **per-area rollup** (goals met, activity minutes, and projects touched per `LifeArea` — the life-wheel data). A `Review` is plain data an app can render.
 - **`correlate(journal, metricA, metricB, range): number`** — Pearson correlation over daily totals of two metrics ("does mood track sleep?", "does spending spike when exercise drops?"). Returns NaN-safe r in [-1, 1]; requires a minimum number of overlapping days (else `undefined`).
 
 ## Persistence boundary
@@ -154,15 +166,15 @@ Plus `InMemoryRepository<T>` — the reference implementation, used by tests. Ap
 
 - Vitest, strict red-green-refactor. Each class begins life as a failing test.
 - No mocking frameworks: the domain is pure; tests construct real objects and use `InMemoryRepository`.
-- Behavioral coverage targets: timezone edges for `DayKey`, `Cadence` month-end arithmetic (Jan 31 + 1 month), currency/unit mismatch rejection, snapshot semantics of `Consumption`, period-window resolution for weekly/monthly goals, atMost vs atLeast ratio semantics, recurring-task respawn, subscription `renew()` producing a correct `Transaction`, streak boundary conditions, correlation with missing days.
+- Behavioral coverage targets: timezone edges for `DayKey`, `Cadence` month-end arithmetic (Jan 31 + 1 month), currency/unit mismatch rejection, snapshot semantics of `Consumption`, period-window resolution for weekly/monthly goals, atMost vs atLeast ratio semantics, recurring-task respawn, subscription `renew()` producing a correct `Transaction`, streak boundary conditions, streak bridging across paused ranges (incl. open-ended pause + resume), pause ranges overlapping period boundaries, per-area rollup with untagged items, correlation with missing days.
 
 ## Build phases
 
 Each phase is independently shippable and gets its own implementation plan. Order matters: every phase depends only on what came before.
 
-1. **Core spine** — value objects (`Id`, `DayKey`, `Cadence`, `Quantity`, `Money`, `MetricKey`, `DomainError`), `Entry`, `Journal`, `Repository`/`InMemoryRepository`.
+1. **Core spine** — value objects (`Id`, `DayKey`, `Cadence`, `Quantity`, `Money`, `MetricKey`, `DomainError`), `LifeArea`, `Entry`, `Journal`, `Repository`/`InMemoryRepository`.
 2. **Recording domains** — activity, nutrition, finance, plus `track/` (`Measurement`, `Note`). After this phase the app can log a whole life.
-3. **Goals & budgets** — `Goal`, `GoalProgress`, `Budget`.
+3. **Goals & budgets** — `Goal` (incl. pause semantics), `GoalProgress`, `Budget`.
 4. **Planner** — `Plan`, `Task`, `Project`, `Appointment`, `PlannedMeal`, fulfillment links, grocery list.
 5. **Vault** — all six registries, the shared `Due` feed, subscription→transaction generation.
 6. **Insights** — `streak`, `review`, `correlate`.
