@@ -33,4 +33,4 @@ pnpm --filter @oyl/e2e-oyl test --project=chromium # one browser only
 - `tests/off-search-and-cache.spec.ts` — OFF search returns intercepted results; second identical query hits the Strapi cache (no second OFF call fires).
 - `tests/barcode-manual-fallback.spec.ts` — barcode scanner manual entry triggers find-or-create + log.
 
-OFF traffic is intercepted via `page.route('**/openfoodfacts.{net,org}/api/v3/**', ...)`; tests never hit the real OFF API.
+OFF traffic is intercepted via `page.route('**/openfoodfacts.{net,org}/api/v2/**', ...)`; tests never hit the real OFF API. (Pinned to v2 because OFF v3 has no `/search` endpoint — see TODO.md.)

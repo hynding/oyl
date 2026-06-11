@@ -2,10 +2,11 @@
 //
 // Default CRUD is owner-scoped via the shared factory (find/findOne/create/
 // update/delete all enforce ownership automatically). On top of that we expose
-// two custom actions used by the daily UI:
+// three custom actions used by the daily UI:
 //
-//   GET  /user-dailies/:date  -> findOneByDate
-//   POST /user-dailies/:date  -> saveByDate
+//   GET  /user-dailies/:date            -> findOneByDate
+//   POST /user-dailies/:date            -> saveByDate
+//   GET  /user-dailies/aggregate/:date  -> findAggregate (batched sync seed)
 //
 // Custom actions don't get free enforcement, so they call the shared helpers
 // (assertDocumentOwned, injectOwnerFilter) instead of trusting the body.
@@ -20,7 +21,56 @@ import {
 
 const UID = 'api::user-daily.user-daily' as const
 
+// Mirror paths the frontend SyncEngine tracks. The aggregate response keys
+// rows by these paths so the client can seed all mirrors from one payload.
+// Keep in sync with packages/react-oyl/modules/data/sync/types.ts SYNCED_PATHS.
+const AGGREGATE_SOURCES = [
+  { path: 'user-dailies', uid: 'api::user-daily.user-daily', populate: ['activities', 'goals', 'nutrition'] },
+  { path: 'user-activities', uid: 'api::user-activity.user-activity', populate: ['activity', 'user_goal'] },
+  { path: 'user-activity-logs', uid: 'api::user-activity-log.user-activity-log', populate: ['user_activity', 'tags'] },
+  { path: 'user-goals', uid: 'api::user-goal.user-goal', populate: ['goal', 'parent_user_goal'] },
+  { path: 'user-goal-milestones', uid: 'api::user-goal-milestone.user-goal-milestone', populate: ['user_goal'], ownerPath: 'user_goal.user' },
+  { path: 'user-nutritions', uid: 'api::user-nutrition.user-nutrition', populate: ['nutrition_item'] },
+] as const
+
 export default createUserScopedController(UID, {}, ({ strapi }) => ({
+  async findAggregate(ctx: any) {
+    const user = ctx.state.user
+    if (!user) return ctx.unauthorized('You are not logged in')
+    const userId = user.id
+    const date = ctx.params.date
+
+    // Owner filter shape varies — user-goal-milestone is owned transitively
+    // through user_goal. Build the filter once per source.
+    const ownerFilter = (ownerPath: string) => {
+      if (ownerPath === 'user') return { user: { id: { $eq: userId } } }
+      // ownerPath like "user_goal.user"
+      const parts = ownerPath.split('.')
+      return parts.reduceRight<any>(
+        (acc, part, i) =>
+          i === parts.length - 1
+            ? { [part]: { id: { $eq: userId } } }
+            : { [part]: acc },
+        {},
+      )
+    }
+
+    const results = await Promise.all(
+      AGGREGATE_SOURCES.map(async source => {
+        const rows = await strapi.documents(source.uid).findMany({
+          filters: ownerFilter((source as any).ownerPath ?? 'user'),
+          populate: [...source.populate] as any,
+        })
+        return [source.path, rows] as const
+      }),
+    )
+
+    const paths: Record<string, unknown[]> = {}
+    for (const [path, rows] of results) paths[path] = rows
+
+    return { date, paths, meta: {} }
+  },
+
   async findOneByDate(ctx: any) {
     const user = ctx.state.user
     if (!user) return ctx.unauthorized('You are not logged in')

@@ -9,6 +9,7 @@ const mockRemote = (): RemoteClient => ({
   create: vi.fn(async (_p, b) => ({ id: 999, ...(b as object) }) as never),
   update: vi.fn(async (_p, id, b) => ({ id, ...(b as object) }) as never),
   remove: vi.fn(async () => {}),
+  findAggregate: vi.fn(async (date: string) => ({ date, paths: {} })),
 })
 
 describe('SyncEngine — read/write/subscribe', () => {
@@ -71,6 +72,76 @@ describe('SyncEngine — read/write/subscribe', () => {
     await e.refresh('user-activities')
     expect(e.readAll('user-activities')).toHaveLength(2)
     expect(e.state().lastSyncedAt).toBeDefined()
+    expect(e.state().lastSyncedAtByPath['user-activities']).toBeDefined()
+  })
+
+  it('refresh(maxAgeMs) short-circuits when the path is already fresh', async () => {
+    const remote = mockRemote()
+    ;(remote.findAll as ReturnType<typeof vi.fn>).mockResolvedValueOnce([{ id: 1 }])
+    const e = new SyncEngine(remote)
+    e.setUser('u1')
+    await e.refresh('user-activities')
+    expect(remote.findAll).toHaveBeenCalledTimes(1)
+    await e.refresh('user-activities', { maxAgeMs: 60_000 })
+    expect(remote.findAll).toHaveBeenCalledTimes(1) // skipped
+  })
+
+  it('seed() writes mirror without hitting remote', () => {
+    const remote = mockRemote()
+    const e = new SyncEngine(remote)
+    e.setUser('u1')
+    e.seed('user-activities', [{ id: 1, name: 'seeded' } as { id: number }])
+    expect(e.readAll('user-activities')).toHaveLength(1)
+    expect(remote.findAll).not.toHaveBeenCalled()
+    expect(e.state().lastSyncedAtByPath['user-activities']).toBeDefined()
+  })
+
+  it('refreshAggregate() seeds every path from one call', async () => {
+    const remote = mockRemote()
+    ;(remote.findAggregate as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      date: '2026-06-08',
+      paths: {
+        'user-activities': [{ id: 10, name: 'a' }],
+        'user-goals': [{ id: 20, name: 'g' }],
+      },
+    })
+    const e = new SyncEngine(remote)
+    e.setUser('u1')
+    await e.refreshAggregate('2026-06-08')
+    expect(remote.findAll).not.toHaveBeenCalled()
+    expect(e.readAll('user-activities')).toHaveLength(1)
+    expect(e.readAll('user-goals')).toHaveLength(1)
+  })
+
+  it('refresh() dedupes concurrent calls into a single remote request', async () => {
+    const remote = mockRemote()
+    let resolveFetch!: (rows: { id: number }[]) => void
+    ;(remote.findAll as ReturnType<typeof vi.fn>).mockReturnValueOnce(
+      new Promise((res) => { resolveFetch = res as never }),
+    )
+    const e = new SyncEngine(remote)
+    e.setUser('u1')
+    // Fire two concurrent refreshes — StrictMode's double-mount shape.
+    const p1 = e.refresh('user-activities')
+    const p2 = e.refresh('user-activities')
+    resolveFetch([{ id: 1 }])
+    await Promise.all([p1, p2])
+    expect(remote.findAll).toHaveBeenCalledTimes(1)
+  })
+
+  it('refreshAggregate() dedupes concurrent calls for the same date', async () => {
+    const remote = mockRemote()
+    let resolveAgg!: (payload: { date: string; paths: Record<string, unknown[]> }) => void
+    ;(remote.findAggregate as ReturnType<typeof vi.fn>).mockReturnValueOnce(
+      new Promise((res) => { resolveAgg = res as never }),
+    )
+    const e = new SyncEngine(remote)
+    e.setUser('u1')
+    const p1 = e.refreshAggregate('2026-06-08')
+    const p2 = e.refreshAggregate('2026-06-08')
+    resolveAgg({ date: '2026-06-08', paths: {} })
+    await Promise.all([p1, p2])
+    expect(remote.findAggregate).toHaveBeenCalledTimes(1)
   })
 })
 

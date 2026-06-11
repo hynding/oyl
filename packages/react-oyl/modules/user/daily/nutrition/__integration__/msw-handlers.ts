@@ -78,8 +78,8 @@ export function buildHandlers(store: IntegrationStore) {
       return HttpResponse.json({ data: doc })
     }),
 
-    // --- OFF v3 --------------------------------------------------------------
-    http.get(/.*\/api\/v3\/search/, ({ request }) => {
+    // --- OFF v2 (pinned: v3 has no /search yet) -----------------------------
+    http.get(/.*\/api\/v2\/search/, ({ request }) => {
       const url = new URL(request.url)
       const q = url.searchParams.get('search_terms') ?? ''
       store.events.push(`OFF search ${q}`)
@@ -87,7 +87,7 @@ export function buildHandlers(store: IntegrationStore) {
         store.offSearch?.(q) ?? { products: [], count: 0, page: 1, page_count: 0, page_size: 0 },
       )
     }),
-    http.get(/.*\/api\/v3\/product\/.+/, ({ request }) => {
+    http.get(/.*\/api\/v2\/product\/.+/, ({ request }) => {
       const url = new URL(request.url)
       const code = url.pathname.split('/').pop() ?? ''
       store.events.push(`OFF product ${code}`)

@@ -14,28 +14,30 @@ describe('openfoodfacts-client', () => {
   })
   afterEach(() => fetchSpy.mockRestore())
 
-  it('builds search URL and includes identification headers', async () => {
+  it('builds search URL and sends only CORS-safe headers + staging basic auth', async () => {
     const client = createOFFClient({
-      baseUrl: 'https://world.openfoodfacts.net/api/v3',
+      baseUrl: 'https://world.openfoodfacts.net/api/v2',
       appName: 'OYL/1.0',
       appVersion: '1.0',
       clientId: 'https://github.com/hynding/oyl',
     })
     await client.searchByQuery('oat milk', new AbortController().signal)
     const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit]
-    expect(url).toContain('https://world.openfoodfacts.net/api/v3/search?')
+    expect(url).toContain('https://world.openfoodfacts.net/api/v2/search?')
     expect(url).toContain('search_terms=oat+milk')
     expect(url).toContain(`fields=${encodeURIComponent(FIELDS)}`)
     const headers = init.headers as Record<string, string>
-    expect(headers['X-App-Name']).toBe('OYL/1.0')
-    expect(headers['X-App-Version']).toBe('1.0')
-    expect(headers['X-Client-Id']).toBe('https://github.com/hynding/oyl')
+    // X-App-Name / X-App-Version / X-Client-Id used to be sent here, but OFF's
+    // CORS preflight rejects custom headers from the browser, so they're gone.
+    expect(headers['X-App-Name']).toBeUndefined()
+    expect(headers['X-App-Version']).toBeUndefined()
+    expect(headers['X-Client-Id']).toBeUndefined()
     expect(headers['Authorization']).toBe('Basic ' + btoa('off:off'))
   })
 
   it('omits staging basic auth when base URL is production .org', async () => {
     const client = createOFFClient({
-      baseUrl: 'https://world.openfoodfacts.org/api/v3',
+      baseUrl: 'https://world.openfoodfacts.org/api/v2',
       appName: 'OYL/1.0',
       appVersion: '1.0',
       clientId: 'https://github.com/hynding/oyl',
@@ -49,7 +51,7 @@ describe('openfoodfacts-client', () => {
   it('builds barcode URL and returns null on 404', async () => {
     fetchSpy.mockResolvedValueOnce(new Response('not found', { status: 404 }))
     const client = createOFFClient({
-      baseUrl: 'https://world.openfoodfacts.net/api/v3',
+      baseUrl: 'https://world.openfoodfacts.net/api/v2',
       appName: 'OYL/1.0', appVersion: '1.0', clientId: 'x',
     })
     const result = await client.fetchByBarcode('1234567890123', new AbortController().signal)
@@ -57,10 +59,10 @@ describe('openfoodfacts-client', () => {
     expect(fetchSpy.mock.calls[0][0]).toContain('/product/1234567890123')
   })
 
-  it('returns null when v3 response status=0', async () => {
+  it('returns null when product response status=0', async () => {
     fetchSpy.mockResolvedValueOnce(new Response(JSON.stringify({ status: 0 }), { status: 200 }))
     const client = createOFFClient({
-      baseUrl: 'https://world.openfoodfacts.net/api/v3',
+      baseUrl: 'https://world.openfoodfacts.net/api/v2',
       appName: 'OYL/1.0', appVersion: '1.0', clientId: 'x',
     })
     expect(await client.fetchByBarcode('000', new AbortController().signal)).toBeNull()
@@ -69,7 +71,7 @@ describe('openfoodfacts-client', () => {
   it('throws on 5xx', async () => {
     fetchSpy.mockResolvedValueOnce(new Response('boom', { status: 503 }))
     const client = createOFFClient({
-      baseUrl: 'https://world.openfoodfacts.net/api/v3',
+      baseUrl: 'https://world.openfoodfacts.net/api/v2',
       appName: 'OYL/1.0', appVersion: '1.0', clientId: 'x',
     })
     await expect(client.searchByQuery('x', new AbortController().signal)).rejects.toThrow(/503/)
@@ -79,7 +81,7 @@ describe('openfoodfacts-client', () => {
     const controller = new AbortController()
     controller.abort()
     const client = createOFFClient({
-      baseUrl: 'https://world.openfoodfacts.net/api/v3',
+      baseUrl: 'https://world.openfoodfacts.net/api/v2',
       appName: 'OYL/1.0', appVersion: '1.0', clientId: 'x',
     })
     fetchSpy.mockImplementationOnce((_: unknown, init: RequestInit) => {

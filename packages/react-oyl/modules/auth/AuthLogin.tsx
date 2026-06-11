@@ -13,7 +13,8 @@ export default function LoginPage() {
     password: ''
   })
   const loginRequest = useAsync(async () => {
-    const res = await fetch('http://localhost:3337/api/auth/local', {
+    const base = import.meta.env.VITE_STRAPI_API_BASE_URL ?? 'http://localhost:3337/api'
+    const res = await fetch(`${base}/auth/local`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

@@ -1,4 +1,5 @@
 import type { Core } from '@strapi/strapi';
+import { assertAllUserContentTypesScoped } from './utils/user-scoped-controller';
 
 const DEV_PERMISSION_ACTIONS = ['find', 'findOne', 'create', 'update', 'delete'] as const;
 
@@ -66,12 +67,23 @@ async function grantAuthenticatedDevPermissions(strapi: Core.Strapi) {
     const [, apiAndCt] = uid.split('::');
     const [apiName, ctName] = apiAndCt.split('.');
 
-    // Restrict to actions the controller actually implements — custom-route
-    // controllers (e.g. nutrition-search) may not have all five.
+    // Grant standard CRUD plus any custom action methods the controller exposes
+    // (e.g. user-daily's findOneByDate, saveByDate, findAggregate). Without
+    // this the verify/e2e stack hits 403 on custom routes because the
+    // users-permissions plugin defaults to deny.
     const controller = strapi.controller(uid as never) as Record<string, unknown> | undefined;
-    const availableActions = controller
-      ? DEV_PERMISSION_ACTIONS.filter(a => typeof controller[a] === 'function')
-      : DEV_PERMISSION_ACTIONS;
+    const availableActions = new Set<string>();
+    if (controller) {
+      for (const a of DEV_PERMISSION_ACTIONS) {
+        if (typeof controller[a] === 'function') availableActions.add(a);
+      }
+      for (const key of Object.keys(controller)) {
+        if (key.startsWith('_')) continue;
+        if (typeof controller[key] === 'function') availableActions.add(key);
+      }
+    } else {
+      for (const a of DEV_PERMISSION_ACTIONS) availableActions.add(a);
+    }
 
     for (const action of availableActions) {
       await grantAction(`api::${apiName}.${ctName}.${action}`);
@@ -102,6 +114,10 @@ export default {
    * your application gets started.
    */
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
+    // Always runs (prod too): refuses to boot if any api::user-* controller
+    // forgot the createUserScopedController wrap. Caught this regression once;
+    // a one-line guard makes sure it can't recur silently.
+    assertAllUserContentTypesScoped(strapi);
     await grantAuthenticatedDevPermissions(strapi);
   },
 };

@@ -11,7 +11,7 @@ test.describe('off-search-and-cache', () => {
     let offProductCount = 0
 
     // Stub the OFF search endpoint with one fake product.
-    await page.route(/openfoodfacts\.(net|org)\/api\/v3\/search/, async route => {
+    await page.route(/openfoodfacts\.(net|org)\/api\/v2\/search/, async route => {
       offSearchCount++
       await route.fulfill({
         status: 200, contentType: 'application/json',
@@ -30,7 +30,7 @@ test.describe('off-search-and-cache', () => {
     })
 
     // Stub the OFF product endpoint with a full product for the selected barcode.
-    await page.route(/openfoodfacts\.(net|org)\/api\/v3\/product\//, async route => {
+    await page.route(/openfoodfacts\.(net|org)\/api\/v2\/product\//, async route => {
       offProductCount++
       await route.fulfill({
         status: 200, contentType: 'application/json',

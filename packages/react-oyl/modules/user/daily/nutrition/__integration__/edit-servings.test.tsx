@@ -10,7 +10,10 @@ const seededItem = {
   id: 1, documentId: 'item-oat', name: 'Oatmeal', serving_unit: 'g', source: 'user',
   serving_size: 100, calories_per_100: 380, brand: null,
 }
-// Today in UTC: tests use the actual current date so filterNutritionsForDate keeps the seed.
+// Use the runner's local timezone so filterNutritionsForDate(log.date, tz) agrees
+// with UserDailyProvider's local-date selectedDate. (Mocking tz='UTC' here used
+// to "work" only because the Provider previously also bucketed by UTC.)
+const localTz = vi.hoisted(() => Intl.DateTimeFormat().resolvedOptions().timeZone)
 const today = new Date()
 const seededLog = {
   id: 99, documentId: 'log-99',
@@ -51,7 +54,7 @@ vi.mock('@/modules/auth/useAuth', () => ({
 
 vi.mock('@/modules/user/profile/useUserProfile', () => ({
   useUserProfile: () => ({
-    timezone: 'UTC', documentId: 'p1', loading: false, error: null,
+    timezone: localTz, documentId: 'p1', loading: false, error: null,
     setTimezone: vi.fn().mockResolvedValue(undefined),
   }),
 }))

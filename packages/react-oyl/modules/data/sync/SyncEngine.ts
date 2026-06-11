@@ -18,10 +18,16 @@ export class SyncEngine {
   private online = true
   private listeners = new Map<string, Set<SyncListener>>()
   private lastSyncedAt: string | undefined
+  private lastSyncedAtByPath = new Map<string, string>()
   private lastError: SyncError | undefined
   private draining = false
   private remote: RemoteClient
   private snapshots = new Map<string, Snapshot>()
+  // In-flight refresh promises, keyed by path (for refresh) or by `agg:<date>`
+  // (for refreshAggregate). Concurrent callers — most often React StrictMode's
+  // double-mounted effects — share the existing promise instead of firing a
+  // second HTTP request.
+  private inflight = new Map<string, Promise<void>>()
 
   constructor(remote: RemoteClient) {
     this.remote = remote
@@ -30,6 +36,9 @@ export class SyncEngine {
   setUser(userId: string | null): void {
     this.userId = userId
     this.snapshots.clear()
+    this.lastSyncedAtByPath.clear()
+    this.lastSyncedAt = undefined
+    this.inflight.clear()
     this.emitAll()
   }
 
@@ -45,6 +54,7 @@ export class SyncEngine {
     return {
       pendingCount: this.userId ? readQueue(this.userId).length : 0,
       lastSyncedAt: this.lastSyncedAt,
+      lastSyncedAtByPath: Object.fromEntries(this.lastSyncedAtByPath),
       lastError: this.lastError,
       online: this.online,
     }
@@ -118,27 +128,83 @@ export class SyncEngine {
     if (this.online && !opts.skipDrain) await this.drain()
   }
 
-  async refresh(path: string): Promise<void> {
+  async refresh(path: string, opts: { maxAgeMs?: number } = {}): Promise<void> {
     if (!this.userId) return
-    try {
-      const rows = await this.remote.findAll<{ id: string | number }>(path)
-      const mirror: Record<string, MirrorRecord<unknown>> = {}
-      for (const r of rows) mirror[String(r.id)] = r as MirrorRecord<unknown>
-      // preserve pending rows
-      const existing = readMirror(this.userId, path)
-      for (const [k, v] of Object.entries(existing)) {
-        if (v.__pendingOp) mirror[k] = v
-      }
-      writeMirror(this.userId, path, mirror)
-      this.lastSyncedAt = new Date().toISOString()
-      this.emit(path)
-    } catch (err) {
-      console.warn(`refresh(${path}) failed`, err)
+    if (opts.maxAgeMs != null) {
+      const last = this.lastSyncedAtByPath.get(path)
+      if (last && Date.now() - Date.parse(last) < opts.maxAgeMs) return
     }
+    const existingInflight = this.inflight.get(path)
+    if (existingInflight) return existingInflight
+    const userId = this.userId
+    const work = (async () => {
+      try {
+        const rows = await this.remote.findAll<{ id: string | number }>(path)
+        const mirror: Record<string, MirrorRecord<unknown>> = {}
+        for (const r of rows) mirror[String(r.id)] = r as MirrorRecord<unknown>
+        // preserve pending rows
+        const existing = readMirror(userId, path)
+        for (const [k, v] of Object.entries(existing)) {
+          if (v.__pendingOp) mirror[k] = v
+        }
+        writeMirror(userId, path, mirror)
+        const now = new Date().toISOString()
+        this.lastSyncedAt = now
+        this.lastSyncedAtByPath.set(path, now)
+        this.emit(path)
+      } catch (err) {
+        console.warn(`refresh(${path}) failed`, err)
+      } finally {
+        this.inflight.delete(path)
+      }
+    })()
+    this.inflight.set(path, work)
+    return work
   }
 
-  async refreshAll(paths: string[]): Promise<void> {
-    await Promise.all(paths.map(p => this.refresh(p)))
+  async refreshAll(paths: string[], opts: { maxAgeMs?: number } = {}): Promise<void> {
+    await Promise.all(paths.map(p => this.refresh(p, opts)))
+  }
+
+  // Write a pre-fetched row set into the path's mirror, preserving any pending
+  // ops. No HTTP — callers (like refreshAggregate) own the fetch. Marks the
+  // path fresh so subsequent maxAgeMs-bounded refreshes can short-circuit.
+  seed(path: string, rows: Array<{ id: string | number }>): void {
+    if (!this.userId) return
+    const mirror: Record<string, MirrorRecord<unknown>> = {}
+    for (const r of rows) mirror[String(r.id)] = r as MirrorRecord<unknown>
+    const existing = readMirror(this.userId, path)
+    for (const [k, v] of Object.entries(existing)) {
+      if (v.__pendingOp) mirror[k] = v
+    }
+    writeMirror(this.userId, path, mirror)
+    const now = new Date().toISOString()
+    this.lastSyncedAt = now
+    this.lastSyncedAtByPath.set(path, now)
+    this.emit(path)
+  }
+
+  // One HTTP call seeds every mirror path the aggregate covers. Used by
+  // SyncBootstrap to collapse the initial daily-page request burst.
+  async refreshAggregate(date: string): Promise<void> {
+    if (!this.userId) return
+    const key = `agg:${date}`
+    const existingInflight = this.inflight.get(key)
+    if (existingInflight) return existingInflight
+    const work = (async () => {
+      try {
+        const payload = await this.remote.findAggregate(date)
+        for (const [path, rows] of Object.entries(payload.paths)) {
+          this.seed(path, rows)
+        }
+      } catch (err) {
+        console.warn(`refreshAggregate(${date}) failed`, err)
+      } finally {
+        this.inflight.delete(key)
+      }
+    })()
+    this.inflight.set(key, work)
+    return work
   }
 
   async drain(): Promise<void> {

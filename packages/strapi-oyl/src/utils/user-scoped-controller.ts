@@ -14,6 +14,12 @@ import { errors } from '@strapi/utils'
 import { isAdmin } from './is-admin'
 import { buildOwnerFilter, buildOwnerPopulate, getOwnerIdAtPath } from './ownership'
 
+// Non-enumerable marker stamped on every controller built by
+// createUserScopedController. Used by assertAllUserContentTypesScoped (called
+// from bootstrap) to prove that every `api::user-*` controller went through
+// this factory. `Symbol.for(...)` keeps the key stable across module copies.
+export const USER_SCOPED_MARKER = Symbol.for('oyl.userScopedController')
+
 export type UserScopedOptions = {
   // Dot-path from the entity to the user relation. Defaults to 'user'.
   // For transitive ownership (e.g. user-goal-milestone -> user_goal -> user)
@@ -176,8 +182,51 @@ export function createUserScopedController(
       assertNoForbiddenSuper(uid, extend)
       Object.assign(userCtrl, extend({ strapi, scoped }))
     }
+
+    // Stamp the marker AFTER any extend so the merged controller still carries
+    // it. Non-writable + non-configurable so an extend can't accidentally clobber it.
+    Object.defineProperty(userCtrl, USER_SCOPED_MARKER, {
+      value: true,
+      enumerable: false,
+      writable: false,
+      configurable: false,
+    })
     return userCtrl
   })
+}
+
+// Boot-time guard: prove every `api::user-*` content type's controller was
+// created via createUserScopedController. Throws (and refuses to boot) on the
+// first un-scoped match so the bug from the user-activity regression — a
+// missed wrap leaking other users' data — can never ship again.
+//
+// Catalog/shared types like `api::activity` are excluded by the `user-` prefix.
+// If a future user-* type legitimately needs to be unscoped (e.g. world-readable),
+// add an explicit allow-list entry here with a one-line justification.
+export function assertAllUserContentTypesScoped(strapi: any): void {
+  const userUids = Object.keys(strapi.contentTypes).filter(
+    uid => typeof uid === 'string' && uid.startsWith('api::user-'),
+  )
+  const unscoped: string[] = []
+  for (const uid of userUids) {
+    const ctrl = strapi.controller(uid)
+    if (!ctrl || (ctrl as Record<symbol, unknown>)[USER_SCOPED_MARKER] !== true) {
+      unscoped.push(uid)
+    }
+  }
+  if (unscoped.length > 0) {
+    throw new Error(
+      `[user-scoped-controller] Refusing to boot: the following user-* ` +
+      `controllers are NOT wrapped in createUserScopedController(...), which ` +
+      `means their default REST find/create/etc. do not enforce ownership ` +
+      `and will leak rows across users:\n` +
+      unscoped.map(u => `  - ${u}`).join('\n') +
+      `\n\nFix: replace the controller body with\n` +
+      `  import { createUserScopedController } from '../../../utils/user-scoped-controller'\n` +
+      `  export default createUserScopedController('${unscoped[0]}')\n` +
+      `See packages/strapi-oyl/src/utils/README.md ("User-scoping pattern").`,
+    )
+  }
 }
 
 // Boot-time check that prevents the [[HomeObject]] footgun documented in

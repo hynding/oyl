@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { SyncState } from '@/modules/data'
 
-let state: SyncState = { online: true, pendingCount: 0 }
+let state: SyncState = { online: true, pendingCount: 0, lastSyncedAtByPath: {} }
 
 vi.mock('@/modules/data', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/modules/data')>()
@@ -13,7 +13,7 @@ import UserDailySyncIndicator from './UserDailySyncIndicator'
 
 describe('UserDailySyncIndicator', () => {
   it('shows "Synced" when online with no pending work or errors', () => {
-    state = { online: true, pendingCount: 0 }
+    state = { online: true, pendingCount: 0, lastSyncedAtByPath: {} }
     render(<UserDailySyncIndicator />)
     expect(screen.getByText(/^Synced/)).toBeInTheDocument()
   })
@@ -22,6 +22,7 @@ describe('UserDailySyncIndicator', () => {
     state = {
       online: true,
       pendingCount: 0,
+      lastSyncedAtByPath: {},
       lastError: {
         op: 'create',
         path: 'user-goals',

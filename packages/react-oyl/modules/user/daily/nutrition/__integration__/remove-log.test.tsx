@@ -10,6 +10,9 @@ const seededItem = {
   id: 1, documentId: 'item-oat', name: 'Oatmeal', serving_unit: 'g', source: 'user',
   serving_size: 100, calories_per_100: 380, brand: null,
 }
+// Use the runner's local timezone so filterNutritionsForDate(log.date, tz) agrees
+// with UserDailyProvider's local-date selectedDate.
+const localTz = vi.hoisted(() => Intl.DateTimeFormat().resolvedOptions().timeZone)
 const today = new Date()
 const seededLog = {
   id: 77, documentId: 'log-77',
@@ -50,7 +53,7 @@ vi.mock('@/modules/auth/useAuth', () => ({
 
 vi.mock('@/modules/user/profile/useUserProfile', () => ({
   useUserProfile: () => ({
-    timezone: 'UTC', documentId: 'p1', loading: false, error: null,
+    timezone: localTz, documentId: 'p1', loading: false, error: null,
     setTimezone: vi.fn().mockResolvedValue(undefined),
   }),
 }))
