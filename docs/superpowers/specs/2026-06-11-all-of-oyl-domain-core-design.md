@@ -109,7 +109,7 @@ Definitions live in **`Catalog<T>`** instances (a small keyed collection in `cor
 
 ## Planner: intentions and their fulfillment
 
-- **`Plan`** (abstract): `id`, `title`, optional `due` (DayKey), `status` (`open | done | canceled`), optional `fulfilledBy: Id[]` linking to the Journal entries that satisfied it. `complete(entryId?)` sets status and records the link.
+- **`Plan`** (abstract): `id`, `title`, optional `due` (DayKey), `status` (`open | done | canceled`), `completedOn?: DayKey`, optional `fulfilledBy: Id[]` linking to the Journal entries that satisfied it. `complete(on: DayKey, entryId?)` sets status, records when (done-on-time is uncomputable without it, and a recurring task's next occurrence is seeded from `completedOn`, not from `due`), and records the link.
 - **`Task`** — the plain to-do; optional `projectId`, optional `cadence` (completing a recurring task spawns the next occurrence via `Cadence.nextAfter`), optional `possessionId` (a bare `Id` — no vault import). Recurring tasks deliberately cover *all* recurring duties — chores, asset upkeep ("replace HVAC filter"), watering plants. There is exactly one recurrence-of-duty mechanism in the system.
 - **`Project`** — a named group of tasks, optional `areaId`; `progress(planner)` = done/total of its tasks.
 - **`Appointment`** — a plan with a specific `startsAt` (Date) and optional duration; calendar/time-blocking primitive. Its `due` day is derived at construction from `startsAt` + an explicit IANA timezone argument (same no-hidden-clock rule as everywhere else).
@@ -139,8 +139,8 @@ Not time-series — these live beside the Journal, keyed collections with one sh
 
 Two small classes in `share/` (imports core only — scopes reference goals/areas by `Id` and metrics by `MetricKey`, never by type):
 
-- **`Connection`** — a pair of user ids with a status machine: `invited → accepted`, either side may move to `blocked`; only `accepted` carries any visibility. Invitations expire-able by the app; the domain just enforces legal transitions (`accept()` on a blocked connection throws).
-- **`Grant`** — *what* one user lets a specific connection see. Fields: `connectionId`, `scope`, optional `expiresOn`, `revokedAt`. Scopes are a closed union:
+- **`Connection`** — directional record: `requesterId` (who invited) and `addresseeId`, with a status machine: `invited → accepted`, either side may move to `blocked` — and `blockedById` records who, because only the blocker may unblock. Only `accepted` carries any visibility. Invitations expire-able by the app; the domain enforces legal transitions (`accept()` on a blocked connection throws).
+- **`Grant`** — *what* one user lets a specific connection see. Fields: `connectionId`, `grantorId` (the user sharing their data — a connection has two members, and a grant flows one way; the viewer is the other member), `scope`, optional `expiresOn`, `revokedAt`. Scopes are a closed union:
   - `goal-progress(goalId)` — that goal's `GoalProgress` + streak, nothing else
   - `area-summary(areaId)` — the per-area rollup from reviews
   - `metric(prefix)` — daily aggregates under a metric prefix (e.g., `activity.run`)
@@ -168,12 +168,12 @@ People organize their lives by *area* — health, family, career, money, growth 
 ### Goal
 
 ```ts
-new Goal({ metric: "nutrition.calories", target: 2200, direction: "atMost", period: "day" })
+new Goal({ name: "Eat lighter", metric: "nutrition.calories", target: 2200, direction: "atMost", period: "day" })
 new Goal({ metric: "activity.run.minutes", target: 150, direction: "atLeast", period: "week" })
 new Goal({ metric: "sleep.hours", target: 7, direction: "atLeast", period: "day" })
 ```
 
-- `period`: `day | week | month`. `direction`: `atLeast | atMost`. Optional `areaId`. Optional `aggregation: 'sum' | 'avg' | 'last'` (default `'sum'`; see counters vs. gauges above).
+- `period`: `day | week | month`. `direction`: `atLeast | atMost`. Optional `name` (display label; apps can derive one from the metric, but users name their own goals). Optional `areaId`. Optional `aggregation: 'sum' | 'avg' | 'last'` (default `'sum'`; see counters vs. gauges above).
 - Period windows are deterministic: a `day` is the `DayKey` itself; a `week` is the ISO week (Monday–Sunday) containing it; a `month` is its calendar month. All derived from `DayKey`, so the Journal's timezone decision flows through unchanged.
 - `progressOn(journal, day): GoalProgress` — resolves the period window containing `day`, computes `current` via `journal.aggregate(metric, window, aggregation)`, returns `{ current, target, ratio, met, paused }`. `ratio` clamped to [0, 1]: attainment for `atLeast`, consumption-of-allowance for `atMost`.
 
@@ -201,18 +201,41 @@ Pure functions over the Journal (and Planner where noted) — zero new data entr
 
 ## Persistence boundary
 
-One interface in `core/`:
+### Records have record properties
+
+Every persistable entity (entries, plans, definitions, goals, budgets, vault items, `User`, `Connection`, `Grant`, `DayPlan`, `LifeArea`) is a database record in any real deployment, so each carries an optional **`meta?: PersistedMeta`** — a small core value object:
 
 ```ts
-interface Repository<T extends { id: Id }> {
-  get(id: Id): Promise<T | undefined>
-  list(): Promise<T[]>
-  save(item: T): Promise<void>
-  delete(id: Id): Promise<void>
+type PersistedMeta = {
+  createdAt: Date     // first persisted
+  updatedAt: Date     // last persisted
+  revision: number    // optimistic concurrency; bumped on every save
+  deletedAt?: Date    // soft delete; absent = live
 }
 ```
 
-Plus `InMemoryRepository<T>` — the reference implementation, used by tests. Apps supply real adapters; the domain never imports one.
+Rules that keep this honest:
+
+- **Freshly constructed objects have no `meta`.** Repositories stamp it on first save and refresh it on every subsequent save — the *storage* clock, not the domain clock, so the no-hidden-clock rule is untouched.
+- **Domain logic never branches on `meta`.** It exists for adapters (concurrency, sync, trash/undo UIs) and round-trips through `toJSON`/`fromJSON` untouched.
+- **Soft delete is the default delete.** `delete(id)` sets `deletedAt`; `purge(id)` is the hard remove that backs the right-to-erasure story. `list()` excludes soft-deleted records unless asked.
+- **Stale writes are conflicts, not last-writer-wins.** `save` compares the incoming `revision` against the stored one and rejects mismatches with `DomainError('REVISION_CONFLICT')` — the seam future sync/offline work will build on.
+
+### Repository interface
+
+```ts
+interface Repository<T extends { id: Id }> {
+  get(id: Id): Promise<T | undefined>                       // undefined for soft-deleted
+  list(opts?: { includeDeleted?: boolean }): Promise<T[]>
+  save(item: T): Promise<T>                                  // returns item with fresh meta
+  delete(id: Id): Promise<void>                              // soft
+  purge(id: Id): Promise<void>                               // hard
+}
+```
+
+Plus `InMemoryRepository<T>` — the reference implementation, used by tests; it implements all of the above semantics (stamping, revision checks, soft delete) so adapter authors have an executable specification to copy. Apps supply real adapters; the domain never imports one.
+
+**Ownership lives in the adapter, not the model.** Multi-user storage needs an owner column on every table, but domain objects never carry a `userId` — each adapter instance is constructed *already scoped to one user*, the same way the roots are. An unscoped query path doesn't exist to forget about, which is the entire lesson of default-deny.
 
 `Journal`, `Planner`, and `Vault` are plain in-memory aggregates, not repository-backed: apps load items from their repositories and hydrate the roots to ask questions of them. This keeps every method synchronous and trivially testable.
 
@@ -232,10 +255,10 @@ This core is the *shared kernel* of a full-stack application: the same classes r
 - **Zero runtime dependencies.** The package keeps no production deps. Ids come from `crypto.randomUUID()`; timezone math uses the platform `Intl` APIs. A pure domain layer that needs nothing installed runs identically in any JavaScript runtime a consumer chooses (see "Full-stack portability").
 - **Two tiers of value object.** `Id` and `MetricKey` are **branded strings** (`string & { readonly __brand: 'Id' }`) created through validating factory functions — zero allocation, `===` equality, JSON-native. `Money`, `Quantity`, `DayKey`, and `Cadence` are **classes** with `equals()`, since they carry structure and behavior. Don't pay for a class where a brand suffices.
 - **Construction style.** One pattern everywhere: constructors take a single named-props object and validate; static factories exist only where they add meaning (`Money.usd(4210)`, `DayKey.from(date, tz)`, `Id.create()`). No builders, no `init()` methods — an object that exists is valid.
-- **Immutability split.** Value objects and entries are deeply immutable (`readonly` fields). Aggregate roots (`Journal`, `Planner`, `Vault`) and stateful entities (`Goal` pause state, `Task` status) mutate in place — they're in-memory aggregates, and copy-on-write would buy nothing here. All getters return readonly views (`ReadonlyArray`, `ReadonlyMap`); internal collections never escape.
+- **Immutability split.** Value objects and entries are deeply immutable (`readonly` fields). Aggregate roots (`Journal`, `Planner`, `Vault`) and stateful entities (`Goal` pause state, `Task` status) mutate in place — they're in-memory aggregates, and copy-on-write would buy nothing here. All getters return readonly views (`ReadonlyArray`, `ReadonlyMap`); internal collections never escape. `meta` sits outside the immutability rule — repositories replace it wholesale on save; domain code never writes it.
 - **Equality semantics.** Entities compare by `id`; value objects by value. No generic deep-equal utility — each class states its own rule.
 - **Explicit time, no hidden clock.** Nothing in the domain calls `Date.now()` or reads the system timezone. Every time-sensitive operation takes its reference point as a parameter (`occurredAt`, `asOf`, `day`, `tz`). This makes every test deterministic without clock mocking and every result reproducible.
-- **Serialization built in.** Every persistable class has `toJSON(): PlainShape` and a static `fromJSON(shape)`. `Entry` and `Plan` subclasses carry a `kind` discriminant so a single dispatcher can revive a heterogeneous list. Dates serialize as ISO strings, `DayKey` as `YYYY-MM-DD`, `Money` as `{ minor, currency, exponent }`. Malformed input throws `DomainError('MALFORMED_JSON')`. No version field in the shapes — structural validation suffices until the first breaking change (YAGNI). Round-tripping (`fromJSON(toJSON(x))` equals `x`) is a standing test for every class.
+- **Serialization built in.** Every persistable class has `toJSON(): PlainShape` and a static `fromJSON(shape)`. `Entry` and `Plan` subclasses carry a `kind` discriminant so a single dispatcher can revive a heterogeneous list. Dates serialize as ISO strings, `DayKey` as `YYYY-MM-DD`, `Money` as `{ minor, currency, exponent }`; `meta` (when present) rides along untouched. Malformed input throws `DomainError('MALFORMED_JSON')`. No version field in the shapes — structural validation suffices until the first breaking change (YAGNI). Round-tripping (`fromJSON(toJSON(x))` equals `x`) is a standing test for every class.
 - **Inheritance budget: two.** `Entry` and `Plan` are the only abstract classes; everything else composes. New behavior enters via the `metrics()` and `Due` contracts, not subclass trees.
 - **Import discipline.** Domain modules (`activity/`, `nutrition/`, `finance/`, `goal/`, `track/`, `plan/`, `vault/`, `user/`, `share/`) import from `core/` only — never from each other. `insights/` may import anything. `index.ts` is the only barrel; files are kebab-case, one class per file, named exports only (no `default`).
 - **Strict TypeScript.** `strict`, `noUncheckedIndexedAccess`, and `exactOptionalPropertyTypes` on for `src/`. No `any`; `unknown` only at the `fromJSON` boundary, narrowed immediately. ESM modules.
@@ -263,13 +286,13 @@ Every name in the public surface follows one of these rules; a name that fits no
 
 - Vitest, strict red-green-refactor. Each class begins life as a failing test.
 - No mocking frameworks: the domain is pure; tests construct real objects and use `InMemoryRepository`.
-- Behavioral coverage targets: timezone edges for `DayKey`, `Cadence` month-end arithmetic (Jan 31 + 1 month), currency/unit mismatch rejection, snapshot semantics of `Consumption`, period-window resolution for weekly/monthly goals, atMost vs atLeast ratio semantics, recurring-task respawn, subscription `renew()` producing a correct `Transaction`, streak boundary conditions, streak bridging across paused ranges (incl. open-ended pause + resume), pause ranges overlapping period boundaries, gauge aggregation (`last`/`avg` with multiple same-day measurements, empty ranges), occasion recurrence across year boundaries (incl. Feb 29 birthdays), per-area rollup with untagged items, correlation with missing days, connection state machine (illegal transitions throw; blocked carries no visibility), default-deny in `sharedProgress` (no connection / no grant / revoked / expired all yield nothing), grant scoping (a `goal-progress` grant leaks no other goal), and `agendaFor` ordering with overlapping time boxes.
+- Behavioral coverage targets: timezone edges for `DayKey`, `Cadence` month-end arithmetic (Jan 31 + 1 month), currency/unit mismatch rejection, snapshot semantics of `Consumption`, period-window resolution for weekly/monthly goals, atMost vs atLeast ratio semantics, recurring-task respawn, subscription `renew()` producing a correct `Transaction`, streak boundary conditions, streak bridging across paused ranges (incl. open-ended pause + resume), pause ranges overlapping period boundaries, gauge aggregation (`last`/`avg` with multiple same-day measurements, empty ranges), occasion recurrence across year boundaries (incl. Feb 29 birthdays), per-area rollup with untagged items, correlation with missing days, repository semantics via `InMemoryRepository` (meta stamping, revision conflict on stale save, soft delete excluded from `list()` by default, purge), round-trip with and without `meta`, connection state machine (illegal transitions throw; blocked carries no visibility; only the blocker unblocks), default-deny in `sharedProgress` (no connection / no grant / revoked / expired all yield nothing), grant scoping (a `goal-progress` grant leaks no other goal), and `agendaFor` ordering with overlapping time boxes.
 
 ## Build phases
 
 Each phase is independently shippable and gets its own implementation plan. Order matters: every phase depends only on what came before.
 
-1. **Core spine** — value objects (`Id`, `DayKey`, `DayRange`, `Cadence`, `Quantity`, `Money`, `MetricKey`, `DomainError`), `LifeArea`, `Catalog`, `Entry`, `Journal` (incl. aggregation kinds), `Repository`/`InMemoryRepository`, plus `User` (the profile every root is hydrated from).
+1. **Core spine** — value objects (`Id`, `DayKey`, `DayRange`, `Cadence`, `Quantity`, `Money`, `MetricKey`, `DomainError`), `LifeArea`, `Catalog`, `Entry`, `Journal` (incl. aggregation kinds), `PersistedMeta`, `Repository`/`InMemoryRepository` (incl. soft delete + revision semantics), plus `User` (the profile every root is hydrated from).
 2. **Recording domains** — activity, nutrition, finance, plus `track/` (`Measurement`, `Note`). After this phase the app can log a whole life.
 3. **Goals & budgets** — `Goal` (incl. pause semantics), `GoalProgress`, `Budget`.
 4. **Planner** — `Task`, `Project`, `Appointment`, `PlannedMeal`, `DayPlan`/`agendaFor`, `Planner` root, fulfillment links, grocery list (`Plan` abstract ships in phase 1 with core).
