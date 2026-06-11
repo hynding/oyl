@@ -38,7 +38,7 @@ The roots are **per-person by design**: one `Journal`/`Planner`/`Vault` triple i
 
 ### The two unifying contracts
 
-1. **Metrics (Journal side):** every `Entry` implements `metrics(): ReadonlyMap<MetricKey, number>` — what that moment contributed to your life, in numbers. Goals, budgets, streaks, reviews, and correlations all reduce to one operation, `journal.totalOf(metric, range)`, implemented once.
+1. **Metrics (Journal side):** every `Entry` implements `metrics(): ReadonlyMap<MetricKey, number>` — what that moment contributed to your life, in numbers. Goals, budgets, streaks, reviews, and correlations all reduce to one operation, `journal.aggregate(metric, range, kind)`, implemented once.
 2. **Dues (Planner/Vault side):** plans and many vault items implement `Due { nextDueOn(asOf: DayKey): DayKey | undefined }`. The `asOf` parameter exists because recurring dues (birthdays, subscription renewals) have no single due date — only a *next occurrence relative to a day*; fixed dues (a document's expiry, a task's deadline) simply ignore it. (`nextDueOn`, not `dueOn`, so it never collides with `planner.dueOn(day)`, which returns plans.) Reminders, overdue lists, and "upcoming" feeds all reduce to one operation, collecting and sorting dues — also implemented once.
 
 ## Directory layout
@@ -46,8 +46,9 @@ The roots are **per-person by design**: one `Journal`/`Planner`/`Vault` triple i
 ```
 packages/all-of-oyl/src/
   core/        Id, DayKey, DayRange, Cadence, Quantity, Money, MetricKey,
-               DomainError, LifeArea, Catalog<T>, Entry (abstract), Journal,
-               Plan (abstract), Due interface, Repository<T>, InMemoryRepository<T>
+               DomainError, PersistedMeta, LifeArea, Catalog<T>, Entry (abstract),
+               Journal, Plan (abstract), Due interface, Repository<T>,
+               InMemoryRepository<T>
   activity/    Activity (definition), ActivitySession (entry)
   nutrition/   Food (definition), Consumption (entry)
   finance/     Account (definition), Transaction (entry)
@@ -61,7 +62,7 @@ packages/all-of-oyl/src/
   index.ts     public surface
 ```
 
-Root placement follows the import rule, not symmetry: `Journal` lives in `core/` because it operates purely on the abstract `Entry`. `Planner` and `Vault` need their concrete item types (`groceryList` reads `PlannedMeal`s; the due feed walks all six registries), so they live in their own modules — `core/` never imports upward. `Budget` lives in `goal/` because it wraps the goal engine; it needs no finance types (a category slug and `Money` suffice), so the no-cross-domain-imports rule holds.
+Root placement follows the import rule, not symmetry: `Journal` lives in `core/` because it operates purely on the abstract `Entry`. `Planner` and `Vault` need their concrete item types (`groceryList` reads `PlannedMeal`s; the due feed walks the five registries), so they live in their own modules — `core/` never imports upward. `Budget` lives in `goal/` because it wraps the goal engine; it needs no finance types (a category slug and `Money` suffice), so the no-cross-domain-imports rule holds.
 
 Tests are colocated: `core/money.test.ts` next to `core/money.ts`, etc.
 
@@ -79,7 +80,7 @@ Tests are colocated: `core/money.test.ts` next to `core/money.ts`, etc.
 
 ## Journal: records of what happened
 
-- **`Entry`** (abstract): `id`, `occurredAt` (Date), optional `note`, `metrics()`.
+- **`Entry`** (abstract): `id`, `kind` (the serialization discriminant, fixed per subclass), `occurredAt` (Date), optional `note`, `metrics()`.
 - **`Journal`**: constructed with an explicit IANA timezone — the one place the timezone decision lives; apps pass `user.timezone` when hydrating a person's roots. Entries store instants (`occurredAt`); the Journal buckets them into `DayKey`s using its timezone, so `entriesOn(day)`, `entriesIn(range)`, and every period window agree on where days begin. (Entries logged while traveling land on the day of your home journal — an accepted simplification.)
 - Query surface: `add(entry)` / `remove(id)`, `entriesOn(day)`, `entriesIn(range)` (collection queries are named for what they return; bare `on()` would read like an event-listener registration), `span(): DayRange | undefined` (first to last entry day — bounds streak walks and review deltas), `aggregate(metric, range, kind: 'sum' | 'avg' | 'last')`, `totalOf(metric, range)` (alias for `aggregate(..., 'sum')`), and `totalsByPrefix(prefix, range): ReadonlyMap<MetricKey, number>` — the enumerating sibling of `totalOf` that powers "top spending categories" and "minutes per activity" without a second aggregation path.
 
@@ -103,18 +104,18 @@ Each concrete domain splits into a reusable **definition** and dated **entries**
 
 - **`Activity`** — name, slug, optional default unit, optional `areaId` ("Run", "Meditate").
 - **`Food`** — name, nutrients per serving (calories/protein/carbs/fat/water).
-- **`Account`** — name, currency. A `Transaction`'s `accountId` is *optional* (cash spending, or a generated subscription charge with no account configured); when present, the transaction's currency must match the account's.
+- **`Account`** — name, currency. A `Transaction`'s `accountId` is *optional* (cash spending, or a generated subscription charge with no account configured); when present, the transaction's currency must match the account's. The *metric* layer assumes one working currency per journal (`user.defaultCurrency`): `finance.*` metrics are unit-blind numbers, so apps convert foreign spending before constructing the `Transaction` — mixing currencies into one metric is silent nonsense the domain can't detect.
 
-Definitions live in **`Catalog<T>`** instances (a small keyed collection in `core/`: `add`, `get`, `bySlug`, `all`) held by the app — *not* on the `Journal`. `Catalog` is to definitions what `Journal` is to entries: the synchronous, hydrated in-memory view of a `Repository`. Two reasons: the Journal would otherwise need to know every domain's definition types (an upward import `core/` is forbidden from making), and entries don't need the catalog after construction anyway — they capture a snapshot of the definition's values at log time (e.g., `Consumption` copies nutrients), so later catalog edits never rewrite history.
+Definitions live in **`Catalog<T>`** instances (a small keyed collection in `core/`: `add`, `get`, `all`, plus `bySlug` for item types that carry a slug) held by the app — *not* on the `Journal`. `Catalog` is to definitions what `Journal` is to entries: the synchronous, hydrated in-memory view of a `Repository`. Two reasons: the Journal would otherwise need to know every domain's definition types (an upward import `core/` is forbidden from making), and entries don't need the catalog after construction anyway — they capture a snapshot of the definition's values at log time (e.g., `Consumption` copies nutrients), so later catalog edits never rewrite history.
 
 The snapshot doubles as an escape hatch: because `Consumption` always *stores* its nutrients, its `foodId` is provenance, not a requirement — a quick-logged restaurant meal is a `Consumption` with nutrients given directly and no `foodId`. (`ActivitySession` keeps `activityId` required: its metric keys are built from the activity's slug, so there is no meaningful session without one.)
 
 ## Planner: intentions and their fulfillment
 
-- **`Plan`** (abstract): `id`, `title`, optional `due` (DayKey), `status` (`open | done | canceled`), `completedOn?: DayKey`, optional `fulfilledBy: Id[]` linking to the Journal entries that satisfied it. `complete(on: DayKey, entryId?)` sets status, records when (done-on-time is uncomputable without it, and a recurring task's next occurrence is seeded from `completedOn`, not from `due`), and records the link.
+- **`Plan`** (abstract): `id`, `kind` (serialization discriminant, fixed per subclass), `title`, optional `due` (DayKey), `status` (`open | done | canceled`), `completedOn?: DayKey`, optional `fulfilledBy: Id[]` linking to the Journal entries that satisfied it. `complete(on: DayKey, entryId?)` sets status, records when (done-on-time is uncomputable without it, and a recurring task's next occurrence is seeded from `completedOn`, not from `due`), and records the link. `cancel()` moves `open → canceled`; completing or canceling anything not `open` throws.
 - **`Task`** — the plain to-do; optional `projectId`, optional `cadence` (completing a recurring task spawns the next occurrence via `Cadence.nextAfter`), optional `possessionId` (a bare `Id` — no vault import). Recurring tasks deliberately cover *all* recurring duties — chores, asset upkeep ("replace HVAC filter"), watering plants. There is exactly one recurrence-of-duty mechanism in the system.
 - **`Project`** — a named group of tasks, optional `areaId`; `progress(planner)` = done/total of its tasks.
-- **`Appointment`** — a plan with a specific `startsAt` (Date) and optional duration; calendar/time-blocking primitive. Its `due` day is derived at construction from `startsAt` + an explicit IANA timezone argument (same no-hidden-clock rule as everywhere else).
+- **`Appointment`** — a plan with a specific `startsAt` (Date) and optional `durationMinutes`; calendar/time-blocking primitive. Its `due` day is derived at construction from `startsAt` + an explicit IANA timezone argument (same no-hidden-clock rule as everywhere else).
 - **`PlannedMeal`** — Food + servings + day; fulfilled by a `Consumption`. `planner.groceryList(range): ReadonlyMap<Id, Quantity>` aggregates servings per Food id across the range's planned meals.
 - **`DayPlan`** — the day-by-day planning primitive: one per `DayKey`, an ordered list of slots `{ planId, start?, end? }` where `start`/`end` are `"HH:MM"` strings local to the plan's day (no Date objects — a time box belongs to the day, not to an instant; `end` requires `start` and must follow it). `planner.agendaFor(day)` derives the default agenda (appointments sorted by `startsAt`, then tasks due, then planned meals); a `DayPlan` is the user's edited version of that — reordered, time-boxed, with slots they chose to defer. At most one `DayPlan` per day; `planner.dayPlanFor(day)` returns it or the derived default.
 - **`Planner`** (root): `add/remove`, `dueOn(day)`, `overdue(day)` (open plans with `due < day`), `upcoming(range)`, `agendaFor(day)`, `dayPlanFor(day)`, `completionRate(range)` (done ÷ (done + open) among plans due in the range; canceled plans are excluded from both sides).
@@ -123,11 +124,11 @@ The snapshot doubles as an escape hatch: because `Consumption` always *stores* i
 
 ## Vault: registries of what you have
 
-Not time-series — these live beside the Journal, keyed collections with one shared trait: anything with a future date implements `Due`, and `vault.upcoming(range)` collects them all into a single reminder feed (document expiries, subscription renewals, birthdays). Apps merge it with `planner.upcoming(range)` for the complete what's-coming view.
+Not time-series — these live beside the Journal, keyed collections with one shared trait: anything with a future date implements `Due`, and `vault.upcoming(range)` collects them all into a single reminder feed (document expiries, warranty expiries, subscription renewals, birthdays). Apps merge it with `planner.upcoming(range)` for the complete what's-coming view.
 
 - **`Document`** — name, kind (passport/insurance/warranty/...), optional `expiresOn`.
 - **`Possession`** — name, optional location, optional `warrantyUntil`, optional purchase info (Money, date). Upkeep of a possession is *not* a vault concept — it's a recurring `Task` carrying the `possessionId` (see Planner); the system has one recurrence-of-duty mechanism, not two.
-- **`Subscription`** — name, `amount: Money`, `cadence: Cadence`, `nextRenewal: DayKey`, category, optional `accountId`. `renew(on: DayKey)` advances `nextRenewal` and returns a `Transaction` (dated `on`, charged to `accountId`) for the caller to add to the Journal — the registry that *generates* finance entries. `vault.monthlySubscriptionTotal(): Money` answers "what do my subscriptions cost per month?" (annual amounts prorated).
+- **`Subscription`** — name, `amount: Money`, `cadence: Cadence`, `nextRenewal: DayKey`, category, optional `accountId`. `renew(on: DayKey)` advances `nextRenewal` and returns a `Transaction` (dated `on`, charged to `accountId`) for the caller to add to the Journal — the registry that *generates* finance entries. `vault.monthlySubscriptionTotals(): ReadonlyMap<string, Money>` (keyed by currency code) answers "what do my subscriptions cost per month?" — annual amounts prorated, and per-currency because `Money` rightly refuses to add dollars to euros.
 - **`Contact`** — name, optional `lastContactedOn`, occasions (name + anchor `DayKey` + `Cadence`, e.g. birthday = anchor date, yearly); an occasion's `nextDueOn(asOf)` is its next occurrence on or after `asOf`, correct across year boundaries. `staleness(day)` supports "you haven't talked to Sam in 3 months" nudges.
 - **`GiftIdea`** — text + contact link; surfaces alongside that contact's next occasion.
 
@@ -141,7 +142,7 @@ Not time-series — these live beside the Journal, keyed collections with one sh
 
 Two small classes in `share/` (imports core only — scopes reference goals/areas by `Id` and metrics by `MetricKey`, never by type):
 
-- **`Connection`** — directional record: `requesterId` (who invited) and `addresseeId`, with a status machine: `invited → accepted`, either side may move to `blocked` — and `blockedById` records who, because only the blocker may unblock. Only `accepted` carries any visibility. Invitations expire-able by the app; the domain enforces legal transitions (`accept()` on a blocked connection throws).
+- **`Connection`** — directional record: `requesterId` (who invited) and `addresseeId`, with a status machine: `invited → accepted`, either side may move to `blocked` — and `blockedById` records who, because only the blocker may `unblock()` (which restores `accepted` and clears `blockedById`). Only `accepted` carries any visibility. Invitations expire-able by the app; the domain enforces legal transitions (`accept()` on a blocked connection throws).
 - **`Grant`** — *what* one user lets a specific connection see. Fields: `connectionId`, `grantorId` (the user sharing their data — a connection has two members, and a grant flows one way; the viewer is the other member), `scope`, optional `expiresOn`, `revokedAt`. Scopes are a closed union:
   - `goal-progress(goalId)` — that goal's `GoalProgress` + streak, nothing else
   - `area-summary(areaId)` — the per-area rollup from reviews
@@ -183,7 +184,7 @@ new Goal({ metric: "sleep.hours", target: 7, direction: "atLeast", period: "day"
 
 Streaks motivate until life intervenes — then a broken 90-day streak makes people quit the app. Goals support paused ranges:
 
-- `goal.pause(from: DayKey, to?: DayKey)` — `to` omitted means "until resumed" (vacation mode); `goal.resume(on: DayKey)` closes an open pause. Ranges with `to < from` throw `DomainError`.
+- `goal.pause(from: DayKey, to?: DayKey)` — `to` omitted means "until resumed" (vacation mode); `goal.resume(on: DayKey)` closes an open pause. Ranges with `to < from` throw `DomainError`; overlapping or adjacent paused ranges merge into one, so pause history stays canonical.
 - A period window that overlaps any paused range is **paused**: `progressOn` still reports numbers but sets `paused: true` and `met: undefined` — the type is `met?: boolean`, so "not asserted" is structural, not a value consumers must remember to ignore.
 - Streak math **bridges** paused periods: they neither break nor extend a streak. A 30-day streak, a two-week pause, and a met day resumes at 31.
 
@@ -288,13 +289,13 @@ Every name in the public surface follows one of these rules; a name that fits no
 
 - Vitest, strict red-green-refactor. Each class begins life as a failing test.
 - No mocking frameworks: the domain is pure; tests construct real objects and use `InMemoryRepository`.
-- Behavioral coverage targets: timezone edges for `DayKey`, `Cadence` month-end arithmetic (Jan 31 + 1 month), currency/unit mismatch rejection (incl. account-less transactions and currency-match only when an account is present), snapshot semantics of `Consumption` (incl. ad-hoc, `foodId`-less logging), `Measurement` reserved-namespace rejection, `DayPlan` slot validation (`end` without `start`, `end ≤ start`), period-window resolution for weekly/monthly goals, atMost vs atLeast ratio semantics, recurring-task respawn, subscription `renew()` producing a correct `Transaction`, streak boundary conditions, streak bridging across paused ranges (incl. open-ended pause + resume), pause ranges overlapping period boundaries, gauge aggregation (`last`/`avg` with multiple same-day measurements, empty ranges), occasion recurrence across year boundaries (incl. Feb 29 birthdays), per-area rollup with untagged items, correlation with missing days, repository semantics via `InMemoryRepository` (meta stamping, revision conflict on stale save, soft delete excluded from `list()` by default, purge), round-trip with and without `meta`, connection state machine (illegal transitions throw; blocked carries no visibility; only the blocker unblocks), default-deny in `sharedProgress` (no connection / not accepted / viewer not the other member / no grant / revoked / expired all yield nothing), grant scoping (a `goal-progress` grant leaks no other goal), and `agendaFor` ordering with overlapping time boxes.
+- Behavioral coverage targets: timezone edges for `DayKey`, `Cadence` month-end arithmetic (Jan 31 + 1 month), currency/unit mismatch rejection (incl. account-less transactions and currency-match only when an account is present), snapshot semantics of `Consumption` (incl. ad-hoc, `foodId`-less logging), `Measurement` reserved-namespace rejection, `DayPlan` slot validation (`end` without `start`, `end ≤ start`), period-window resolution for weekly/monthly goals, atMost vs atLeast ratio semantics, recurring-task respawn, subscription `renew()` producing a correct `Transaction`, per-currency subscription totals, pause-range merging (overlapping and adjacent), plan status transitions (`cancel`/`complete` on non-open throws), streak boundary conditions, streak bridging across paused ranges (incl. open-ended pause + resume), pause ranges overlapping period boundaries, gauge aggregation (`last`/`avg` with multiple same-day measurements, empty ranges), occasion recurrence across year boundaries (incl. Feb 29 birthdays), per-area rollup with untagged items, correlation with missing days, repository semantics via `InMemoryRepository` (meta stamping, revision conflict on stale save, soft delete excluded from `list()` by default, purge), round-trip with and without `meta`, connection state machine (illegal transitions throw; blocked carries no visibility; only the blocker unblocks), default-deny in `sharedProgress` (no connection / not accepted / viewer not the other member / no grant / revoked / expired all yield nothing), grant scoping (a `goal-progress` grant leaks no other goal), and `agendaFor` ordering with overlapping time boxes.
 
 ## Build phases
 
 Each phase is independently shippable and gets its own implementation plan. Order matters: every phase depends only on what came before.
 
-1. **Core spine** — value objects (`Id`, `DayKey`, `DayRange`, `Cadence`, `Quantity`, `Money`, `MetricKey`, `DomainError`), `LifeArea`, `Catalog`, `Entry`, `Journal` (incl. aggregation kinds), `PersistedMeta`, `Repository`/`InMemoryRepository` (incl. soft delete + revision semantics), plus `User` (the profile every root is hydrated from).
+1. **Core spine** — value objects (`Id`, `DayKey`, `DayRange`, `Cadence`, `Quantity`, `Money`, `MetricKey`, `DomainError`), `LifeArea`, `Catalog`, the `Entry` and `Plan` abstracts, `Journal` (incl. aggregation kinds), `PersistedMeta`, `Repository`/`InMemoryRepository` (incl. soft delete + revision semantics), plus `User` (the profile every root is hydrated from).
 2. **Recording domains** — activity, nutrition, finance, plus `track/` (`Measurement`, `Note`). After this phase the app can log a whole life.
 3. **Goals & budgets** — `Goal` (incl. pause semantics), `GoalProgress`, `Budget`.
 4. **Planner** — `Task`, `Project`, `Appointment`, `PlannedMeal`, `DayPlan`/`agendaFor`, `Planner` root, fulfillment links, grocery list (`Plan` abstract ships in phase 1 with core).
