@@ -1,11 +1,26 @@
 # all-of-oyl Domain Core — Design
 
 **Date:** 2026-06-11
-**Scope:** `packages/all-of-oyl/src/` only. Greenfield. Nothing outside this directory is a constraint or a dependency. Existing `modules/` code is untouched and ignored.
+**Scope:** a self-contained domain core. Its current home is `packages/all-of-oyl/src/` (greenfield; the legacy `modules/` code is untouched and ignored), but nothing in this design is specific to that repository — the spec is written to be implemented by any project, in front of any framework.
 
 ## Purpose
 
-A DRY, minimalistic set of TypeScript classes that can drive a complete "Organize Your Life" application: what you **did** (activities, meals, spending, sleep, mood, vitals), what you **intend** (tasks, projects, appointments, meal plans), what you **have** (documents, possessions, subscriptions, contacts), what it all **means** (goals, budgets, streaks, reviews, correlations), and **who you share it with** (a user shape, connections, and scoped progress/day-plan sharing). Pure domain layer — no HTTP, no Strapi, no storage technology. Built test-first with Vitest.
+A DRY, minimalistic set of TypeScript classes that can drive a complete "Organize Your Life" application: what you **did** (activities, meals, spending, sleep, mood, vitals), what you **intend** (tasks, projects, appointments, meal plans), what you **have** (documents, possessions, subscriptions, contacts), what it all **means** (goals, budgets, streaks, reviews, correlations), and **who you share it with** (a user shape, connections, and scoped progress/day-plan sharing). Pure domain layer — no HTTP, no CMS, no storage technology. Built test-first with Vitest.
+
+## At a glance
+
+Ten facts that carry the whole design; every section below elaborates one of them:
+
+1. Every record of life is an **`Entry`** that emits numeric **metrics**; one aggregation path (`journal.aggregate`) serves goals, budgets, streaks, reviews, and correlations.
+2. Every future obligation answers **`nextDueOn(asOf)`**; one due-collection path serves reminders, overdue lists, and upcoming feeds.
+3. Three per-person roots: **`Journal`** (happened), **`Planner`** (intended), **`Vault`** (owned) — plus a pure-function read side (`insights/`).
+4. **Definitions vs. entries**: reusable catalog items (`Activity`, `Food`, `Account`) are referenced by id and snapshotted at log time; history never rewrites.
+5. Value objects do the safety work: `Money` (integer minor units), `DayKey` (timezone-explicit days), `Quantity` (unit-checked), `Cadence` (simple recurrence).
+6. **Goals are domain-blind** — they target metric keys, with direction, period, aggregation kind, and humane pause semantics.
+7. **`DayPlan`** is the day-by-day unit: a derived agenda the user reorders and time-boxes.
+8. Users are profiles, not credentials; sharing is **default-deny**, scoped by `Grant`, derived-data-only, and decided in exactly one projection (`sharedProgress`).
+9. No hidden clock, no runtime dependencies, strict TS, `toJSON`/`fromJSON` on everything persistable.
+10. Seven build phases, each independently shippable, TDD throughout.
 
 ## Architecture: three roots and a read side
 
@@ -201,9 +216,20 @@ Plus `InMemoryRepository<T>` — the reference implementation, used by tests. Ap
 
 `Journal`, `Planner`, and `Vault` are plain in-memory aggregates, not repository-backed: apps load items from their repositories and hydrate the roots to ask questions of them. This keeps every method synchronous and trivially testable.
 
+## Full-stack portability
+
+This core is the *shared kernel* of a full-stack application: the same classes run in the browser, on the server, and in tests. The contract that keeps that true:
+
+- **Runtime baseline:** ES2022, ESM. The only platform dependencies are `crypto.randomUUID()` and `Intl.DateTimeFormat` — available in modern Node, browsers, and edge runtimes (React Native needs an `Intl` polyfill; that's the consumer's note, not a design change). Nothing imports `fs`, `path`, DOM, or any framework. The package is side-effect-free (`"sideEffects": false` semantics), so bundlers tree-shake unused domains.
+- **Isomorphic by intent.** Clients construct and validate domain objects for instant feedback; servers re-validate by constructing the same objects from the wire — one rulebook, written once, enforced twice. The server is always authoritative.
+- **The wire format is `toJSON`.** The PlainShapes are the DTOs. REST, GraphQL, tRPC, or a message queue all carry the same shapes, and `fromJSON`/the revivers reconstruct full objects on either side. No parallel DTO layer to drift out of sync.
+- **Trusted boundary for sharing.** `sharedProgress` (and any grant evaluation) must execute on a trusted boundary — the server or an equivalent. A client is never handed another user's Journal to filter; it receives only the projection's output. Grants enforced client-side are decoration, not security.
+- **Storage is an adapter decision per deployment:** the same `Repository<T>` interface fronts a CMS or SQL database server-side, IndexedDB/localStorage for offline-first clients, or the in-memory implementation for tests and prototypes. The domain never knows which.
+- **Versioning:** the moment a second project consumes this package, it adopts semver; breaking a `toJSON` shape or a public signature is a major. Until then, the spec's "no version field" stance (see serialization) keeps shapes lean.
+
 ## Code design decisions
 
-- **Zero runtime dependencies.** The package keeps no production deps (the existing `rrule` is not used by `src/`). Ids come from `crypto.randomUUID()`; timezone math uses the platform `Intl` APIs. A pure domain layer that needs nothing installed is maximally portable across the Vite/Next/Strapi consumers.
+- **Zero runtime dependencies.** The package keeps no production deps. Ids come from `crypto.randomUUID()`; timezone math uses the platform `Intl` APIs. A pure domain layer that needs nothing installed runs identically in any JavaScript runtime a consumer chooses (see "Full-stack portability").
 - **Two tiers of value object.** `Id` and `MetricKey` are **branded strings** (`string & { readonly __brand: 'Id' }`) created through validating factory functions — zero allocation, `===` equality, JSON-native. `Money`, `Quantity`, `DayKey`, and `Cadence` are **classes** with `equals()`, since they carry structure and behavior. Don't pay for a class where a brand suffices.
 - **Construction style.** One pattern everywhere: constructors take a single named-props object and validate; static factories exist only where they add meaning (`Money.usd(4210)`, `DayKey.from(date, tz)`, `Id.create()`). No builders, no `init()` methods — an object that exists is valid.
 - **Immutability split.** Value objects and entries are deeply immutable (`readonly` fields). Aggregate roots (`Journal`, `Planner`, `Vault`) and stateful entities (`Goal` pause state, `Task` status) mutate in place — they're in-memory aggregates, and copy-on-write would buy nothing here. All getters return readonly views (`ReadonlyArray`, `ReadonlyMap`); internal collections never escape.
