@@ -288,7 +288,7 @@ Every name in the public surface follows one of these rules; a name that fits no
 ## Error handling
 
 - Invalid construction and illegal operations throw `DomainError` (single error class, `code` field from a closed union).
-- Codes defined by this spec — the starting union, grown only deliberately: `INVALID_ID`, `INVALID_SLUG`, `INVALID_METRIC_KEY`, `RESERVED_NAMESPACE`, `INVALID_QUANTITY` (negative servings, bad amounts, target ≤ 0), `UNIT_MISMATCH`, `CURRENCY_MISMATCH`, `INVALID_RANGE` (`end < start`, pause `to < from`, `end ≤ start` time boxes), `ILLEGAL_TRANSITION` (plan/connection state machines, incl. completing a canceled plan and non-blocker unblocking), `DUPLICATE_ID`, `REVISION_CONFLICT`, `MALFORMED_JSON`, `UNKNOWN_KIND`.
+- Codes defined by this spec — the starting union, grown only deliberately: `INVALID_ID`, `INVALID_SLUG`, `INVALID_METRIC_KEY`, `RESERVED_NAMESPACE`, `INVALID_QUANTITY` (negative servings, bad amounts, target ≤ 0), `UNIT_MISMATCH`, `CURRENCY_MISMATCH`, `INVALID_RANGE` (`end < start`, pause `to < from`, `end ≤ start` time boxes), `INVALID_DAY` (malformed `YYYY-MM-DD`), `INVALID_TIMEZONE` (unknown IANA zone), `ILLEGAL_TRANSITION` (plan/connection state machines, incl. completing a canceled plan and non-blocker unblocking), `DUPLICATE_ID`, `REVISION_CONFLICT`, `MALFORMED_JSON`, `UNKNOWN_KIND`.
 - Queries never throw for "not found"; they return `undefined` / empty arrays / zero totals.
 
 ## Testing & TDD
