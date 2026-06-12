@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { Entry } from './entry'
+import { DomainError } from './domain-error'
+import { Entry, entryBaseJSON, parseEntryBase } from './entry'
 import { Id } from './id'
 import { MetricKey } from './metric-key'
 
@@ -39,5 +40,53 @@ describe('Entry', () => {
   it('subclasses report metrics', () => {
     const e = new TestEntry({ occurredAt: new Date(), values: { 'test.value': 7 } })
     expect(e.metrics().get(MetricKey.of('test.value'))).toBe(7)
+  })
+
+  it('entryBaseJSON emits the shared base fields', () => {
+    const at = new Date('2026-06-01T12:00:00Z')
+    const e = new TestEntry({ id: Id.of('00000000-0000-4000-8000-000000000100'), occurredAt: at, note: 'hi' })
+    e.meta = { createdAt: at, updatedAt: at, revision: 1 }
+    expect(entryBaseJSON(e)).toEqual({
+      id: '00000000-0000-4000-8000-000000000100',
+      kind: 'test',
+      occurredAt: '2026-06-01T12:00:00.000Z',
+      note: 'hi',
+      meta: { createdAt: '2026-06-01T12:00:00.000Z', updatedAt: '2026-06-01T12:00:00.000Z', revision: 1 },
+    })
+  })
+
+  it('parseEntryBase validates and splits base from rest', () => {
+    const base = parseEntryBase(
+      {
+        id: '00000000-0000-4000-8000-000000000100',
+        kind: 'test',
+        occurredAt: '2026-06-01T12:00:00.000Z',
+        note: 'hi',
+        customField: 9,
+      },
+      'test',
+    )
+    expect(base.id).toBe('00000000-0000-4000-8000-000000000100')
+    expect(base.occurredAt.toISOString()).toBe('2026-06-01T12:00:00.000Z')
+    expect(base.note).toBe('hi')
+    expect(base.meta).toBeUndefined()
+    expect(base.rest).toEqual({ customField: 9 })
+  })
+
+  it.each([
+    null,
+    42,
+    { kind: 'other', id: '00000000-0000-4000-8000-000000000100', occurredAt: '2026-06-01T12:00:00.000Z' },
+    { kind: 'test', id: 'nope', occurredAt: '2026-06-01T12:00:00.000Z' },
+    { kind: 'test', id: '00000000-0000-4000-8000-000000000100', occurredAt: 'garbage' },
+    { kind: 'test', id: '00000000-0000-4000-8000-000000000100' },
+  ])('parseEntryBase rejects malformed shape %j with MALFORMED_JSON', (shape) => {
+    let caught: unknown
+    try {
+      parseEntryBase(shape, 'test')
+    } catch (e) {
+      caught = e
+    }
+    expect((caught as DomainError)?.code).toBe('MALFORMED_JSON')
   })
 })
