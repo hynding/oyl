@@ -5,13 +5,18 @@ import {
   makeAccount,
   makeActivity,
   makeActivitySession,
+  makeAppointment,
   makeBudget,
   makeConsumption,
+  makeDayPlan,
   makeFood,
   makeGoal,
   makeLifeArea,
   makeMeasurement,
   makeNote,
+  makePlannedMeal,
+  makeProject,
+  makeTask,
   makeTransaction,
   makeUser,
 } from './builders'
@@ -19,7 +24,7 @@ import { makeSeed } from './seed'
 import { LifeArea } from '../core/life-area'
 import { User } from '../user/user'
 import { Id } from '../core/id'
-import { reviveEntry } from '../index'
+import { reviveEntry, revivePlan } from '../index'
 import { Journal } from '../core/journal'
 import { DayKey } from '../core/day-key'
 import { DayRange } from '../core/day-range'
@@ -29,6 +34,10 @@ import { Consumption } from '../nutrition/consumption'
 import { Goal } from '../goal/goal'
 import { Budget } from '../goal/budget'
 import { Money } from '../core/money'
+import { Planner } from '../plan/planner'
+import { Project } from '../plan/project'
+import { DayPlan } from '../plan/day-plan'
+import { Task } from '../plan/task'
 
 const seed = makeSeed()
 
@@ -169,5 +178,51 @@ describe('fixtures', () => {
     // serialization idempotence for the new shapes
     for (const g of goals) expect(Goal.fromJSON(g.toJSON()).toJSON()).toEqual(g.toJSON())
     expect(Budget.fromJSON(budget.toJSON()).toJSON()).toEqual(budget.toJSON())
+  })
+
+  it('phase 4 builders produce valid objects with overridable fields', () => {
+    expect(makeTask().title.length).toBeGreaterThan(0)
+    expect(makeTask({ title: 'Custom' }).title).toBe('Custom')
+    expect(makeProject().name).toBe('Spring reset')
+    expect(makeAppointment().kind).toBe('appointment')
+    expect(makePlannedMeal().servings).toBe(1)
+    expect(makeDayPlan().slots.length).toBeGreaterThan(0)
+  })
+
+  it('seed plans revive, hydrate a Planner, and answer real questions', () => {
+    expect(seed.plans.length).toBeGreaterThanOrEqual(7)
+    expect(seed.projects).toHaveLength(1)
+    expect(seed.dayPlans).toHaveLength(1)
+
+    const planner = new Planner()
+    for (const shape of seed.plans) planner.add(revivePlan(shape))
+    planner.setDayPlan(DayPlan.fromJSON(seed.dayPlans[0]))
+    const project = Project.fromJSON(seed.projects[0])
+
+    // the showcase: a recurring chore completed late, with its respawned successor
+    const doneChore = planner.all().find((p) => p instanceof Task && p.cadence !== undefined && p.status === 'done') as Task
+    expect(doneChore).toBeDefined()
+    const successor = planner.all().find((p) => p instanceof Task && p.cadence !== undefined && p.status === 'open' && p.title === doneChore.title) as Task
+    expect(successor).toBeDefined()
+    expect(successor.due?.value).toBe(doneChore.cadence!.nextAfter(doneChore.completedOn!).value)
+
+    // taxes are overdue today
+    expect(planner.overdue(FIXTURE_TODAY).map((p) => p.title)).toContain('File taxes')
+
+    // the project is half done
+    expect(project.progress(planner)).toBeCloseTo(0.5)
+
+    // groceries for the coming week include the planned oatmeal
+    const nextWeek = DayRange.of(FIXTURE_TODAY, FIXTURE_TODAY.addDays(6))
+    expect(planner.groceryList(nextWeek).get(fixtureId(31))?.amount).toBeGreaterThanOrEqual(2)
+
+    // the stored day plan wins for today; schedule resolves its live slots
+    expect(planner.dayPlanFor(FIXTURE_TODAY).slots.length).toBeGreaterThan(0)
+    expect(planner.scheduleFor(FIXTURE_TODAY).length).toBeGreaterThan(0)
+
+    // serialization idempotence
+    for (const shape of seed.plans) {
+      expect(revivePlan(revivePlan(shape).toJSON()).toJSON()).toEqual(revivePlan(shape).toJSON())
+    }
   })
 })

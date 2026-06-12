@@ -7,16 +7,22 @@ import {
   makeAccount,
   makeActivity,
   makeActivitySession,
+  makeAppointment,
   makeBudget,
   makeConsumption,
+  makeDayPlan,
   makeFood,
   makeGoal,
   makeLifeArea,
   makeMeasurement,
   makeNote,
+  makePlannedMeal,
+  makeProject,
+  makeTask,
   makeTransaction,
   makeUser,
 } from './builders'
+import { Cadence } from '../core/cadence'
 import { FIXTURE_TODAY } from './constants'
 import { fixtureId } from './fixture-id'
 
@@ -41,6 +47,9 @@ export type Seed = {
   entries: Record<string, unknown>[]
   goals: Record<string, unknown>[]
   budgets: Record<string, unknown>[]
+  plans: Record<string, unknown>[]
+  projects: Record<string, unknown>[]
+  dayPlans: Record<string, unknown>[]
 }
 
 let cached: Seed | undefined
@@ -146,6 +155,32 @@ export function makeSeed(): Seed {
   // limit $1,000: the deterministic May spend is ~$728 net of the refund, so the budget is met
   const groceryBudget = makeBudget({ id: fixtureId(60), name: 'Food money', category: 'groceries', limit: Money.usd(100000) })
 
+  // ── Plans (id block 1000-1999) ──────────────────────────────────────────
+  const project = makeProject({ id: fixtureId(1000), name: 'Spring reset', areaId: fixtureId(12) })
+  // showcase: a recurring chore completed late + its respawned (already overdue from today's view) successor
+  const wateredLate = makeTask({ id: fixtureId(1001), title: 'Water the plants', due: FIXTURE_TODAY.addDays(-9), cadence: Cadence.of(7, 'days') })
+  wateredLate.complete(FIXTURE_TODAY.addDays(-6))
+  // the successor is constructed explicitly with a fixture id — spawnNext() would
+  // generate a random id and break the seed's byte-stability contract
+  const wateringNext = makeTask({
+    id: fixtureId(1002),
+    title: 'Water the plants',
+    due: wateredLate.cadence!.nextAfter(wateredLate.completedOn!), // -6 + 7 = TODAY+1
+    cadence: Cadence.of(7, 'days'),
+  })
+  const taxes = makeTask({ id: fixtureId(1003), title: 'File taxes', due: FIXTURE_TODAY.addDays(-3) })
+  const projectDone = makeTask({ id: fixtureId(1004), title: 'Declutter closet', due: FIXTURE_TODAY.addDays(-5), projectId: project.id })
+  projectDone.complete(FIXTURE_TODAY.addDays(-5))
+  const projectOpen = makeTask({ id: fixtureId(1005), title: 'Donate the pile', due: FIXTURE_TODAY.addDays(3), projectId: project.id })
+  const dentist = makeAppointment({ id: fixtureId(1006), title: 'Dentist', startsAt: new Date('2026-06-03T15:00:00Z') })
+  const mealTomorrow = makePlannedMeal({ id: fixtureId(1007), title: 'Oatmeal breakfast', day: FIXTURE_TODAY.addDays(1) })
+  const mealLater = makePlannedMeal({ id: fixtureId(1008), title: 'Oatmeal again', day: FIXTURE_TODAY.addDays(3) })
+  const todayPlan = makeDayPlan({
+    id: fixtureId(1010),
+    day: FIXTURE_TODAY,
+    slots: [{ planId: fixtureId(1003), start: '09:00', end: '10:00' }],
+  })
+
   cached = {
     users: [avery.toJSON(), blake.toJSON()],
     lifeAreas: areas.map((a) => a.toJSON()),
@@ -155,6 +190,9 @@ export function makeSeed(): Seed {
     entries: entries.map((e) => e.toJSON()),
     goals: [calorieGoal.toJSON(), runGoal.toJSON(), sleepGoal.toJSON(), weightGoal.toJSON()],
     budgets: [groceryBudget.toJSON()],
+    plans: [wateredLate.toJSON(), wateringNext.toJSON(), taxes.toJSON(), projectDone.toJSON(), projectOpen.toJSON(), dentist.toJSON(), mealTomorrow.toJSON(), mealLater.toJSON()],
+    projects: [project.toJSON()],
+    dayPlans: [todayPlan.toJSON()],
   }
   return cached
 }

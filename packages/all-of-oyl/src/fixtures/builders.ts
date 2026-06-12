@@ -1,8 +1,15 @@
 import { LifeArea } from '../core/life-area'
 import { User, type Units } from '../user/user'
 import type { Id } from '../core/id'
-import { FIXTURE_TZ } from './constants'
+import { FIXTURE_TODAY, FIXTURE_TZ } from './constants'
 import { fixtureId } from './fixture-id'
+import { Cadence } from '../core/cadence'
+import { DayKey } from '../core/day-key'
+import { Task } from '../plan/task'
+import { Appointment } from '../plan/appointment'
+import { PlannedMeal } from '../plan/planned-meal'
+import { Project } from '../plan/project'
+import { DayPlan, type DayPlanSlot } from '../plan/day-plan'
 import { Activity } from '../activity/activity'
 import { ActivitySession } from '../activity/activity-session'
 import { Food, type Nutrients } from '../nutrition/food'
@@ -165,5 +172,58 @@ export function makeBudget(overrides: { id?: Id; name?: string; category?: strin
     ...(overrides.name !== undefined ? { name: overrides.name } : {}),
     category: overrides.category ?? 'groceries',
     limit: overrides.limit ?? Money.usd(40000),
+  })
+}
+
+export function makeTask(
+  overrides: { id?: Id; title?: string; due?: DayKey; projectId?: Id; cadence?: Cadence; possessionId?: Id } = {},
+): Task {
+  return new Task({
+    id: overrides.id ?? fixtureId(1001),
+    title: overrides.title ?? 'Water the plants',
+    due: overrides.due ?? FIXTURE_TODAY.addDays(1),
+    ...(overrides.projectId !== undefined ? { projectId: overrides.projectId } : {}),
+    ...(overrides.cadence !== undefined ? { cadence: overrides.cadence } : {}),
+    ...(overrides.possessionId !== undefined ? { possessionId: overrides.possessionId } : {}),
+  })
+}
+
+export function makeProject(overrides: { id?: Id; name?: string; areaId?: Id } = {}): Project {
+  return new Project({
+    id: overrides.id ?? fixtureId(1000),
+    name: overrides.name ?? 'Spring reset',
+    ...(overrides.areaId !== undefined ? { areaId: overrides.areaId } : {}),
+  })
+}
+
+export function makeAppointment(
+  overrides: { id?: Id; title?: string; startsAt?: Date; durationMinutes?: number; tz?: string } = {},
+): Appointment {
+  return new Appointment({
+    id: overrides.id ?? fixtureId(1006),
+    title: overrides.title ?? 'Dentist',
+    startsAt: overrides.startsAt ?? new Date('2026-06-03T15:00:00Z'),
+    tz: overrides.tz ?? FIXTURE_TZ,
+    ...(overrides.durationMinutes !== undefined ? { durationMinutes: overrides.durationMinutes } : {}),
+  })
+}
+
+export function makePlannedMeal(
+  overrides: { id?: Id; title?: string; day?: DayKey; foodId?: Id; servings?: number } = {},
+): PlannedMeal {
+  return new PlannedMeal({
+    id: overrides.id ?? fixtureId(1007),
+    title: overrides.title ?? 'Oatmeal breakfast',
+    day: overrides.day ?? FIXTURE_TODAY.addDays(1),
+    foodId: overrides.foodId ?? fixtureId(31),
+    ...(overrides.servings !== undefined ? { servings: overrides.servings } : {}),
+  })
+}
+
+export function makeDayPlan(overrides: { id?: Id; day?: DayKey; slots?: readonly DayPlanSlot[] } = {}): DayPlan {
+  return new DayPlan({
+    id: overrides.id ?? fixtureId(1010),
+    day: overrides.day ?? FIXTURE_TODAY,
+    slots: overrides.slots ?? [{ planId: fixtureId(1003), start: '09:00', end: '10:00' }],
   })
 }
