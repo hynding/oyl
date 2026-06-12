@@ -105,7 +105,9 @@ export class Vault {
    * The unified reminder feed: document expiries, warranty expiries,
    * subscription renewals, and contact occasions whose next due (as of the
    * range start) falls inside the range, sorted by due day then insertion.
-   * One entry per item — the NEXT occurrence only.
+   * One entry per item — the NEXT occurrence only. Exception: a contact
+   * emits one row PER OCCASION (birthday and anniversary both appear), so
+   * itemId is NOT unique in the feed — rows are unique by (itemId, label).
    */
   upcoming(range: DayRange): readonly UpcomingDue[] {
     const feed: UpcomingDue[] = []
