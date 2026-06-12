@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { Appointment } from './appointment'
 import { Id } from '../core/id'
 import { DomainError } from '../core/domain-error'
+import { DayKey } from '../core/day-key'
 
 describe('Appointment', () => {
   it('derives its due day from startsAt + explicit timezone', () => {
@@ -58,6 +59,21 @@ describe('Appointment', () => {
     expect(revived.durationMinutes).toBe(45)
     expect((revived.toJSON() as Record<string, unknown>)['futureField']).toBe(10)
     expect(Appointment.fromJSON(revived.toJSON()).toJSON()).toEqual(revived.toJSON())
+  })
+
+  it('rejects a contradictory precomputed due when tz is also given', () => {
+    // 01:30Z on June 3 is June 2 in New York — a due of June 3 contradicts the tz derivation
+    let caught: unknown
+    try {
+      new Appointment({ title: 'Dentist', startsAt: new Date('2026-06-03T01:30:00Z'), tz: 'America/New_York', due: DayKey.of('2026-06-03') })
+    } catch (e) {
+      caught = e
+    }
+    expect((caught as DomainError)?.code).toBe('INVALID_DAY')
+
+    // agreeing tz + due is fine (idempotent revival with tz available)
+    const ok = new Appointment({ title: 'Dentist', startsAt: new Date('2026-06-03T01:30:00Z'), tz: 'America/New_York', due: DayKey.of('2026-06-02') })
+    expect(ok.due?.value).toBe('2026-06-02')
   })
 
   it('throws MALFORMED_JSON on bad shapes', () => {

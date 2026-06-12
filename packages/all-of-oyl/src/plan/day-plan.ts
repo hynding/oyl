@@ -35,6 +35,7 @@ export class DayPlan {
         if (!TIME_RE.test(slot.end)) {
           throw new DomainError('INVALID_QUANTITY', `not a valid HH:MM time: "${slot.end}"`)
         }
+        // lexicographic comparison is chronologic ONLY because TIME_RE forces zero-padded HH:MM — keep them in sync
         if (slot.end <= slot.start) {
           throw new DomainError('INVALID_RANGE', `slot end ${slot.end} must follow start ${slot.start}`)
         }

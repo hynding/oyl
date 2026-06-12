@@ -9,6 +9,7 @@ import { Plan, parsePlanBase, planBaseJSON } from '../core/plan'
  * servings per food id across a range's planned meals.
  */
 export class PlannedMeal extends Plan {
+  /** Always equals `due` — a domain-named alias wired from one constructor source. */
   readonly day: DayKey
   readonly foodId: Id
   readonly servings: number

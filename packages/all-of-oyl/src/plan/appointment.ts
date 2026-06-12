@@ -27,7 +27,11 @@ export class Appointment extends Plan {
     extra: Record<string, unknown> = {},
   ) {
     const { startsAt, durationMinutes, tz, due, ...base } = props
-    const resolvedDue = due ?? (tz !== undefined ? DayKey.from(startsAt, tz) : undefined)
+    const derived = tz !== undefined ? DayKey.from(startsAt, tz) : undefined
+    if (due !== undefined && derived !== undefined && !due.equals(derived)) {
+      throw new DomainError('INVALID_DAY', `precomputed due ${due.value} contradicts ${derived.value} derived from tz`)
+    }
+    const resolvedDue = due ?? derived
     if (resolvedDue === undefined) {
       throw new DomainError('INVALID_TIMEZONE', 'an appointment needs an explicit tz (or a precomputed due day when reviving)')
     }
