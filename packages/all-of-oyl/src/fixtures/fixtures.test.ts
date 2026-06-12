@@ -5,8 +5,10 @@ import {
   makeAccount,
   makeActivity,
   makeActivitySession,
+  makeBudget,
   makeConsumption,
   makeFood,
+  makeGoal,
   makeLifeArea,
   makeMeasurement,
   makeNote,
@@ -24,6 +26,9 @@ import { DayRange } from '../core/day-range'
 import { MetricKey } from '../core/metric-key'
 import { Transaction } from '../finance/transaction'
 import { Consumption } from '../nutrition/consumption'
+import { Goal } from '../goal/goal'
+import { Budget } from '../goal/budget'
+import { Money } from '../core/money'
 
 const seed = makeSeed()
 
@@ -117,5 +122,52 @@ describe('fixtures', () => {
     expect(journal.totalOf(MetricKey.of('nutrition.calories'), lastWeek)).toBeGreaterThan(0)
     expect(journal.totalOf(MetricKey.of('activity.run.minutes'), lastWeek)).toBeGreaterThan(0)
     expect(journal.totalsByPrefix('finance.spend', lastWeek).size).toBeGreaterThan(0)
+  })
+
+  it('phase 3 builders produce valid objects with overridable fields', () => {
+    expect(makeGoal().direction).toBe('atMost')
+    expect(makeGoal({ direction: 'atLeast', metric: 'custom.km', target: 10 }).metric).toBe('custom.km')
+    expect(makeBudget().category).toBe('groceries')
+    expect(makeBudget({ limit: Money.usd(10000) }).limit.equals(Money.usd(10000))).toBe(true)
+  })
+
+  it('seed contains goals (incl. the paused showcase) and a budget that revive and answer', () => {
+    expect(seed.goals).toHaveLength(4)
+    expect(seed.budgets).toHaveLength(1)
+    const goals = seed.goals.map((shape) => Goal.fromJSON(shape))
+    const budget = Budget.fromJSON(seed.budgets[0])
+
+    // hydrate the journal once
+    const journal = new Journal(FIXTURE_TZ)
+    for (const shape of seed.entries) journal.add(reviveEntry(shape))
+
+    // the calorie goal is judged on FIXTURE_TODAY
+    const calories = goals.find((g) => g.metric === 'nutrition.calories')!
+    const cp = calories.progressOn(journal, FIXTURE_TODAY)
+    expect(cp.empty).toBe(false)
+    expect(cp.met).toBe(true) // 150 cal breakfast, no dinner on day 41
+
+    // the weekly run goal is met for the prior (full) week
+    const run = goals.find((g) => g.metric === 'activity.run.minutes')!
+    expect(run.progressOn(journal, FIXTURE_TODAY.addDays(-7)).met).toBe(true)
+
+    // the paused weight goal reports paused with met unasserted inside its pause
+    const weight = goals.find((g) => g.metric === 'body.weight_kg')!
+    const wp = weight.progressOn(journal, FIXTURE_TODAY.addDays(-8))
+    expect(wp.paused).toBe(true)
+    expect(wp.met).toBeUndefined()
+    expect(weight.progressOn(journal, FIXTURE_TODAY).paused).toBe(false)
+
+    // the budget nets the refund and stays under limit for May
+    const may = FIXTURE_TODAY.addDays(-7)
+    const spent = budget.spent(journal, may)
+    expect(spent.currency).toBe('USD')
+    expect(spent.minor).toBeGreaterThan(0)
+    expect(budget.remaining(journal, may).equals(budget.limit.subtract(spent))).toBe(true)
+    expect(budget.progressOn(journal, may).met).toBe(true)
+
+    // serialization idempotence for the new shapes
+    for (const g of goals) expect(Goal.fromJSON(g.toJSON()).toJSON()).toEqual(g.toJSON())
+    expect(Budget.fromJSON(budget.toJSON()).toJSON()).toEqual(budget.toJSON())
   })
 })

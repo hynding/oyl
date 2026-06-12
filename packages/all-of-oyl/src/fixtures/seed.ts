@@ -7,8 +7,10 @@ import {
   makeAccount,
   makeActivity,
   makeActivitySession,
+  makeBudget,
   makeConsumption,
   makeFood,
+  makeGoal,
   makeLifeArea,
   makeMeasurement,
   makeNote,
@@ -37,6 +39,8 @@ export type Seed = {
   foods: Record<string, unknown>[]
   accounts: Record<string, unknown>[]
   entries: Record<string, unknown>[]
+  goals: Record<string, unknown>[]
+  budgets: Record<string, unknown>[]
 }
 
 let cached: Seed | undefined
@@ -132,6 +136,16 @@ export function makeSeed(): Seed {
     entries.push(makeMeasurement({ id: eid(), occurredAt: at(DayKey.of(dayValue), 11), metric: 'body.weight_kg', value: 84 }))
   }
 
+  // ── Goals & budget (id block 50-69) ─────────────────────────────────────
+  const calorieGoal = makeGoal({ id: fixtureId(50), name: 'Eat lighter', metric: 'nutrition.calories', target: 2200, direction: 'atMost', period: 'day', areaId: fixtureId(10) })
+  const runGoal = makeGoal({ id: fixtureId(51), name: 'Run weekly', metric: 'activity.run.minutes', target: 100, direction: 'atLeast', period: 'week', areaId: fixtureId(10) })
+  const sleepGoal = makeGoal({ id: fixtureId(52), name: 'Sleep enough', metric: 'sleep.hours', target: 7, direction: 'atLeast', period: 'day' })
+  const weightGoal = makeGoal({ id: fixtureId(53), name: 'Trim down', metric: 'body.weight_kg', target: 81, direction: 'atMost', period: 'day', aggregation: 'last' })
+  // showcase: a paused goal mid-streak (spec, "Fixtures double as seed data")
+  weightGoal.pause(FIXTURE_TODAY.addDays(-10), FIXTURE_TODAY.addDays(-7))
+  // limit $1,000: the deterministic May spend is ~$728 net of the refund, so the budget is met
+  const groceryBudget = makeBudget({ id: fixtureId(60), name: 'Food money', category: 'groceries', limit: Money.usd(100000) })
+
   cached = {
     users: [avery.toJSON(), blake.toJSON()],
     lifeAreas: areas.map((a) => a.toJSON()),
@@ -139,6 +153,8 @@ export function makeSeed(): Seed {
     foods: [oatmeal.toJSON(), chickenBowl.toJSON()],
     accounts: [checking.toJSON()],
     entries: entries.map((e) => e.toJSON()),
+    goals: [calorieGoal.toJSON(), runGoal.toJSON(), sleepGoal.toJSON(), weightGoal.toJSON()],
+    budgets: [groceryBudget.toJSON()],
   }
   return cached
 }

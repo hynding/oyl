@@ -13,6 +13,10 @@ import { Measurement } from '../track/measurement'
 import { Note } from '../track/note'
 import { Money } from '../core/money'
 import { Quantity } from '../core/quantity'
+import { Goal, type GoalDirection, type EmptyPeriods } from '../goal/goal'
+import { Budget } from '../goal/budget'
+import type { GoalPeriod } from '../goal/period'
+import type { AggregateKind } from '../core/journal'
 
 type UserProps = { id?: Id; displayName?: string; timezone?: string; defaultCurrency?: string; units?: Units }
 
@@ -126,5 +130,40 @@ export function makeNote(
     ...(overrides.note !== undefined ? { note: overrides.note } : {}),
     text: overrides.text ?? 'Weekly reflection: good week.',
     tags: overrides.tags ?? ['gratitude'],
+  })
+}
+
+export function makeGoal(
+  overrides: {
+    id?: Id
+    name?: string
+    metric?: string
+    target?: number
+    direction?: GoalDirection
+    period?: GoalPeriod
+    aggregation?: AggregateKind
+    emptyPeriods?: EmptyPeriods
+    areaId?: Id
+  } = {},
+): Goal {
+  return new Goal({
+    id: overrides.id ?? fixtureId(50),
+    ...(overrides.name !== undefined ? { name: overrides.name } : {}),
+    metric: overrides.metric ?? 'nutrition.calories',
+    target: overrides.target ?? 2200,
+    direction: overrides.direction ?? 'atMost',
+    period: overrides.period ?? 'day',
+    ...(overrides.aggregation !== undefined ? { aggregation: overrides.aggregation } : {}),
+    ...(overrides.emptyPeriods !== undefined ? { emptyPeriods: overrides.emptyPeriods } : {}),
+    ...(overrides.areaId !== undefined ? { areaId: overrides.areaId } : {}),
+  })
+}
+
+export function makeBudget(overrides: { id?: Id; name?: string; category?: string; limit?: Money } = {}): Budget {
+  return new Budget({
+    id: overrides.id ?? fixtureId(60),
+    ...(overrides.name !== undefined ? { name: overrides.name } : {}),
+    category: overrides.category ?? 'groceries',
+    limit: overrides.limit ?? Money.usd(40000),
   })
 }

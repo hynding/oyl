@@ -25,8 +25,10 @@ export {
   makeAccount,
   makeActivity,
   makeActivitySession,
+  makeBudget,
   makeConsumption,
   makeFood,
+  makeGoal,
   makeLifeArea,
   makeMeasurement,
   makeNote,
@@ -43,6 +45,10 @@ export { Account } from './finance/account'
 export { Transaction, type TransactionDirection } from './finance/transaction'
 export { Measurement } from './track/measurement'
 export { Note } from './track/note'
+
+export { type GoalPeriod, GOAL_PERIODS, periodWindowOf } from './goal/period'
+export { Goal, type GoalDirection, type EmptyPeriods, type GoalProgress } from './goal/goal'
+export { Budget } from './goal/budget'
 
 // ── Revivers ────────────────────────────────────────────────────────────────
 // The kind → fromJSON map must know every Entry subclass, and the barrel is
