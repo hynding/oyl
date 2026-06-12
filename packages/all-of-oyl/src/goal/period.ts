@@ -1,4 +1,4 @@
-import { DayKey } from '../core/day-key'
+import type { DayKey } from '../core/day-key'
 import { DayRange } from '../core/day-range'
 
 export type GoalPeriod = 'day' | 'week' | 'month'
@@ -16,11 +16,5 @@ export function periodWindowOf(period: GoalPeriod, day: DayKey): DayRange {
     const monday = day.addDays(1 - day.weekday())
     return DayRange.of(monday, monday.addDays(6))
   }
-  const [y, m] = day.value.split('-').map(Number) as [number, number]
-  const first = DayKey.of(`${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-01`)
-  const nextFirst =
-    m === 12
-      ? DayKey.of(`${String(y + 1).padStart(4, '0')}-01-01`)
-      : DayKey.of(`${String(y).padStart(4, '0')}-${String(m + 1).padStart(2, '0')}-01`)
-  return DayRange.of(first, nextFirst.addDays(-1))
+  return DayRange.of(day.startOfMonth(), day.endOfMonth())
 }

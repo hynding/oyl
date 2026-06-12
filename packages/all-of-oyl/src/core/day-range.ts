@@ -21,6 +21,13 @@ export class DayRange {
     return day.compare(this.start) >= 0 && day.compare(this.end) <= 0
   }
 
+  /** Inclusive day count — a single-day range is 1. */
+  lengthInDays(): number {
+    const startUtc = Date.UTC(this.start.year, this.start.month - 1, this.start.dayOfMonth)
+    const endUtc = Date.UTC(this.end.year, this.end.month - 1, this.end.dayOfMonth)
+    return Math.round((endUtc - startUtc) / 86_400_000) + 1
+  }
+
   *[Symbol.iterator](): Iterator<DayKey> {
     for (let day = this.start; day.compare(this.end) <= 0; day = day.addDays(1)) {
       yield day

@@ -38,3 +38,11 @@ describe('DayRange', () => {
     expect(a.equals(b)).toBe(true)
   })
 })
+
+describe('DayRange.lengthInDays', () => {
+  it('counts inclusive days, across month boundaries', () => {
+    expect(DayRange.of(DayKey.of('2026-06-01'), DayKey.of('2026-06-01')).lengthInDays()).toBe(1)
+    expect(DayRange.of(DayKey.of('2026-06-01'), DayKey.of('2026-06-07')).lengthInDays()).toBe(7)
+    expect(DayRange.of(DayKey.of('2026-05-25'), DayKey.of('2026-06-03')).lengthInDays()).toBe(10)
+  })
+})

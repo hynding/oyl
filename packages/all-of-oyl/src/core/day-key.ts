@@ -62,9 +62,42 @@ export class DayKey {
     return DayKey.of(value)
   }
 
+  /** Build a day from numeric parts, validating impossibilities (2026-02-30). */
+  static fromParts(year: number, month: number, dayOfMonth: number): DayKey {
+    return DayKey.of(
+      `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(dayOfMonth).padStart(2, '0')}`,
+    )
+  }
+
+  /** Days in a calendar month, leap-aware. The one home for this math. */
+  static daysInMonth(year: number, month: number): number {
+    return new Date(Date.UTC(year, month, 0)).getUTCDate()
+  }
+
+  // The slice positions are guaranteed by the validated YYYY-MM-DD shape —
+  // these accessors are the one sanctioned way to read a day's parts.
+  get year(): number {
+    return Number(this.value.slice(0, 4))
+  }
+
+  get month(): number {
+    return Number(this.value.slice(5, 7))
+  }
+
+  get dayOfMonth(): number {
+    return Number(this.value.slice(8, 10))
+  }
+
+  startOfMonth(): DayKey {
+    return DayKey.fromParts(this.year, this.month, 1)
+  }
+
+  endOfMonth(): DayKey {
+    return DayKey.fromParts(this.year, this.month, DayKey.daysInMonth(this.year, this.month))
+  }
+
   private toUTC(): Date {
-    const [y, m, d] = this.value.split('-').map(Number) as [number, number, number]
-    return new Date(Date.UTC(y, m - 1, d))
+    return new Date(Date.UTC(this.year, this.month - 1, this.dayOfMonth))
   }
 
   addDays(n: number): DayKey {

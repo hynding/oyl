@@ -65,3 +65,37 @@ describe('DayKey', () => {
     expect(DayKey.fromJSON('2026-06-01').equals(DayKey.of('2026-06-01'))).toBe(true)
   })
 })
+
+describe('DayKey date parts', () => {
+  it('exposes year, month, dayOfMonth', () => {
+    const d = DayKey.of('2026-06-03')
+    expect(d.year).toBe(2026)
+    expect(d.month).toBe(6)
+    expect(d.dayOfMonth).toBe(3)
+  })
+
+  it('fromParts builds and validates', () => {
+    expect(DayKey.fromParts(2026, 6, 3).value).toBe('2026-06-03')
+    expect(DayKey.fromParts(2024, 2, 29).value).toBe('2024-02-29')
+    let caught: unknown
+    try {
+      DayKey.fromParts(2026, 2, 30)
+    } catch (e) {
+      caught = e
+    }
+    expect((caught as DomainError)?.code).toBe('INVALID_DAY')
+  })
+
+  it('daysInMonth is leap-aware', () => {
+    expect(DayKey.daysInMonth(2026, 2)).toBe(28)
+    expect(DayKey.daysInMonth(2024, 2)).toBe(29)
+    expect(DayKey.daysInMonth(2026, 12)).toBe(31)
+  })
+
+  it('startOfMonth and endOfMonth bound the calendar month', () => {
+    expect(DayKey.of('2026-06-15').startOfMonth().value).toBe('2026-06-01')
+    expect(DayKey.of('2026-06-15').endOfMonth().value).toBe('2026-06-30')
+    expect(DayKey.of('2024-02-10').endOfMonth().value).toBe('2024-02-29')
+    expect(DayKey.of('2026-12-31').endOfMonth().value).toBe('2026-12-31')
+  })
+})

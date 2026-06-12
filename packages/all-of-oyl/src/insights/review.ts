@@ -46,11 +46,8 @@ function totalsFor(journal: Journal, range: DayRange): ReviewTotals {
 }
 
 function previousRangeOf(range: DayRange): DayRange {
-  const days = Math.round(
-    (Date.parse(`${range.end.value}T00:00:00Z`) - Date.parse(`${range.start.value}T00:00:00Z`)) / 86_400_000,
-  ) + 1
   const prevEnd = range.start.addDays(-1)
-  return DayRange.of(prevEnd.addDays(-(days - 1)), prevEnd)
+  return DayRange.of(prevEnd.addDays(-(range.lengthInDays() - 1)), prevEnd)
 }
 
 /**

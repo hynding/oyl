@@ -5,28 +5,16 @@ export type CadenceUnit = 'days' | 'weeks' | 'months' | 'years'
 
 const UNITS: readonly CadenceUnit[] = ['days', 'weeks', 'months', 'years']
 
-function parts(day: DayKey): { y: number; m: number; d: number } {
-  const [y, m, d] = day.value.split('-').map(Number) as [number, number, number]
-  return { y, m, d }
-}
-
-function daysInMonth(y: number, m: number): number {
-  return new Date(Date.UTC(y, m, 0)).getUTCDate()
-}
-
 /** k-th occurrence from the anchor; month/year occurrences clamp independently. */
 function occurrence(anchor: DayKey, n: number, unit: CadenceUnit, k: number): DayKey {
   if (unit === 'days') return anchor.addDays(k * n)
   if (unit === 'weeks') return anchor.addDays(k * n * 7)
-  const { y, m, d } = parts(anchor)
   const monthStep = unit === 'months' ? k * n : k * n * 12
-  const total = (m - 1) + monthStep
-  const year = y + Math.floor(total / 12)
+  const total = (anchor.month - 1) + monthStep
+  const year = anchor.year + Math.floor(total / 12)
   const month = (total % 12) + 1
-  const day = Math.min(d, daysInMonth(year, month))
-  return DayKey.of(
-    `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-  )
+  const day = Math.min(anchor.dayOfMonth, DayKey.daysInMonth(year, month))
+  return DayKey.fromParts(year, month, day)
 }
 
 export class Cadence {
@@ -57,10 +45,8 @@ export class Cadence {
       )
       k = Math.max(1, Math.ceil(diffDays / span))
     } else {
-      const a = parts(anchor)
-      const b = parts(asOf)
       const monthsPerStep = this.unit === 'months' ? this.n : this.n * 12
-      const diffMonths = (b.y - a.y) * 12 + (b.m - a.m)
+      const diffMonths = (asOf.year - anchor.year) * 12 + (asOf.month - anchor.month)
       k = Math.max(1, Math.floor(diffMonths / monthsPerStep))
     }
     while (occurrence(anchor, this.n, this.unit, k).compare(asOf) < 0) k += 1
