@@ -16,14 +16,8 @@ class TestPlan extends Plan {
   static fromJSON(shape: unknown): TestPlan {
     const base = parsePlanBase(shape, 'test-plan')
     const plan = new TestPlan({ id: base.id, title: base.title, ...(base.due !== undefined ? { due: base.due } : {}) })
-    plan.adopt(base)
+    plan.adoptBase(base)
     return plan
-  }
-
-  /** Test-only bridge to the protected restore. */
-  private adopt(base: ReturnType<typeof parsePlanBase>): void {
-    this.restoreState(base.state)
-    if (base.meta !== undefined) this.meta = base.meta
   }
 }
 
@@ -118,6 +112,19 @@ describe('Plan', () => {
     const canceled = new TestPlan({ title: 'Skip' })
     canceled.cancel()
     expect(TestPlan.fromJSON(canceled.toJSON()).status).toBe('canceled')
+  })
+
+  it('restoreState clears stale completedOn (verbatim restore)', () => {
+    const done = new TestPlan({ title: 'a' })
+    done.complete(day('2026-06-04'))
+    // revive the done shape, then re-restore an open snapshot onto the same instance via fromJSON of an open plan
+    const revivedDone = TestPlan.fromJSON(done.toJSON())
+    const open = new TestPlan({ title: 'a' })
+    // simulate a reused instance: restore the open snapshot over the done one
+    const openBase = parsePlanBase(open.toJSON(), 'test-plan')
+    ;(revivedDone as unknown as { restoreState(s: typeof openBase.state): void }).restoreState(openBase.state)
+    expect(revivedDone.status).toBe('open')
+    expect(revivedDone.completedOn).toBeUndefined()
   })
 
   it('parsePlanBase rejects malformed and inconsistent shapes', () => {

@@ -59,12 +59,22 @@ export abstract class Plan {
     this.currentStatus = 'canceled'
   }
 
+  /** For deserialization only: apply a parsePlanBase result's state + meta. */
+  protected adoptBase(base: PlanBaseProps): void {
+    this.restoreState(base.state)
+    if (base.meta !== undefined) this.meta = base.meta
+  }
+
   abstract toJSON(): Record<string, unknown>
 
-  /** For deserialization only: restore the mutable state machine verbatim. */
+  /**
+   * For deserialization only: restore the mutable state machine verbatim.
+   * Caller must pass a parsePlanBase-validated snapshot — no re-validation here.
+   */
   protected restoreState(snapshot: PlanStateSnapshot): void {
     this.currentStatus = snapshot.status
     if (snapshot.completedOn !== undefined) this.completedOnDay = snapshot.completedOn
+    else delete this.completedOnDay
     this.links.length = 0
     this.links.push(...snapshot.fulfilledBy)
   }

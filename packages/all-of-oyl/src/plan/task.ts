@@ -85,10 +85,4 @@ export class Task extends Plan {
     task.adoptBase(base)
     return task
   }
-
-  /** Internal: apply restored state + meta from a parsed base. */
-  private adoptBase(base: ReturnType<typeof parsePlanBase>): void {
-    this.restoreState(base.state)
-    if (base.meta !== undefined) this.meta = base.meta
-  }
 }
