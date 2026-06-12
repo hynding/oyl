@@ -64,10 +64,28 @@ describe('Transaction', () => {
     expect((revived.toJSON() as Record<string, unknown>)['futureField']).toBe(3)
   })
 
+  it('rejects conflicting account provenance', () => {
+    let caught: unknown
+    try {
+      new Transaction({
+        occurredAt: when,
+        amount: Money.usd(100),
+        category: 'groceries',
+        direction: 'expense',
+        account: checking,
+        accountId: Id.of('00000000-0000-4000-8000-000000000099'),
+      })
+    } catch (e) {
+      caught = e
+    }
+    expect((caught as DomainError)?.code).toBe('INVALID_ID')
+  })
+
   it('throws MALFORMED_JSON on bad shapes', () => {
     for (const shape of [
       { kind: 'transaction', id: '00000000-0000-4000-8000-000000000102', occurredAt: when.toISOString(), category: 'groceries', direction: 'expense' }, // no amount
       { kind: 'transaction', id: '00000000-0000-4000-8000-000000000102', occurredAt: when.toISOString(), amount: Money.usd(1).toJSON(), category: 'groceries', direction: 'sideways' },
+      { kind: 'transaction', id: '00000000-0000-4000-8000-000000000102', occurredAt: when.toISOString(), amount: Money.usd(1).toJSON(), category: 'groceries', direction: 'expense', accountId: 'nope' },
     ]) {
       let caught: unknown
       try {

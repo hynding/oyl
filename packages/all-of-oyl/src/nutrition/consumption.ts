@@ -41,6 +41,9 @@ export class Consumption extends Entry {
     if (!Number.isFinite(servings) || servings <= 0) {
       throw new DomainError('INVALID_QUANTITY', `servings must be a positive finite number, got ${servings}`)
     }
+    if (food !== undefined && foodId !== undefined && food.id !== foodId) {
+      throw new DomainError('INVALID_ID', `conflicting food provenance: ${food.id} vs ${foodId}`)
+    }
     const provenance = food?.id ?? foodId
     if (provenance !== undefined) this.foodId = provenance
     this.servings = servings

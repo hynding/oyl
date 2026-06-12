@@ -77,13 +77,29 @@ describe('Consumption', () => {
     expect(revivedAdHoc.metrics().get(key('nutrition.calories'))).toBe(850)
   })
 
-  it('throws MALFORMED_JSON on bad shapes', () => {
+  it('rejects conflicting food provenance', () => {
     let caught: unknown
     try {
-      Consumption.fromJSON({ kind: 'consumption', id: '00000000-0000-4000-8000-000000000101', occurredAt: when.toISOString(), servings: 1 }) // no nutrients
+      new Consumption({ occurredAt: when, food: oatmeal, foodId: Id.of('00000000-0000-4000-8000-000000000099') })
     } catch (e) {
       caught = e
     }
-    expect((caught as DomainError)?.code).toBe('MALFORMED_JSON')
+    expect((caught as DomainError)?.code).toBe('INVALID_ID')
+  })
+
+  it('throws MALFORMED_JSON on bad shapes', () => {
+    for (const shape of [
+      { kind: 'consumption', id: '00000000-0000-4000-8000-000000000101', occurredAt: when.toISOString(), servings: 1 }, // no nutrients
+      { kind: 'note', id: '00000000-0000-4000-8000-000000000101', occurredAt: when.toISOString(), servings: 1, nutrients: { calories: 1 } }, // wrong kind
+      { kind: 'consumption', id: '00000000-0000-4000-8000-000000000101', occurredAt: when.toISOString(), servings: 1, nutrients: { calories: 1 }, foodId: 'nope' }, // malformed foodId
+    ]) {
+      let caught: unknown
+      try {
+        Consumption.fromJSON(shape)
+      } catch (e) {
+        caught = e
+      }
+      expect((caught as DomainError)?.code).toBe('MALFORMED_JSON')
+    }
   })
 })

@@ -46,6 +46,9 @@ export class Transaction extends Entry {
     this.amount = amount
     this.category = assertSlug(category)
     this.direction = direction
+    if (account !== undefined && accountId !== undefined && account.id !== accountId) {
+      throw new DomainError('INVALID_ID', `conflicting account provenance: ${account.id} vs ${accountId}`)
+    }
     const provenance = account?.id ?? accountId
     if (provenance !== undefined) this.accountId = provenance
     this.extra = extra
