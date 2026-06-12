@@ -73,6 +73,20 @@ describe('Entry', () => {
     expect(base.rest).toEqual({ customField: 9 })
   })
 
+  it('parseEntryBase revives meta when present', () => {
+    const base = parseEntryBase(
+      {
+        id: '00000000-0000-4000-8000-000000000100',
+        kind: 'test',
+        occurredAt: '2026-06-01T12:00:00.000Z',
+        meta: { createdAt: '2026-06-01T00:00:00Z', updatedAt: '2026-06-01T00:00:00Z', revision: 3 },
+      },
+      'test',
+    )
+    expect(base.meta?.revision).toBe(3)
+    expect(base.meta?.createdAt).toBeInstanceOf(Date)
+  })
+
   it.each([
     null,
     42,

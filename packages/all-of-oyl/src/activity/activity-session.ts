@@ -32,7 +32,12 @@ export class ActivitySession extends Entry {
     super('activity-session', base)
     this.activityId = activity.id
     this.slug = assertSlug(activity.slug)
-    for (const q of quantities) assertSlug(q.unit) // units embed into metric keys
+    for (const q of quantities) {
+      assertSlug(q.unit) // units embed into metric keys
+      if (q.unit === 'count') {
+        throw new DomainError('RESERVED_NAMESPACE', `the "count" unit is reserved — activity.${this.slug}.count is the session counter`)
+      }
+    }
     this.quantities = [...quantities]
     this.extra = extra
   }

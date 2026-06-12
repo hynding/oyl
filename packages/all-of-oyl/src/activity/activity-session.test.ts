@@ -37,6 +37,16 @@ describe('ActivitySession', () => {
     expect(bare.metrics().size).toBe(1)
   })
 
+  it('reserves the count unit — it would collide with the session counter', () => {
+    let caught: unknown
+    try {
+      new ActivitySession({ occurredAt: when, activity: run, quantities: [Quantity.of(5, 'count')] })
+    } catch (e) {
+      caught = e
+    }
+    expect((caught as DomainError)?.code).toBe('RESERVED_NAMESPACE')
+  })
+
   it('rejects quantity units that cannot embed into a metric key', () => {
     let caught: unknown
     try {
