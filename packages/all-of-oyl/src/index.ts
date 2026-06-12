@@ -50,6 +50,13 @@ export { type GoalPeriod, GOAL_PERIODS, periodWindowOf } from './goal/period'
 export { Goal, type GoalDirection, type EmptyPeriods, type GoalProgress } from './goal/goal'
 export { Budget } from './goal/budget'
 
+export { Task } from './plan/task'
+export { Appointment } from './plan/appointment'
+export { PlannedMeal } from './plan/planned-meal'
+export { Project } from './plan/project'
+export { DayPlan, type DayPlanSlot } from './plan/day-plan'
+export { Planner, type ScheduledSlot } from './plan/planner'
+
 // ── Revivers ────────────────────────────────────────────────────────────────
 // The kind → fromJSON map must know every Entry subclass, and the barrel is
 // the only file allowed to know all modules (see spec, "The reviver lives in
@@ -78,6 +85,27 @@ export function reviveEntry(shape: unknown): Entry {
     typeof kind === 'string' && Object.hasOwn(ENTRY_REVIVERS, kind) ? ENTRY_REVIVERS[kind] : undefined
   if (!revive) {
     throw new DomainError('UNKNOWN_KIND', `unknown entry kind: ${JSON.stringify(kind)}`)
+  }
+  return revive(shape)
+}
+
+import type { Plan } from './core/plan'
+import { Task } from './plan/task'
+import { Appointment } from './plan/appointment'
+import { PlannedMeal } from './plan/planned-meal'
+
+const PLAN_REVIVERS: Readonly<Record<string, (shape: unknown) => Plan>> = {
+  task: Task.fromJSON,
+  appointment: Appointment.fromJSON,
+  'planned-meal': PlannedMeal.fromJSON,
+}
+
+/** Revive a heterogeneous plan shape by its kind discriminant. Unknown kinds throw — louder and safer than silently dropping a user's data. */
+export function revivePlan(shape: unknown): Plan {
+  const kind = (shape as { kind?: unknown } | null)?.kind
+  const revive = typeof kind === 'string' && Object.hasOwn(PLAN_REVIVERS, kind) ? PLAN_REVIVERS[kind] : undefined
+  if (!revive) {
+    throw new DomainError('UNKNOWN_KIND', `unknown plan kind: ${JSON.stringify(kind)}`)
   }
   return revive(shape)
 }

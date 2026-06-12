@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ActivitySession, Consumption, Measurement, Note, Transaction, reviveEntry } from './index'
+import { ActivitySession, Appointment, Consumption, DayKey, Id, Measurement, Note, PlannedMeal, Task, Transaction, reviveEntry, revivePlan } from './index'
 import { DomainError } from './core/domain-error'
 
 const when = new Date('2026-06-01T12:00:00Z')
@@ -49,6 +49,29 @@ describe('reviveEntry', () => {
       let caught: unknown
       try {
         reviveEntry(shape)
+      } catch (e) {
+        caught = e
+      }
+      expect((caught as DomainError)?.code).toBe('UNKNOWN_KIND')
+    }
+  })
+})
+
+describe('revivePlan', () => {
+  it('dispatches every plan kind to the right class', () => {
+    const task = new Task({ title: 'File taxes' })
+    const appt = new Appointment({ title: 'Dentist', startsAt: when, tz: 'America/New_York' })
+    const meal = new PlannedMeal({ title: 'Oatmeal', day: DayKey.of('2026-06-02'), foodId: Id.of('00000000-0000-4000-8000-000000000031') })
+    expect(revivePlan(task.toJSON())).toBeInstanceOf(Task)
+    expect(revivePlan(appt.toJSON())).toBeInstanceOf(Appointment)
+    expect(revivePlan(meal.toJSON())).toBeInstanceOf(PlannedMeal)
+  })
+
+  it('throws UNKNOWN_KIND for unregistered kinds, including prototype keys', () => {
+    for (const shape of [{ kind: 'reminder' }, { kind: 'toString' }, { kind: 'constructor' }, {}, null, 42]) {
+      let caught: unknown
+      try {
+        revivePlan(shape)
       } catch (e) {
         caught = e
       }
