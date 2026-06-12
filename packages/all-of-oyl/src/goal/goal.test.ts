@@ -196,4 +196,64 @@ describe('Goal', () => {
     }
     expect((caught3 as DomainError)?.code).toBe('INVALID_RANGE')
   })
+
+  it('round-trips JSON with pauses, unknown fields, and meta', () => {
+    const goal = new Goal({
+      id: Id.of('00000000-0000-4000-8000-000000000050'),
+      name: 'Eat lighter',
+      metric: 'nutrition.calories',
+      target: 2200,
+      direction: 'atMost',
+      period: 'day',
+      areaId: Id.of('00000000-0000-4000-8000-000000000010'),
+    })
+    goal.pause(day('2026-06-02'), day('2026-06-04'))
+    goal.pause(day('2026-06-10')) // open
+    goal.meta = { createdAt: new Date('2026-06-01T00:00:00Z'), updatedAt: new Date('2026-06-01T00:00:00Z'), revision: 2 }
+
+    const revived = Goal.fromJSON({ ...goal.toJSON(), futureField: 7 })
+    expect(revived.name).toBe('Eat lighter')
+    expect(revived.metric).toBe('nutrition.calories')
+    expect(revived.aggregation).toBe('sum')
+    expect(revived.emptyPeriods).toBe('skip')
+    expect(revived.pauses.map((r) => [r.from.value, r.to?.value])).toEqual([
+      ['2026-06-02', '2026-06-04'],
+      ['2026-06-10', undefined],
+    ])
+    expect(revived.meta?.revision).toBe(2)
+    expect((revived.toJSON() as Record<string, unknown>)['futureField']).toBe(7)
+    // idempotence
+    expect(Goal.fromJSON(revived.toJSON()).toJSON()).toEqual(revived.toJSON())
+  })
+
+  it('throws MALFORMED_JSON on bad shapes', () => {
+    const base = {
+      id: '00000000-0000-4000-8000-000000000050',
+      metric: 'custom.x',
+      target: 1,
+      direction: 'atLeast',
+      period: 'day',
+      aggregation: 'sum',
+      emptyPeriods: 'skip',
+    }
+    for (const shape of [
+      null,
+      { ...base, direction: 'sideways' },
+      { ...base, period: 'fortnight' },
+      { ...base, aggregation: 'median' },
+      { ...base, emptyPeriods: 'maybe' },
+      { ...base, target: 'lots' },
+      { ...base, id: 'nope' },
+      { ...base, pauses: [{ from: 'garbage' }] },
+      { ...base, pauses: [{ from: '2026-06-10', to: '2026-06-05' }] }, // inverted on the wire
+    ]) {
+      let caught: unknown
+      try {
+        Goal.fromJSON(shape)
+      } catch (e) {
+        caught = e
+      }
+      expect((caught as DomainError)?.code).toBe('MALFORMED_JSON')
+    }
+  })
 })

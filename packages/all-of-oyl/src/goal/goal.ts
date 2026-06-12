@@ -4,8 +4,8 @@ import { DomainError } from '../core/domain-error'
 import { Id } from '../core/id'
 import type { AggregateKind, Journal } from '../core/journal'
 import { MetricKey } from '../core/metric-key'
-import type { PersistedMeta } from '../core/persisted-meta'
-import { type GoalPeriod, periodWindowOf } from './period'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta'
+import { type GoalPeriod, GOAL_PERIODS, periodWindowOf } from './period'
 
 export type GoalDirection = 'atLeast' | 'atMost'
 export type EmptyPeriods = 'met' | 'skip'
@@ -94,6 +94,84 @@ export class Goal {
     if (empty) return this.emptyPeriods === 'met' ? { ...base, met: true } : base
     const met = this.direction === 'atLeast' ? current >= this.target : current <= this.target
     return { ...base, met }
+  }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      ...this.extra,
+      id: this.id,
+      ...(this.name !== undefined ? { name: this.name } : {}),
+      metric: this.metric,
+      target: this.target,
+      direction: this.direction,
+      period: this.period,
+      aggregation: this.aggregation,
+      emptyPeriods: this.emptyPeriods,
+      ...(this.areaId !== undefined ? { areaId: this.areaId } : {}),
+      ...(this.pauseRanges.length > 0
+        ? { pauses: this.pauseRanges.map((r) => ({ from: r.from.value, ...(r.to !== undefined ? { to: r.to.value } : {}) })) }
+        : {}),
+      ...(this.meta ? { meta: metaToJSON(this.meta) } : {}),
+    }
+  }
+
+  static fromJSON(shape: unknown): Goal {
+    if (typeof shape !== 'object' || shape === null) {
+      throw new DomainError('MALFORMED_JSON', 'not a Goal shape')
+    }
+    const { id, name, metric, target, direction, period, aggregation, emptyPeriods, areaId, pauses, meta, ...extra } =
+      shape as Record<string, unknown>
+    if (
+      typeof id !== 'string' ||
+      (name !== undefined && typeof name !== 'string') ||
+      typeof metric !== 'string' ||
+      typeof target !== 'number' ||
+      (direction !== 'atLeast' && direction !== 'atMost') ||
+      !(GOAL_PERIODS as readonly unknown[]).includes(period) ||
+      (aggregation !== undefined && aggregation !== 'sum' && aggregation !== 'avg' && aggregation !== 'last') ||
+      (emptyPeriods !== undefined && emptyPeriods !== 'met' && emptyPeriods !== 'skip') ||
+      (areaId !== undefined && typeof areaId !== 'string') ||
+      (pauses !== undefined && !Array.isArray(pauses))
+    ) {
+      throw new DomainError('MALFORMED_JSON', 'not a Goal shape')
+    }
+    let parsedId: Id
+    let parsedAreaId: Id | undefined
+    try {
+      parsedId = Id.of(id)
+      parsedAreaId = areaId !== undefined ? Id.of(areaId as string) : undefined
+    } catch {
+      throw new DomainError('MALFORMED_JSON', 'Goal has a malformed id')
+    }
+    const goal = new Goal(
+      {
+        id: parsedId,
+        ...(name !== undefined ? { name: name as string } : {}),
+        metric,
+        target,
+        direction,
+        period: period as GoalPeriod,
+        ...(aggregation !== undefined ? { aggregation: aggregation as AggregateKind } : {}),
+        ...(emptyPeriods !== undefined ? { emptyPeriods: emptyPeriods as EmptyPeriods } : {}),
+        ...(parsedAreaId !== undefined ? { areaId: parsedAreaId } : {}),
+      },
+      extra,
+    )
+    if (pauses !== undefined) {
+      try {
+        for (const raw of pauses as unknown[]) {
+          const p = raw as { from?: unknown; to?: unknown }
+          if (typeof p?.from !== 'string' || (p.to !== undefined && typeof p.to !== 'string')) {
+            throw new DomainError('MALFORMED_JSON', 'bad pause range')
+          }
+          goal.pause(DayKey.of(p.from), p.to !== undefined ? DayKey.of(p.to) : undefined)
+        }
+      } catch {
+        throw new DomainError('MALFORMED_JSON', 'Goal has malformed pauses')
+      }
+    }
+    if (meta !== undefined) goal.meta = metaFromJSON(meta)
+    return goal
   }
 
   /** Defensive copies; canonical (sorted, merged) order. */
