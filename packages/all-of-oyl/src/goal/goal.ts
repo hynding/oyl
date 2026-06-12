@@ -166,8 +166,11 @@ export class Goal {
           }
           goal.pause(DayKey.of(p.from), p.to !== undefined ? DayKey.of(p.to) : undefined)
         }
-      } catch {
-        throw new DomainError('MALFORMED_JSON', 'Goal has malformed pauses')
+      } catch (e) {
+        if (e instanceof DomainError) {
+          throw new DomainError('MALFORMED_JSON', 'Goal has malformed pauses')
+        }
+        throw e
       }
     }
     if (meta !== undefined) goal.meta = metaFromJSON(meta)
