@@ -1,5 +1,5 @@
 import { DayKey } from '../core/day-key'
-import { DayRange } from '../core/day-range'
+import type { DayRange } from '../core/day-range'
 import { DomainError } from '../core/domain-error'
 import { Id } from '../core/id'
 import type { AggregateKind, Journal } from '../core/journal'
