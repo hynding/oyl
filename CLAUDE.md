@@ -10,7 +10,7 @@ OYL ("Organize Your Life") — a personal productivity stack covering daily acti
 
 | Package | Role | Stack |
 |---|---|---|
-| `@oyl/all-of-oyl` | Shared lib consumed by `next-oyl` and `react-oyl`. Legacy type-only `modules/*` (`activity`, `calendar`, `data`, `goal`, `nutrition`, `user`; vendors `open-food-facts`). **`src/` is the new zero-dependency domain core** (journal/planner/vault/goals/insights/sharing) — spec at `docs/superpowers/specs/2026-06-11-all-of-oyl-domain-core-design.md`; not yet wired into the package `exports` map. | TS (strict for `src/`), Vitest |
+| `@oyl/all-of-oyl` | Shared lib consumed by `next-oyl` and `react-oyl`. Legacy type-only `modules/*` (`activity`, `calendar`, `data`, `goal`, `nutrition`, `user`; vendors `open-food-facts`). **`src/` is the new zero-dependency domain core** (journal/planner/vault/goals/insights/sharing) — spec at `docs/superpowers/specs/2026-06-11-all-of-oyl-domain-core-design.md`. Wired as the package entry: `import { … } from '@oyl/all-of-oyl'` hits `src/index.ts`; `@oyl/all-of-oyl/modules` still serves the legacy barrel. Consumers typecheck the TS source under their own flags, so `src/` enforces `noUnusedLocals`/`noUnusedParameters` too. | TS (strict for `src/`), Vitest |
 | `@oyl/strapi-oyl` | CMS / API backend. SQLite for e2e, Postgres in compose. | Strapi 5 |
 | `@oyl/react-oyl` | Primary web client. Talks to Strapi via `VITE_STRAPI_API_BASE_URL`. | Vite, React 19, Tailwind 4, react-router 7, Vitest |
 | `@oyl/next-oyl` | Secondary Next.js client. | Next 16, React 19, Tailwind 3 |
