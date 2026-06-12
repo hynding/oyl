@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Possession } from './possession'
 import { DayKey } from '../core/day-key'
-import { Id } from '../core/id'
 import { Money } from '../core/money'
 import { DomainError } from '../core/domain-error'
 

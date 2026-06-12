@@ -121,7 +121,7 @@ export function review(input: {
   )
 
   const rollupFor = (areaId: Id | undefined, name: string): AreaRollup => {
-    const areaGoals = goalReviews.filter((g, i) => goals[i]?.areaId === areaId)
+    const areaGoals = goalReviews.filter((_review, i) => goals[i]?.areaId === areaId)
     return {
       ...(areaId !== undefined ? { areaId } : {}),
       name,
