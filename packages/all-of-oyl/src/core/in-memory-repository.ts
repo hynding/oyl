@@ -7,6 +7,10 @@ import type { Repository } from './repository'
  * Reference implementation and executable specification of Repository
  * semantics: meta stamping, revision conflicts, soft delete, idempotent
  * removal, create-on-foreign-meta. Adapter authors copy these behaviors.
+ *
+ * Reference-implementation caveat: this store keeps the caller's live object
+ * (and stamps meta on it in place). Real adapters should clone on store/read
+ * rather than copying this aliasing.
  */
 export class InMemoryRepository<T extends { id: Id; meta?: PersistedMeta }> implements Repository<T> {
   private readonly records = new Map<Id, T>()

@@ -23,3 +23,43 @@ export { fixtureId } from './fixtures/fixture-id'
 export { FIXTURE_TODAY, FIXTURE_TZ } from './fixtures/constants'
 export { makeLifeArea, makeUser } from './fixtures/builders'
 export { seed } from './fixtures/seed'
+
+export { Activity } from './activity/activity'
+export { ActivitySession } from './activity/activity-session'
+export { Food, type Nutrients, NUTRIENT_METRICS, assertNutrients, nutrientsFromJSON, nutrientsToJSON } from './nutrition/food'
+export { Consumption } from './nutrition/consumption'
+export { Account } from './finance/account'
+export { Transaction, type TransactionDirection } from './finance/transaction'
+export { Measurement } from './track/measurement'
+export { Note } from './track/note'
+
+// ── Revivers ────────────────────────────────────────────────────────────────
+// The kind → fromJSON map must know every Entry subclass, and the barrel is
+// the only file allowed to know all modules (see spec, "The reviver lives in
+// index.ts"). New domains register their kind here (extension checklist #5).
+
+import { DomainError } from './core/domain-error'
+import type { Entry } from './core/entry'
+import { ActivitySession } from './activity/activity-session'
+import { Consumption } from './nutrition/consumption'
+import { Transaction } from './finance/transaction'
+import { Measurement } from './track/measurement'
+import { Note } from './track/note'
+
+const ENTRY_REVIVERS: Readonly<Record<string, (shape: unknown) => Entry>> = {
+  'activity-session': ActivitySession.fromJSON,
+  consumption: Consumption.fromJSON,
+  transaction: Transaction.fromJSON,
+  measurement: Measurement.fromJSON,
+  note: Note.fromJSON,
+}
+
+/** Revive a heterogeneous entry shape by its kind discriminant. Unknown kinds throw — louder and safer than silently dropping a user's data. */
+export function reviveEntry(shape: unknown): Entry {
+  const kind = (shape as { kind?: unknown } | null)?.kind
+  const revive = typeof kind === 'string' ? ENTRY_REVIVERS[kind] : undefined
+  if (!revive) {
+    throw new DomainError('UNKNOWN_KIND', `unknown entry kind: ${JSON.stringify(kind)}`)
+  }
+  return revive(shape)
+}
