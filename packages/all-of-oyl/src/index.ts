@@ -27,11 +27,13 @@ export {
   makeActivitySession,
   makeAppointment,
   makeBudget,
+  makeConnection,
   makeConsumption,
   makeDayPlan,
   makeDocument,
   makeFood,
   makeGoal,
+  makeGrant,
   makeContact,
   makeGiftIdea,
   makeLifeArea,
@@ -75,9 +77,13 @@ export { Contact, type Occasion } from './vault/contact'
 export { GiftIdea } from './vault/gift-idea'
 export { Vault, type UpcomingDue } from './vault/vault'
 
+export { Connection, type ConnectionStatus } from './share/connection'
+export { Grant, type GrantScope } from './share/grant'
+
 export { streak } from './insights/streak'
 export { correlate } from './insights/correlate'
 export { review, type Review, type ReviewTotals, type GoalReview, type AreaRollup } from './insights/review'
+export { sharedProgress, type SharedView, type SharedMetricSummary, type SharedDayPlan } from './insights/shared-progress'
 
 // ── Revivers ────────────────────────────────────────────────────────────────
 // The kind → fromJSON map must know every Entry subclass, and the barrel is

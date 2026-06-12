@@ -7,10 +7,12 @@ import {
   makeActivitySession,
   makeAppointment,
   makeBudget,
+  makeConnection,
   makeConsumption,
   makeDayPlan,
   makeFood,
   makeGoal,
+  makeGrant,
   makeLifeArea,
   makeMeasurement,
   makeNote,
@@ -29,7 +31,7 @@ import { makeSeed } from './seed'
 import { LifeArea } from '../core/life-area'
 import { User } from '../user/user'
 import { Id } from '../core/id'
-import { reviveEntry, revivePlan, streak, correlate, review } from '../index'
+import { reviveEntry, revivePlan, streak, correlate, review, sharedProgress } from '../index'
 import { Activity } from '../activity/activity'
 import { Journal } from '../core/journal'
 import { DayKey } from '../core/day-key'
@@ -50,6 +52,8 @@ import { Possession } from '../vault/possession'
 import { Subscription } from '../vault/subscription'
 import { Contact } from '../vault/contact'
 import { GiftIdea } from '../vault/gift-idea'
+import { Connection } from '../share/connection'
+import { Grant } from '../share/grant'
 
 const seed = makeSeed()
 
@@ -345,5 +349,68 @@ describe('fixtures', () => {
     expect(healthArea.activityMinutes).toBeGreaterThan(0) // runs + meditations are Health
     const careerArea = weekly.areas[2]!
     expect(careerArea.projectsTouched).toBe(1) // Spring reset touched via Declutter closet
+  })
+
+  it('phase 7 builders produce valid objects with overridable fields', () => {
+    expect(makeConnection().status).toBe('accepted')
+    expect(makeGrant().scope.kind).toBe('goal-progress')
+  })
+
+  it('Blake sees exactly what Avery granted — and the revoked grant yields nothing', () => {
+    const journal = new Journal(FIXTURE_TZ)
+    for (const shape of seed.entries) journal.add(reviveEntry(shape))
+    const planner = new Planner()
+    for (const shape of seed.plans) planner.add(revivePlan(shape))
+    planner.setDayPlan(DayPlan.fromJSON(seed.dayPlans[0]))
+    const goals = seed.goals.map((shape) => Goal.fromJSON(shape))
+    const areas = seed.lifeAreas.map((shape) => LifeArea.fromJSON(shape))
+    const activities = seed.activities.map((shape) => Activity.fromJSON(shape))
+    const projects = seed.projects.map((shape) => Project.fromJSON(shape))
+    const connections = seed.connections.map((shape) => Connection.fromJSON(shape))
+    const grants = seed.grants.map((shape) => Grant.fromJSON(shape))
+
+    const view = sharedProgress({
+      journal, planner, goals, connections, grants,
+      grantorId: fixtureId(1), // Avery's roots
+      viewerId: fixtureId(2), // Blake views
+      asOf: FIXTURE_TODAY,
+      activities, areas, projects,
+    })
+
+    // the run-goal grant projects progress + streak
+    expect(view.goals).toHaveLength(1)
+    expect(view.goals[0]?.name).toBe('Run weekly')
+    expect(view.goals[0]?.streak).toBeGreaterThan(0)
+    // the day-plan grant projects today's schedule
+    expect(view.dayPlan?.slots.length).toBeGreaterThan(0)
+    // the REVOKED area-summary grant yields nothing — revocation is total
+    expect(view.areas).toHaveLength(0)
+    // nothing else leaks
+    expect(view.metrics).toHaveLength(0)
+
+    // grants flow one way: Blake's reciprocal grant projects BLAKE's (empty) roots for Avery —
+    // the grant works even though there's no data yet, and Avery's data never leaks through it
+    const blakeView = sharedProgress({
+      journal: new Journal(FIXTURE_TZ), // Blake's sparse life
+      planner: new Planner(),
+      goals: [],
+      connections, grants,
+      grantorId: fixtureId(2), // Blake's roots
+      viewerId: fixtureId(1), // Avery views
+      asOf: FIXTURE_TODAY,
+    })
+    expect(blakeView.metrics).toHaveLength(1)
+    expect(blakeView.metrics[0]?.prefix).toBe('activity')
+    expect(blakeView.metrics[0]?.totals).toHaveLength(0) // nothing logged yet — and nothing misattributed
+    expect(blakeView.goals).toHaveLength(0)
+    expect(blakeView.dayPlan).toBeUndefined()
+
+    // serialization idempotence
+    for (const shape of seed.connections) {
+      expect(Connection.fromJSON(Connection.fromJSON(shape).toJSON()).toJSON()).toEqual(Connection.fromJSON(shape).toJSON())
+    }
+    for (const shape of seed.grants) {
+      expect(Grant.fromJSON(Grant.fromJSON(shape).toJSON()).toJSON()).toEqual(Grant.fromJSON(shape).toJSON())
+    }
   })
 })

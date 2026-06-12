@@ -3,6 +3,8 @@ import { User, type Units } from '../user/user'
 import type { Id } from '../core/id'
 import { FIXTURE_TODAY, FIXTURE_TZ } from './constants'
 import { fixtureId } from './fixture-id'
+import { Connection, type ConnectionStatus } from '../share/connection'
+import { Grant, type GrantScope } from '../share/grant'
 import { Cadence } from '../core/cadence'
 import { DayKey } from '../core/day-key'
 import { Task } from '../plan/task'
@@ -286,5 +288,30 @@ export function makeGiftIdea(overrides: { id?: Id; text?: string; contactId?: Id
     id: overrides.id ?? fixtureId(2040),
     text: overrides.text ?? 'Pour-over kettle',
     contactId: overrides.contactId ?? fixtureId(2030),
+  })
+}
+
+export function makeConnection(
+  overrides: { id?: Id; requesterId?: Id; addresseeId?: Id; status?: ConnectionStatus; blockedById?: Id } = {},
+): Connection {
+  return new Connection({
+    id: overrides.id ?? fixtureId(3000),
+    requesterId: overrides.requesterId ?? fixtureId(2), // Blake asked
+    addresseeId: overrides.addresseeId ?? fixtureId(1), // Avery accepted
+    status: overrides.status ?? 'accepted',
+    ...(overrides.blockedById !== undefined ? { blockedById: overrides.blockedById } : {}),
+  })
+}
+
+export function makeGrant(
+  overrides: { id?: Id; connectionId?: Id; grantorId?: Id; scope?: GrantScope; expiresOn?: DayKey; revokedOn?: DayKey } = {},
+): Grant {
+  return new Grant({
+    id: overrides.id ?? fixtureId(3010),
+    connectionId: overrides.connectionId ?? fixtureId(3000),
+    grantorId: overrides.grantorId ?? fixtureId(1), // Avery shares
+    scope: overrides.scope ?? { kind: 'goal-progress', goalId: fixtureId(51) },
+    ...(overrides.expiresOn !== undefined ? { expiresOn: overrides.expiresOn } : {}),
+    ...(overrides.revokedOn !== undefined ? { revokedOn: overrides.revokedOn } : {}),
   })
 }

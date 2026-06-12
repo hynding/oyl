@@ -9,10 +9,12 @@ import {
   makeActivitySession,
   makeAppointment,
   makeBudget,
+  makeConnection,
   makeConsumption,
   makeDayPlan,
   makeFood,
   makeGoal,
+  makeGrant,
   makeLifeArea,
   makeMeasurement,
   makeNote,
@@ -60,6 +62,8 @@ export type Seed = {
   subscriptions: Record<string, unknown>[]
   contacts: Record<string, unknown>[]
   giftIdeas: Record<string, unknown>[]
+  connections: Record<string, unknown>[]
+  grants: Record<string, unknown>[]
 }
 
 let cached: Seed | undefined
@@ -200,6 +204,24 @@ export function makeSeed(): Seed {
   const sam = makeContact({ id: fixtureId(2030), lastContactedOn: FIXTURE_TODAY.addDays(-95) })
   const kettle = makeGiftIdea({ id: fixtureId(2040), contactId: sam.id })
 
+  // ── Sharing (id block 3000+) ────────────────────────────────────────────
+  // Blake asked, Avery accepted; Avery shares the run goal and today's plan with Blake
+  const connection = makeConnection({ id: fixtureId(3000) })
+  const runGoalGrant = makeGrant({ id: fixtureId(3010), scope: { kind: 'goal-progress', goalId: fixtureId(51) } })
+  const dayPlanGrant = makeGrant({ id: fixtureId(3011), scope: { kind: 'day-plan' } })
+  // showcase: a revoked grant — Avery shared the Health rollup, then changed her mind
+  const revokedAreaGrant = makeGrant({
+    id: fixtureId(3012),
+    scope: { kind: 'area-summary', areaId: fixtureId(10) },
+    revokedOn: FIXTURE_TODAY.addDays(-2),
+  })
+  // grants flow both ways: Blake shares his activity aggregates with Avery
+  const blakeActivityGrant = makeGrant({
+    id: fixtureId(3013),
+    grantorId: fixtureId(2),
+    scope: { kind: 'metric', prefix: 'activity' },
+  })
+
   cached = {
     users: [avery.toJSON(), blake.toJSON()],
     lifeAreas: areas.map((a) => a.toJSON()),
@@ -217,6 +239,8 @@ export function makeSeed(): Seed {
     subscriptions: [netflix.toJSON(), gym.toJSON()],
     contacts: [sam.toJSON()],
     giftIdeas: [kettle.toJSON()],
+    connections: [connection.toJSON()],
+    grants: [runGoalGrant.toJSON(), dayPlanGrant.toJSON(), revokedAreaGrant.toJSON(), blakeActivityGrant.toJSON()],
   }
   return cached
 }
