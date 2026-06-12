@@ -21,6 +21,11 @@ import {
   makeTask,
   makeTransaction,
   makeUser,
+  makeDocument,
+  makeGiftIdea,
+  makeContact,
+  makePossession,
+  makeSubscription,
 } from './builders'
 import { Cadence } from '../core/cadence'
 import { FIXTURE_TODAY } from './constants'
@@ -50,6 +55,11 @@ export type Seed = {
   plans: Record<string, unknown>[]
   projects: Record<string, unknown>[]
   dayPlans: Record<string, unknown>[]
+  documents: Record<string, unknown>[]
+  possessions: Record<string, unknown>[]
+  subscriptions: Record<string, unknown>[]
+  contacts: Record<string, unknown>[]
+  giftIdeas: Record<string, unknown>[]
 }
 
 let cached: Seed | undefined
@@ -181,6 +191,15 @@ export function makeSeed(): Seed {
     slots: [{ planId: fixtureId(1003), start: '09:00', end: '10:00' }],
   })
 
+  // ── Vault (id block 2000-2999) ──────────────────────────────────────────
+  const passport = makeDocument({ id: fixtureId(2000), expiresOn: FIXTURE_TODAY.addDays(90) })
+  const espresso = makePossession({ id: fixtureId(2010), warrantyUntil: FIXTURE_TODAY.addDays(30), purchasePrice: Money.usd(64900), purchasedOn: DayKey.of('2025-07-01') })
+  const netflix = makeSubscription({ id: fixtureId(2020), renewedThrough: DayKey.of('2026-05-15'), accountId: fixtureId(32) })
+  // showcase: a lapsed subscription — pending May 1 surfaces as overdue, never skipped
+  const gym = makeSubscription({ id: fixtureId(2021), name: 'Gym', amount: Money.usd(4000), anchor: DayKey.of('2026-01-01'), renewedThrough: DayKey.of('2026-04-01'), category: 'fitness' })
+  const sam = makeContact({ id: fixtureId(2030), lastContactedOn: FIXTURE_TODAY.addDays(-95) })
+  const kettle = makeGiftIdea({ id: fixtureId(2040), contactId: sam.id })
+
   cached = {
     users: [avery.toJSON(), blake.toJSON()],
     lifeAreas: areas.map((a) => a.toJSON()),
@@ -193,6 +212,11 @@ export function makeSeed(): Seed {
     plans: [wateredLate.toJSON(), wateringNext.toJSON(), taxes.toJSON(), projectDone.toJSON(), projectOpen.toJSON(), dentist.toJSON(), mealTomorrow.toJSON(), mealLater.toJSON()],
     projects: [project.toJSON()],
     dayPlans: [todayPlan.toJSON()],
+    documents: [passport.toJSON()],
+    possessions: [espresso.toJSON()],
+    subscriptions: [netflix.toJSON(), gym.toJSON()],
+    contacts: [sam.toJSON()],
+    giftIdeas: [kettle.toJSON()],
   }
   return cached
 }

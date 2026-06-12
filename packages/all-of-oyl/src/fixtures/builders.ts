@@ -24,6 +24,11 @@ import { Goal, type GoalDirection, type EmptyPeriods } from '../goal/goal'
 import { Budget } from '../goal/budget'
 import type { GoalPeriod } from '../goal/period'
 import type { AggregateKind } from '../core/journal'
+import { Document } from '../vault/document'
+import { Possession } from '../vault/possession'
+import { Subscription } from '../vault/subscription'
+import { Contact, type Occasion } from '../vault/contact'
+import { GiftIdea } from '../vault/gift-idea'
 
 type UserProps = { id?: Id; displayName?: string; timezone?: string; defaultCurrency?: string; units?: Units }
 
@@ -225,5 +230,61 @@ export function makeDayPlan(overrides: { id?: Id; day?: DayKey; slots?: readonly
     id: overrides.id ?? fixtureId(1010),
     day: overrides.day ?? FIXTURE_TODAY,
     slots: overrides.slots ?? [{ planId: fixtureId(1003), start: '09:00', end: '10:00' }],
+  })
+}
+
+export function makeDocument(overrides: { id?: Id; name?: string; kind?: string; expiresOn?: DayKey } = {}): Document {
+  return new Document({
+    id: overrides.id ?? fixtureId(2000),
+    name: overrides.name ?? 'Passport',
+    kind: overrides.kind ?? 'passport',
+    ...(overrides.expiresOn !== undefined ? { expiresOn: overrides.expiresOn } : { expiresOn: FIXTURE_TODAY.addDays(90) }),
+  })
+}
+
+export function makePossession(
+  overrides: { id?: Id; name?: string; location?: string; warrantyUntil?: DayKey; purchasePrice?: Money; purchasedOn?: DayKey } = {},
+): Possession {
+  return new Possession({
+    id: overrides.id ?? fixtureId(2010),
+    name: overrides.name ?? 'Espresso machine',
+    location: overrides.location ?? 'Kitchen',
+    ...(overrides.warrantyUntil !== undefined ? { warrantyUntil: overrides.warrantyUntil } : { warrantyUntil: FIXTURE_TODAY.addDays(30) }),
+    ...(overrides.purchasePrice !== undefined ? { purchasePrice: overrides.purchasePrice } : {}),
+    ...(overrides.purchasedOn !== undefined ? { purchasedOn: overrides.purchasedOn } : {}),
+  })
+}
+
+export function makeSubscription(
+  overrides: { id?: Id; name?: string; amount?: Money; cadence?: Cadence; anchor?: DayKey; renewedThrough?: DayKey; category?: string; accountId?: Id } = {},
+): Subscription {
+  return new Subscription({
+    id: overrides.id ?? fixtureId(2020),
+    name: overrides.name ?? 'Netflix',
+    amount: overrides.amount ?? Money.usd(1599),
+    cadence: overrides.cadence ?? Cadence.of(1, 'months'),
+    anchor: overrides.anchor ?? DayKey.of('2026-01-15'),
+    ...(overrides.renewedThrough !== undefined ? { renewedThrough: overrides.renewedThrough } : {}),
+    category: overrides.category ?? 'streaming',
+    ...(overrides.accountId !== undefined ? { accountId: overrides.accountId } : {}),
+  })
+}
+
+export function makeContact(
+  overrides: { id?: Id; name?: string; lastContactedOn?: DayKey; occasions?: readonly Occasion[] } = {},
+): Contact {
+  return new Contact({
+    id: overrides.id ?? fixtureId(2030),
+    name: overrides.name ?? 'Sam',
+    ...(overrides.lastContactedOn !== undefined ? { lastContactedOn: overrides.lastContactedOn } : {}),
+    occasions: overrides.occasions ?? [{ name: 'birthday', anchor: DayKey.of('1990-06-20'), cadence: Cadence.of(1, 'years') }],
+  })
+}
+
+export function makeGiftIdea(overrides: { id?: Id; text?: string; contactId?: Id } = {}): GiftIdea {
+  return new GiftIdea({
+    id: overrides.id ?? fixtureId(2040),
+    text: overrides.text ?? 'Pour-over kettle',
+    contactId: overrides.contactId ?? fixtureId(2030),
   })
 }

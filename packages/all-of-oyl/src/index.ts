@@ -29,13 +29,18 @@ export {
   makeBudget,
   makeConsumption,
   makeDayPlan,
+  makeDocument,
   makeFood,
   makeGoal,
+  makeContact,
+  makeGiftIdea,
   makeLifeArea,
   makeMeasurement,
   makeNote,
   makePlannedMeal,
+  makePossession,
   makeProject,
+  makeSubscription,
   makeTask,
   makeTransaction,
   makeUser,
@@ -61,6 +66,14 @@ export { PlannedMeal } from './plan/planned-meal'
 export { Project } from './plan/project'
 export { DayPlan, type DayPlanSlot } from './plan/day-plan'
 export { Planner, type ScheduledSlot } from './plan/planner'
+
+export { type Due } from './core/due'
+export { Document } from './vault/document'
+export { Possession } from './vault/possession'
+export { Subscription, type SubscriptionCharge } from './vault/subscription'
+export { Contact, type Occasion } from './vault/contact'
+export { GiftIdea } from './vault/gift-idea'
+export { Vault, type UpcomingDue } from './vault/vault'
 
 // ── Revivers ────────────────────────────────────────────────────────────────
 // The kind → fromJSON map must know every Entry subclass, and the barrel is

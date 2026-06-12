@@ -19,6 +19,11 @@ import {
   makeTask,
   makeTransaction,
   makeUser,
+  makeContact,
+  makeDocument,
+  makeGiftIdea,
+  makePossession,
+  makeSubscription,
 } from './builders'
 import { makeSeed } from './seed'
 import { LifeArea } from '../core/life-area'
@@ -38,6 +43,12 @@ import { Planner } from '../plan/planner'
 import { Project } from '../plan/project'
 import { DayPlan } from '../plan/day-plan'
 import { Task } from '../plan/task'
+import { Vault } from '../vault/vault'
+import { Document } from '../vault/document'
+import { Possession } from '../vault/possession'
+import { Subscription } from '../vault/subscription'
+import { Contact } from '../vault/contact'
+import { GiftIdea } from '../vault/gift-idea'
 
 const seed = makeSeed()
 
@@ -223,6 +234,71 @@ describe('fixtures', () => {
     // serialization idempotence
     for (const shape of seed.plans) {
       expect(revivePlan(revivePlan(shape).toJSON()).toJSON()).toEqual(revivePlan(shape).toJSON())
+    }
+  })
+
+  it('phase 5 builders produce valid objects with overridable fields', () => {
+    expect(makeDocument().kind).toBe('passport')
+    expect(makePossession().name).toBe('Espresso machine')
+    expect(makeSubscription().category).toBe('streaming')
+    expect(makeContact().name).toBe('Sam')
+    expect(makeGiftIdea().text.length).toBeGreaterThan(0)
+  })
+
+  it('seed vault items revive, hydrate a Vault, and answer real questions', () => {
+    expect(seed.documents).toHaveLength(1)
+    expect(seed.possessions).toHaveLength(1)
+    expect(seed.subscriptions).toHaveLength(2)
+    expect(seed.contacts).toHaveLength(1)
+    expect(seed.giftIdeas).toHaveLength(1)
+
+    const vault = new Vault()
+    for (const shape of seed.documents) vault.addDocument(Document.fromJSON(shape))
+    for (const shape of seed.possessions) vault.addPossession(Possession.fromJSON(shape))
+    for (const shape of seed.subscriptions) vault.addSubscription(Subscription.fromJSON(shape))
+    for (const shape of seed.contacts) vault.addContact(Contact.fromJSON(shape))
+    for (const shape of seed.giftIdeas) vault.addGiftIdea(GiftIdea.fromJSON(shape))
+
+    // the unified feed for the next 120 days: netflix renewal, Sam's birthday, warranty, passport
+    const feed = vault.upcoming(DayRange.of(FIXTURE_TODAY, FIXTURE_TODAY.addDays(120)))
+    expect(feed.map((d) => d.label)).toEqual(['Netflix', 'Sam — birthday', 'Espresso machine (warranty)', 'Passport'])
+
+    // the lapsed gym subscription surfaces its overdue pending — the showcase
+    const gym = vault.subscriptions().find((s) => s.name === 'Gym')!
+    expect(gym.nextDueOn(FIXTURE_TODAY)!.compare(FIXTURE_TODAY)).toBeLessThan(0)
+
+    // Sam is stale and has a gift idea waiting
+    const sam = vault.contacts()[0]!
+    expect(sam.staleness(FIXTURE_TODAY)).toBeGreaterThan(90)
+    expect(vault.giftIdeasFor(sam.id)).toHaveLength(1)
+
+    // renewing netflix yields a charge that converts to a Transaction (the app-side conversion)
+    const netflix = vault.subscriptions().find((s) => s.name === 'Netflix')!
+    const charge = netflix.renew(FIXTURE_TODAY.addDays(14))
+    const tx = new Transaction({
+      occurredAt: new Date(`${charge.on.value}T16:00:00Z`),
+      amount: charge.amount,
+      category: charge.category,
+      direction: charge.direction,
+      ...(charge.accountId !== undefined ? { accountId: charge.accountId } : {}),
+    })
+    expect(tx.metrics().size).toBe(1)
+    expect(netflix.nextDueOn(FIXTURE_TODAY.addDays(15))?.value).toBe('2026-07-15') // anchor preserved
+
+    // totals per currency
+    expect(vault.monthlySubscriptionTotals().get('USD')?.minor).toBeGreaterThan(0)
+
+    // serialization idempotence across all five registries
+    for (const [shapes, revive] of [
+      [seed.documents, Document.fromJSON],
+      [seed.possessions, Possession.fromJSON],
+      [seed.subscriptions, Subscription.fromJSON],
+      [seed.contacts, Contact.fromJSON],
+      [seed.giftIdeas, GiftIdea.fromJSON],
+    ] as const) {
+      for (const shape of shapes) {
+        expect(revive(revive(shape).toJSON()).toJSON()).toEqual(revive(shape).toJSON())
+      }
     }
   })
 })
