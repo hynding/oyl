@@ -18,7 +18,7 @@ export class User {
   readonly units?: Units
   /** Repo-owned storage bookkeeping; outside the immutability rule. */
   meta?: PersistedMeta
-  /** Tolerant reader: unknown JSON fields preserved through round-trips. Only ever spread into fresh literals. */
+  /** Tolerant reader: unknown JSON fields preserved through round-trips. Only ever spread into fresh object literals — never Object.assign or bracket-assign onto an existing object (prototype-pollution guard). */
   private readonly extra: Record<string, unknown>
 
   constructor(

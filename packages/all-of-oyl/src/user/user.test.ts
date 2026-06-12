@@ -51,6 +51,14 @@ describe('User', () => {
     expect(out['displayName']).toBe('Avery')
   })
 
+  it('carries meta through JSON when present', () => {
+    const user = new User({ displayName: 'Avery', timezone: 'America/New_York', defaultCurrency: 'USD' })
+    user.meta = { createdAt: new Date('2026-06-01T00:00:00Z'), updatedAt: new Date('2026-06-01T00:00:00Z'), revision: 1 }
+    const out = User.fromJSON(user.toJSON())
+    expect(out.meta?.revision).toBe(1)
+    expect(out.meta?.createdAt.toISOString()).toBe('2026-06-01T00:00:00.000Z')
+  })
+
   it('throws MALFORMED_JSON on bad shapes', () => {
     let caught: unknown
     try {

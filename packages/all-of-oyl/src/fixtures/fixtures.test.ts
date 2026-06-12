@@ -38,5 +38,12 @@ describe('fixtures', () => {
     // re-serializing equals the seed (no drift)
     expect(users.map((u) => u.toJSON())).toEqual(seed.users)
     expect(areas.map((a) => a.toJSON())).toEqual(seed.lifeAreas)
+    // serialization is idempotent: revive(serialize(revive(x))) === serialize(revive(x))
+    for (const u of users) {
+      expect(User.fromJSON(u.toJSON()).toJSON()).toEqual(u.toJSON())
+    }
+    for (const a of areas) {
+      expect(LifeArea.fromJSON(a.toJSON()).toJSON()).toEqual(a.toJSON())
+    }
   })
 })
