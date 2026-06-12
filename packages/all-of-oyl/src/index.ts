@@ -106,15 +106,23 @@ const ENTRY_REVIVERS: Readonly<Record<string, (shape: unknown) => Entry>> = {
   note: Note.fromJSON,
 }
 
-/** Revive a heterogeneous entry shape by its kind discriminant. Unknown kinds throw — louder and safer than silently dropping a user's data. */
-export function reviveEntry(shape: unknown): Entry {
+/**
+ * Dispatch a heterogeneous shape by its kind discriminant. Own-property
+ * lookup only (prototype keys like "toString" must not leak past the guard);
+ * unknown kinds throw — louder and safer than silently dropping a user's data.
+ */
+function reviveByKind<T>(shape: unknown, revivers: Readonly<Record<string, (s: unknown) => T>>, label: string): T {
   const kind = (shape as { kind?: unknown } | null)?.kind
-  const revive =
-    typeof kind === 'string' && Object.hasOwn(ENTRY_REVIVERS, kind) ? ENTRY_REVIVERS[kind] : undefined
+  const revive = typeof kind === 'string' && Object.hasOwn(revivers, kind) ? revivers[kind] : undefined
   if (!revive) {
-    throw new DomainError('UNKNOWN_KIND', `unknown entry kind: ${JSON.stringify(kind)}`)
+    throw new DomainError('UNKNOWN_KIND', `unknown ${label} kind: ${JSON.stringify(kind)}`)
   }
   return revive(shape)
+}
+
+/** Revive a heterogeneous entry shape by its kind discriminant. */
+export function reviveEntry(shape: unknown): Entry {
+  return reviveByKind(shape, ENTRY_REVIVERS, 'entry')
 }
 
 import type { Plan } from './core/plan'
@@ -128,12 +136,7 @@ const PLAN_REVIVERS: Readonly<Record<string, (shape: unknown) => Plan>> = {
   'planned-meal': PlannedMeal.fromJSON,
 }
 
-/** Revive a heterogeneous plan shape by its kind discriminant. Unknown kinds throw — louder and safer than silently dropping a user's data. */
+/** Revive a heterogeneous plan shape by its kind discriminant. */
 export function revivePlan(shape: unknown): Plan {
-  const kind = (shape as { kind?: unknown } | null)?.kind
-  const revive = typeof kind === 'string' && Object.hasOwn(PLAN_REVIVERS, kind) ? PLAN_REVIVERS[kind] : undefined
-  if (!revive) {
-    throw new DomainError('UNKNOWN_KIND', `unknown plan kind: ${JSON.stringify(kind)}`)
-  }
-  return revive(shape)
+  return reviveByKind(shape, PLAN_REVIVERS, 'plan')
 }

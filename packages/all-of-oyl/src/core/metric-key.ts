@@ -28,7 +28,8 @@ function of(value: string): MetricKey {
 }
 
 function namespaceOf(key: MetricKey): string {
-  return key.split('.', 1)[0] as string
+  // a validated MetricKey always contains a dot, so indexOf can't miss
+  return key.slice(0, key.indexOf('.'))
 }
 
 export const MetricKey = { of, namespaceOf }

@@ -17,8 +17,8 @@ export type GrantScope =
   | { kind: 'day-plan' }
 
 function assertMetricPrefix(prefix: string): string {
-  const segments = prefix.split('.')
-  if (segments.length === 0 || !segments.every(isSlug)) {
+  // split() never yields an empty array, so every() alone covers the empty-string case
+  if (!prefix.split('.').every(isSlug)) {
     throw new DomainError('INVALID_METRIC_KEY', `not a valid metric prefix: "${prefix}"`)
   }
   return prefix
