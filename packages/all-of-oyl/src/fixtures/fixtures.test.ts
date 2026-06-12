@@ -13,7 +13,7 @@ import {
   makeTransaction,
   makeUser,
 } from './builders'
-import { seed } from './seed'
+import { makeSeed } from './seed'
 import { LifeArea } from '../core/life-area'
 import { User } from '../user/user'
 import { Id } from '../core/id'
@@ -24,6 +24,8 @@ import { DayRange } from '../core/day-range'
 import { MetricKey } from '../core/metric-key'
 import { Transaction } from '../finance/transaction'
 import { Consumption } from '../nutrition/consumption'
+
+const seed = makeSeed()
 
 describe('fixtures', () => {
   it('fixtureId yields valid, stable, distinct ids', () => {
@@ -81,14 +83,13 @@ describe('fixtures', () => {
     expect(seed.activities.length).toBeGreaterThanOrEqual(2)
     expect(seed.foods.length).toBeGreaterThanOrEqual(2)
     expect(seed.accounts).toHaveLength(1)
-    expect(seed.entries.length).toBeGreaterThan(150) // ~6 weeks of daily logging
+    expect(seed.entries).toHaveLength(263) // deterministic: 42 days × pattern + showcase
   })
 
   it('every seed entry revives through reviveEntry and re-serializes identically', () => {
     const entries = seed.entries.map((shape) => reviveEntry(shape))
     expect(entries).toHaveLength(seed.entries.length)
-    for (let i = 0; i < entries.length; i += 25) {
-      const entry = entries[i]!
+    for (const entry of entries) {
       expect(reviveEntry(entry.toJSON()).toJSON()).toEqual(entry.toJSON())
     }
   })

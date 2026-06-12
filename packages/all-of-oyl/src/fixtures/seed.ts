@@ -25,99 +25,120 @@ import { fixtureId } from './fixture-id'
  * Personas: Avery (rich account), Blake (sparse). Phase 2 adds Avery's
  * catalogs and ~6 weeks of entries, deliberately exercising the spec's
  * semantics: a refund, an ad-hoc meal, and a DST-straddling March cluster.
+ *
+ * Call `makeSeed()` to obtain the dataset; construction is deferred until
+ * first call so that importing the barrel costs nothing at module-eval time.
  */
-const avery = makeUser({ id: fixtureId(1), displayName: 'Avery', units: 'metric' })
-const blake = makeUser({ id: fixtureId(2), displayName: 'Blake', timezone: 'America/Chicago' })
 
-const areas = [
-  makeLifeArea({ id: fixtureId(10), name: 'Health', slug: 'health' }),
-  makeLifeArea({ id: fixtureId(11), name: 'Family', slug: 'family' }),
-  makeLifeArea({ id: fixtureId(12), name: 'Career', slug: 'career' }),
-  makeLifeArea({ id: fixtureId(13), name: 'Money', slug: 'money' }),
-]
-
-// ── Catalogs (id block 30-99) ───────────────────────────────────────────────
-const run = makeActivity({ id: fixtureId(30), name: 'Run', slug: 'run', areaId: fixtureId(10) })
-const meditate = makeActivity({ id: fixtureId(33), name: 'Meditate', slug: 'meditate', defaultUnit: 'minutes', areaId: fixtureId(10) })
-const oatmeal = makeFood({ id: fixtureId(31), name: 'Oatmeal', nutrients: { calories: 150, protein: 5, carbs: 27, fat: 3 } })
-const chickenBowl = makeFood({ id: fixtureId(34), name: 'Chicken Bowl', nutrients: { calories: 550, protein: 42, carbs: 45, fat: 18 } })
-const checking = makeAccount({ id: fixtureId(32), name: 'Checking', currency: 'USD' })
-
-// ── Entries (id block 100+); all instants are UTC, FIXTURE_TZ is UTC-4 in June ──
-let nextEntryId = 100
-const eid = () => fixtureId(nextEntryId++)
-const at = (day: DayKey, hourUtc: number) => new Date(`${day.value}T${String(hourUtc).padStart(2, '0')}:00:00Z`)
-
-const entries: Entry[] = []
-const start = FIXTURE_TODAY.addDays(-41) // six weeks, inclusive of today
-let dayIndex = 0
-for (const day of DayRange.of(start, FIXTURE_TODAY)) {
-  // breakfast every day; dinner most days
-  entries.push(makeConsumption({ id: eid(), occurredAt: at(day, 12), food: oatmeal }))
-  if (dayIndex % 3 !== 2) {
-    entries.push(makeConsumption({ id: eid(), occurredAt: at(day, 23), food: chickenBowl }))
-  }
-  // run every other day, meditate on the off days
-  if (dayIndex % 2 === 0) {
-    entries.push(
-      makeActivitySession({
-        id: eid(),
-        occurredAt: at(day, 11),
-        activity: run,
-        quantities: [Quantity.of(30, 'minutes'), Quantity.of(5, 'km')],
-      }),
-    )
-  } else {
-    entries.push(
-      makeActivitySession({ id: eid(), occurredAt: at(day, 11), activity: meditate, quantities: [Quantity.of(15, 'minutes')] }),
-    )
-  }
-  // daily gauges: weight drifts down, sleep and mood vary deterministically
-  entries.push(makeMeasurement({ id: eid(), occurredAt: at(day, 11), metric: 'body.weight_kg', value: 82 - dayIndex * 0.05 }))
-  entries.push(makeMeasurement({ id: eid(), occurredAt: at(day, 10), metric: 'sleep.hours', value: 6.5 + (dayIndex % 4) * 0.5 }))
-  entries.push(makeMeasurement({ id: eid(), occurredAt: at(day, 22), metric: 'mood.score', value: 5 + (dayIndex % 5) }))
-  // groceries every third day
-  if (dayIndex % 3 === 0) {
-    entries.push(
-      makeTransaction({ id: eid(), occurredAt: at(day, 19), amount: Money.usd(6500 + (dayIndex % 7) * 300), category: 'groceries', account: checking }),
-    )
-  }
-  // weekly reflection on Sundays
-  if (day.weekday() === 7) {
-    entries.push(makeNote({ id: eid(), occurredAt: at(day, 23), text: `Week ending ${day.value}: steady progress.`, tags: ['gratitude'] }))
-  }
-  dayIndex += 1
+export type Seed = {
+  users: Record<string, unknown>[]
+  lifeAreas: Record<string, unknown>[]
+  activities: Record<string, unknown>[]
+  foods: Record<string, unknown>[]
+  accounts: Record<string, unknown>[]
+  entries: Record<string, unknown>[]
 }
 
-// Showcase: spec semantics a demo should display
-entries.push(
-  makeTransaction({
-    id: eid(),
-    occurredAt: at(FIXTURE_TODAY.addDays(-5), 20),
-    amount: Money.usd(-1500),
-    category: 'groceries',
-    note: 'refund: returned the moldy berries',
-    account: checking,
-  }),
-)
-entries.push(
-  makeConsumption({
-    id: eid(),
-    occurredAt: at(FIXTURE_TODAY.addDays(-3), 23),
-    nutrients: { calories: 850, protein: 35, fat: 40 },
-    note: 'ad-hoc: restaurant ramen, no catalog entry',
-  }),
-)
-// March DST cluster (FIXTURE_TZ springs forward 2026-03-08)
-for (const dayValue of ['2026-03-07', '2026-03-08', '2026-03-09']) {
-  entries.push(makeMeasurement({ id: eid(), occurredAt: at(DayKey.of(dayValue), 11), metric: 'body.weight_kg', value: 84 }))
-}
+let cached: Seed | undefined
 
-export const seed = {
-  users: [avery.toJSON(), blake.toJSON()],
-  lifeAreas: areas.map((a) => a.toJSON()),
-  activities: [run.toJSON(), meditate.toJSON()],
-  foods: [oatmeal.toJSON(), chickenBowl.toJSON()],
-  accounts: [checking.toJSON()],
-  entries: entries.map((e) => e.toJSON()),
+/** Build (once) and return the canonical seed dataset as wire shapes. Lazy so importing the barrel costs nothing. */
+export function makeSeed(): Seed {
+  if (cached) return cached
+
+  const avery = makeUser({ id: fixtureId(1), displayName: 'Avery', units: 'metric' })
+  const blake = makeUser({ id: fixtureId(2), displayName: 'Blake', timezone: 'America/Chicago' })
+
+  const areas = [
+    makeLifeArea({ id: fixtureId(10), name: 'Health', slug: 'health' }),
+    makeLifeArea({ id: fixtureId(11), name: 'Family', slug: 'family' }),
+    makeLifeArea({ id: fixtureId(12), name: 'Career', slug: 'career' }),
+    makeLifeArea({ id: fixtureId(13), name: 'Money', slug: 'money' }),
+  ]
+
+  // ── Catalogs (id block 30-99) ───────────────────────────────────────────────
+  const run = makeActivity({ id: fixtureId(30), name: 'Run', slug: 'run', areaId: fixtureId(10) })
+  const meditate = makeActivity({ id: fixtureId(33), name: 'Meditate', slug: 'meditate', defaultUnit: 'minutes', areaId: fixtureId(10) })
+  const oatmeal = makeFood({ id: fixtureId(31), name: 'Oatmeal', nutrients: { calories: 150, protein: 5, carbs: 27, fat: 3 } })
+  const chickenBowl = makeFood({ id: fixtureId(34), name: 'Chicken Bowl', nutrients: { calories: 550, protein: 42, carbs: 45, fat: 18 } })
+  const checking = makeAccount({ id: fixtureId(32), name: 'Checking', currency: 'USD' })
+
+  // ── Entries (id block 100+); all instants are UTC, FIXTURE_TZ is UTC-4 in June ──
+  let nextEntryId = 100
+  const eid = () => fixtureId(nextEntryId++)
+  const at = (day: DayKey, hourUtc: number) => new Date(`${day.value}T${String(hourUtc).padStart(2, '0')}:00:00Z`)
+
+  const entries: Entry[] = []
+  const start = FIXTURE_TODAY.addDays(-41) // six weeks, inclusive of today
+  let dayIndex = 0
+  for (const day of DayRange.of(start, FIXTURE_TODAY)) {
+    // breakfast every day; dinner most days
+    entries.push(makeConsumption({ id: eid(), occurredAt: at(day, 12), food: oatmeal }))
+    if (dayIndex % 3 !== 2) {
+      entries.push(makeConsumption({ id: eid(), occurredAt: at(day, 23), food: chickenBowl }))
+    }
+    // run every other day, meditate on the off days
+    if (dayIndex % 2 === 0) {
+      entries.push(
+        makeActivitySession({
+          id: eid(),
+          occurredAt: at(day, 11),
+          activity: run,
+          quantities: [Quantity.of(30, 'minutes'), Quantity.of(5, 'km')],
+        }),
+      )
+    } else {
+      entries.push(
+        makeActivitySession({ id: eid(), occurredAt: at(day, 11), activity: meditate, quantities: [Quantity.of(15, 'minutes')] }),
+      )
+    }
+    // daily gauges: weight drifts down, sleep and mood vary deterministically
+    entries.push(makeMeasurement({ id: eid(), occurredAt: at(day, 11), metric: 'body.weight_kg', value: 82 - dayIndex * 0.05 }))
+    entries.push(makeMeasurement({ id: eid(), occurredAt: at(day, 10), metric: 'sleep.hours', value: 6.5 + (dayIndex % 4) * 0.5 }))
+    entries.push(makeMeasurement({ id: eid(), occurredAt: at(day, 22), metric: 'mood.score', value: 5 + (dayIndex % 5) }))
+    // groceries every third day
+    if (dayIndex % 3 === 0) {
+      entries.push(
+        makeTransaction({ id: eid(), occurredAt: at(day, 19), amount: Money.usd(6500 + (dayIndex % 7) * 300), category: 'groceries', account: checking }),
+      )
+    }
+    // weekly reflection on Sundays
+    if (day.weekday() === 7) {
+      entries.push(makeNote({ id: eid(), occurredAt: at(day, 23), text: `Week ending ${day.value}: steady progress.`, tags: ['gratitude'] }))
+    }
+    dayIndex += 1
+  }
+
+  // Showcase: spec semantics a demo should display
+  entries.push(
+    makeTransaction({
+      id: eid(),
+      occurredAt: at(FIXTURE_TODAY.addDays(-5), 20),
+      amount: Money.usd(-1500),
+      category: 'groceries',
+      note: 'refund: returned the moldy berries',
+      account: checking,
+    }),
+  )
+  entries.push(
+    makeConsumption({
+      id: eid(),
+      occurredAt: at(FIXTURE_TODAY.addDays(-3), 23),
+      nutrients: { calories: 850, protein: 35, fat: 40 },
+      note: 'ad-hoc: restaurant ramen, no catalog entry',
+    }),
+  )
+  // March DST cluster (FIXTURE_TZ springs forward 2026-03-08)
+  for (const dayValue of ['2026-03-07', '2026-03-08', '2026-03-09']) {
+    entries.push(makeMeasurement({ id: eid(), occurredAt: at(DayKey.of(dayValue), 11), metric: 'body.weight_kg', value: 84 }))
+  }
+
+  cached = {
+    users: [avery.toJSON(), blake.toJSON()],
+    lifeAreas: areas.map((a) => a.toJSON()),
+    activities: [run.toJSON(), meditate.toJSON()],
+    foods: [oatmeal.toJSON(), chickenBowl.toJSON()],
+    accounts: [checking.toJSON()],
+    entries: entries.map((e) => e.toJSON()),
+  }
+  return cached
 }

@@ -45,7 +45,7 @@ export function makeActivity(overrides: { id?: Id; name?: string; slug?: string;
     name: overrides.name ?? 'Run',
     slug: overrides.slug ?? 'run',
     defaultUnit: overrides.defaultUnit ?? 'minutes',
-    ...(overrides.areaId !== undefined ? { areaId: overrides.areaId } : { areaId: fixtureId(10) }),
+    areaId: overrides.areaId ?? fixtureId(10),
   })
 }
 
@@ -80,16 +80,13 @@ export function makeActivitySession(
 export function makeConsumption(
   overrides: { id?: Id; occurredAt?: Date; note?: string; food?: Food; nutrients?: Nutrients; servings?: number } = {},
 ): Consumption {
+  const food = overrides.food ?? (overrides.nutrients === undefined ? makeFood() : undefined)
   return new Consumption({
     ...(overrides.id !== undefined ? { id: overrides.id } : {}),
     occurredAt: overrides.occurredAt ?? DEFAULT_AT,
     ...(overrides.note !== undefined ? { note: overrides.note } : {}),
     ...(overrides.nutrients !== undefined ? { nutrients: overrides.nutrients } : {}),
-    ...(overrides.food !== undefined
-      ? { food: overrides.food }
-      : overrides.nutrients === undefined
-        ? { food: makeFood() }
-        : {}),
+    ...(food !== undefined ? { food } : {}),
     ...(overrides.servings !== undefined ? { servings: overrides.servings } : {}),
   })
 }

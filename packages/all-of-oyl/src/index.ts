@@ -33,7 +33,7 @@ export {
   makeTransaction,
   makeUser,
 } from './fixtures/builders'
-export { seed } from './fixtures/seed'
+export { makeSeed, type Seed } from './fixtures/seed'
 
 export { Activity } from './activity/activity'
 export { ActivitySession } from './activity/activity-session'

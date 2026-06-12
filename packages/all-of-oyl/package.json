@@ -2,6 +2,7 @@
   "name": "@oyl/all-of-oyl",
   "version": "0.1.0",
   "private": true,
+  "sideEffects": false,
   "description": "Core package for all of OYL",
   "scripts": {
     "generate-module": "ts-node packages/all-of-oyl/scripts/generate-module.ts",
