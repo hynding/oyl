@@ -1,5 +1,5 @@
 import { DayKey } from '../core/day-key'
-import type { DayRange } from '../core/day-range'
+import { DayRange } from '../core/day-range'
 import { DomainError } from '../core/domain-error'
 import { Id } from '../core/id'
 import type { AggregateKind, Journal } from '../core/journal'
@@ -96,8 +96,64 @@ export class Goal {
     return { ...base, met }
   }
 
-  /** A window is paused when it overlaps any paused range. Implemented in Task 3. */
-  protected isPausedDuring(_window: DayRange): boolean {
-    return false
+  /** Defensive copies; canonical (sorted, merged) order. */
+  get pauses(): readonly { from: DayKey; to?: DayKey }[] {
+    return this.pauseRanges.map((r) => ({ ...r }))
+  }
+
+  /**
+   * Pause judgment from `from`, optionally through `to` (inclusive). Omitting
+   * `to` is vacation mode — paused until resume(). Overlapping or adjacent
+   * ranges merge so pause history stays canonical.
+   */
+  pause(from: DayKey, to?: DayKey): void {
+    if (to !== undefined && to.compare(from) < 0) {
+      throw new DomainError('INVALID_RANGE', `pause end ${to.value} precedes start ${from.value}`)
+    }
+    this.pauseRanges.push(to !== undefined ? { from, to } : { from })
+    this.canonicalize()
+  }
+
+  /** Close the open pause (inclusive end). Throws if nothing is open. */
+  resume(on: DayKey): void {
+    const open = this.pauseRanges.find((r) => r.to === undefined)
+    if (open === undefined) {
+      throw new DomainError('ILLEGAL_TRANSITION', 'no open pause to resume')
+    }
+    if (on.compare(open.from) < 0) {
+      throw new DomainError('INVALID_RANGE', `resume ${on.value} precedes pause start ${open.from.value}`)
+    }
+    open.to = on
+    this.canonicalize()
+  }
+
+  private isPausedDuring(window: DayRange): boolean {
+    return this.pauseRanges.some(
+      (r) => r.from.compare(window.end) <= 0 && (r.to === undefined || r.to.compare(window.start) >= 0),
+    )
+  }
+
+  /** Sort by start; merge overlapping/adjacent; an open range swallows everything after it. */
+  private canonicalize(): void {
+    const sorted = [...this.pauseRanges].sort((a, b) => a.from.compare(b.from))
+    const merged: PauseRange[] = []
+    for (const range of sorted) {
+      const prev = merged[merged.length - 1]
+      if (prev === undefined) {
+        merged.push({ ...range })
+        continue
+      }
+      if (prev.to === undefined) continue // open swallows the rest
+      if (range.from.compare(prev.to.addDays(1)) <= 0) {
+        if (range.to === undefined) {
+          delete prev.to
+        } else if (range.to.compare(prev.to) > 0) {
+          prev.to = range.to
+        }
+      } else {
+        merged.push({ ...range })
+      }
+    }
+    this.pauseRanges = merged
   }
 }

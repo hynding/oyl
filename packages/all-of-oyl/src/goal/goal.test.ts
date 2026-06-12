@@ -127,4 +127,73 @@ describe('Goal', () => {
     expect(p.empty).toBe(true)
     expect(p.met).toBe(true)
   })
+
+  it('a window overlapping a paused range reports paused with met undefined', () => {
+    const j = journalWith(['2026-06-03', 'custom.pages_read', 25])
+    const goal = new Goal({ metric: 'custom.pages_read', target: 20, direction: 'atLeast', period: 'day' })
+    goal.pause(day('2026-06-02'), day('2026-06-04'))
+    const p = goal.progressOn(j, day('2026-06-03'))
+    expect(p.paused).toBe(true)
+    expect(p.met).toBeUndefined()
+    expect(p.current).toBe(25) // numbers still reported
+
+    // boundary overlap: any window touching the pause is paused
+    const weekly = new Goal({ metric: 'custom.pages_read', target: 20, direction: 'atLeast', period: 'week' })
+    weekly.pause(day('2026-06-07'), day('2026-06-09'))
+    expect(weekly.progressOn(j, day('2026-06-03')).paused).toBe(true) // week 06-01..06-07 touches pause start
+    expect(weekly.progressOn(j, day('2026-06-10')).paused).toBe(true) // week 06-08..06-14 overlaps pause end 06-09
+    expect(weekly.progressOn(j, day('2026-06-17')).paused).toBe(false) // week 06-15..06-21 is clear
+  })
+
+  it('pause ranges merge when overlapping or adjacent', () => {
+    const goal = new Goal({ metric: 'custom.x', target: 1, direction: 'atLeast', period: 'day' })
+    goal.pause(day('2026-06-01'), day('2026-06-03'))
+    goal.pause(day('2026-06-02'), day('2026-06-05')) // overlap
+    goal.pause(day('2026-06-06'), day('2026-06-08')) // adjacent (06-05 + 1 = 06-06)
+    goal.pause(day('2026-06-20'), day('2026-06-21')) // separate
+    expect(goal.pauses.map((r) => [r.from.value, r.to?.value])).toEqual([
+      ['2026-06-01', '2026-06-08'],
+      ['2026-06-20', '2026-06-21'],
+    ])
+  })
+
+  it('open-ended pause is vacation mode and swallows later ranges; resume closes it', () => {
+    const goal = new Goal({ metric: 'custom.x', target: 1, direction: 'atLeast', period: 'day' })
+    goal.pause(day('2026-06-10')) // open
+    goal.pause(day('2026-06-15'), day('2026-06-16')) // swallowed
+    expect(goal.pauses.map((r) => [r.from.value, r.to?.value])).toEqual([['2026-06-10', undefined]])
+    expect(goal.progressOn(new Journal(NY), day('2026-12-25')).paused).toBe(true)
+
+    goal.resume(day('2026-06-20'))
+    expect(goal.pauses.map((r) => [r.from.value, r.to?.value])).toEqual([['2026-06-10', '2026-06-20']])
+    expect(goal.progressOn(new Journal(NY), day('2026-12-25')).paused).toBe(false)
+  })
+
+  it('rejects inverted ranges, resume-before-from, and resume without an open pause', () => {
+    const goal = new Goal({ metric: 'custom.x', target: 1, direction: 'atLeast', period: 'day' })
+    let caught1: unknown
+    try {
+      goal.pause(day('2026-06-10'), day('2026-06-05'))
+    } catch (e) {
+      caught1 = e
+    }
+    expect((caught1 as DomainError)?.code).toBe('INVALID_RANGE')
+
+    let caught2: unknown
+    try {
+      goal.resume(day('2026-06-20'))
+    } catch (e) {
+      caught2 = e
+    }
+    expect((caught2 as DomainError)?.code).toBe('ILLEGAL_TRANSITION')
+
+    goal.pause(day('2026-06-10'))
+    let caught3: unknown
+    try {
+      goal.resume(day('2026-06-05'))
+    } catch (e) {
+      caught3 = e
+    }
+    expect((caught3 as DomainError)?.code).toBe('INVALID_RANGE')
+  })
 })
