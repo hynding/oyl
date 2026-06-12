@@ -45,7 +45,7 @@ describe('reviveEntry', () => {
   })
 
   it('throws UNKNOWN_KIND for unregistered kinds — louder than dropping data', () => {
-    for (const shape of [{ kind: 'sleep-log' }, {}, null, 42]) {
+    for (const shape of [{ kind: 'sleep-log' }, { kind: 'toString' }, { kind: 'constructor' }, { kind: 'hasOwnProperty' }, {}, null, 42]) {
       let caught: unknown
       try {
         reviveEntry(shape)

@@ -57,7 +57,8 @@ const ENTRY_REVIVERS: Readonly<Record<string, (shape: unknown) => Entry>> = {
 /** Revive a heterogeneous entry shape by its kind discriminant. Unknown kinds throw — louder and safer than silently dropping a user's data. */
 export function reviveEntry(shape: unknown): Entry {
   const kind = (shape as { kind?: unknown } | null)?.kind
-  const revive = typeof kind === 'string' ? ENTRY_REVIVERS[kind] : undefined
+  const revive =
+    typeof kind === 'string' && Object.hasOwn(ENTRY_REVIVERS, kind) ? ENTRY_REVIVERS[kind] : undefined
   if (!revive) {
     throw new DomainError('UNKNOWN_KIND', `unknown entry kind: ${JSON.stringify(kind)}`)
   }
