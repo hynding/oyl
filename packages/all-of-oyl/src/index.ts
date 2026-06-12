@@ -21,7 +21,18 @@ export { InMemoryRepository } from './core/in-memory-repository'
 export { User, type Units } from './user/user'
 export { fixtureId } from './fixtures/fixture-id'
 export { FIXTURE_TODAY, FIXTURE_TZ } from './fixtures/constants'
-export { makeLifeArea, makeUser } from './fixtures/builders'
+export {
+  makeAccount,
+  makeActivity,
+  makeActivitySession,
+  makeConsumption,
+  makeFood,
+  makeLifeArea,
+  makeMeasurement,
+  makeNote,
+  makeTransaction,
+  makeUser,
+} from './fixtures/builders'
 export { seed } from './fixtures/seed'
 
 export { Activity } from './activity/activity'

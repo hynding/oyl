@@ -16,6 +16,10 @@ class TestEntry extends Entry {
   metrics(): ReadonlyMap<MetricKey, number> {
     return this.values
   }
+
+  toJSON(): Record<string, unknown> {
+    return entryBaseJSON(this)
+  }
 }
 
 describe('Entry', () => {

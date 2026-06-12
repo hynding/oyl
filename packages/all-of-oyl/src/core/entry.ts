@@ -30,6 +30,8 @@ export abstract class Entry {
   }
 
   abstract metrics(): ReadonlyMap<MetricKey, number>
+
+  abstract toJSON(): Record<string, unknown>
 }
 
 export type EntryBaseProps = {

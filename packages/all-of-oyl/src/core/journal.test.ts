@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DayKey } from './day-key'
 import { DayRange } from './day-range'
-import { Entry } from './entry'
+import { Entry, entryBaseJSON } from './entry'
 import { Id } from './id'
 import { Journal } from './journal'
 import { MetricKey } from './metric-key'
@@ -17,6 +17,10 @@ class TestEntry extends Entry {
 
   metrics(): ReadonlyMap<MetricKey, number> {
     return this.values
+  }
+
+  toJSON(): Record<string, unknown> {
+    return entryBaseJSON(this)
   }
 }
 

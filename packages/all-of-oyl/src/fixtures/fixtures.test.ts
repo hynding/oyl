@@ -1,11 +1,29 @@
 import { describe, expect, it } from 'vitest'
 import { fixtureId } from './fixture-id'
 import { FIXTURE_TODAY, FIXTURE_TZ } from './constants'
-import { makeLifeArea, makeUser } from './builders'
+import {
+  makeAccount,
+  makeActivity,
+  makeActivitySession,
+  makeConsumption,
+  makeFood,
+  makeLifeArea,
+  makeMeasurement,
+  makeNote,
+  makeTransaction,
+  makeUser,
+} from './builders'
 import { seed } from './seed'
 import { LifeArea } from '../core/life-area'
 import { User } from '../user/user'
 import { Id } from '../core/id'
+import { reviveEntry } from '../index'
+import { Journal } from '../core/journal'
+import { DayKey } from '../core/day-key'
+import { DayRange } from '../core/day-range'
+import { MetricKey } from '../core/metric-key'
+import { Transaction } from '../finance/transaction'
+import { Consumption } from '../nutrition/consumption'
 
 describe('fixtures', () => {
   it('fixtureId yields valid, stable, distinct ids', () => {
@@ -45,5 +63,58 @@ describe('fixtures', () => {
     for (const a of areas) {
       expect(LifeArea.fromJSON(a.toJSON()).toJSON()).toEqual(a.toJSON())
     }
+  })
+
+  it('phase 2 builders produce valid objects with overridable fields', () => {
+    expect(makeActivity().slug).toBe('run')
+    expect(makeFood().nutrients.calories).toBe(150)
+    expect(makeAccount().currency).toBe('USD')
+    expect(makeActivitySession().slug).toBe('run')
+    expect(makeConsumption().servings).toBe(1)
+    expect(makeTransaction().direction).toBe('expense')
+    expect(makeMeasurement().metric).toBe('body.weight_kg')
+    expect(makeNote().text.length).toBeGreaterThan(0)
+    expect(makeTransaction({ direction: 'income', category: 'salary' }).direction).toBe('income')
+  })
+
+  it('seed contains the phase 2 catalogs and a six-week entry slice', () => {
+    expect(seed.activities.length).toBeGreaterThanOrEqual(2)
+    expect(seed.foods.length).toBeGreaterThanOrEqual(2)
+    expect(seed.accounts).toHaveLength(1)
+    expect(seed.entries.length).toBeGreaterThan(150) // ~6 weeks of daily logging
+  })
+
+  it('every seed entry revives through reviveEntry and re-serializes identically', () => {
+    const entries = seed.entries.map((shape) => reviveEntry(shape))
+    expect(entries).toHaveLength(seed.entries.length)
+    for (let i = 0; i < entries.length; i += 25) {
+      const entry = entries[i]!
+      expect(reviveEntry(entry.toJSON()).toJSON()).toEqual(entry.toJSON())
+    }
+  })
+
+  it('seed showcases the spec semantics: a refund and an ad-hoc meal', () => {
+    const entries = seed.entries.map((shape) => reviveEntry(shape))
+    const refund = entries.find((e) => e instanceof Transaction && e.amount.minor < 0)
+    expect(refund).toBeDefined()
+    const adHoc = entries.find((e) => e instanceof Consumption && e.foodId === undefined)
+    expect(adHoc).toBeDefined()
+  })
+
+  it('seed straddles the DST transition', () => {
+    const entries = seed.entries.map((shape) => reviveEntry(shape))
+    const journal = new Journal(FIXTURE_TZ)
+    for (const e of entries) journal.add(e)
+    const dstWeekend = DayRange.of(DayKey.of('2026-03-07'), DayKey.of('2026-03-09'))
+    expect(journal.aggregate(MetricKey.of('body.weight_kg'), dstWeekend, 'avg')).toBeGreaterThan(0)
+  })
+
+  it('a Journal hydrated from seed answers real questions', () => {
+    const journal = new Journal(FIXTURE_TZ)
+    for (const shape of seed.entries) journal.add(reviveEntry(shape))
+    const lastWeek = DayRange.of(FIXTURE_TODAY.addDays(-6), FIXTURE_TODAY)
+    expect(journal.totalOf(MetricKey.of('nutrition.calories'), lastWeek)).toBeGreaterThan(0)
+    expect(journal.totalOf(MetricKey.of('activity.run.minutes'), lastWeek)).toBeGreaterThan(0)
+    expect(journal.totalsByPrefix('finance.spend', lastWeek).size).toBeGreaterThan(0)
   })
 })
