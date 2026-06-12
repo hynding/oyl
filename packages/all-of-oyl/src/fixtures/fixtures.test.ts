@@ -29,7 +29,8 @@ import { makeSeed } from './seed'
 import { LifeArea } from '../core/life-area'
 import { User } from '../user/user'
 import { Id } from '../core/id'
-import { reviveEntry, revivePlan } from '../index'
+import { reviveEntry, revivePlan, streak, correlate, review } from '../index'
+import { Activity } from '../activity/activity'
 import { Journal } from '../core/journal'
 import { DayKey } from '../core/day-key'
 import { DayRange } from '../core/day-range'
@@ -300,5 +301,49 @@ describe('fixtures', () => {
         expect(revive(revive(shape).toJSON()).toJSON()).toEqual(revive(shape).toJSON())
       }
     }
+  })
+
+  it('insights answer real questions over the seeded life', () => {
+    const journal = new Journal(FIXTURE_TZ)
+    for (const shape of seed.entries) journal.add(reviveEntry(shape))
+    const planner = new Planner()
+    for (const shape of seed.plans) planner.add(revivePlan(shape))
+    const goals = seed.goals.map((shape) => Goal.fromJSON(shape))
+    const areas = seed.lifeAreas.map((shape) => LifeArea.fromJSON(shape))
+    const activities = seed.activities.map((shape) => Activity.fromJSON(shape))
+    const projects = seed.projects.map((shape) => Project.fromJSON(shape))
+
+    // calorie streak: atMost, so TODAY's in-progress period is excluded; the 41 completed
+    // days (Apr 21–May 31) are all under 2200, bridged across the March gap → 41
+    const calories = goals.find((g) => g.metric === 'nutrition.calories')!
+    expect(streak(journal, calories, FIXTURE_TODAY)).toBe(41)
+
+    // sleep streak: 6.5 + (dayIndex % 4) * 0.5 — yesterday (idx 40) dips to 6.5 < 7, today is 7.0
+    const sleep = goals.find((g) => g.metric === 'sleep.hours')!
+    expect(streak(journal, sleep, FIXTURE_TODAY)).toBe(1)
+
+    // weight streak: atMost 81 'last' — today excluded (in-progress atMost), 4 paused days bridged,
+    // met from idx 20 (82 − 1.00 = 81.00 ≤ 81) through yesterday → 21 countable minus 4 paused = 17
+    const weight = goals.find((g) => g.metric === 'body.weight_kg')!
+    expect(streak(journal, weight, FIXTURE_TODAY)).toBe(17)
+
+    // sleep and mood cycle at different frequencies (4 vs 5) — defined, honest, imperfect correlation
+    const r = correlate(journal, MetricKey.of('sleep.hours'), MetricKey.of('mood.score'), DayRange.of(FIXTURE_TODAY.addDays(-27), FIXTURE_TODAY), { a: 'avg', b: 'avg' })
+    expect(r).toBeDefined()
+    expect(Math.abs(r!)).toBeLessThanOrEqual(1)
+
+    // the weekly review over the last full week (May 25–31)
+    const lastWeek = DayRange.of(FIXTURE_TODAY.addDays(-7), FIXTURE_TODAY.addDays(-1))
+    const weekly = review({ journal, planner, goals, activities, areas, projects, period: lastWeek })
+    expect(weekly.goals).toHaveLength(4)
+    expect(weekly.topSpending[0]?.category).toBe('groceries')
+    expect(weekly.activityTotals.find((a) => a.slug === 'run')?.minutes).toBe(120)
+    expect(weekly.completionRate).toBeCloseTo(0.5) // Declutter closet done, File taxes open
+    expect(weekly.totals.spending).toBeGreaterThan(0)
+    expect(weekly.areas.map((a) => a.name)).toEqual(['Health', 'Family', 'Career', 'Money', 'unassigned'])
+    const healthArea = weekly.areas[0]!
+    expect(healthArea.activityMinutes).toBeGreaterThan(0) // runs + meditations are Health
+    const careerArea = weekly.areas[2]!
+    expect(careerArea.projectsTouched).toBe(1) // Spring reset touched via Declutter closet
   })
 })

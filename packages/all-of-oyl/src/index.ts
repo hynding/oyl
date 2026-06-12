@@ -75,6 +75,10 @@ export { Contact, type Occasion } from './vault/contact'
 export { GiftIdea } from './vault/gift-idea'
 export { Vault, type UpcomingDue } from './vault/vault'
 
+export { streak } from './insights/streak'
+export { correlate } from './insights/correlate'
+export { review, type Review, type ReviewTotals, type GoalReview, type AreaRollup } from './insights/review'
+
 // ── Revivers ────────────────────────────────────────────────────────────────
 // The kind → fromJSON map must know every Entry subclass, and the barrel is
 // the only file allowed to know all modules (see spec, "The reviver lives in
