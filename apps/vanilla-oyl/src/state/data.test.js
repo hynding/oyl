@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Note, DayKey } from '@oyl/all-of-oyl'
+import { Note, DayKey, Task } from '@oyl/all-of-oyl'
 import { createThemeState } from './theme.js'
 import { createDataState } from './data.js'
 import { defaultTimezone } from '../storage/clock.js'
@@ -39,5 +39,14 @@ describe('data state', () => {
     await ds.refresh()
     const day = DayKey.from(new Date(iso), defaultTimezone())
     expect(ds.journal.entriesOn(day)).toHaveLength(1)
+  })
+
+  it('exposes a planner store hydrated from the plans repo on refresh', async () => {
+    const storage = fakeStorage()
+    const ds = createDataState(storage, createThemeState(storage))
+    const due = DayKey.of('2026-06-16')
+    await ds.repos.plans.save(/** @type {any} */ (new Task({ title: 'plan it', due })))
+    await ds.refresh()
+    expect(ds.planner.agendaFor(due)).toHaveLength(1)
   })
 })
