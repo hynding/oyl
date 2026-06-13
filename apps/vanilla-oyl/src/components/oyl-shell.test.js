@@ -10,6 +10,7 @@ describe('<oyl-shell>', () => {
     const root = /** @type {ShadowRoot} */ (el.shadowRoot)
     expect(root.querySelector('header h1')?.textContent).toBe('OYL')
     expect(root.querySelector('slot[name="toolbar"]')).toBeTruthy()
+    expect(root.querySelector('slot[name="nav"]')).toBeTruthy()
     expect(root.querySelector('slot[name="main"]')).toBeTruthy()
     el.remove()
   })

@@ -6,10 +6,13 @@ import { createDataState } from './state/data.js'
 import { loadDemoData, isEmpty } from './storage/seed.js'
 import { exportData, importData } from './storage/backup.js'
 import { isOylKey, SETTINGS_KEY } from './storage/keys.js'
+import { defaultTimezone } from './storage/clock.js'
 import { defineShell } from './components/oyl-shell.js'
 import { defineThemeToggle } from './components/oyl-theme-toggle.js'
 import { defineRouter } from './components/oyl-router.js'
 import { defineStatusPanel } from './components/oyl-status-panel.js'
+import { defineNav } from './components/oyl-nav.js'
+import { defineJournal } from './components/oyl-journal.js'
 
 async function boot() {
   const storage = window.localStorage
@@ -17,6 +20,8 @@ async function boot() {
   defineThemeToggle()
   defineRouter()
   defineStatusPanel()
+  defineNav()
+  defineJournal()
 
   const themeState = createThemeState(storage)
   const routeState = createRouteState(window)
@@ -41,6 +46,10 @@ async function boot() {
   }
 
   const shell = document.createElement('oyl-shell')
+
+  const navEl = /** @type {import('./components/oyl-nav.js').OylNav} */ (document.createElement('oyl-nav'))
+  navEl.slot = 'nav'
+  navEl.routeSignal = routeState.route
 
   const toggle = /** @type {import('./components/oyl-theme-toggle.js').OylThemeToggle} */ (document.createElement('oyl-theme-toggle'))
   toggle.slot = 'toolbar'
@@ -68,9 +77,15 @@ async function boot() {
       })
       return panel
     },
+    journal: () => {
+      const view = /** @type {import('./components/oyl-journal.js').OylJournal} */ (document.createElement('oyl-journal'))
+      view.store = dataState.journal
+      view.tz = defaultTimezone()
+      return view
+    },
   }
 
-  shell.append(toggle, router)
+  shell.append(navEl, toggle, router)
   const root = document.getElementById('app')
   if (root) root.replaceChildren(shell)
   document.getElementById('boot-fallback')?.remove()
