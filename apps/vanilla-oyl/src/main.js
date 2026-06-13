@@ -63,7 +63,7 @@ async function boot() {
           }
         },
       }
-      effect(() => {
+      panel.track(() => {
         panel.diagnostics = dataState.readDiagnostics()
       })
       return panel
