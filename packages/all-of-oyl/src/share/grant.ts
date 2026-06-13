@@ -1,9 +1,9 @@
 // packages/all-of-oyl/src/share/grant.ts
-import { DayKey } from '../core/day-key'
-import { DomainError } from '../core/domain-error'
-import { Id } from '../core/id'
-import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta'
-import { isSlug } from '../core/slug'
+import { DayKey } from '../core/day-key.js'
+import { DomainError } from '../core/domain-error.js'
+import { Id } from '../core/id.js'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta.js'
+import { isSlug } from '../core/slug.js'
 
 /**
  * What a grant exposes — a CLOSED union. Derived data only: progress,

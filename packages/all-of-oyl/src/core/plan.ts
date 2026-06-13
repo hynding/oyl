@@ -1,7 +1,7 @@
-import { DayKey } from './day-key'
-import { DomainError } from './domain-error'
-import { Id } from './id'
-import { type PersistedMeta, metaFromJSON, metaToJSON } from './persisted-meta'
+import { DayKey } from './day-key.js'
+import { DomainError } from './domain-error.js'
+import { Id } from './id.js'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from './persisted-meta.js'
 
 export type PlanStatus = 'open' | 'done' | 'canceled'
 

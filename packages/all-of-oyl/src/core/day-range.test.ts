@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { DayKey } from './day-key'
-import { DayRange } from './day-range'
-import { DomainError } from './domain-error'
+import { DayKey } from './day-key.js'
+import { DayRange } from './day-range.js'
+import { DomainError } from './domain-error.js'
 
 describe('DayRange', () => {
   it('is inclusive on both ends and iterable', () => {

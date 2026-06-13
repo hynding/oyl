@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { Account } from './account'
-import { Transaction } from './transaction'
-import { Id } from '../core/id'
-import { MetricKey } from '../core/metric-key'
-import { Money } from '../core/money'
-import { DomainError } from '../core/domain-error'
+import { Account } from './account.js'
+import { Transaction } from './transaction.js'
+import { Id } from '../core/id.js'
+import { MetricKey } from '../core/metric-key.js'
+import { Money } from '../core/money.js'
+import { DomainError } from '../core/domain-error.js'
 
 const checking = new Account({ id: Id.of('00000000-0000-4000-8000-000000000032'), name: 'Checking', currency: 'USD' })
 const when = new Date('2026-06-01T12:00:00Z')

@@ -1,9 +1,9 @@
 // packages/all-of-oyl/src/share/grant.test.ts
 import { describe, expect, it } from 'vitest'
-import { Grant } from './grant'
-import { DayKey } from '../core/day-key'
-import { Id } from '../core/id'
-import { DomainError } from '../core/domain-error'
+import { Grant } from './grant.js'
+import { DayKey } from '../core/day-key.js'
+import { Id } from '../core/id.js'
+import { DomainError } from '../core/domain-error.js'
 
 const day = (s: string) => DayKey.of(s)
 const connectionId = Id.of('00000000-0000-4000-8000-000000003000')

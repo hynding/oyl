@@ -1,7 +1,7 @@
-import { DomainError } from './domain-error'
-import { Id } from './id'
-import { type PersistedMeta, metaFromJSON, metaToJSON } from './persisted-meta'
-import { assertSlug } from './slug'
+import { DomainError } from './domain-error.js'
+import { Id } from './id.js'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from './persisted-meta.js'
+import { assertSlug } from './slug.js'
 
 export class LifeArea {
   readonly id: Id

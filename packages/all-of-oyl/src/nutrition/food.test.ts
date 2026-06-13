@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { Food } from './food'
-import { Id } from '../core/id'
-import { DomainError } from '../core/domain-error'
+import { Food } from './food.js'
+import { Id } from '../core/id.js'
+import { DomainError } from '../core/domain-error.js'
 
 describe('Food', () => {
   it('constructs with per-serving nutrients', () => {

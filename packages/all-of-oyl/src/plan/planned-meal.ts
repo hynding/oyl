@@ -1,7 +1,7 @@
-import { DayKey } from '../core/day-key'
-import { DomainError } from '../core/domain-error'
-import { Id } from '../core/id'
-import { Plan, parsePlanBase, planBaseJSON } from '../core/plan'
+import { DayKey } from '../core/day-key.js'
+import { DomainError } from '../core/domain-error.js'
+import { Id } from '../core/id.js'
+import { Plan, parsePlanBase, planBaseJSON } from '../core/plan.js'
 
 /**
  * What you intend to eat on a day; fulfilled by a Consumption. References a

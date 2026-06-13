@@ -1,7 +1,7 @@
-import { DomainError } from './domain-error'
-import { Id } from './id'
-import type { MetricKey } from './metric-key'
-import { type PersistedMeta, metaFromJSON, metaToJSON } from './persisted-meta'
+import { DomainError } from './domain-error.js'
+import { Id } from './id.js'
+import type { MetricKey } from './metric-key.js'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from './persisted-meta.js'
 
 /**
  * A timestamped record of something you did. One of two abstract classes in

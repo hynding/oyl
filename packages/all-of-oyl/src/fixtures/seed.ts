@@ -1,8 +1,8 @@
-import { DayKey } from '../core/day-key'
-import { DayRange } from '../core/day-range'
-import type { Entry } from '../core/entry'
-import { Money } from '../core/money'
-import { Quantity } from '../core/quantity'
+import { DayKey } from '../core/day-key.js'
+import { DayRange } from '../core/day-range.js'
+import type { Entry } from '../core/entry.js'
+import { Money } from '../core/money.js'
+import { Quantity } from '../core/quantity.js'
 import {
   makeAccount,
   makeActivity,
@@ -28,10 +28,10 @@ import {
   makeContact,
   makePossession,
   makeSubscription,
-} from './builders'
-import { Cadence } from '../core/cadence'
-import { FIXTURE_TODAY } from './constants'
-import { fixtureId } from './fixture-id'
+} from './builders.js'
+import { Cadence } from '../core/cadence.js'
+import { FIXTURE_TODAY } from './constants.js'
+import { fixtureId } from './fixture-id.js'
 
 /**
  * The canonical dataset as wire shapes (toJSON). Sourceable: apps seed any

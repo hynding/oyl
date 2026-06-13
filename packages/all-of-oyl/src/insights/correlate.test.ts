@@ -1,11 +1,11 @@
 // packages/all-of-oyl/src/insights/correlate.test.ts
 import { describe, expect, it } from 'vitest'
-import { correlate } from './correlate'
-import { DayKey } from '../core/day-key'
-import { DayRange } from '../core/day-range'
-import { Journal } from '../core/journal'
-import { MetricKey } from '../core/metric-key'
-import { Measurement } from '../track/measurement'
+import { correlate } from './correlate.js'
+import { DayKey } from '../core/day-key.js'
+import { DayRange } from '../core/day-range.js'
+import { Journal } from '../core/journal.js'
+import { MetricKey } from '../core/metric-key.js'
+import { Measurement } from '../track/measurement.js'
 
 const NY = 'America/New_York'
 const day = (s: string) => DayKey.of(s)

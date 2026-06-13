@@ -1,12 +1,12 @@
 // packages/all-of-oyl/src/vault/subscription.ts
-import { Cadence } from '../core/cadence'
-import { DayKey } from '../core/day-key'
-import { DomainError } from '../core/domain-error'
-import type { Due } from '../core/due'
-import { Id } from '../core/id'
-import { Money } from '../core/money'
-import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta'
-import { assertSlug } from '../core/slug'
+import { Cadence } from '../core/cadence.js'
+import { DayKey } from '../core/day-key.js'
+import { DomainError } from '../core/domain-error.js'
+import type { Due } from '../core/due.js'
+import { Id } from '../core/id.js'
+import { Money } from '../core/money.js'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta.js'
+import { assertSlug } from '../core/slug.js'
 
 /**
  * What renew() hands the caller — the data a Transaction needs, as a plain

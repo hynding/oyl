@@ -1,11 +1,11 @@
 // packages/all-of-oyl/src/vault/subscription.test.ts
 import { describe, expect, it } from 'vitest'
-import { Subscription } from './subscription'
-import { Cadence } from '../core/cadence'
-import { DayKey } from '../core/day-key'
-import { Id } from '../core/id'
-import { Money } from '../core/money'
-import { DomainError } from '../core/domain-error'
+import { Subscription } from './subscription.js'
+import { Cadence } from '../core/cadence.js'
+import { DayKey } from '../core/day-key.js'
+import { Id } from '../core/id.js'
+import { Money } from '../core/money.js'
+import { DomainError } from '../core/domain-error.js'
 
 const day = (s: string) => DayKey.of(s)
 

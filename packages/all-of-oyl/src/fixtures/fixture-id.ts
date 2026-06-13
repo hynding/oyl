@@ -1,4 +1,4 @@
-import { Id } from '../core/id'
+import { Id } from '../core/id.js'
 
 /**
  * Stable, hand-assigned fixture ids: 00000000-0000-4000-8000-<n, 12 digits>.

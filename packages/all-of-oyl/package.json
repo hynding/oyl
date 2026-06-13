@@ -2,6 +2,7 @@
   "name": "@oyl/all-of-oyl",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "sideEffects": false,
   "description": "Core package for all of OYL",
   "main": "./src/index.ts",

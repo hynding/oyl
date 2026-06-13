@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { Task } from './task'
-import { Cadence } from '../core/cadence'
-import { DayKey } from '../core/day-key'
-import { Id } from '../core/id'
-import { DomainError } from '../core/domain-error'
+import { Task } from './task.js'
+import { Cadence } from '../core/cadence.js'
+import { DayKey } from '../core/day-key.js'
+import { Id } from '../core/id.js'
+import { DomainError } from '../core/domain-error.js'
 
 const day = (s: string) => DayKey.of(s)
 

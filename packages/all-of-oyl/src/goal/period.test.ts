@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { periodWindowOf } from './period'
-import { DayKey } from '../core/day-key'
+import { periodWindowOf } from './period.js'
+import { DayKey } from '../core/day-key.js'
 
 const day = (s: string) => DayKey.of(s)
 const window = (period: 'day' | 'week' | 'month', s: string) => {

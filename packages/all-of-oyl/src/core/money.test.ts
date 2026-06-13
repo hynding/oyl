@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { Money } from './money'
-import { DomainError } from './domain-error'
+import { Money } from './money.js'
+import { DomainError } from './domain-error.js'
 
 describe('Money', () => {
   it('stores integer minor units; usd factory', () => {

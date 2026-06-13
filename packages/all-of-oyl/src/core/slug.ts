@@ -1,4 +1,4 @@
-import { DomainError } from './domain-error'
+import { DomainError } from './domain-error.js'
 
 const SLUG_RE = /^[a-z0-9_]+$/
 

@@ -1,5 +1,5 @@
-import type { DayKey } from '../core/day-key'
-import { DayRange } from '../core/day-range'
+import type { DayKey } from '../core/day-key.js'
+import { DayRange } from '../core/day-range.js'
 
 export type GoalPeriod = 'day' | 'week' | 'month'
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { Document } from './document'
-import { DayKey } from '../core/day-key'
-import { Id } from '../core/id'
-import { DomainError } from '../core/domain-error'
+import { Document } from './document.js'
+import { DayKey } from '../core/day-key.js'
+import { Id } from '../core/id.js'
+import { DomainError } from '../core/domain-error.js'
 
 const day = (s: string) => DayKey.of(s)
 

@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { Budget } from './budget'
-import { DayKey } from '../core/day-key'
-import { Id } from '../core/id'
-import { Journal } from '../core/journal'
-import { Money } from '../core/money'
-import { Transaction } from '../finance/transaction'
-import { DomainError } from '../core/domain-error'
+import { Budget } from './budget.js'
+import { DayKey } from '../core/day-key.js'
+import { Id } from '../core/id.js'
+import { Journal } from '../core/journal.js'
+import { Money } from '../core/money.js'
+import { Transaction } from '../finance/transaction.js'
+import { DomainError } from '../core/domain-error.js'
 
 const NY = 'America/New_York'
 const day = (s: string) => DayKey.of(s)

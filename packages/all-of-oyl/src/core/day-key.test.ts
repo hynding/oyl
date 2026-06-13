@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { DayKey } from './day-key'
-import { DomainError } from './domain-error'
+import { DayKey } from './day-key.js'
+import { DomainError } from './domain-error.js'
 
 describe('DayKey', () => {
   it('buckets an instant into a day per explicit timezone', () => {

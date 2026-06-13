@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { Catalog } from './catalog'
-import { Id } from './id'
-import { LifeArea } from './life-area'
-import { DomainError } from './domain-error'
+import { Catalog } from './catalog.js'
+import { Id } from './id.js'
+import { LifeArea } from './life-area.js'
+import { DomainError } from './domain-error.js'
 
 describe('Catalog', () => {
   it('adds and gets by id', () => {

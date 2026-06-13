@@ -1,13 +1,13 @@
-import type { DayKey } from '../core/day-key'
-import type { DayRange } from '../core/day-range'
-import { DomainError } from '../core/domain-error'
-import type { Id } from '../core/id'
-import { Money } from '../core/money'
-import { Contact } from './contact'
-import { Document } from './document'
-import { GiftIdea } from './gift-idea'
-import { Possession } from './possession'
-import { Subscription } from './subscription'
+import type { DayKey } from '../core/day-key.js'
+import type { DayRange } from '../core/day-range.js'
+import { DomainError } from '../core/domain-error.js'
+import type { Id } from '../core/id.js'
+import { Money } from '../core/money.js'
+import { Contact } from './contact.js'
+import { Document } from './document.js'
+import { GiftIdea } from './gift-idea.js'
+import { Possession } from './possession.js'
+import { Subscription } from './subscription.js'
 
 /** One item in the unified reminder feed. */
 export type UpcomingDue = { itemId: Id; label: string; due: DayKey }

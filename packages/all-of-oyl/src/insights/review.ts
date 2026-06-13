@@ -1,15 +1,15 @@
 // packages/all-of-oyl/src/insights/review.ts
-import type { Activity } from '../activity/activity'
-import { DayRange } from '../core/day-range'
-import type { Id } from '../core/id'
-import type { Journal } from '../core/journal'
-import type { LifeArea } from '../core/life-area'
-import { MetricKey } from '../core/metric-key'
-import type { Goal, GoalProgress } from '../goal/goal'
-import type { Planner } from '../plan/planner'
-import type { Project } from '../plan/project'
-import { Task } from '../plan/task'
-import { streak } from './streak'
+import type { Activity } from '../activity/activity.js'
+import { DayRange } from '../core/day-range.js'
+import type { Id } from '../core/id.js'
+import type { Journal } from '../core/journal.js'
+import type { LifeArea } from '../core/life-area.js'
+import { MetricKey } from '../core/metric-key.js'
+import type { Goal, GoalProgress } from '../goal/goal.js'
+import type { Planner } from '../plan/planner.js'
+import type { Project } from '../plan/project.js'
+import { Task } from '../plan/task.js'
+import { streak } from './streak.js'
 
 export type ReviewTotals = { spending: number; activityMinutes: number; calories: number }
 export type GoalReview = { goalId: Id; name?: string; progress: GoalProgress; streak: number }

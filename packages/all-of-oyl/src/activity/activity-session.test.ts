@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { Activity } from './activity'
-import { ActivitySession } from './activity-session'
-import { Id } from '../core/id'
-import { MetricKey } from '../core/metric-key'
-import { Quantity } from '../core/quantity'
-import { DomainError } from '../core/domain-error'
+import { Activity } from './activity.js'
+import { ActivitySession } from './activity-session.js'
+import { Id } from '../core/id.js'
+import { MetricKey } from '../core/metric-key.js'
+import { Quantity } from '../core/quantity.js'
+import { DomainError } from '../core/domain-error.js'
 
 const run = new Activity({ id: Id.of('00000000-0000-4000-8000-000000000030'), name: 'Run', slug: 'run' })
 const when = new Date('2026-06-01T12:00:00Z')

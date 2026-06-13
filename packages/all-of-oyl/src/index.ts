@@ -1,26 +1,26 @@
 // The only barrel — and (in later phases) the only file allowed to know
 // every module, which is why the kind→fromJSON revivers will live here.
 
-export { DomainError, type DomainErrorCode } from './core/domain-error'
-export { assertSlug, isSlug } from './core/slug'
-export { Id } from './core/id'
-export { KNOWN_NAMESPACES, MEASUREMENT_NAMESPACES, MetricKey } from './core/metric-key'
-export { DayKey, assertTimezone } from './core/day-key'
-export { DayRange } from './core/day-range'
-export { Cadence, type CadenceUnit } from './core/cadence'
-export { Quantity } from './core/quantity'
-export { Money } from './core/money'
-export { type PersistedMeta, type PersistedMetaShape, metaFromJSON, metaToJSON } from './core/persisted-meta'
-export { LifeArea } from './core/life-area'
-export { Entry } from './core/entry'
-export { Plan, type PlanStatus } from './core/plan'
-export { Journal, type AggregateKind } from './core/journal'
-export { Catalog } from './core/catalog'
-export { type Repository } from './core/repository'
-export { InMemoryRepository } from './core/in-memory-repository'
-export { User, type Units } from './user/user'
-export { fixtureId } from './fixtures/fixture-id'
-export { FIXTURE_TODAY, FIXTURE_TZ } from './fixtures/constants'
+export { DomainError, type DomainErrorCode } from './core/domain-error.js'
+export { assertSlug, isSlug } from './core/slug.js'
+export { Id } from './core/id.js'
+export { KNOWN_NAMESPACES, MEASUREMENT_NAMESPACES, MetricKey } from './core/metric-key.js'
+export { DayKey, assertTimezone } from './core/day-key.js'
+export { DayRange } from './core/day-range.js'
+export { Cadence, type CadenceUnit } from './core/cadence.js'
+export { Quantity } from './core/quantity.js'
+export { Money } from './core/money.js'
+export { type PersistedMeta, type PersistedMetaShape, metaFromJSON, metaToJSON } from './core/persisted-meta.js'
+export { LifeArea } from './core/life-area.js'
+export { Entry } from './core/entry.js'
+export { Plan, type PlanStatus } from './core/plan.js'
+export { Journal, type AggregateKind } from './core/journal.js'
+export { Catalog } from './core/catalog.js'
+export { type Repository } from './core/repository.js'
+export { InMemoryRepository } from './core/in-memory-repository.js'
+export { User, type Units } from './user/user.js'
+export { fixtureId } from './fixtures/fixture-id.js'
+export { FIXTURE_TODAY, FIXTURE_TZ } from './fixtures/constants.js'
 export {
   makeAccount,
   makeActivity,
@@ -46,57 +46,57 @@ export {
   makeTask,
   makeTransaction,
   makeUser,
-} from './fixtures/builders'
-export { makeSeed, type Seed } from './fixtures/seed'
+} from './fixtures/builders.js'
+export { makeSeed, type Seed } from './fixtures/seed.js'
 
-export { Activity } from './activity/activity'
-export { ActivitySession } from './activity/activity-session'
-export { Food, type Nutrients, NUTRIENT_METRICS, assertNutrients, nutrientsFromJSON, nutrientsToJSON } from './nutrition/food'
-export { Consumption } from './nutrition/consumption'
-export { Account } from './finance/account'
-export { Transaction, type TransactionDirection } from './finance/transaction'
-export { Measurement } from './track/measurement'
-export { Note } from './track/note'
+export { Activity } from './activity/activity.js'
+export { ActivitySession } from './activity/activity-session.js'
+export { Food, type Nutrients, NUTRIENT_METRICS, assertNutrients, nutrientsFromJSON, nutrientsToJSON } from './nutrition/food.js'
+export { Consumption } from './nutrition/consumption.js'
+export { Account } from './finance/account.js'
+export { Transaction, type TransactionDirection } from './finance/transaction.js'
+export { Measurement } from './track/measurement.js'
+export { Note } from './track/note.js'
 
-export { type GoalPeriod, GOAL_PERIODS, periodWindowOf } from './goal/period'
-export { Goal, type GoalDirection, type EmptyPeriods, type GoalProgress } from './goal/goal'
-export { Budget } from './goal/budget'
+export { type GoalPeriod, GOAL_PERIODS, periodWindowOf } from './goal/period.js'
+export { Goal, type GoalDirection, type EmptyPeriods, type GoalProgress } from './goal/goal.js'
+export { Budget } from './goal/budget.js'
 
-export { Task } from './plan/task'
-export { Appointment } from './plan/appointment'
-export { PlannedMeal } from './plan/planned-meal'
-export { Project } from './plan/project'
-export { DayPlan, type DayPlanSlot } from './plan/day-plan'
-export { Planner, type ScheduledSlot } from './plan/planner'
+export { Task } from './plan/task.js'
+export { Appointment } from './plan/appointment.js'
+export { PlannedMeal } from './plan/planned-meal.js'
+export { Project } from './plan/project.js'
+export { DayPlan, type DayPlanSlot } from './plan/day-plan.js'
+export { Planner, type ScheduledSlot } from './plan/planner.js'
 
-export { type Due } from './core/due'
-export { Document } from './vault/document'
-export { Possession } from './vault/possession'
-export { Subscription, type SubscriptionCharge } from './vault/subscription'
-export { Contact, type Occasion } from './vault/contact'
-export { GiftIdea } from './vault/gift-idea'
-export { Vault, type UpcomingDue } from './vault/vault'
+export { type Due } from './core/due.js'
+export { Document } from './vault/document.js'
+export { Possession } from './vault/possession.js'
+export { Subscription, type SubscriptionCharge } from './vault/subscription.js'
+export { Contact, type Occasion } from './vault/contact.js'
+export { GiftIdea } from './vault/gift-idea.js'
+export { Vault, type UpcomingDue } from './vault/vault.js'
 
-export { Connection, type ConnectionStatus } from './share/connection'
-export { Grant, type GrantScope } from './share/grant'
+export { Connection, type ConnectionStatus } from './share/connection.js'
+export { Grant, type GrantScope } from './share/grant.js'
 
-export { streak } from './insights/streak'
-export { correlate } from './insights/correlate'
-export { review, type Review, type ReviewTotals, type GoalReview, type AreaRollup } from './insights/review'
-export { sharedProgress, type SharedView, type SharedMetricSummary, type SharedDayPlan } from './insights/shared-progress'
+export { streak } from './insights/streak.js'
+export { correlate } from './insights/correlate.js'
+export { review, type Review, type ReviewTotals, type GoalReview, type AreaRollup } from './insights/review.js'
+export { sharedProgress, type SharedView, type SharedMetricSummary, type SharedDayPlan } from './insights/shared-progress.js'
 
 // ── Revivers ────────────────────────────────────────────────────────────────
 // The kind → fromJSON map must know every Entry subclass, and the barrel is
 // the only file allowed to know all modules (see spec, "The reviver lives in
 // index.ts"). New domains register their kind here (extension checklist #5).
 
-import { DomainError } from './core/domain-error'
-import type { Entry } from './core/entry'
-import { ActivitySession } from './activity/activity-session'
-import { Consumption } from './nutrition/consumption'
-import { Transaction } from './finance/transaction'
-import { Measurement } from './track/measurement'
-import { Note } from './track/note'
+import { DomainError } from './core/domain-error.js'
+import type { Entry } from './core/entry.js'
+import { ActivitySession } from './activity/activity-session.js'
+import { Consumption } from './nutrition/consumption.js'
+import { Transaction } from './finance/transaction.js'
+import { Measurement } from './track/measurement.js'
+import { Note } from './track/note.js'
 
 const ENTRY_REVIVERS: Readonly<Record<string, (shape: unknown) => Entry>> = {
   'activity-session': ActivitySession.fromJSON,
@@ -125,10 +125,10 @@ export function reviveEntry(shape: unknown): Entry {
   return reviveByKind(shape, ENTRY_REVIVERS, 'entry')
 }
 
-import type { Plan } from './core/plan'
-import { Task } from './plan/task'
-import { Appointment } from './plan/appointment'
-import { PlannedMeal } from './plan/planned-meal'
+import type { Plan } from './core/plan.js'
+import { Task } from './plan/task.js'
+import { Appointment } from './plan/appointment.js'
+import { PlannedMeal } from './plan/planned-meal.js'
 
 const PLAN_REVIVERS: Readonly<Record<string, (shape: unknown) => Plan>> = {
   task: Task.fromJSON,

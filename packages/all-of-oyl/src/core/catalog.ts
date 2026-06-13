@@ -1,5 +1,5 @@
-import { DomainError } from './domain-error'
-import type { Id } from './id'
+import { DomainError } from './domain-error.js'
+import type { Id } from './id.js'
 
 /**
  * A small keyed collection of definitions, held by the app — the synchronous,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { Account } from './account'
-import { Id } from '../core/id'
-import { DomainError } from '../core/domain-error'
+import { Account } from './account.js'
+import { Id } from '../core/id.js'
+import { DomainError } from '../core/domain-error.js'
 
 describe('Account', () => {
   it('constructs with name and ISO currency', () => {

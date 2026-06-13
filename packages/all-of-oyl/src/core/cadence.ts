@@ -1,5 +1,5 @@
-import { DayKey } from './day-key'
-import { DomainError } from './domain-error'
+import { DayKey } from './day-key.js'
+import { DomainError } from './domain-error.js'
 
 export type CadenceUnit = 'days' | 'weeks' | 'months' | 'years'
 

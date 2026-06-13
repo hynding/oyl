@@ -1,6 +1,6 @@
-import { DomainError } from '../core/domain-error'
-import { Id } from '../core/id'
-import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta'
+import { DomainError } from '../core/domain-error.js'
+import { Id } from '../core/id.js'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta.js'
 
 /** A money account ("Checking", "Visa"). Transactions may reference one. */
 export class Account {

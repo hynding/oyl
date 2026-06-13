@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { Project } from './project'
-import { Id } from '../core/id'
-import { DomainError } from '../core/domain-error'
+import { Project } from './project.js'
+import { Id } from '../core/id.js'
+import { DomainError } from '../core/domain-error.js'
 
 describe('Project', () => {
   it('constructs with a name and optional area', () => {

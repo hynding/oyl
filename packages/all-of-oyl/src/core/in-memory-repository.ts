@@ -1,7 +1,7 @@
-import { DomainError } from './domain-error'
-import type { Id } from './id'
-import type { PersistedMeta } from './persisted-meta'
-import type { Repository } from './repository'
+import { DomainError } from './domain-error.js'
+import type { Id } from './id.js'
+import type { PersistedMeta } from './persisted-meta.js'
+import type { Repository } from './repository.js'
 
 /**
  * Reference implementation and executable specification of Repository

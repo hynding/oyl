@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { Goal } from './goal'
-import { DayKey } from '../core/day-key'
-import { Id } from '../core/id'
-import { Journal } from '../core/journal'
-import { Measurement } from '../track/measurement'
-import { DomainError } from '../core/domain-error'
+import { Goal } from './goal.js'
+import { DayKey } from '../core/day-key.js'
+import { Id } from '../core/id.js'
+import { Journal } from '../core/journal.js'
+import { Measurement } from '../track/measurement.js'
+import { DomainError } from '../core/domain-error.js'
 
 const NY = 'America/New_York'
 const day = (s: string) => DayKey.of(s)

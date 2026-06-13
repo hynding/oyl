@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { DayKey } from './day-key'
-import { DayRange } from './day-range'
-import { Entry, entryBaseJSON } from './entry'
-import { Id } from './id'
-import { Journal } from './journal'
-import { MetricKey } from './metric-key'
-import { DomainError } from './domain-error'
+import { DayKey } from './day-key.js'
+import { DayRange } from './day-range.js'
+import { Entry, entryBaseJSON } from './entry.js'
+import { Id } from './id.js'
+import { Journal } from './journal.js'
+import { MetricKey } from './metric-key.js'
+import { DomainError } from './domain-error.js'
 
 class TestEntry extends Entry {
   private readonly values: ReadonlyMap<MetricKey, number>

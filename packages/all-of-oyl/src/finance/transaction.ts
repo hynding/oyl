@@ -1,9 +1,9 @@
-import { DomainError } from '../core/domain-error'
-import { Entry, entryBaseJSON, parseEntryBase } from '../core/entry'
-import { Id } from '../core/id'
-import { MetricKey } from '../core/metric-key'
-import { Money } from '../core/money'
-import { assertSlug } from '../core/slug'
+import { DomainError } from '../core/domain-error.js'
+import { Entry, entryBaseJSON, parseEntryBase } from '../core/entry.js'
+import { Id } from '../core/id.js'
+import { MetricKey } from '../core/metric-key.js'
+import { Money } from '../core/money.js'
+import { assertSlug } from '../core/slug.js'
 
 export type TransactionDirection = 'expense' | 'income'
 

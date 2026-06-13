@@ -1,10 +1,10 @@
 // packages/all-of-oyl/src/vault/contact.ts
-import { Cadence } from '../core/cadence'
-import { DayKey } from '../core/day-key'
-import { DomainError } from '../core/domain-error'
-import type { Due } from '../core/due'
-import { Id } from '../core/id'
-import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta'
+import { Cadence } from '../core/cadence.js'
+import { DayKey } from '../core/day-key.js'
+import { DomainError } from '../core/domain-error.js'
+import type { Due } from '../core/due.js'
+import { Id } from '../core/id.js'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta.js'
 
 /** A recurring date that matters: birthday = anchor day + yearly cadence. */
 export type Occasion = { name: string; anchor: DayKey; cadence: Cadence }

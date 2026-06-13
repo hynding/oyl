@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryRepository } from './in-memory-repository'
-import { LifeArea } from './life-area'
-import { Id } from './id'
+import { InMemoryRepository } from './in-memory-repository.js'
+import { LifeArea } from './life-area.js'
+import { Id } from './id.js'
 
 function makeRepo() {
   let tick = 0

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { DayPlan, type DayPlanSlot } from './day-plan'
-import { DayKey } from '../core/day-key'
-import { Id } from '../core/id'
-import { DomainError } from '../core/domain-error'
+import { DayPlan, type DayPlanSlot } from './day-plan.js'
+import { DayKey } from '../core/day-key.js'
+import { Id } from '../core/id.js'
+import { DomainError } from '../core/domain-error.js'
 
 const day = (s: string) => DayKey.of(s)
 const pid = (n: number) => Id.of(`00000000-0000-4000-8000-${String(n).padStart(12, '0')}`)

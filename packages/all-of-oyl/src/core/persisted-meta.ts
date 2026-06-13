@@ -1,4 +1,4 @@
-import { DomainError } from './domain-error'
+import { DomainError } from './domain-error.js'
 
 /**
  * Storage bookkeeping for persisted records. A plain shape, not a class:

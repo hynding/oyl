@@ -1,9 +1,9 @@
-import { DayKey, assertTimezone } from './day-key'
-import { DayRange } from './day-range'
-import { DomainError } from './domain-error'
-import type { Entry } from './entry'
-import type { Id } from './id'
-import { MetricKey } from './metric-key'
+import { DayKey, assertTimezone } from './day-key.js'
+import { DayRange } from './day-range.js'
+import { DomainError } from './domain-error.js'
+import type { Entry } from './entry.js'
+import type { Id } from './id.js'
+import { MetricKey } from './metric-key.js'
 
 export type AggregateKind = 'sum' | 'avg' | 'last'
 

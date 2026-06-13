@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { KNOWN_NAMESPACES, MEASUREMENT_NAMESPACES, MetricKey } from './metric-key'
-import { DomainError } from './domain-error'
+import { KNOWN_NAMESPACES, MEASUREMENT_NAMESPACES, MetricKey } from './metric-key.js'
+import { DomainError } from './domain-error.js'
 
 describe('MetricKey', () => {
   it.each(['nutrition.calories', 'finance.spend.groceries', 'custom.guitar_practice_minutes'])(

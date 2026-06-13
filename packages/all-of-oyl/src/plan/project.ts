@@ -1,8 +1,8 @@
-import { DomainError } from '../core/domain-error'
-import { Id } from '../core/id'
-import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta'
-import { Task } from './task'
-import type { Planner } from './planner'
+import { DomainError } from '../core/domain-error.js'
+import { Id } from '../core/id.js'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta.js'
+import { Task } from './task.js'
+import type { Planner } from './planner.js'
 
 /** A named group of tasks. Tasks point at it via projectId. */
 export class Project {

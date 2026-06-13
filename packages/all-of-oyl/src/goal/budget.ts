@@ -1,12 +1,12 @@
-import type { DayKey } from '../core/day-key'
-import { DomainError } from '../core/domain-error'
-import { Id } from '../core/id'
-import type { Journal } from '../core/journal'
-import { Money } from '../core/money'
-import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta'
-import { assertSlug } from '../core/slug'
-import { Goal, type GoalProgress } from './goal'
-import { periodWindowOf } from './period'
+import type { DayKey } from '../core/day-key.js'
+import { DomainError } from '../core/domain-error.js'
+import { Id } from '../core/id.js'
+import type { Journal } from '../core/journal.js'
+import { Money } from '../core/money.js'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta.js'
+import { assertSlug } from '../core/slug.js'
+import { Goal, type GoalProgress } from './goal.js'
+import { periodWindowOf } from './period.js'
 
 /**
  * Per-category, per-month spending control — sugar over the goal engine

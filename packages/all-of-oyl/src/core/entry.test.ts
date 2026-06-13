@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { DomainError } from './domain-error'
-import { Entry, entryBaseJSON, parseEntryBase } from './entry'
-import { Id } from './id'
-import { MetricKey } from './metric-key'
+import { DomainError } from './domain-error.js'
+import { Entry, entryBaseJSON, parseEntryBase } from './entry.js'
+import { Id } from './id.js'
+import { MetricKey } from './metric-key.js'
 
 class TestEntry extends Entry {
   private readonly values: ReadonlyMap<MetricKey, number>
