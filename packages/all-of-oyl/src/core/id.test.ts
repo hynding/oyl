@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { Id } from './id'
-import { DomainError } from './domain-error'
+import { Id } from './id.js'
+import { DomainError } from './domain-error.js'
 
 describe('Id', () => {
   it('creates valid, unique ids', () => {

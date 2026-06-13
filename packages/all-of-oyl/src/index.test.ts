@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { ActivitySession, Appointment, Consumption, DayKey, Id, Measurement, Note, PlannedMeal, Task, Transaction, reviveEntry, revivePlan } from './index'
-import { DomainError } from './core/domain-error'
+import { ActivitySession, Appointment, Consumption, DayKey, Id, Measurement, Note, PlannedMeal, Task, Transaction, reviveEntry, revivePlan } from './index.js'
+import { DomainError } from './core/domain-error.js'
 
 const when = new Date('2026-06-01T12:00:00Z')
 

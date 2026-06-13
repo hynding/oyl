@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { Id } from './id'
-import { LifeArea } from './life-area'
-import { DomainError } from './domain-error'
+import { Id } from './id.js'
+import { LifeArea } from './life-area.js'
+import { DomainError } from './domain-error.js'
 
 describe('LifeArea', () => {
   it('constructs with generated id and validated slug', () => {

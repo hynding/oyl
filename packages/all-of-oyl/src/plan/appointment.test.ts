@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { Appointment } from './appointment'
-import { Id } from '../core/id'
-import { DomainError } from '../core/domain-error'
-import { DayKey } from '../core/day-key'
+import { Appointment } from './appointment.js'
+import { Id } from '../core/id.js'
+import { DomainError } from '../core/domain-error.js'
+import { DayKey } from '../core/day-key.js'
 
 describe('Appointment', () => {
   it('derives its due day from startsAt + explicit timezone', () => {

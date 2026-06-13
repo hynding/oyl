@@ -1,8 +1,8 @@
-import { DayKey } from '../core/day-key'
-import { DomainError } from '../core/domain-error'
-import type { Due } from '../core/due'
-import { Id } from '../core/id'
-import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta'
+import { DayKey } from '../core/day-key.js'
+import { DomainError } from '../core/domain-error.js'
+import type { Due } from '../core/due.js'
+import { Id } from '../core/id.js'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta.js'
 
 /** An important record — passport, insurance policy, warranty paper, will. */
 export class Document implements Due {

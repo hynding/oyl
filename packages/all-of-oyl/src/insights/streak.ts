@@ -1,8 +1,8 @@
 // packages/all-of-oyl/src/insights/streak.ts
-import type { DayKey } from '../core/day-key'
-import type { Journal } from '../core/journal'
-import type { Goal } from '../goal/goal'
-import { periodWindowOf } from '../goal/period'
+import type { DayKey } from '../core/day-key.js'
+import type { Journal } from '../core/journal.js'
+import type { Goal } from '../goal/goal.js'
+import { periodWindowOf } from '../goal/period.js'
 
 /**
  * Consecutive periods (ending at asOf) where the goal was met. Works for any

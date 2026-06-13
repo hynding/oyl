@@ -1,4 +1,4 @@
-import type { DayKey } from './day-key'
+import type { DayKey } from './day-key.js'
 
 /**
  * Anything with a future obligation. `asOf` exists because recurring dues

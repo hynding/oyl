@@ -1,7 +1,7 @@
-import { DayKey } from '../core/day-key'
-import { DomainError } from '../core/domain-error'
-import type { Id } from '../core/id'
-import { Plan, parsePlanBase, planBaseJSON } from '../core/plan'
+import { DayKey } from '../core/day-key.js'
+import { DomainError } from '../core/domain-error.js'
+import type { Id } from '../core/id.js'
+import { Plan, parsePlanBase, planBaseJSON } from '../core/plan.js'
 
 /**
  * A plan with a specific instant: the calendar/time-blocking primitive. The

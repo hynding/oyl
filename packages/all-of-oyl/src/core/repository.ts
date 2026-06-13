@@ -1,5 +1,5 @@
-import type { Id } from './id'
-import type { PersistedMeta } from './persisted-meta'
+import type { Id } from './id.js'
+import type { PersistedMeta } from './persisted-meta.js'
 
 /**
  * The persistence port. Apps supply adapters (SQL, CMS, IndexedDB, …);

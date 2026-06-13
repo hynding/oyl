@@ -1,5 +1,5 @@
-import { DomainError } from './domain-error'
-import { isSlug } from './slug'
+import { DomainError } from './domain-error.js'
+import { isSlug } from './slug.js'
 
 export type MetricKey = string & { readonly __brand: 'MetricKey' }
 

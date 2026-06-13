@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { Cadence } from './cadence'
-import { DayKey } from './day-key'
-import { DomainError } from './domain-error'
+import { Cadence } from './cadence.js'
+import { DayKey } from './day-key.js'
+import { DomainError } from './domain-error.js'
 
 const day = (s: string) => DayKey.of(s)
 

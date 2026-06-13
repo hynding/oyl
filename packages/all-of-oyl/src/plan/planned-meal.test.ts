@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { PlannedMeal } from './planned-meal'
-import { DayKey } from '../core/day-key'
-import { Id } from '../core/id'
-import { DomainError } from '../core/domain-error'
+import { PlannedMeal } from './planned-meal.js'
+import { DayKey } from '../core/day-key.js'
+import { Id } from '../core/id.js'
+import { DomainError } from '../core/domain-error.js'
 
 const day = (s: string) => DayKey.of(s)
 const foodId = Id.of('00000000-0000-4000-8000-000000000031')

@@ -1,7 +1,7 @@
-import { assertTimezone } from '../core/day-key'
-import { DomainError } from '../core/domain-error'
-import { Id } from '../core/id'
-import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta'
+import { assertTimezone } from '../core/day-key.js'
+import { DomainError } from '../core/domain-error.js'
+import { Id } from '../core/id.js'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta.js'
 
 export type Units = 'metric' | 'imperial'
 

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { Food } from './food'
-import { Consumption } from './consumption'
-import { Id } from '../core/id'
-import { MetricKey } from '../core/metric-key'
-import { DomainError } from '../core/domain-error'
+import { Food } from './food.js'
+import { Consumption } from './consumption.js'
+import { Id } from '../core/id.js'
+import { MetricKey } from '../core/metric-key.js'
+import { DomainError } from '../core/domain-error.js'
 
 const oatmeal = new Food({
   id: Id.of('00000000-0000-4000-8000-000000000031'),

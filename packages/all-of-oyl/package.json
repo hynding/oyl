@@ -2,6 +2,7 @@
   "name": "@oyl/all-of-oyl",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "sideEffects": false,
   "description": "Core package for all of OYL",
   "main": "./src/index.ts",
@@ -18,7 +19,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "typecheck:src": "tsc -p src --noEmit"
+    "typecheck:src": "tsc -p src --noEmit",
+    "build": "tsc -p tsconfig.build.json && node scripts/check-no-bare-imports.mjs",
+    "build:clean": "rm -rf dist && pnpm build"
   },
   "devDependencies": {
     "@types/node": "^20",

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { Note } from './note'
-import { Id } from '../core/id'
-import { MetricKey } from '../core/metric-key'
-import { DomainError } from '../core/domain-error'
+import { Note } from './note.js'
+import { Id } from '../core/id.js'
+import { MetricKey } from '../core/metric-key.js'
+import { DomainError } from '../core/domain-error.js'
 
 const when = new Date('2026-06-01T21:00:00Z')
 const key = (s: string) => MetricKey.of(s)

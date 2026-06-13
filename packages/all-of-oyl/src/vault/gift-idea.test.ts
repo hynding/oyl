@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { GiftIdea } from './gift-idea'
-import { Id } from '../core/id'
-import { DomainError } from '../core/domain-error'
+import { GiftIdea } from './gift-idea.js'
+import { Id } from '../core/id.js'
+import { DomainError } from '../core/domain-error.js'
 
 const contactId = Id.of('00000000-0000-4000-8000-000000002030')
 

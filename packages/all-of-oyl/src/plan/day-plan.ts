@@ -1,7 +1,7 @@
-import { DayKey } from '../core/day-key'
-import { DomainError } from '../core/domain-error'
-import { Id } from '../core/id'
-import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta'
+import { DayKey } from '../core/day-key.js'
+import { DomainError } from '../core/domain-error.js'
+import { Id } from '../core/id.js'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta.js'
 
 /** "HH:MM", 00:00–23:59, local to the plan's day — a time box belongs to the day, not to an instant. */
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/

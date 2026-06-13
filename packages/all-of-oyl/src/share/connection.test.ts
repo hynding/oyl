@@ -1,8 +1,8 @@
 // packages/all-of-oyl/src/share/connection.test.ts
 import { describe, expect, it } from 'vitest'
-import { Connection } from './connection'
-import { Id } from '../core/id'
-import { DomainError } from '../core/domain-error'
+import { Connection } from './connection.js'
+import { Id } from '../core/id.js'
+import { DomainError } from '../core/domain-error.js'
 
 const avery = Id.of('00000000-0000-4000-8000-000000000001')
 const blake = Id.of('00000000-0000-4000-8000-000000000002')

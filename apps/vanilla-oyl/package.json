@@ -1,0 +1,22 @@
+{
+  "name": "@oyl/vanilla-oyl",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Zero-dependency vanilla JS implementation of OYL",
+  "scripts": {
+    "build:lib": "pnpm --filter @oyl/all-of-oyl build && node scripts/copy-lib.mjs",
+    "dev": "pnpm build:lib && http-server -c-1 -p 8041 .",
+    "dev:watch": "pnpm build:lib && http-server -c-1 -p 8041 .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@oyl/all-of-oyl": "workspace:*",
+    "happy-dom": "^15",
+    "http-server": "^14.1.1",
+    "typescript": "^5",
+    "vitest": "^4.1.8"
+  }
+}

@@ -1,8 +1,8 @@
-import { DomainError } from '../core/domain-error'
-import { Entry, entryBaseJSON, parseEntryBase } from '../core/entry'
-import type { Id } from '../core/id'
-import { MetricKey } from '../core/metric-key'
-import { assertSlug } from '../core/slug'
+import { DomainError } from '../core/domain-error.js'
+import { Entry, entryBaseJSON, parseEntryBase } from '../core/entry.js'
+import type { Id } from '../core/id.js'
+import { MetricKey } from '../core/metric-key.js'
+import { assertSlug } from '../core/slug.js'
 
 /**
  * Free-text journaling and gratitude. Emits note.count (and a per-tag count)

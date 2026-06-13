@@ -1,8 +1,8 @@
-import { Cadence } from '../core/cadence'
-import type { DayKey } from '../core/day-key'
-import { DomainError } from '../core/domain-error'
-import { Id } from '../core/id'
-import { Plan, parsePlanBase, planBaseJSON } from '../core/plan'
+import { Cadence } from '../core/cadence.js'
+import type { DayKey } from '../core/day-key.js'
+import { DomainError } from '../core/domain-error.js'
+import { Id } from '../core/id.js'
+import { Plan, parsePlanBase, planBaseJSON } from '../core/plan.js'
 
 /**
  * The plain to-do. Recurring tasks deliberately cover ALL recurring duties —

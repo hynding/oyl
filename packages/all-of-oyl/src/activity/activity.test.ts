@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { Activity } from './activity'
-import { Id } from '../core/id'
-import { DomainError } from '../core/domain-error'
+import { Activity } from './activity.js'
+import { Id } from '../core/id.js'
+import { DomainError } from '../core/domain-error.js'
 
 describe('Activity', () => {
   it('constructs a definition with validated slug', () => {

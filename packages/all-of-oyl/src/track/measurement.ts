@@ -1,7 +1,7 @@
-import { DomainError } from '../core/domain-error'
-import { Entry, entryBaseJSON, parseEntryBase } from '../core/entry'
-import type { Id } from '../core/id'
-import { MEASUREMENT_NAMESPACES, MetricKey } from '../core/metric-key'
+import { DomainError } from '../core/domain-error.js'
+import { Entry, entryBaseJSON, parseEntryBase } from '../core/entry.js'
+import type { Id } from '../core/id.js'
+import { MEASUREMENT_NAMESPACES, MetricKey } from '../core/metric-key.js'
 
 /**
  * One generic class for any numeric observation — weight, blood pressure,

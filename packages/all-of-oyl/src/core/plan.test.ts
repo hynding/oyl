@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { DayKey } from './day-key'
-import { Id } from './id'
-import { Plan, planBaseJSON, parsePlanBase } from './plan'
-import { DomainError } from './domain-error'
+import { DayKey } from './day-key.js'
+import { Id } from './id.js'
+import { Plan, planBaseJSON, parsePlanBase } from './plan.js'
+import { DomainError } from './domain-error.js'
 
 class TestPlan extends Plan {
   constructor(props: { id?: Id; title: string; due?: DayKey }) {

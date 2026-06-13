@@ -1,12 +1,12 @@
 // packages/all-of-oyl/src/insights/streak.test.ts
 import { describe, expect, it } from 'vitest'
-import { streak } from './streak'
-import { Goal } from '../goal/goal'
-import { DayKey } from '../core/day-key'
-import { Journal } from '../core/journal'
-import { Measurement } from '../track/measurement'
-import { Transaction } from '../finance/transaction'
-import { Money } from '../core/money'
+import { streak } from './streak.js'
+import { Goal } from '../goal/goal.js'
+import { DayKey } from '../core/day-key.js'
+import { Journal } from '../core/journal.js'
+import { Measurement } from '../track/measurement.js'
+import { Transaction } from '../finance/transaction.js'
+import { Money } from '../core/money.js'
 
 const NY = 'America/New_York'
 const day = (s: string) => DayKey.of(s)

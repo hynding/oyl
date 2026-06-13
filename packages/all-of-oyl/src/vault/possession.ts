@@ -1,9 +1,9 @@
-import { DayKey } from '../core/day-key'
-import { DomainError } from '../core/domain-error'
-import type { Due } from '../core/due'
-import { Id } from '../core/id'
-import { Money } from '../core/money'
-import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta'
+import { DayKey } from '../core/day-key.js'
+import { DomainError } from '../core/domain-error.js'
+import type { Due } from '../core/due.js'
+import { Id } from '../core/id.js'
+import { Money } from '../core/money.js'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta.js'
 
 /**
  * Something you own. Upkeep is NOT a vault concept — it's a recurring Task

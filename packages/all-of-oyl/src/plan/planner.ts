@@ -1,13 +1,13 @@
-import type { DayKey } from '../core/day-key'
-import type { DayRange } from '../core/day-range'
-import { DomainError } from '../core/domain-error'
-import type { Id } from '../core/id'
-import type { Plan } from '../core/plan'
-import { Quantity } from '../core/quantity'
-import { Appointment } from './appointment'
-import { DayPlan, type DayPlanSlot } from './day-plan'
-import { PlannedMeal } from './planned-meal'
-import { Task } from './task'
+import type { DayKey } from '../core/day-key.js'
+import type { DayRange } from '../core/day-range.js'
+import { DomainError } from '../core/domain-error.js'
+import type { Id } from '../core/id.js'
+import type { Plan } from '../core/plan.js'
+import { Quantity } from '../core/quantity.js'
+import { Appointment } from './appointment.js'
+import { DayPlan, type DayPlanSlot } from './day-plan.js'
+import { PlannedMeal } from './planned-meal.js'
+import { Task } from './task.js'
 
 export type ScheduledSlot = { plan: Plan; start?: string; end?: string }
 

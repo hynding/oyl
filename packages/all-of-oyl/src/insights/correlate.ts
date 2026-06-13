@@ -1,7 +1,7 @@
 // packages/all-of-oyl/src/insights/correlate.ts
-import { DayRange } from '../core/day-range'
-import type { AggregateKind, Journal } from '../core/journal'
-import type { MetricKey } from '../core/metric-key'
+import { DayRange } from '../core/day-range.js'
+import type { AggregateKind, Journal } from '../core/journal.js'
+import type { MetricKey } from '../core/metric-key.js'
 
 /** Days both series have data must reach this for an honest answer. */
 const MIN_OVERLAPPING_DAYS = 3

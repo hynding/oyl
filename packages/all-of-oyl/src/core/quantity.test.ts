@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { Quantity } from './quantity'
-import { DomainError } from './domain-error'
+import { Quantity } from './quantity.js'
+import { DomainError } from './domain-error.js'
 
 describe('Quantity', () => {
   it('holds an amount and a unit', () => {

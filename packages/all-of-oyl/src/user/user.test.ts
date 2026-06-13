@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { User } from './user'
-import { Id } from '../core/id'
-import { DomainError } from '../core/domain-error'
+import { User } from './user.js'
+import { Id } from '../core/id.js'
+import { DomainError } from '../core/domain-error.js'
 
 describe('User', () => {
   it('constructs the profile shape', () => {

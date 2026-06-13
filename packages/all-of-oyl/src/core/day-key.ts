@@ -1,4 +1,4 @@
-import { DomainError } from './domain-error'
+import { DomainError } from './domain-error.js'
 
 const DAY_RE = /^(\d{4})-(\d{2})-(\d{2})$/
 

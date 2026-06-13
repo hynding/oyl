@@ -1,4 +1,4 @@
-import { DayKey } from '../core/day-key'
+import { DayKey } from '../core/day-key.js'
 
 /** All fixture dates are relative to this anchor — never the wall clock. */
 export const FIXTURE_TODAY = DayKey.of('2026-06-01')

@@ -1,7 +1,7 @@
 // packages/all-of-oyl/src/share/connection.ts
-import { DomainError } from '../core/domain-error'
-import { Id } from '../core/id'
-import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta'
+import { DomainError } from '../core/domain-error.js'
+import { Id } from '../core/id.js'
+import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta.js'
 
 export type ConnectionStatus = 'invited' | 'accepted' | 'blocked'
 

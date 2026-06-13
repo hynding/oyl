@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en" data-theme="classic">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>OYL</title>
+
+    <!-- Anti-FOUC: apply persisted theme/mode synchronously before first paint. -->
+    <script>
+      (function () {
+        try {
+          var s = JSON.parse(localStorage.getItem('oyl/settings') || 'null')
+          if (s && s.theme) document.documentElement.dataset.theme = s.theme
+          document.documentElement.style.colorScheme =
+            !s || s.mode === 'system' ? 'light dark' : s.mode
+        } catch (e) {}
+      })()
+    </script>
+
+    <link rel="stylesheet" href="./styles/reset.css" />
+    <link rel="stylesheet" href="./styles/tokens.css" />
+    <link rel="stylesheet" href="./styles/themes/classic.css" />
+    <link rel="stylesheet" href="./styles/themes/forest.css" />
+    <link rel="stylesheet" href="./styles/layout.css" />
+
+    <script type="importmap">
+      { "imports": { "@oyl/all-of-oyl": "./vendor/all-of-oyl/index.js" } }
+    </script>
+    <link rel="modulepreload" href="./vendor/all-of-oyl/index.js" />
+    <link rel="modulepreload" href="./src/main.js" />
+  </head>
+  <body>
+    <div id="app">
+      <p id="boot-fallback">Loading OYL… if this message persists, the app failed to load its modules.</p>
+    </div>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
