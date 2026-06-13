@@ -61,4 +61,16 @@ describe('<oyl-log-form>', () => {
     expect((root(el).querySelector('[data-role="error"]')?.textContent ?? '').length).toBeGreaterThan(0)
     el.remove()
   })
+
+  it('marks the field aria-invalid and describes it by the error on failure', async () => {
+    const store = { add: async (/** @type {any} */ e) => e }
+    const el = form(store)
+    q(el, 'textarea[name="text"]').value = '' // invalid: empty note
+    q(el, 'form').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
+    await Promise.resolve(); await Promise.resolve()
+    const ta = q(el, 'textarea[name="text"]')
+    expect(ta.getAttribute('aria-invalid')).toBe('true')
+    expect(ta.getAttribute('aria-describedby')).toBe('log-error')
+    el.remove()
+  })
 })

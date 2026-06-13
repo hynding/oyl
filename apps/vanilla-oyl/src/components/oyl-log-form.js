@@ -85,6 +85,7 @@ export class OylLogForm extends OylElement {
 
     const error = document.createElement('div')
     error.dataset.role = 'error'
+    error.id = 'log-error'
     error.setAttribute('aria-live', 'polite')
 
     const actions = document.createElement('div')
@@ -134,6 +135,8 @@ export class OylLogForm extends OylElement {
    */
   async _submit(ctx) {
     ctx.error.textContent = ''
+    ctx.textArea.removeAttribute('aria-invalid')
+    ctx.valueInput.removeAttribute('aria-invalid')
     const occurredAt = new Date(ctx.whenInput.value)
     try {
       /** @type {import('@oyl/all-of-oyl').Entry} */
@@ -152,6 +155,9 @@ export class OylLogForm extends OylElement {
       this.onLogged()
     } catch (err) {
       ctx.error.textContent = err instanceof Error ? err.message : String(err)
+      const field = this._type.get() === 'note' ? ctx.textArea : ctx.valueInput
+      field.setAttribute('aria-invalid', 'true')
+      field.setAttribute('aria-describedby', 'log-error')
     }
   }
 
