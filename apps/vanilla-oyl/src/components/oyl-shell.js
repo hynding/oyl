@@ -20,9 +20,11 @@ export class OylShell extends OylElement {
     const header = document.createElement('header')
     const h1 = document.createElement('h1')
     h1.textContent = 'OYL'
+    const navSlot = document.createElement('slot')
+    navSlot.setAttribute('name', 'nav')
     const toolbar = document.createElement('slot')
     toolbar.setAttribute('name', 'toolbar')
-    header.append(h1, toolbar)
+    header.append(h1, navSlot, toolbar)
     const main = document.createElement('slot')
     main.setAttribute('name', 'main')
     root.append(header, main)
