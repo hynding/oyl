@@ -3,6 +3,10 @@ import { track } from './internals.js'
 /**
  * Run `fn` now and re-run it (batched on a microtask) whenever a signal/computed it
  * read changes. Returns a dispose function that detaches it from all sources.
+ *
+ * Cycle detection assumes read-before-write: an effect that reads then writes the same
+ * signal throws synchronously; an effect that writes a signal before reading it is not
+ * detected (it simply won't react to that write).
  * @param {() => void} fn
  * @returns {() => void} dispose
  */

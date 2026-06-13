@@ -4,12 +4,14 @@
  * @typedef {{ _addSource(src: { _subs: Set<object> }): void }} Observer
  */
 
+/** Hard cap on flush iterations before we abort a non-settling update loop. */
+const MAX_FLUSH_ITERATIONS = 1000
+
 /** @type {any} */
 let activeObserver = null
 /** @type {Set<{ _run(): void }>} */
 const pending = new Set()
 let scheduled = false
-let flushing = false
 
 /** @returns {any} */
 export function getActiveObserver() {
@@ -41,21 +43,18 @@ export function schedule(eff) {
 
 function flush() {
   scheduled = false
-  flushing = true
   let guard = 0
-  try {
-    while (pending.size) {
-      if (++guard > 10000) throw new Error('reactive: cycle detected (effect re-scheduled itself)')
-      const batch = [...pending]
+  while (pending.size) {
+    if (++guard > MAX_FLUSH_ITERATIONS) {
       pending.clear()
-      for (const eff of batch) eff._run()
+      console.error(
+        'reactive: aborting update loop after ' + MAX_FLUSH_ITERATIONS +
+          ' iterations — likely a cyclic signal dependency that never settles',
+      )
+      break
     }
-  } finally {
-    flushing = false
+    const batch = [...pending]
+    pending.clear()
+    for (const eff of batch) eff._run()
   }
-}
-
-/** True while effects are running — used for cycle detection on synchronous writes. */
-export function isFlushing() {
-  return flushing
 }
