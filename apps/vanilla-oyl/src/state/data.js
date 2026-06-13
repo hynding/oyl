@@ -1,6 +1,8 @@
 import { signal } from '../lib/reactive/signal.js'
 import { makeRepositories, collectionCounts } from '../storage/bootstrap.js'
 import { readSchemaState } from '../storage/schema.js'
+import { createJournalStore } from './journal-store.js'
+import { defaultTimezone } from '../storage/clock.js'
 
 /** @typedef {import('../storage/schema.js').SchemaState} SchemaState */
 /** @typedef {ReturnType<typeof import('./theme.js').createThemeState>} ThemeState */
@@ -14,6 +16,7 @@ import { readSchemaState } from '../storage/schema.js'
  */
 export function createDataState(storage, themeState) {
   const repos = makeRepositories(storage)
+  const journal = createJournalStore(repos.entries, defaultTimezone())
   /** @type {import('../lib/reactive/signal.js').Signal<Record<string, number>>} */
   const counts = signal(/** @type {Record<string, number>} */ ({}))
   /** @type {import('../lib/reactive/signal.js').Signal<SchemaState>} */
@@ -22,6 +25,7 @@ export function createDataState(storage, themeState) {
   async function refresh() {
     schema.set(readSchemaState(storage))
     counts.set(await collectionCounts(repos))
+    await journal.hydrate()
   }
 
   /** Compose the current diagnostics snapshot (reads signals — call inside an effect to stay live). */
@@ -35,5 +39,5 @@ export function createDataState(storage, themeState) {
     }
   }
 
-  return { repos, counts, schema, refresh, readDiagnostics }
+  return { repos, counts, schema, refresh, readDiagnostics, journal }
 }
