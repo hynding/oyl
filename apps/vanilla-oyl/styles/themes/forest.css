@@ -1,0 +1,13 @@
+@layer themes {
+  :root[data-theme="forest"] {
+    --color-bg: light-dark(oklch(97% 0.02 145), oklch(17% 0.02 150));
+    --color-surface: light-dark(oklch(99% 0.01 145), oklch(22% 0.025 150));
+    --color-text: light-dark(oklch(26% 0.03 150), oklch(93% 0.02 145));
+    --color-muted: light-dark(oklch(48% 0.03 150), oklch(70% 0.03 145));
+    --color-accent: light-dark(oklch(52% 0.13 150), oklch(70% 0.13 150));
+    --color-border: light-dark(oklch(89% 0.02 145), oklch(30% 0.025 150));
+    --color-danger: light-dark(oklch(53% 0.2 25), oklch(70% 0.17 25));
+    --color-ok: light-dark(oklch(55% 0.15 150), oklch(74% 0.14 150));
+    --color-accent-hover: color-mix(in oklch, var(--color-accent), black 12%);
+  }
+}
