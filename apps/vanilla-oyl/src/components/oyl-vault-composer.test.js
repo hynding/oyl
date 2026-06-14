@@ -1,10 +1,10 @@
 import { describe, expect, it, beforeAll } from 'vitest'
-import { Document, Possession, Subscription } from '@oyl/all-of-oyl'
+import { Document, Possession, Subscription, Contact } from '@oyl/all-of-oyl'
 import { defineVaultComposer } from './oyl-vault-composer.js'
 
 beforeAll(() => defineVaultComposer())
 
-/** @param {{ addDocument?: (d: any) => Promise<any>, addPossession?: (p: any) => Promise<any>, addSubscription?: (s: any) => Promise<any> }} store */
+/** @param {{ addDocument?: (d: any) => Promise<any>, addPossession?: (p: any) => Promise<any>, addSubscription?: (s: any) => Promise<any>, addContact?: (c: any) => Promise<any> }} store */
 function composer(store) {
   const el = /** @type {import('./oyl-vault-composer.js').OylVaultComposer} */ (document.createElement('oyl-vault-composer'))
   el.store = /** @type {any} */ (store)
@@ -115,6 +115,35 @@ describe('<oyl-vault-composer>', () => {
     expect(q(el, 'input[name="kind"]').closest('.field').hidden).toBe(true)
     expect(q(el, 'input[name="location"]').closest('.field').hidden).toBe(true)
     expect(q(el, 'input[name="amount"]').closest('.field').hidden).toBe(false) // price shared
+    el.remove()
+  })
+
+  it('adds a contact with a birthday occasion and last-contacted', async () => {
+    const added = /** @type {any[]} */ ([])
+    const el = composer({ addContact: async (c) => { added.push(c); return c } })
+    q(el, 'button[data-type="contact"]').click()
+    q(el, 'input[name="name"]').value = 'Sam'
+    q(el, 'input[name="birthday"]').value = '1990-06-20'
+    q(el, 'input[name="lastContacted"]').value = '2026-03-01'
+    submit(el)
+    await Promise.resolve(); await Promise.resolve()
+    expect(added[0]).toBeInstanceOf(Contact)
+    expect(added[0].name).toBe('Sam')
+    expect(added[0].lastContactedOn?.value).toBe('2026-03-01')
+    expect(added[0].occasions).toHaveLength(1)
+    expect(added[0].occasions[0].name).toBe('birthday')
+    expect(added[0].occasions[0].anchor.value).toBe('1990-06-20')
+    el.remove()
+  })
+
+  it('toggling to Contact shows birthday/last-contacted and hides other fields incl. price (R10)', () => {
+    const el = composer({})
+    q(el, 'button[data-type="contact"]').click()
+    expect(q(el, 'input[name="birthday"]').closest('.field').hidden).toBe(false)
+    expect(q(el, 'input[name="lastContacted"]').closest('.field').hidden).toBe(false)
+    expect(q(el, 'input[name="kind"]').closest('.field').hidden).toBe(true)
+    expect(q(el, 'input[name="amount"]').closest('.field').hidden).toBe(true) // R10: price hidden in contact mode
+    expect(q(el, 'input[name="cadenceN"]').closest('.field').hidden).toBe(true)
     el.remove()
   })
 })

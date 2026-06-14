@@ -1,4 +1,4 @@
-import { Document, Possession, Subscription, Money, Cadence, DayKey } from '@oyl/all-of-oyl'
+import { Document, Possession, Subscription, Contact, Money, Cadence, DayKey } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { signal } from '../lib/reactive/signal.js'
 import { sheet } from './sheet.js'
@@ -12,7 +12,7 @@ const CATEGORIES = ['entertainment', 'software', 'fitness', 'utilities', 'news',
 
 const styles = sheet(`
   form { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-2); padding: 1rem; }
-  .seg { display: inline-flex; background: color-mix(in oklch, var(--color-text) 6%, transparent); border-radius: 999px; padding: .2rem; gap: .15rem; margin-block-end: .85rem; }
+  .seg { display: inline-flex; flex-wrap: wrap; background: color-mix(in oklch, var(--color-text) 6%, transparent); border-radius: 999px; padding: .2rem; gap: .15rem; margin-block-end: .85rem; }
   .seg button { font: inherit; border: 0; background: none; cursor: pointer; padding: .3rem .9rem; border-radius: 999px; font-size: .85rem; font-weight: 550; color: var(--color-muted); }
   .seg button[aria-pressed="true"] { background: var(--color-surface); color: var(--color-text); }
   label { display: block; font-size: .85rem; color: var(--color-muted); margin-block-end: .25rem; }
@@ -58,7 +58,11 @@ export class OylVaultComposer extends OylElement {
     subBtn.type = 'button'
     subBtn.dataset.type = 'subscription'
     subBtn.textContent = 'Subscription'
-    seg.append(docBtn, posBtn, subBtn)
+    const contactBtn = document.createElement('button')
+    contactBtn.type = 'button'
+    contactBtn.dataset.type = 'contact'
+    contactBtn.textContent = 'Contact'
+    seg.append(docBtn, posBtn, subBtn, contactBtn)
 
     const name = this._input('name', 'text')
 
@@ -121,6 +125,12 @@ export class OylVaultComposer extends OylElement {
     const anchorField = this._labeled('anchor', 'Renews on', anchor)
     const categoryField = this._labeled('category', 'Category', category)
 
+    // Contact-only fields
+    const birthday = this._input('birthday', 'date')
+    const lastContacted = this._input('lastContacted', 'date')
+    const birthdayField = this._labeled('birthday', 'Birthday (optional)', birthday)
+    const lastContactedField = this._labeled('lastContacted', 'Last contacted (optional)', lastContacted)
+
     const error = document.createElement('div')
     error.dataset.role = 'error'
     error.setAttribute('aria-live', 'polite')
@@ -139,6 +149,7 @@ export class OylVaultComposer extends OylElement {
       kindField, expiresField,
       locationField, warrantyField, priceField, purchasedField,
       cadenceField, anchorField, categoryField,
+      birthdayField, lastContactedField,
       error, actions,
     )
     root.append(formEl)
@@ -149,28 +160,33 @@ export class OylVaultComposer extends OylElement {
       const isDoc = type === 'document'
       const isPos = type === 'possession'
       const isSub = type === 'subscription'
+      const isContact = type === 'contact'
       kindField.hidden = !isDoc
       expiresField.hidden = !isDoc
       locationField.hidden = !isPos
       warrantyField.hidden = !isPos
       purchasedField.hidden = !isPos
-      priceField.hidden = isDoc // shown for possession AND subscription
+      priceField.hidden = !(isPos || isSub) // shared by possession + subscription; hidden for doc + contact
       priceLabel.textContent = isSub ? 'Amount' : 'Price (optional)'
       cadenceField.hidden = !isSub
       anchorField.hidden = !isSub
       categoryField.hidden = !isSub
+      birthdayField.hidden = !isContact
+      lastContactedField.hidden = !isContact
       docBtn.setAttribute('aria-pressed', String(isDoc))
       posBtn.setAttribute('aria-pressed', String(isPos))
       subBtn.setAttribute('aria-pressed', String(isSub))
+      contactBtn.setAttribute('aria-pressed', String(isContact))
     }
     applyType(this._type.get())
     docBtn.addEventListener('click', () => { this._type.set('document'); applyType('document') }, { signal: this.lifecycle })
     posBtn.addEventListener('click', () => { this._type.set('possession'); applyType('possession') }, { signal: this.lifecycle })
     subBtn.addEventListener('click', () => { this._type.set('subscription'); applyType('subscription') }, { signal: this.lifecycle })
+    contactBtn.addEventListener('click', () => { this._type.set('contact'); applyType('contact') }, { signal: this.lifecycle })
 
     formEl.addEventListener('submit', (e) => {
       e.preventDefault()
-      void this._submit({ error, name, kind, expiresOn, location, warrantyUntil, amount, currency, purchasedOn, cadenceN, cadenceUnit, anchor, category, formEl })
+      void this._submit({ error, name, kind, expiresOn, location, warrantyUntil, amount, currency, purchasedOn, cadenceN, cadenceUnit, anchor, category, birthday, lastContacted, formEl })
     }, { signal: this.lifecycle })
   }
 
@@ -179,7 +195,7 @@ export class OylVaultComposer extends OylElement {
    *   location: HTMLInputElement, warrantyUntil: HTMLInputElement, amount: HTMLInputElement,
    *   currency: HTMLSelectElement, purchasedOn: HTMLInputElement, cadenceN: HTMLInputElement,
    *   cadenceUnit: HTMLSelectElement, anchor: HTMLInputElement, category: HTMLSelectElement,
-   *   formEl: HTMLFormElement }} ctx
+   *   birthday: HTMLInputElement, lastContacted: HTMLInputElement, formEl: HTMLFormElement }} ctx
    */
   async _submit(ctx) {
     ctx.error.textContent = ''
@@ -196,7 +212,7 @@ export class OylVaultComposer extends OylElement {
         if (ctx.amount.value && amt > 0) props.purchasePrice = Money.fromMajor(amt, ctx.currency.value)
         if (ctx.purchasedOn.value) props.purchasedOn = DayKey.of(ctx.purchasedOn.value)
         await this.store.addPossession(new Possession(props))
-      } else {
+      } else if (this._type.get() === 'subscription') {
         const sub = new Subscription({
           name: ctx.name.value,
           amount: Money.fromMajor(Number(ctx.amount.value), ctx.currency.value),
@@ -205,6 +221,11 @@ export class OylVaultComposer extends OylElement {
           category: ctx.category.value,
         })
         await this.store.addSubscription(sub)
+      } else {
+        const props = /** @type {{ name: string, lastContactedOn?: DayKey, occasions?: { name: string, anchor: DayKey, cadence: Cadence }[] }} */ ({ name: ctx.name.value })
+        if (ctx.lastContacted.value) props.lastContactedOn = DayKey.of(ctx.lastContacted.value)
+        if (ctx.birthday.value) props.occasions = [{ name: 'birthday', anchor: DayKey.of(ctx.birthday.value), cadence: Cadence.of(1, 'years') }]
+        await this.store.addContact(new Contact(props))
       }
       ctx.formEl.reset()
       ctx.cadenceN.value = '1'
