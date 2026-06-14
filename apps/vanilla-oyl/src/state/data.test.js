@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Note, Measurement, Goal, DayKey, Task, periodWindowOf } from '@oyl/all-of-oyl'
+import { Note, Measurement, Goal, DayKey, Task, periodWindowOf, Subscription, Cadence, Money } from '@oyl/all-of-oyl'
 import { createThemeState } from './theme.js'
 import { createDataState } from './data.js'
 import { defaultTimezone } from '../storage/clock.js'
@@ -122,5 +122,43 @@ describe('data state', () => {
     const day = DayKey.from(new Date(), defaultTimezone())
     const r = ds.reviewOn(periodWindowOf('month', day))
     expect(r.areas.map((a) => a.name)).toContain('Health')
+  })
+})
+
+describe('renewSubscription (subscription→transaction seam)', () => {
+  it('posts the charge as an expense transaction in the current month', async () => {
+    const storage = fakeStorage()
+    const ds = createDataState(storage, createThemeState(storage))
+    const today = DayKey.from(new Date(), defaultTimezone())
+    const sub = new Subscription({
+      name: 'Netflix',
+      amount: Money.of(1599, 'USD', 2),
+      cadence: Cadence.of(1, 'months'),
+      anchor: today,
+      category: 'entertainment',
+    })
+    await ds.repos.subscriptions.save(sub)
+    await ds.refresh()
+
+    const charge = await ds.renewSubscription(sub.id, today)
+
+    expect(charge?.category).toBe('entertainment')
+    const txs = ds.journal.transactionsIn(periodWindowOf('month', today))
+    expect(txs).toHaveLength(1)
+    expect(txs[0]?.category).toBe('entertainment')
+    expect(txs[0]?.amount.minor).toBe(1599)
+    expect(txs[0]?.direction).toBe('expense')
+  })
+
+  it('does nothing for an unknown subscription id', async () => {
+    const storage = fakeStorage()
+    const ds = createDataState(storage, createThemeState(storage))
+    const today = DayKey.from(new Date(), defaultTimezone())
+    await ds.refresh()
+
+    const charge = await ds.renewSubscription(/** @type {any} */ ('nope'), today)
+
+    expect(charge).toBeUndefined()
+    expect(ds.journal.transactionsIn(periodWindowOf('month', today))).toHaveLength(0)
   })
 })

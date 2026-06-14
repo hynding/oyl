@@ -1,4 +1,4 @@
-import { review } from '@oyl/all-of-oyl'
+import { review, Transaction } from '@oyl/all-of-oyl'
 import { signal } from '../lib/reactive/signal.js'
 import { makeRepositories, collectionCounts } from '../storage/bootstrap.js'
 import { readSchemaState } from '../storage/schema.js'
@@ -84,7 +84,31 @@ export function createDataState(storage, themeState) {
     })
   }
 
-  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets }
+  /**
+   * Renew a subscription AND post the resulting charge as an expense Transaction to the
+   * journal — closing the finance loop (the charge then shows in the ledger, budgets, and
+   * Insights). Orchestration lives here so vaultStore/journalStore stay decoupled. The
+   * Transaction is mapped purely from the charge (charge.on is the day paid, not the past
+   * due date — overdue renewals post dated today).
+   * @param {import('@oyl/all-of-oyl').Id} id
+   * @param {import('@oyl/all-of-oyl').DayKey} on
+   * @returns {Promise<import('@oyl/all-of-oyl').SubscriptionCharge | undefined>}
+   */
+  async function renewSubscription(id, on) {
+    const charge = await vault.renew(id, on)
+    if (charge) {
+      await journal.add(new Transaction({
+        occurredAt: new Date(`${charge.on.value}T12:00:00`),
+        amount: charge.amount,
+        category: charge.category,
+        direction: charge.direction,
+        ...(charge.accountId !== undefined ? { accountId: charge.accountId } : {}),
+      }))
+    }
+    return charge
+  }
+
+  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription }
 }
 
 /**
