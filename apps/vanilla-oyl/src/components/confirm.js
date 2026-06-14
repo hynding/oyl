@@ -34,4 +34,5 @@ export function inlineConfirm({ mount, prompt, lifecycle, onYes, restore }) {
 
   group.append(label, yes, no)
   mount.append(group)
+  no.focus()
 }
