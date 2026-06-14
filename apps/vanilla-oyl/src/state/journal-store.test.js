@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryRepository, Note, DayKey } from '@oyl/all-of-oyl'
+import { InMemoryRepository, Note, Measurement, Goal, DayKey } from '@oyl/all-of-oyl'
 import { createJournalStore } from './journal-store.js'
 import { effect } from '../lib/reactive/effect.js'
 
@@ -62,5 +62,17 @@ describe('createJournalStore', () => {
     await store.add(aNote())
     await Promise.resolve()
     expect(seen).toEqual([0, 1])
+  })
+
+  it('progressOf computes a goal\'s current-period progress from entries', async () => {
+    const repo = /** @type {InMemoryRepository<Entry>} */ (new InMemoryRepository())
+    const store = createJournalStore(repo, TZ)
+    const goal = new Goal({ metric: 'sleep.hours', target: 7, direction: 'atLeast', period: 'day' })
+    expect(store.progressOf(goal, dayOf()).empty).toBe(true)
+    await store.add(new Measurement({ occurredAt: new Date(ISO), metric: 'sleep.hours', value: 7 }))
+    const p = store.progressOf(goal, dayOf())
+    expect(p.current).toBe(7)
+    expect(p.met).toBe(true)
+    expect(p.empty).toBe(false)
   })
 })

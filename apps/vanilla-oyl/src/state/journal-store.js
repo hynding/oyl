@@ -4,6 +4,8 @@ import { signal } from '../lib/reactive/signal.js'
 /** @typedef {import('@oyl/all-of-oyl').Entry} Entry */
 /** @typedef {import('@oyl/all-of-oyl').Id} Id */
 /** @typedef {import('@oyl/all-of-oyl').DayKey} DayKey */
+/** @typedef {import('@oyl/all-of-oyl').Goal} Goal */
+/** @typedef {import('@oyl/all-of-oyl').GoalProgress} GoalProgress */
 /** @typedef {import('@oyl/all-of-oyl').Repository<Entry>} EntriesRepo */
 
 /**
@@ -46,6 +48,12 @@ export function createJournalStore(entriesRepo, tz) {
     entriesOn(day) {
       revision.get()
       return journal.entriesOn(day)
+    },
+
+    /** Current-period progress of a goal at `day`, judged against journal entries (auto-tracks revision). @param {Goal} goal @param {DayKey} day @returns {GoalProgress} */
+    progressOf(goal, day) {
+      revision.get()
+      return goal.progressOn(journal, day)
     },
 
     /** Rebuild the aggregate from the repository. Boot/seed/import/multi-tab only. */
