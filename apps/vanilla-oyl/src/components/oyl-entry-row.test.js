@@ -42,12 +42,12 @@ describe('<oyl-entry-row>', () => {
     const root = /** @type {ShadowRoot} */ (el.shadowRoot)
 
     ;/** @type {HTMLButtonElement} */ (root.querySelector('button[data-act="delete"]')).click()
-    ;/** @type {HTMLButtonElement} */ (root.querySelector('button[data-act="cancel"]')).click()
+    ;/** @type {HTMLButtonElement} */ (root.querySelector('button[data-act="confirm-no"]')).click()
     expect(root.querySelector('button[data-act="delete"]')).toBeTruthy()
     expect(onDelete).not.toHaveBeenCalled()
 
     ;/** @type {HTMLButtonElement} */ (root.querySelector('button[data-act="delete"]')).click()
-    ;/** @type {HTMLButtonElement} */ (root.querySelector('button[data-act="confirm"]')).click()
+    ;/** @type {HTMLButtonElement} */ (root.querySelector('button[data-act="confirm-yes"]')).click()
     expect(onDelete).toHaveBeenCalledWith(note.id)
     el.remove()
   })

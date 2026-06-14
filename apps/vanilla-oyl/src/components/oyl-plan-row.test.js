@@ -56,13 +56,13 @@ describe('<oyl-plan-row>', () => {
     // delete → No reverts
     const delBtn = /** @type {HTMLButtonElement} */ (r.querySelector('button[data-act="delete"]'))
     delBtn.click()
-    const noBtn = /** @type {HTMLButtonElement} */ (r.querySelector('button[data-act="cancel-confirm"][data-for="delete"]'))
+    const noBtn = /** @type {HTMLButtonElement} */ (r.querySelector('button[data-act="confirm-no"]'))
     noBtn.click()
     expect(onDelete).not.toHaveBeenCalled()
     // cancel → Yes confirms
     const cancelBtn = /** @type {HTMLButtonElement} */ (r.querySelector('button[data-act="cancelplan"]'))
     cancelBtn.click()
-    const yesBtn = /** @type {HTMLButtonElement} */ (r.querySelector('button[data-act="confirm"][data-for="cancelplan"]'))
+    const yesBtn = /** @type {HTMLButtonElement} */ (r.querySelector('button[data-act="confirm-yes"]'))
     yesBtn.click()
     expect(onCancel).toHaveBeenCalledWith(t.id)
     el.remove()

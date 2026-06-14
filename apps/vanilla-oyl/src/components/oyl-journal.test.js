@@ -52,7 +52,7 @@ describe('<oyl-journal>', () => {
     const row = /** @type {any} */ (/** @type {ShadowRoot} */ (el.shadowRoot).querySelector('oyl-entry-row'))
     const delBtn = /** @type {HTMLButtonElement} */ (row.shadowRoot.querySelector('button[data-act="delete"]'))
     delBtn.click()
-    const confirmBtn = /** @type {HTMLButtonElement} */ (row.shadowRoot.querySelector('button[data-act="confirm"]'))
+    const confirmBtn = /** @type {HTMLButtonElement} */ (row.shadowRoot.querySelector('button[data-act="confirm-yes"]'))
     confirmBtn.click()
     await Promise.resolve()
     await Promise.resolve()

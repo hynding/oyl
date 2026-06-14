@@ -1,6 +1,7 @@
 import { Task, Appointment } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
+import { inlineConfirm } from './confirm.js'
 import { cadenceLabel, appointmentTime, overdueBadge } from '../planner/format.js'
 
 /** @typedef {import('@oyl/all-of-oyl').Plan} Plan */
@@ -130,26 +131,13 @@ export class OylPlanRow extends OylElement {
   _confirm(act, onYes) {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
     const mount = /** @type {HTMLElement} */ (root.querySelector('.actions'))
-    mount.replaceChildren()
-    const group = document.createElement('span')
-    group.className = 'confirm'
-    group.setAttribute('role', 'group')
-    group.setAttribute('aria-label', `Confirm ${act}`)
-    const label = document.createElement('span')
-    label.textContent = act === 'delete' ? 'Delete?' : 'Cancel plan?'
-    const yes = document.createElement('button')
-    yes.className = 'yes'
-    yes.dataset.act = 'confirm'
-    yes.dataset.for = act
-    yes.textContent = 'Yes'
-    yes.addEventListener('click', () => onYes(), { signal: this.lifecycle })
-    const no = document.createElement('button')
-    no.dataset.act = 'cancel-confirm'
-    no.dataset.for = act
-    no.textContent = 'No'
-    no.addEventListener('click', () => this._renderActions(mount), { signal: this.lifecycle })
-    group.append(label, yes, no)
-    mount.append(group)
+    inlineConfirm({
+      mount,
+      prompt: act === 'delete' ? 'Delete?' : 'Cancel plan?',
+      lifecycle: this.lifecycle,
+      onYes,
+      restore: () => this._renderActions(mount),
+    })
   }
 }
 

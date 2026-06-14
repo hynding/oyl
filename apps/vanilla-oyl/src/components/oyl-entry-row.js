@@ -1,6 +1,7 @@
 import { Note, Measurement } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
+import { inlineConfirm } from './confirm.js'
 import { formatClockTime, measurementUnit } from '../journal/format.js'
 
 /** @typedef {import('@oyl/all-of-oyl').Entry} Entry */
@@ -98,31 +99,16 @@ export class OylEntryRow extends OylElement {
     del.className = 'del'
     del.dataset.act = 'delete'
     del.textContent = 'Delete'
-    del.addEventListener('click', () => this._renderConfirm(mount), { signal: this.lifecycle })
+    del.addEventListener('click', () => {
+      inlineConfirm({
+        mount,
+        prompt: 'Delete?',
+        lifecycle: this.lifecycle,
+        onYes: () => this.onDelete(this.entry.id),
+        restore: () => this._renderDelete(mount),
+      })
+    }, { signal: this.lifecycle })
     mount.append(del)
-  }
-
-  /** @param {HTMLElement} mount */
-  _renderConfirm(mount) {
-    mount.replaceChildren()
-    const group = document.createElement('span')
-    group.className = 'confirm'
-    group.setAttribute('role', 'group')
-    group.setAttribute('aria-label', 'Confirm delete')
-    const label = document.createElement('span')
-    label.textContent = 'Delete?'
-    const yes = document.createElement('button')
-    yes.className = 'yes'
-    yes.dataset.act = 'confirm'
-    yes.textContent = 'Yes'
-    yes.addEventListener('click', () => this.onDelete(this.entry.id), { signal: this.lifecycle })
-    const no = document.createElement('button')
-    no.className = 'no'
-    no.dataset.act = 'cancel'
-    no.textContent = 'No'
-    no.addEventListener('click', () => this._renderDelete(mount), { signal: this.lifecycle })
-    group.append(label, yes, no)
-    mount.append(group)
   }
 }
 
