@@ -16,10 +16,11 @@ Closes the deferred finance loop: **renewing a subscription on #/vault records t
 ### Decisions
 
 1. **Orchestrate in `data.renewSubscription(id, on)`** (data-layer): `await vault.renew(id, on)` → if a charge, `await journal.add(new Transaction(...))`. Keeps `vaultStore` journal-agnostic and `journalStore` vault-agnostic — the data layer composes them (like `reviewOn`).
-2. **Posted `occurredAt` = the renewal day at local noon** (`new Date(`${on.value}T12:00:00`)`, R-B from Slice 1) so the expense lands in the correct month.
-3. **`<oyl-vault>` gains a `renew` prop** (bound `data.renewSubscription`); the subscription row's `onRenew` calls `this.renew(id, today)` instead of `this.store.renew`. The vault store keeps its `renew` (used by `data.renewSubscription`).
-4. **Announce "Renewed — expense recorded"** on the vault live region (the cross-screen effect shouldn't be silent).
-5. Accounts deferred (a future slice).
+2. **Map the `Transaction` purely from the charge** (R-A): use `charge.on`, `charge.direction`, `charge.amount`, `charge.category`, `charge.accountId?` — don't re-reference the `on` param or hardcode `'expense'`. `renew` returns the passed `on` verbatim as `charge.on` (`subscription.ts:98`) and `direction: 'expense'` (`:96`), so this is behavior-identical today but keeps `renewSubscription` a clean charge→transaction mapper.
+3. **Posted `occurredAt` = the charge day at local noon** (`new Date(`${charge.on.value}T12:00:00`)`, R-B from Slice 1) so the expense lands in the correct month. **`charge.on` is the *payment* day passed (today), not the past anchored due date** (verified — `renew` returns `on` verbatim), so renewing an overdue subscription (e.g. the lapsed Gym) posts a transaction dated today → it appears in the current-month ledger. **One renew posts exactly one transaction** — the domain advances the cursor by a single occurrence (`:80–92`), so a multi-period-overdue subscription records one expense per click (no catch-up batch — out of scope).
+4. **`<oyl-vault>` gains a `renew` prop** (bound `data.renewSubscription`, no-op default); the subscription row's `onRenew` calls `this.renew(id, today)` instead of `this.store.renew`. The vault store keeps its `renew` (used by `data.renewSubscription`). The no-op default means a forgotten `main.js` wire fails *silently* — caught by `data.test` (orchestration) + the browser pass (R-F).
+5. **Announce "Renewed — expense recorded"** on the vault live region (the cross-screen effect shouldn't be silent).
+6. Accounts deferred (a future slice).
 
 ### Out of scope
 
@@ -54,10 +55,10 @@ Add `Transaction` to the imports (the file already imports `review`). Add inside
     const charge = await vault.renew(id, on)
     if (charge) {
       await journal.add(new Transaction({
-        occurredAt: new Date(`${on.value}T12:00:00`),
+        occurredAt: new Date(`${charge.on.value}T12:00:00`),
         amount: charge.amount,
         category: charge.category,
-        direction: 'expense',
+        direction: charge.direction,
         ...(charge.accountId !== undefined ? { accountId: charge.accountId } : {}),
       }))
     }
@@ -103,7 +104,7 @@ Renew (vault subscription row) → this.renew(id, today) = data.renewSubscriptio
 
 ## Testing (Vitest + happy-dom)
 
-- **`data.test.js`** (extend): `renewSubscription` posts an expense — save a `Subscription` (`category: 'entertainment'`, `amount: Money.of(1599,'USD',2)`, anchor today) to `repos.subscriptions`, `refresh()`, `await ds.renewSubscription(sub.id, today)`; assert `ds.journal.transactionsIn(periodWindowOf('month', today))` has length 1 with `category 'entertainment'`, `amount.minor 1599`, `direction 'expense'`. (Import `Subscription`, `Cadence`, `Money`; `periodWindowOf`/`DayKey` already imported.)
+- **`data.test.js`** (extend): `renewSubscription` posts an expense — save a `Subscription` (`category: 'entertainment'`, `amount: Money.of(1599,'USD',2)`, `cadence: Cadence.of(1,'months')`, `anchor: today`) to `ds.repos.subscriptions`, `refresh()`, `await ds.renewSubscription(sub.id, today)`; assert `ds.journal.transactionsIn(periodWindowOf('month', today))` has length 1 with `category 'entertainment'`, `amount.minor 1599`, `direction 'expense'`. (Import `Subscription`, `Cadence`, `Money`; `periodWindowOf`/`DayKey` already imported.) **Plus an unknown-id test** (R-C): `await ds.renewSubscription('nope', today)` returns `undefined` and posts nothing (`transactionsIn(...)` stays empty).
 - **`oyl-vault.test.js`** (extend): update the `screen()` helper to set `el.renew = (id, on) => store.renew(id, on)` (delegates to the store) so the existing "renew advances a subscription" test (which spies on `store.renew`) still passes; add a focused test that clicking a subscription row's **Renew** invokes `el.renew` with the subscription id (set `el.renew = vi.fn()` and assert).
 
 ## File structure
@@ -121,5 +122,5 @@ No new files, stores, components, nav, or routes.
 
 `pnpm vanilla test` green + `pnpm vanilla typecheck` clean, then a real-Chrome pass: seed demo data, open `#/vault`:
 - Click **Renew** on Netflix → its "Renews …" advances (as before) and the live region says "Renewed — expense recorded".
-- Open `#/finance` → an **entertainment** expense for Netflix's amount now appears in this month's ledger; an `entertainment` budget (if any) reflects it; **#/insights** Spending/top-spending rises.
-- Renewing the lapsed **Gym** likewise posts a fitness expense.
+- Open `#/finance` → an **entertainment** expense for Netflix's amount now appears in this month's ledger; **#/insights** Spending/top-spending rises. (A matching-category budget, if one exists, reflects it — seed ships a *grocery* budget, so add an entertainment budget to see this, or rely on the ledger/Insights checks.)
+- Renewing the lapsed **Gym** likewise posts an expense dated **today** (not its past due date) → it appears in the current month's ledger.
