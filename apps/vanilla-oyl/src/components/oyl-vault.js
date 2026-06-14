@@ -7,6 +7,8 @@ import { dueInLabel, formatMoney, monthlyTotalLabel } from '../vault/format.js'
 import { defineVaultComposer } from './oyl-vault-composer.js'
 import { defineVaultItem } from './oyl-vault-item.js'
 import { defineSubscriptionRow } from './oyl-subscription-row.js'
+import { defineContactRow } from './oyl-contact-row.js'
+import { defineGiftIdeaForm } from './oyl-gift-idea-form.js'
 
 /** @typedef {ReturnType<typeof import('../state/vault-store.js').createVaultStore>} VaultStore */
 
@@ -30,6 +32,7 @@ const styles = sheet(`
   .due .date { grid-column: 2; color: var(--color-muted); font-family: var(--font-mono); font-size: var(--step--1); }
   .empty { color: var(--color-muted); padding: 1rem 0; }
   .monthly-total { color: var(--color-muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
+  oyl-gift-idea-form { display: block; margin: .4rem 0 .8rem; }
   .sr-only { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 `)
 
@@ -50,6 +53,8 @@ export class OylVault extends OylElement {
     defineVaultComposer()
     defineVaultItem()
     defineSubscriptionRow()
+    defineContactRow()
+    defineGiftIdeaForm()
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
     this._horizon = signal(90)
 
@@ -110,7 +115,24 @@ export class OylVault extends OylElement {
     const subsEmpty = document.createElement('div')
     subsEmpty.className = 'empty'
 
-    root.append(h2, live, composer, upHead, upList, upEmpty, docLabel, docList, docEmpty, posLabel, posList, posEmpty, subHead, subsList, subsEmpty)
+    const conLabel = document.createElement('div')
+    conLabel.className = 'section-label'
+    conLabel.textContent = 'Contacts'
+    const conList = document.createElement('ol')
+    const conEmpty = document.createElement('div')
+    conEmpty.className = 'empty'
+
+    const giftLabel = document.createElement('div')
+    giftLabel.className = 'section-label'
+    giftLabel.textContent = 'Gift ideas'
+    const giftForm = /** @type {import('./oyl-gift-idea-form.js').OylGiftIdeaForm} */ (document.createElement('oyl-gift-idea-form'))
+    giftForm.store = this.store
+    giftForm.onAdded = () => { live.textContent = 'Gift idea added' }
+    const giftList = document.createElement('ol')
+    const giftEmpty = document.createElement('div')
+    giftEmpty.className = 'empty'
+
+    root.append(h2, live, composer, upHead, upList, upEmpty, docLabel, docList, docEmpty, posLabel, posList, posEmpty, subHead, subsList, subsEmpty, conLabel, conList, conEmpty, giftLabel, giftForm, giftList, giftEmpty)
 
     /** @param {number} horizon */
     const repaintUpcoming = (horizon) => {
@@ -159,6 +181,31 @@ export class OylVault extends OylElement {
       }
       subsEmpty.hidden = subs.length > 0
       subsEmpty.textContent = subsEmpty.hidden ? '' : 'No subscriptions yet.'
+
+      const contacts = this.store.contacts()
+      conList.replaceChildren()
+      for (const c of contacts) {
+        const crow = /** @type {import('./oyl-contact-row.js').OylContactRow} */ (document.createElement('oyl-contact-row'))
+        crow.contact = c
+        crow.today = today
+        crow.onLog = (id) => { void this.store.recordContact(id, today); live.textContent = 'Logged' }
+        crow.onDelete = (id) => { void this.store.removeContact(id); live.textContent = 'Deleted' }
+        const li = document.createElement('li')
+        li.append(crow)
+        conList.append(li)
+      }
+      conEmpty.hidden = contacts.length > 0
+      conEmpty.textContent = conEmpty.hidden ? '' : 'No contacts yet.'
+
+      const nameById = new Map(contacts.map((c) => [c.id, c.name]))
+      const ideas = this.store.giftIdeas()
+      giftList.replaceChildren()
+      for (const g of ideas) {
+        const forName = nameById.get(g.contactId) ?? 'Unknown contact'
+        giftList.append(this._itemEl(g.text, [`For ${forName}`], () => { void this.store.removeGiftIdea(g.id); live.textContent = 'Deleted' }))
+      }
+      giftEmpty.hidden = ideas.length > 0
+      giftEmpty.textContent = giftEmpty.hidden ? '' : 'No gift ideas yet.'
     })
   }
 

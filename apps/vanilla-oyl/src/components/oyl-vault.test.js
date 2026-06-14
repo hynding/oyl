@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, vi } from 'vitest'
-import { InMemoryRepository, Document, Possession, Subscription, Cadence, Money, DayKey } from '@oyl/all-of-oyl'
+import { InMemoryRepository, Document, Possession, Subscription, Contact, GiftIdea, Cadence, Money, DayKey } from '@oyl/all-of-oyl'
 import { createVaultStore } from '../state/vault-store.js'
 import { now } from '../storage/clock.js'
 import { defineVault } from './oyl-vault.js'
@@ -25,6 +25,25 @@ async function seededStore() {
   await store.hydrate()
   return store
 }
+
+/** A store seeded with one contact (Sam) + one gift idea for Sam. Kept separate from
+ *  seededStore so gift-idea <oyl-vault-item>s don't perturb that fixture's item count. */
+async function contactStore() {
+  const repos = {
+    documents: /** @type {any} */ (new InMemoryRepository()),
+    possessions: /** @type {any} */ (new InMemoryRepository()),
+    subscriptions: /** @type {any} */ (new InMemoryRepository()),
+    contacts: /** @type {any} */ (new InMemoryRepository()),
+    giftIdeas: /** @type {any} */ (new InMemoryRepository()),
+  }
+  const sam = new Contact({ name: 'Sam', lastContactedOn: today().addDays(-95), occasions: [{ name: 'birthday', anchor: DayKey.of('1990-06-20'), cadence: Cadence.of(1, 'years') }] })
+  await repos.contacts.save(sam)
+  await repos.giftIdeas.save(new GiftIdea({ text: 'kettle', contactId: sam.id }))
+  const store = createVaultStore(/** @type {any} */ (repos))
+  await store.hydrate()
+  return store
+}
+const settle = () => new Promise((r) => setTimeout(r, 0))
 
 /** @param {any} store */
 function screen(store) {
@@ -120,6 +139,48 @@ describe('<oyl-vault>', () => {
     yes.click()
     await Promise.resolve(); await Promise.resolve()
     expect(removeSpy).toHaveBeenCalled()
+    el.remove()
+  })
+
+  it('renders the Contacts section with staleness and the Gift ideas section', async () => {
+    const el = screen(await contactStore())
+    await Promise.resolve()
+    // Section labels live in the screen's own shadow root.
+    const text = root(el).textContent ?? ''
+    expect(text).toContain('Contacts')
+    expect(text).toContain('Gift ideas')
+    // The contact's name + staleness live in the contact-row's shadow root.
+    const crow = /** @type {any} */ (root(el).querySelector('oyl-contact-row'))
+    expect(root(el).querySelectorAll('oyl-contact-row')).toHaveLength(1)
+    const crowText = crow.shadowRoot.textContent ?? ''
+    expect(crowText).toContain('Sam')
+    expect(crowText).toContain('Last contacted')
+    // The gift idea renders as an oyl-vault-item (label = text, lines = ['For Sam']).
+    const items = /** @type {any[]} */ ([...root(el).querySelectorAll('oyl-vault-item')])
+    const kettle = items.find((i) => i.label === 'kettle')
+    expect(kettle).toBeTruthy()
+    expect(kettle.lines.join(' ')).toContain('For Sam')
+    el.remove()
+  })
+
+  it('Log contact advances staleness; deleting a contact cascades to its gift idea', async () => {
+    const el = screen(await contactStore())
+    await Promise.resolve()
+    const crow = /** @type {any} */ (root(el).querySelector('oyl-contact-row'))
+    const logBtn = /** @type {HTMLButtonElement} */ (crow.shadowRoot.querySelector('button[data-act="log"]'))
+    logBtn.click()
+    await settle()
+    const crowAfter = /** @type {any} */ (root(el).querySelector('oyl-contact-row'))
+    expect(crowAfter.shadowRoot.textContent).toContain('Last contacted today')
+
+    const delBtn = /** @type {HTMLButtonElement} */ (crowAfter.shadowRoot.querySelector('button[data-act="delete"]'))
+    delBtn.click()
+    const yes = /** @type {HTMLButtonElement} */ (crowAfter.shadowRoot.querySelector('button[data-act="confirm-yes"]'))
+    yes.click()
+    await settle()
+    // The contact row is gone, and its gift idea cascade-deleted (no vault-items left).
+    expect(root(el).querySelectorAll('oyl-contact-row')).toHaveLength(0)
+    expect(root(el).querySelectorAll('oyl-vault-item')).toHaveLength(0)
     el.remove()
   })
 })
