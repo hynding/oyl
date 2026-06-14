@@ -6,6 +6,7 @@ import { createJournalStore } from './journal-store.js'
 import { createPlannerStore } from './planner-store.js'
 import { createVaultStore } from './vault-store.js'
 import { createGoalsStore } from './goals-store.js'
+import { createBudgetsStore } from './budgets-store.js'
 import { defaultTimezone } from '../storage/clock.js'
 
 /** @typedef {import('../storage/schema.js').SchemaState} SchemaState */
@@ -24,6 +25,7 @@ export function createDataState(storage, themeState) {
   const planner = createPlannerStore(repos.plans)
   const vault = createVaultStore(repos)
   const goals = createGoalsStore(repos.goals)
+  const budgets = createBudgetsStore(repos.budgets)
   /** @type {readonly import('@oyl/all-of-oyl').LifeArea[]} */
   let lifeAreas = []
   /** @type {readonly import('@oyl/all-of-oyl').Activity[]} */
@@ -44,6 +46,7 @@ export function createDataState(storage, themeState) {
     await planner.hydrate()
     await vault.hydrate()
     await goals.hydrate()
+    await budgets.hydrate()
     lifeAreas = await repos.lifeAreas.list()
     activities = await repos.activities.list()
     projects = await repos.projects.list()
@@ -81,7 +84,7 @@ export function createDataState(storage, themeState) {
     })
   }
 
-  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn }
+  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets }
 }
 
 /**

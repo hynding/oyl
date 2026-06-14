@@ -81,6 +81,12 @@ describe('data state', () => {
     expect(typeof ds.goals.all).toBe('function')
   })
 
+  it('exposes a budgets store', () => {
+    const storage = fakeStorage()
+    const ds = createDataState(storage, createThemeState(storage))
+    expect(typeof ds.budgets.all).toBe('function')
+  })
+
   it('reviewOn composes a review for a period', async () => {
     const storage = fakeStorage()
     const ds = createDataState(storage, createThemeState(storage))

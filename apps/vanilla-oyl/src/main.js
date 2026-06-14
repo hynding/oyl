@@ -121,6 +121,7 @@ async function boot() {
     finance: () => {
       const view = /** @type {import('./components/oyl-finance.js').OylFinance} */ (document.createElement('oyl-finance'))
       view.store = dataState.journal
+      view.budgets = dataState.budgets
       view.tz = defaultTimezone()
       return view
     },
