@@ -3,6 +3,7 @@ import { Note, Measurement, Goal, DayKey, Task, periodWindowOf } from '@oyl/all-
 import { createThemeState } from './theme.js'
 import { createDataState } from './data.js'
 import { defaultTimezone } from '../storage/clock.js'
+import { loadDemoData } from '../storage/seed.js'
 
 /** @param {Record<string,string>} [seed] */
 function fakeStorage(seed = {}) {
@@ -105,5 +106,15 @@ describe('data state', () => {
     } finally {
       if (original) Object.defineProperty(globalThis.navigator, 'storage', original)
     }
+  })
+
+  it('reviewOn includes named life areas from the loaded catalogs', async () => {
+    const storage = fakeStorage()
+    const ds = createDataState(storage, createThemeState(storage))
+    await loadDemoData(storage)
+    await ds.refresh()
+    const day = DayKey.from(new Date(), defaultTimezone())
+    const r = ds.reviewOn(periodWindowOf('month', day))
+    expect(r.areas.map((a) => a.name)).toContain('Health')
   })
 })

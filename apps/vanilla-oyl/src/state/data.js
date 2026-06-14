@@ -24,6 +24,12 @@ export function createDataState(storage, themeState) {
   const planner = createPlannerStore(repos.plans)
   const vault = createVaultStore(repos)
   const goals = createGoalsStore(repos.goals)
+  /** @type {readonly import('@oyl/all-of-oyl').LifeArea[]} */
+  let lifeAreas = []
+  /** @type {readonly import('@oyl/all-of-oyl').Activity[]} */
+  let activities = []
+  /** @type {readonly import('@oyl/all-of-oyl').Project[]} */
+  let projects = []
   /** @type {import('../lib/reactive/signal.js').Signal<Record<string, number>>} */
   const counts = signal(/** @type {Record<string, number>} */ ({}))
   /** @type {import('../lib/reactive/signal.js').Signal<SchemaState>} */
@@ -38,6 +44,9 @@ export function createDataState(storage, themeState) {
     await planner.hydrate()
     await vault.hydrate()
     await goals.hydrate()
+    lifeAreas = await repos.lifeAreas.list()
+    activities = await repos.activities.list()
+    projects = await repos.projects.list()
     storageEstimate.set(await readStorageEstimate())
   }
 
@@ -56,7 +65,8 @@ export function createDataState(storage, themeState) {
   /**
    * Compose the domain review for a period. Reactive: journal.peek()/planner.peek()/goals.all()
    * each touch their revision, so a reactive reader (the insights screen) re-runs on any change.
-   * Slice 1 passes empty activities/areas — only the life-wheel (a later slice) needs the catalogs.
+   * The activities/areas/projects catalogs feed the life-wheel (review().areas); they reload in
+   * refresh() alongside the hydrates, so a catalog change always coincides with a tracked revision.
    * @param {import('@oyl/all-of-oyl').DayRange} range @returns {import('@oyl/all-of-oyl').Review}
    */
   function reviewOn(range) {
@@ -64,8 +74,9 @@ export function createDataState(storage, themeState) {
       journal: journal.peek(),
       planner: planner.peek(),
       goals: goals.all(),
-      activities: /** @type {any[]} */ ([]),
-      areas: /** @type {any[]} */ ([]),
+      activities,
+      areas: lifeAreas,
+      projects,
       period: range,
     })
   }
