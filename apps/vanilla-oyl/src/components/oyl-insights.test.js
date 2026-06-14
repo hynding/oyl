@@ -59,6 +59,7 @@ describe('<oyl-insights>', () => {
     expect(text).toContain('Nothing this period')
     expect(text).toContain('—')
     expect(root(el).querySelector('.stat .d')).toBeNull()
+    expect(text).toContain('No areas tracked')
     el.remove()
   })
 
@@ -72,6 +73,25 @@ describe('<oyl-insights>', () => {
     sel.dispatchEvent(new Event('change', { bubbles: true }))
     await Promise.resolve()
     expect(reviewOn.mock.calls.length).toBeGreaterThan(before)
+    el.remove()
+  })
+
+  it('renders the Life areas section (named always; unassigned only with signal; guards 0/0)', async () => {
+    const el = screen(() => review({ areas: [
+      { areaId: 'a1', name: 'Health', goalsMet: 2, goalsTotal: 3, activityMinutes: 120, projectsTouched: 1 },
+      { areaId: 'a2', name: 'Family', goalsMet: 0, goalsTotal: 0, activityMinutes: 0, projectsTouched: 0 },
+      { name: 'unassigned', goalsMet: 0, goalsTotal: 0, activityMinutes: 0, projectsTouched: 0 },
+    ] }))
+    await Promise.resolve()
+    const text = root(el).textContent ?? ''
+    expect(text).toContain('Health')
+    expect(text).toContain('2/3 goals')
+    expect(text).toContain('Family')
+    expect(text).toContain('Nothing tracked')
+    expect(text).not.toContain('Unassigned')
+    const fills = /** @type {HTMLElement[]} */ ([...root(el).querySelectorAll('.area-bar .fill')])
+    expect(fills).toHaveLength(1)
+    for (const f of fills) expect(f.style.getPropertyValue('inline-size')).not.toContain('NaN')
     el.remove()
   })
 })

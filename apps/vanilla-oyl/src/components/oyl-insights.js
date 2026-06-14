@@ -3,7 +3,7 @@ import { OylElement } from '../lib/reactive/oyl-element.js'
 import { signal } from '../lib/reactive/signal.js'
 import { sheet } from './sheet.js'
 import { now } from '../storage/clock.js'
-import { money, reviewGoalLabel } from '../insights/format.js'
+import { money, reviewGoalLabel, areaStatsLabel } from '../insights/format.js'
 
 /** @typedef {import('@oyl/all-of-oyl').Review} Review */
 /** @typedef {(range: import('@oyl/all-of-oyl').DayRange) => Review} ReviewOn */
@@ -28,6 +28,10 @@ const styles = sheet(`
   li { display: flex; justify-content: space-between; gap: 1rem; padding: .4rem 0; border-top: 1px solid var(--color-border); }
   .completion { font-variant-numeric: tabular-nums; }
   .muted { color: var(--color-muted); padding: .5rem 0; }
+  .area { padding: .5rem 0; border-top: 1px solid var(--color-border); }
+  .area .head { display: flex; justify-content: space-between; gap: 1rem; }
+  .area-bar { block-size: .35rem; background: color-mix(in oklch, var(--color-text) 10%, transparent); border-radius: 999px; overflow: hidden; margin-block-start: .35rem; }
+  .area-bar .fill { block-size: 100%; inline-size: 0; background: var(--color-accent); }
 `)
 
 export class OylInsights extends OylElement {
@@ -78,8 +82,11 @@ export class OylInsights extends OylElement {
     const actLabel = this._label('Activity')
     const actList = document.createElement('ol')
     const actEmpty = this._empty()
+    const areaLabel = this._label('Life areas')
+    const areaList = document.createElement('div')
+    const areaEmpty = this._empty()
 
-    root.append(h2, head, totals, completionLabel, completion, goalsLabel, goalsList, goalsEmpty, spendLabel, spendList, spendEmpty, actLabel, actList, actEmpty)
+    root.append(h2, head, totals, completionLabel, completion, goalsLabel, goalsList, goalsEmpty, spendLabel, spendList, spendEmpty, actLabel, actList, actEmpty, areaLabel, areaList, areaEmpty)
 
     this.track(() => {
       const today = DayKey.from(now(), this.tz)
@@ -116,6 +123,34 @@ export class OylInsights extends OylElement {
       }
       actEmpty.hidden = r.activityTotals.length > 0
       actEmpty.textContent = actEmpty.hidden ? '' : 'Nothing this period'
+
+      // Life areas (named always; unassigned only with signal; catalog order, no sort)
+      const areas = r.areas.filter((a) => a.areaId !== undefined || a.goalsTotal > 0 || a.activityMinutes > 0 || a.projectsTouched > 0)
+      areaList.replaceChildren()
+      for (const a of areas) {
+        const wrap = document.createElement('div')
+        wrap.className = 'area'
+        const head2 = document.createElement('div')
+        head2.className = 'head'
+        const name = document.createElement('span')
+        name.textContent = a.areaId === undefined ? 'Unassigned' : a.name
+        const stats = document.createElement('span')
+        stats.textContent = areaStatsLabel(a)
+        head2.append(name, stats)
+        wrap.append(head2)
+        if (a.goalsTotal > 0) {
+          const bar = document.createElement('div')
+          bar.className = 'area-bar'
+          const fill = document.createElement('div')
+          fill.className = 'fill'
+          fill.style.setProperty('inline-size', `${Math.round((a.goalsMet / a.goalsTotal) * 100)}%`)
+          bar.append(fill)
+          wrap.append(bar)
+        }
+        areaList.append(wrap)
+      }
+      areaEmpty.hidden = areas.length > 0
+      areaEmpty.textContent = areas.length > 0 ? '' : 'No areas tracked'
     })
   }
 
