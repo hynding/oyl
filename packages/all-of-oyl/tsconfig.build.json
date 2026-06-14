@@ -12,5 +12,5 @@
     "incremental": false
   },
   "include": ["./src/**/*.ts"],
-  "exclude": ["./src/**/*.test.ts", "./src/core/repository-contract.ts"]
+  "exclude": ["./src/**/*.test.ts", "./src/**/*-contract.ts"]
 }

@@ -6,6 +6,10 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM equivalent of __dirname (the package is "type": "module", so __dirname is undefined).
+const here = path.dirname(fileURLToPath(import.meta.url));
 
 const modulePath = process.argv[2];
 
@@ -17,7 +21,7 @@ if (!modulePath) {
 // Split the path to get the module name and parent path
 const pathParts = modulePath.split('/');
 const moduleName = pathParts[pathParts.length - 1];
-const moduleDir = path.join(__dirname, '..', modulePath);
+const moduleDir = path.join(here, '..', modulePath);
 
 if (!fs.existsSync(moduleDir)) {
   fs.mkdirSync(moduleDir, { recursive: true });
