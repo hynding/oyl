@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DayKey, Money } from '@oyl/all-of-oyl'
-import { dueInLabel, formatMoney } from './format.js'
+import { dueInLabel, formatMoney, monthlyTotalLabel } from './format.js'
 
 const today = DayKey.of('2026-06-13')
 
@@ -26,5 +26,18 @@ describe('formatMoney', () => {
   })
   it('falls back to a trailing code for unknown currencies and respects exponent', () => {
     expect(formatMoney(Money.of(1000, 'JPY', 0))).toBe('1000 JPY')
+  })
+})
+
+describe('monthlyTotalLabel', () => {
+  it('returns empty string for no subscriptions', () => {
+    expect(monthlyTotalLabel(new Map())).toBe('')
+  })
+  it('formats a single currency', () => {
+    expect(monthlyTotalLabel(new Map([['USD', Money.of(1399, 'USD', 2)]]))).toBe('$13.99/mo')
+  })
+  it('sorts multiple currencies by code regardless of insertion order', () => {
+    const totals = new Map([['USD', Money.of(1399, 'USD', 2)], ['GBP', Money.of(500, 'GBP', 2)]])
+    expect(monthlyTotalLabel(totals)).toBe('£5.00 + $13.99/mo')
   })
 })

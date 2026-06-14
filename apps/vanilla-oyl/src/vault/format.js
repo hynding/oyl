@@ -24,3 +24,15 @@ export function formatMoney(m) {
   const sym = SYMBOLS[m.currency]
   return sym ? `${sym}${amount}` : `${amount} ${m.currency}`
 }
+
+/**
+ * "$13.99/mo" for one currency, "£5.00 + $13.99/mo" for several, "" when empty.
+ * Sorted by currency code so output is deterministic (the source Map is insertion-ordered).
+ * @param {ReadonlyMap<string, Money>} totals @returns {string}
+ */
+export function monthlyTotalLabel(totals) {
+  const parts = [...totals.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, m]) => formatMoney(m))
+  return parts.length === 0 ? '' : `${parts.join(' + ')}/mo`
+}
