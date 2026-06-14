@@ -49,13 +49,14 @@ Add after `accountSpend`:
       if (!span) return zero
       return journal.entriesIn(span).reduce(
         (bal, e) =>
-          e instanceof Transaction && e.accountId === account.id
+          e instanceof Transaction && e.accountId === account.id && e.amount.currency === account.currency
             ? (e.direction === 'income' ? bal.add(e.amount) : bal.subtract(e.amount))
             : bal,
         zero,
       )
     },
 ```
+**R-A (currency guard):** the `e.amount.currency === account.currency` clause is required, not cosmetic. The composer posts `account:{id, currency}` (so amounts match), **but the Slice-3 renew seam posts a subscription's charge with `accountId` and the subscription's currency**, which may differ from the account's. Without the guard, `bal.add/subtract` would throw `CURRENCY_MISMATCH` and crash the whole Accounts-section render. Apply the **same guard to `accountSpend`** (4a) for parity — change its predicate to `e instanceof Transaction && e.direction === 'expense' && e.accountId === account.id && e.amount.currency === account.currency`.
 
 ### 2. `src/vault/format.js` — `formatMoney` negative sign
 
@@ -96,7 +97,7 @@ record income/expense with an account → journal revision bumps
 
 ## Testing (Vitest + happy-dom)
 
-- **`journal-store.test.js`** (extend): `accountBalance` — for an account with income `2000` and expense `500` → `minor 150000`; an account with only an expense → negative `minor`; an account with no transactions → `minor 0` in its currency; transactions for a *different* account are ignored.
+- **`journal-store.test.js`** (extend): `accountBalance` — for an account with income `2000` and expense `500` → `minor 150000`; an account with only an expense → negative `minor`; an account with no transactions → `minor 0` in its currency; transactions for a *different* account are ignored; **a transaction tagged to the account but in a different currency (e.g. a EUR amount on a USD account) is skipped (R-A) — no throw, and it doesn't affect the balance.**
 - **`vault/format.test.js`** (extend): `formatMoney(Money.of(-20000, 'USD', 2))` → `'-$200.00'`; positive unchanged (`'$200.00'`); non-symbol currency negative → `'-200.00 XYZ'` (or the existing no-symbol format with a leading `-`).
 - **`oyl-finance.test.js`** (extend): an account with an income and an expense (both via `account:{id,currency}`) renders a row whose `lines` include the net balance (e.g. `$1500.00`) **and** still include "this month" (spend line preserved, so the 4a assertions hold).
 
@@ -104,7 +105,7 @@ record income/expense with an account → journal revision bumps
 
 ```
 apps/vanilla-oyl/src/
-  state/journal-store.js     (modify: add accountBalance)
+  state/journal-store.js     (modify: add accountBalance + currency guard on accountSpend too, R-A)
   vault/format.js            (modify: formatMoney negative sign)
   components/oyl-finance.js   (modify: balance headline on account rows)
   + extend journal-store.test.js, vault/format.test.js, oyl-finance.test.js
