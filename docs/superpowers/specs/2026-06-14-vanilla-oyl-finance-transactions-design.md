@@ -20,6 +20,8 @@ A `#/finance` screen for recording **expenses** and seeing this month's ledger. 
 5. **(R-E) Ledger newest-first** by `occurredAt` (`entriesIn` order is unspecified).
 6. **(R-F) `journalStore.transactionsIn(range)` passthrough** (reactive; `entriesIn(range)` filtered to `instanceof Transaction`) — keeps the `peek()` exposure data-layer-only (Insights R1) instead of the screen reaching into the aggregate.
 7. **Dedicated `#/finance` screen** (not folded into Journal) + **preset slug category select** (matching the subscription-category decision).
+8. **(R-G) Filter transactions out of the #/journal day view.** A `Transaction` is an `Entry`, so it lands in `journalStore.entriesOn(day)` and would render via `oyl-entry-row` as a bare "**Entry**" row (no amount/category — the `else` fallback) *and* duplicate the #/finance ledger. Journal = notes + measurements; finance owns transactions. Filter `kind === 'transaction'` from the journal day list (this slice owns the cleanup, since it makes transactions a first-class action; the seed already exposes the oddity).
+9. **(R-H) Composer guards a non-empty date too** — the date is defaulted but a date input can be cleared, and `new Date('T12:00:00')` is `Invalid Date`.
 
 ### Out of scope (later slices)
 
@@ -62,6 +64,7 @@ Properties `store` (JournalStore — `.add`), `onAdded`. Reuses the composer CSS
 
 `_submit`:
 ```js
+if (!ctx.date.value) { ctx.error.textContent = 'Pick a date'; return }            // R-H
 const amt = Number(ctx.amount.value)
 if (!(amt > 0)) { ctx.error.textContent = 'Amount must be positive'; return }    // R-C
 const props = /** @type {{ occurredAt: Date, amount: Money, category: string, direction: 'expense', note?: string }} */ ({
@@ -98,7 +101,15 @@ empty.textContent = empty.hidden ? '' : 'No transactions this month.'
 ```
 Import `formatMoney` from `../vault/format.js`, `defineVaultItem` from `./oyl-vault-item.js`. `defineFinance()` idempotent.
 
-### 4. Wiring
+### 4. `src/components/oyl-journal.js` — exclude transactions (R-G)
+
+In the journal screen's `track()`, where it reads the day's entries, filter out transactions so they don't render as bare "Entry" rows (they live on #/finance):
+```js
+const entries = [...this.store.entriesOn(day)].filter((e) => e.kind !== 'transaction').sort(/* existing sort */)
+```
+(Keep the existing sort; just add the `.filter`. Notes/measurements are unaffected.)
+
+### 5. Wiring
 
 - `src/components/oyl-nav.js`: add `['finance', 'Finance']` to `ITEMS` (nav already wraps).
 - `src/main.js`: `defineFinance()`; route `finance: () => { const v = document.createElement('oyl-finance'); v.store = dataState.journal; v.tz = defaultTimezone(); return v }`.
@@ -125,6 +136,7 @@ delete → journalStore.remove(id) (soft-delete) → ledger repaints
 - **`journal-store.test.js`** (extend): `transactionsIn(range)` returns only `Transaction`s in range — add a `Transaction` + a `Note`, assert `transactionsIn(monthRange)` has length 1 and it's the transaction; reflects a second add (reactive).
 - **`oyl-finance-composer.test.js`** (new): submitting amount+currency+category+date builds a `Transaction` with `direction:'expense'`, `amount.minor`, `category`, and `occurredAt` on the chosen **local** day (`added.occurredAt.getDate()/getMonth()/getFullYear()` match the input — proves R-B local-noon); `amount = 0` (and empty) → inline error + no add (R-C); a typed note is set, omitted when blank.
 - **`oyl-finance.test.js`** (new): with a **real** `createJournalStore` (so `transactionsIn` is reactive), seed two transactions on different days; the screen renders them **newest-first** as `oyl-vault-item`s (assert via each item's `.label` — shadow-DOM lesson), with the date+note in `.lines`; adding via the composer makes one appear; deleting removes it; empty store → "No transactions this month."
+- **`oyl-journal.test.js`** (extend, R-G): adding a `Transaction` to the journal store does NOT render an entry row in the day view (it's filtered) — assert the transaction's identifying text/`oyl-entry-row` count is unaffected while a same-day `Note` still shows.
 
 ## File structure
 
@@ -133,9 +145,10 @@ apps/vanilla-oyl/src/
   state/journal-store.js          (modify: add transactionsIn)
   components/oyl-finance-composer.js (new)
   components/oyl-finance.js        (new)
+  components/oyl-journal.js        (modify: filter out transactions — R-G)
   components/oyl-nav.js           (modify: Finance nav item)
   main.js                         (modify: defineFinance + #/finance route)
-  + new tests (composer, screen); extend journal-store test
+  + new tests (composer, screen); extend journal-store + oyl-journal tests
 ```
 
 ## Acceptance
