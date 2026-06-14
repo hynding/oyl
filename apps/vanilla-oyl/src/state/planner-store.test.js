@@ -81,6 +81,30 @@ describe('createPlannerStore', () => {
     expect(await repo.list()).toHaveLength(1) // only the original, open task — no successor leaked, no partial completion
   })
 
+  it('complete persists in a single storage write (atomic batch, not two saves)', async () => {
+    const map = new Map()
+    let writes = 0
+    const storage = {
+      /** @param {string} k */ getItem: (k) => map.get(k) ?? null,
+      /** @param {string} k @param {string} v */ setItem: (k, v) => {
+        writes += 1
+        map.set(k, v)
+      },
+    }
+    const repo = /** @type {any} */ (new LocalStorageRepository(storage, 'oyl/data/plans', /** @type {any} */ (COLLECTIONS.plans)))
+    const store = createPlannerStore(repo)
+    await store.add(task('Water', { cadence: Cadence.of(1, 'weeks') }))
+    const writesBefore = writes
+    const t = store.agendaFor(DUE)[0]
+    const successor = await store.complete(/** @type {any} */ (t).id, DUE)
+    // exactly one storage write during complete → atomic batch (two-save would be 2)
+    expect(writes - writesBefore).toBe(1)
+    // and BOTH plans persisted: original is done, successor is open
+    expect(store.get(/** @type {any} */ (t).id)?.status).toBe('done')
+    expect(successor?.status).toBe('open')
+    expect(await repo.list()).toHaveLength(2)
+  })
+
   it('cancel sets canceled (excluded from agenda, present in canceledOn)', async () => {
     const { repo } = setup()
     const store = createPlannerStore(repo)
