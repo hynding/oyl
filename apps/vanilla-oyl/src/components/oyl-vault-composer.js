@@ -78,6 +78,7 @@ export class OylVaultComposer extends OylElement {
     const amount = this._input('amount', 'number')
     amount.min = '0'
     amount.step = '0.01'
+    amount.setAttribute('aria-label', 'Price')
     const currency = document.createElement('select')
     currency.name = 'currency'
     for (const c of CURRENCIES) {
@@ -86,6 +87,7 @@ export class OylVaultComposer extends OylElement {
       o.textContent = c
       currency.append(o)
     }
+    currency.setAttribute('aria-label', 'Currency')
     const purchasedOn = this._input('purchasedOn', 'date')
     const priceWrap = document.createElement('div')
     priceWrap.className = 'price'
@@ -99,6 +101,7 @@ export class OylVaultComposer extends OylElement {
     const cadenceN = this._input('cadenceN', 'number')
     cadenceN.value = '1'
     cadenceN.min = '1'
+    cadenceN.setAttribute('aria-label', 'Every')
     const cadenceUnit = document.createElement('select')
     cadenceUnit.name = 'cadenceUnit'
     for (const u of CADENCE_UNITS) {
@@ -108,6 +111,7 @@ export class OylVaultComposer extends OylElement {
       if (u === 'months') o.selected = true
       cadenceUnit.append(o)
     }
+    cadenceUnit.setAttribute('aria-label', 'Cadence unit')
     const cadenceWrap = document.createElement('div')
     cadenceWrap.className = 'price'
     cadenceWrap.append(cadenceN, cadenceUnit)

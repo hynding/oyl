@@ -53,4 +53,11 @@ describe('<oyl-goal-composer>', () => {
     expect((q(el, '[data-role="error"]').textContent ?? '').length).toBeGreaterThan(0)
     el.remove()
   })
+
+  it('gives the target control an accessible name', async () => {
+    const el = composer({ add: async (g) => g })
+    await Promise.resolve()
+    expect(q(el, 'input[name="target"]').getAttribute('aria-label')).toBeTruthy()
+    el.remove()
+  })
 })

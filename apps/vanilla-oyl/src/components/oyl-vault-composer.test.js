@@ -146,4 +146,14 @@ describe('<oyl-vault-composer>', () => {
     expect(q(el, 'input[name="cadenceN"]').closest('.field').hidden).toBe(true)
     el.remove()
   })
+
+  it('gives composite-field controls accessible names', async () => {
+    const el = composer({})
+    await Promise.resolve()
+    expect(q(el, 'input[name="amount"]').getAttribute('aria-label')).toBeTruthy()
+    expect(q(el, 'select[name="currency"]').getAttribute('aria-label')).toBeTruthy()
+    expect(q(el, 'input[name="cadenceN"]').getAttribute('aria-label')).toBeTruthy()
+    expect(q(el, 'select[name="cadenceUnit"]').getAttribute('aria-label')).toBeTruthy()
+    el.remove()
+  })
 })

@@ -79,4 +79,12 @@ describe('<oyl-plan-composer>', () => {
     expect((root(el).querySelector('[data-role="error"]')?.textContent ?? '').length).toBeGreaterThan(0)
     el.remove()
   })
+
+  it('gives repeat controls accessible names', async () => {
+    const el = composer({ add: async (p) => p })
+    await Promise.resolve()
+    expect(q(el, 'input[name="repeatN"]').getAttribute('aria-label')).toBeTruthy()
+    expect(q(el, 'select[name="repeatUnit"]').getAttribute('aria-label')).toBeTruthy()
+    el.remove()
+  })
 })

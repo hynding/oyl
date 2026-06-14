@@ -54,6 +54,7 @@ export class OylGoalComposer extends OylElement {
     const target = this._input('target', 'number')
     target.min = '0'
     target.step = 'any'
+    target.setAttribute('aria-label', 'Target')
     const unit = document.createElement('span')
     unit.className = 'unit'
     const targetWrap = document.createElement('div')

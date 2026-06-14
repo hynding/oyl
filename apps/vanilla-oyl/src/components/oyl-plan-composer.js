@@ -62,6 +62,7 @@ export class OylPlanComposer extends OylElement {
     repeatN.value = '1'
     repeatN.min = '1'
     repeatN.disabled = true
+    repeatN.setAttribute('aria-label', 'Repeat interval')
     const repeatUnit = document.createElement('select')
     repeatUnit.name = 'repeatUnit'
     repeatUnit.disabled = true
@@ -71,6 +72,7 @@ export class OylPlanComposer extends OylElement {
       o.textContent = u
       repeatUnit.append(o)
     }
+    repeatUnit.setAttribute('aria-label', 'Repeat unit')
     repeat.addEventListener('change', () => { repeatN.disabled = !repeat.checked; repeatUnit.disabled = !repeat.checked }, { signal: this.lifecycle })
     const repeatRow = document.createElement('div')
     repeatRow.className = 'repeat'

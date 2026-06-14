@@ -140,4 +140,12 @@ describe('<oyl-finance-composer> account picker', () => {
     expect(added[0].amount.currency).toBe('EUR')
     el.remove()
   })
+
+  it('gives composite-field controls accessible names', async () => {
+    const el = composer({ add: async (e) => e })
+    await Promise.resolve()
+    expect(q(el, 'input[name="amount"]').getAttribute('aria-label')).toBeTruthy()
+    expect(q(el, 'select[name="currency"]').getAttribute('aria-label')).toBeTruthy()
+    el.remove()
+  })
 })

@@ -41,6 +41,7 @@ export class OylFinanceComposer extends OylElement {
     const amount = this._input('amount', 'number')
     amount.min = '0'
     amount.step = 'any'
+    amount.setAttribute('aria-label', 'Amount')
     const currency = document.createElement('select')
     currency.name = 'currency'
     for (const c of CURRENCIES) {
@@ -49,6 +50,7 @@ export class OylFinanceComposer extends OylElement {
       o.textContent = c
       currency.append(o)
     }
+    currency.setAttribute('aria-label', 'Currency')
     const priceWrap = document.createElement('div')
     priceWrap.className = 'price'
     priceWrap.append(amount, currency)
