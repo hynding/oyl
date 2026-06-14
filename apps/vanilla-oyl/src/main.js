@@ -102,6 +102,7 @@ async function boot() {
     vault: () => {
       const view = /** @type {import('./components/oyl-vault.js').OylVault} */ (document.createElement('oyl-vault'))
       view.store = dataState.vault
+      view.renew = dataState.renewSubscription
       view.tz = defaultTimezone()
       return view
     },

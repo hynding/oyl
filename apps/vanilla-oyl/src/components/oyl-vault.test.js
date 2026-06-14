@@ -50,6 +50,7 @@ function screen(store) {
   const el = /** @type {import('./oyl-vault.js').OylVault} */ (document.createElement('oyl-vault'))
   el.store = store
   el.tz = TZ
+  el.renew = (id, on) => store.renew(id, on)
   document.body.append(el)
   return el
 }
@@ -139,6 +140,20 @@ describe('<oyl-vault>', () => {
     yes.click()
     await Promise.resolve(); await Promise.resolve()
     expect(removeSpy).toHaveBeenCalled()
+    el.remove()
+  })
+
+  it('renew goes through the injected renew prop (the data-layer seam)', async () => {
+    const store = await seededStore()
+    const el = screen(store)
+    await Promise.resolve()
+    const renewFn = vi.fn(async () => undefined)
+    el.renew = renewFn
+    const row1 = /** @type {any} */ (root(el).querySelector('oyl-subscription-row'))
+    const renewBtn = /** @type {HTMLButtonElement} */ (row1.shadowRoot.querySelector('button[data-act="renew"]'))
+    renewBtn.click()
+    await Promise.resolve(); await Promise.resolve()
+    expect(renewFn).toHaveBeenCalled()
     el.remove()
   })
 

@@ -45,6 +45,8 @@ export class OylVault extends OylElement {
     this.store = /** @type {VaultStore} */ (/** @type {unknown} */ (undefined))
     /** @type {string} */
     this.tz = 'UTC'
+    /** @type {(id: import('@oyl/all-of-oyl').Id, on: import('@oyl/all-of-oyl').DayKey) => Promise<unknown>} */
+    this.renew = async () => undefined
     /** @type {import('../lib/reactive/signal.js').Signal<number>} */
     this._horizon = /** @type {any} */ (undefined)
   }
@@ -173,7 +175,7 @@ export class OylVault extends OylElement {
         const srow = /** @type {import('./oyl-subscription-row.js').OylSubscriptionRow} */ (document.createElement('oyl-subscription-row'))
         srow.subscription = s
         srow.today = today
-        srow.onRenew = (id) => { void this.store.renew(id, today); live.textContent = 'Renewed' }
+        srow.onRenew = (id) => { void this.renew(id, today); live.textContent = 'Renewed — expense recorded' }
         srow.onDelete = (id) => { void this.store.removeSubscription(id); live.textContent = 'Deleted' }
         const li = document.createElement('li')
         li.append(srow)
