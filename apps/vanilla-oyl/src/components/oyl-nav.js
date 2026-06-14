@@ -10,6 +10,7 @@ const ITEMS = /** @type {ReadonlyArray<readonly [string, string]>} */ ([
   ['vault', 'Vault'],
   ['goals', 'Goals'],
   ['insights', 'Insights'],
+  ['finance', 'Finance'],
 ])
 
 const styles = sheet(`
