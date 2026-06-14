@@ -21,6 +21,7 @@ Read-only; no catalog CRUD (areas/activities/projects come from the seed/import 
 4. **(R-D) `areaStatsLabel(rollup)` in `insights/format.js`** composes the present parts; the goals-met **bar** (guarded ratio) stays in the screen.
 5. **(R-F) Pluralize** "1 project" / "2 projects".
 6. **No new signals (R-A confirmed):** catalogs are plain arrays loaded in `refresh()`; they change only on boot/seed/import/multi-tab, which also re-hydrates journal/planner/goals (bumping the revisions the insights screen already tracks) — so the dashboard recomputes and picks up new catalogs.
+7. **(R-G) Render in catalog order — no sorting.** `review()` returns rollups in the order `lifeAreas` were passed (+ unassigned last). Preserve that order; do NOT sort by activity/goals-met — a wheel-of-life is a *stable* set of areas, and reordering defeats the balance read.
 
 ### Out of scope
 
@@ -163,7 +164,7 @@ No nav/route/store changes — `#/insights` already exists; catalogs load throug
 ## Acceptance
 
 `pnpm vanilla test` green + `pnpm vanilla typecheck` clean, then a real-Chrome pass: seed demo data, open `#/insights`:
-- A **Life areas** section lists **Health** (with a goals bar + "x/y goals · N min"), **Family** / **Money** ("Nothing tracked"), **Career** (its "Spring reset" project shows as "1 project" if touched this period), and **Unassigned** only if it has signal.
+- A **Life areas** section lists (in catalog order) **Health** (goals bar + "x/y goals · N min"), **Family** / **Money** / **Career** as "Nothing tracked" (the seed has no June task linked to "Spring reset", so Career's `projectsTouched` is 0), and **Unassigned** (it carries the two unassigned goals → has signal → shown, e.g. "x/2 goals").
 - No broken/`NaN` bars on the goal-less areas.
 - Switch Week/Month → the rollup recomputes.
 - Reset data → "No areas tracked".
