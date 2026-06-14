@@ -60,6 +60,27 @@ describe('createPlannerStore', () => {
     expect(store.get(t.id)?.status).toBe('open')
   })
 
+  it('complete is atomic: a failing batch write persists neither the completion nor the successor', async () => {
+    const map = new Map()
+    let writeCount = 0
+    const storage = {
+      /** @param {string} k */ getItem: (k) => map.get(k) ?? null,
+      /** @param {string} k @param {string} v */ setItem: (k, v) => {
+        if (writeCount++ >= 1) throw new Error('quota') // fail every write after the first (the add)
+        map.set(k, v)
+      },
+    }
+    const repo = /** @type {PlansRepo} */ (
+      /** @type {unknown} */ (new LocalStorageRepository(storage, 'oyl/data/plans', /** @type {any} */ (COLLECTIONS.plans)))
+    )
+    const store = createPlannerStore(repo)
+    const t = task('Water', { cadence: Cadence.of(1, 'weeks') })
+    await store.add(t) // write #0 → persisted
+    await expect(store.complete(t.id, DUE)).rejects.toThrow('quota') // the batch write (#1) fails
+    expect(store.get(t.id)?.status).toBe('open') // completion rolled back via hydrate
+    expect(await repo.list()).toHaveLength(1) // only the original, open task — no successor leaked, no partial completion
+  })
+
   it('cancel sets canceled (excluded from agenda, present in canceledOn)', async () => {
     const { repo } = setup()
     const store = createPlannerStore(repo)
