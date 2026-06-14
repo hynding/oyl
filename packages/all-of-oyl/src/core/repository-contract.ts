@@ -80,5 +80,43 @@ export function repositoryContract(label: string, makeRepo: () => Repository<Lif
       const repo = makeRepo()
       expect(await repo.get(Id.create())).toBeUndefined()
     })
+
+    it('saveMany stamps fresh meta on all items and persists them', async () => {
+      const repo = makeRepo()
+      const saved = await repo.saveMany([
+        new LifeArea({ name: 'A', slug: 'a' }),
+        new LifeArea({ name: 'B', slug: 'b' }),
+      ])
+      expect(saved).toHaveLength(2)
+      expect(saved[0]?.meta?.revision).toBe(1)
+      expect(saved[1]?.meta?.revision).toBe(1)
+      expect(await repo.list()).toHaveLength(2)
+    })
+
+    it('saveMany([]) is a no-op returning []', async () => {
+      expect(await makeRepo().saveMany([])).toEqual([])
+    })
+
+    it('saveMany handles a mixed create + update batch', async () => {
+      const repo = makeRepo()
+      const a = await repo.save(new LifeArea({ name: 'A', slug: 'a' })) // revision 1
+      const b = new LifeArea({ name: 'B', slug: 'b' }) // new
+      const [ua, ub] = await repo.saveMany([a, b])
+      expect(ua?.meta?.revision).toBe(2)
+      expect(ub?.meta?.revision).toBe(1)
+      expect(await repo.list()).toHaveLength(2)
+    })
+
+    it('saveMany is atomic: a stale item rejects and persists none of the batch', async () => {
+      const repo = makeRepo()
+      const a = await repo.save(new LifeArea({ name: 'A', slug: 'a' })) // revision 1
+      const stale = LifeArea.fromJSON(a.toJSON()) // snapshot at revision 1
+      await repo.save(a) // store now at revision 2; `stale` is behind
+      const fresh = new LifeArea({ name: 'C', slug: 'c' }) // new — must NOT leak
+      await expect(repo.saveMany([fresh, stale])).rejects.toMatchObject({ code: 'REVISION_CONFLICT' })
+      const all = await repo.list()
+      expect(all).toHaveLength(1) // only the original A
+      expect(all.find((x) => x.slug === 'c')).toBeUndefined() // fresh staged but not committed
+    })
   })
 }
