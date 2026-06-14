@@ -26,6 +26,8 @@ This completes the Vault screen. Two registries remain unwritten before this sli
 9. **(R5) "Last contacted" does NOT default to today** (empty/optional — adding a contact ≠ contacting them).
 10. **(R6) The composer segment wraps** (`flex-wrap`) now that it has four options.
 11. **(R7) `recordContact` is a stateful store mutation** (mutate in place → persist → re-hydrate, rollback-on-failure), mirroring `renew`. The "Log contact" button is a single click, no confirm (benign + idempotent).
+12. **(R8) The gift-idea form preserves typed text across reactive refreshes** — it builds DOM once and only refreshes the contact `<select>` options + guard in `track()` (never recreates the text input), because `store.contacts()` ties the form to every `revision` bump.
+13. **(R10) The composer's shared price field must hide in Contact mode** — `priceField.hidden = !(isPos || isSub)` (not the Slice-2 `isDoc`), the one shared field whose condition isn't self-keyed.
 
 ### Out of scope (future)
 
@@ -137,15 +139,27 @@ Render:
 
 ### 4. `src/components/oyl-gift-idea-form.js` — `<oyl-gift-idea-form>` (new)
 
-A small add form for the Gift Ideas section. Properties: `store` (VaultStore), `onAdded` (`() => void`). Its own `this.track()` reads `store.contacts()` to (re)populate a contact `<select>` and to toggle the guard:
-- **0 contacts:** render a muted hint "Add a contact first." (no inputs).
-- **≥1 contact:** a text input `name="giftText"` + a contact `<select name="giftContact">` (options: value = contact id, label = contact name) + an Add button. Submit → `new GiftIdea({ text, contactId: Id.of(select.value) })` → `store.addGiftIdea(...)`, reset the text, call `onAdded`. Empty text → `GiftIdea` throws → caught + inline `[data-role="error"]` (same pattern as the composer).
+A small add form for the Gift Ideas section. Properties: `store` (VaultStore), `onAdded` (`() => void`).
 
-`defineGiftIdeaForm()` idempotent. (Rebuilding the `<select>` on each `track()` is fine — the form is transient; a mid-edit revision is rare and only resets the dropdown.)
+**Build the DOM once in `render()`** — a guard hint element ("Add a contact first."), an inputs group (text input `name="giftText"` + a contact `<select name="giftContact" aria-label="Contact">` + an Add button + a `[data-role="error"]`). Submit → `new GiftIdea({ text, contactId: Id.of(select.value) })` → `store.addGiftIdea(...)`, reset **only** the text input, call `onAdded`. Empty text → `GiftIdea` throws → caught + shown inline (same pattern as the composer).
+
+**(R8) `this.track()` must NOT recreate the inputs** — it only:
+1. toggles the guard hint vs the inputs group by `contacts.length === 0`, and
+2. refreshes the `<select>` options from `store.contacts()`, preserving the current selection if that contact still exists (capture `select.value`, rebuild `<option>`s, restore).
+
+This is because `store.contacts()` touches `revision`, so the form re-runs on *any* vault change (even from another tab); rebuilding the text input would wipe a half-typed idea.
+
+`defineGiftIdeaForm()` idempotent.
 
 ### 5. `src/components/oyl-vault-composer.js` — add the Contact mode
 
 A fourth segment `contact`. Contact-only fields: **Birthday** (optional date, `name="birthday"`) and **Last contacted** (optional date, `name="lastContacted"`, **no default**). `name` is the shared field (already present). Extend `applyType` to a 4-way switch (`isContact`); contact shows only name + birthday + lastContacted (hide kind/expires, location/warranty/price/purchased, cadence/anchor/category). Add `flex-wrap: wrap` to the `.seg` style (R6).
+
+**(R10) Critical visibility fix:** the shared price control is currently hidden via `priceField.hidden = isDoc` (shown for everything except document). With a Contact mode added, that would wrongly **show the price field in Contact mode** (`isDoc` is false for contacts). Change it to key on the modes that actually use price:
+```js
+priceField.hidden = !(isPos || isSub)
+```
+The other conditionals are already self-keyed and stay correct for contact: kind/expires `!isDoc`; location/warranty/purchased `!isPos`; cadence/anchor/category `!isSub` (all hidden in contact mode). Birthday/last-contacted fields are `!isContact`.
 
 Submit branch (`_submit`):
 ```js
@@ -186,9 +200,9 @@ delete gift idea → store.removeGiftIdea(id) → repaint
 ## Testing (Vitest + happy-dom)
 
 - **`format.test.js`** (extend): `stalenessLabel` (undefined → "Never contacted"; 0 → "today"; 1 → "yesterday"; 95 → "3 months ago"); `monthDayLabel(DayKey.of('1990-06-20'))` → "Jun 20"; a `dueInLabel` regression case still passes after the `relativeSpan` refactor.
-- **`vault-store.test.js`** (extend): `addContact`/`contacts()`; `recordContact` sets `staleness` to 0; `removeContact` **cascade-deletes** the contact's gift ideas (add a contact + a gift idea for it, remove the contact, assert both gone from `contacts()`/`giftIdeas()` and the repos); `addGiftIdea`/`removeGiftIdea`/`giftIdeas()`.
+- **`vault-store.test.js`** (extend): `addContact`/`contacts()`; `recordContact` sets `staleness` to 0; `removeContact` **cascade-deletes the contact's gift ideas but only those** — add two contacts A and B, a gift idea for each, remove A, then assert A and A's idea are gone while B and B's idea survive (guards against a "delete all gift ideas" implementation); `addGiftIdea`/`removeGiftIdea`/`giftIdeas()`.
 - **`oyl-contact-row.test.js`** (new): renders name + staleness + a "Birthday …" line; **Log** calls `onLog(id)`; Delete → `confirm-yes` calls `onDelete(id)`, `confirm-no` reverts.
-- **`oyl-gift-idea-form.test.js`** (new): with contacts, adds a `GiftIdea` with the selected `contactId` + typed text; empty text shows the inline error and doesn't add; with **zero** contacts, shows the "Add a contact first" hint and no inputs.
+- **`oyl-gift-idea-form.test.js`** (new): with contacts, adds a `GiftIdea` with the selected `contactId` + typed text; empty text shows the inline error and doesn't add; with **zero** contacts, shows the "Add a contact first" hint and the inputs hidden; **(R8)** typed text survives a reassignment of `store` / a `revision` bump (set the text, trigger a repaint by reassigning a store whose `contacts()` changed, assert the text input still holds the value).
 - **`oyl-vault-composer.test.js`** (extend): Contact segment builds a `Contact` with `lastContactedOn` and a yearly birthday `occasion`; toggling to Contact shows birthday/last-contacted and hides the other modes' fields.
 - **`oyl-vault.test.js`** (extend): Contacts section renders a seeded contact with staleness; Gift ideas section renders a seeded idea as "⟨text⟩ / For ⟨name⟩"; Log advances staleness; deleting a contact removes its gift idea from the Gift ideas section (cascade, end-to-end).
 
