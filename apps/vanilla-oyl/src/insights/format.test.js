@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { money, reviewGoalLabel } from './format.js'
+import { money, reviewGoalLabel, areaStatsLabel } from './format.js'
 
 describe('money', () => {
   it('formats major-unit numbers as currency', () => {
@@ -17,5 +17,15 @@ describe('reviewGoalLabel', () => {
     expect(reviewGoalLabel(p({ empty: true }))).toBe('No data')
     expect(reviewGoalLabel(p({ met: true }))).toBe('Met')
     expect(reviewGoalLabel(p({ ratio: 0.8 }))).toBe('80%')
+  })
+})
+
+describe('areaStatsLabel', () => {
+  /** @param {Partial<import('@oyl/all-of-oyl').AreaRollup>} [o] @returns {any} */
+  const a = (o = {}) => ({ name: 'Health', goalsMet: 0, goalsTotal: 0, activityMinutes: 0, projectsTouched: 0, ...o })
+  it('composes present parts and pluralizes', () => {
+    expect(areaStatsLabel(a({ goalsMet: 2, goalsTotal: 3, activityMinutes: 120, projectsTouched: 1 }))).toBe('2/3 goals · 120 min · 1 project')
+    expect(areaStatsLabel(a({ projectsTouched: 2 }))).toBe('2 projects')
+    expect(areaStatsLabel(a())).toBe('Nothing tracked')
   })
 })
