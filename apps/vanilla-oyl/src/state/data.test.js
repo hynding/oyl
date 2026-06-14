@@ -67,6 +67,13 @@ describe('data state', () => {
     }
   })
 
+  it('exposes a vault store', () => {
+    const storage = fakeStorage()
+    const ds = createDataState(storage, createThemeState(storage))
+    expect(typeof ds.vault.hydrate).toBe('function')
+    expect(typeof ds.vault.upcoming).toBe('function')
+  })
+
   it('readDiagnostics storage is null when the Storage API is unavailable', async () => {
     const original = Object.getOwnPropertyDescriptor(globalThis.navigator, 'storage')
     Reflect.deleteProperty(globalThis.navigator, 'storage')

@@ -14,6 +14,7 @@ import { defineStatusPanel } from './components/oyl-status-panel.js'
 import { defineNav } from './components/oyl-nav.js'
 import { defineJournal } from './components/oyl-journal.js'
 import { definePlanner } from './components/oyl-planner.js'
+import { defineVault } from './components/oyl-vault.js'
 
 async function boot() {
   const storage = window.localStorage
@@ -24,6 +25,7 @@ async function boot() {
   defineNav()
   defineJournal()
   definePlanner()
+  defineVault()
 
   const themeState = createThemeState(storage)
   const routeState = createRouteState(window)
@@ -88,6 +90,12 @@ async function boot() {
     planner: () => {
       const view = /** @type {import('./components/oyl-planner.js').OylPlanner} */ (document.createElement('oyl-planner'))
       view.store = dataState.planner
+      view.tz = defaultTimezone()
+      return view
+    },
+    vault: () => {
+      const view = /** @type {import('./components/oyl-vault.js').OylVault} */ (document.createElement('oyl-vault'))
+      view.store = dataState.vault
       view.tz = defaultTimezone()
       return view
     },
