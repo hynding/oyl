@@ -106,4 +106,38 @@ describe('<oyl-finance-composer> account picker', () => {
     expect(q(el, 'select[name="currency"]').hidden).toBe(false)
     el.remove()
   })
+
+  it('stamps the selected account as provenance and uses its currency', async () => {
+    const accts = createAccountsStore(/** @type {any} */ (new InMemoryRepository()))
+    const acc = await accts.add(new Account({ name: 'Checking', currency: 'USD' }))
+    const added = /** @type {any[]} */ ([])
+    const el = composer({ add: async (e) => { added.push(e); return e } }, accts)
+    await Promise.resolve()
+    q(el, 'input[name="amount"]').value = '20'
+    const acct = q(el, 'select[name="account"]')
+    acct.value = acc.id
+    acct.dispatchEvent(new Event('change'))
+    q(el, 'input[name="date"]').value = '2026-06-10'
+    submit(el)
+    await Promise.resolve(); await Promise.resolve()
+    expect(added[0].accountId).toBe(acc.id)
+    expect(added[0].amount.currency).toBe('USD')
+    el.remove()
+  })
+
+  it('posts no account for Cash and uses the currency select', async () => {
+    const accts = createAccountsStore(/** @type {any} */ (new InMemoryRepository()))
+    await accts.add(new Account({ name: 'Checking', currency: 'USD' }))
+    const added = /** @type {any[]} */ ([])
+    const el = composer({ add: async (e) => { added.push(e); return e } }, accts)
+    await Promise.resolve()
+    q(el, 'input[name="amount"]').value = '20'
+    q(el, 'select[name="currency"]').value = 'EUR'
+    q(el, 'input[name="date"]').value = '2026-06-10'
+    submit(el)
+    await Promise.resolve(); await Promise.resolve()
+    expect(added[0].accountId).toBeUndefined()
+    expect(added[0].amount.currency).toBe('EUR')
+    el.remove()
+  })
 })

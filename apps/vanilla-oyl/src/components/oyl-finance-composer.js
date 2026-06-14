@@ -95,7 +95,7 @@ export class OylFinanceComposer extends OylElement {
 
     formEl.addEventListener('submit', (e) => {
       e.preventDefault()
-      void this._submit({ error, amount, currency, category, date, note })
+      void this._submit({ error, amount, currency, category, date, note, account })
     }, { signal: this.lifecycle })
 
     this.track(() => {
@@ -117,19 +117,23 @@ export class OylFinanceComposer extends OylElement {
     })
   }
 
-  /** @param {{ error: HTMLElement, amount: HTMLInputElement, currency: HTMLSelectElement, category: HTMLSelectElement, date: HTMLInputElement, note: HTMLInputElement }} ctx */
+  /** @param {{ error: HTMLElement, amount: HTMLInputElement, currency: HTMLSelectElement, category: HTMLSelectElement, date: HTMLInputElement, note: HTMLInputElement, account: HTMLSelectElement }} ctx */
   async _submit(ctx) {
     ctx.error.textContent = ''
     if (!ctx.date.value) { ctx.error.textContent = 'Pick a date'; return }
     const amt = Number(ctx.amount.value)
     if (!(amt > 0)) { ctx.error.textContent = 'Amount must be positive'; return }
     try {
-      const props = /** @type {{ occurredAt: Date, amount: Money, category: string, direction: 'expense', note?: string }} */ ({
+      const selectedId = ctx.account.value
+      const acc = selectedId ? this.accounts.all().find((a) => a.id === selectedId) : undefined
+      const currency = acc ? acc.currency : ctx.currency.value
+      const props = /** @type {{ occurredAt: Date, amount: Money, category: string, direction: 'expense', note?: string, account?: { id: import('@oyl/all-of-oyl').Id, currency: string } }} */ ({
         occurredAt: new Date(`${ctx.date.value}T12:00:00`),
-        amount: Money.fromMajor(amt, ctx.currency.value),
+        amount: Money.fromMajor(amt, currency),
         category: ctx.category.value,
         direction: 'expense',
       })
+      if (acc) props.account = { id: acc.id, currency: acc.currency }
       if (ctx.note.value) props.note = ctx.note.value
       await this.store.add(new Transaction(props))
       ctx.amount.value = ''
