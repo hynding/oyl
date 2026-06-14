@@ -79,6 +79,37 @@ export class LocalStorageRepository<T extends { id: Id; meta?: PersistedMeta }> 
     return next
   }
 
+  async saveMany(items: T[]): Promise<T[]> {
+    const all = this.readAll()
+    const now = this.clock()
+    const result: T[] = []
+    for (const item of items) {
+      const idx = all.findIndex((i) => i.id === item.id)
+      const next = this.codec.fromJSON(this.codec.toJSON(item))
+      if (idx === -1) {
+        next.meta = { createdAt: now, updatedAt: now, revision: 1 }
+        all.push(next)
+      } else {
+        const stored = all[idx]!
+        if (item.meta?.revision !== stored.meta?.revision) {
+          throw new DomainError(
+            'REVISION_CONFLICT',
+            `stale save of ${item.id}: have revision ${item.meta?.revision ?? 'none'}, stored ${stored.meta?.revision}`,
+          )
+        }
+        next.meta = {
+          createdAt: stored.meta?.createdAt ?? now,
+          updatedAt: now,
+          revision: (stored.meta?.revision ?? 0) + 1,
+        }
+        all[idx] = next
+      }
+      result.push(next)
+    }
+    this.writeAll(all)
+    return result
+  }
+
   async delete(id: Id): Promise<void> {
     const all = this.readAll()
     const idx = all.findIndex((i) => i.id === id)

@@ -54,6 +54,31 @@ export class InMemoryRepository<T extends { id: Id; meta?: PersistedMeta }> impl
     return item
   }
 
+  async saveMany(items: T[]): Promise<T[]> {
+    const now = this.clock()
+    const staged = items.map((item) => {
+      const stored = this.records.get(item.id)
+      if (!stored) {
+        return { item, meta: { createdAt: now, updatedAt: now, revision: 1 } }
+      }
+      if (item.meta?.revision !== stored.meta?.revision) {
+        throw new DomainError(
+          'REVISION_CONFLICT',
+          `stale save of ${item.id}: have revision ${item.meta?.revision ?? 'none'}, stored ${stored.meta?.revision}`,
+        )
+      }
+      return {
+        item,
+        meta: { createdAt: stored.meta?.createdAt ?? now, updatedAt: now, revision: (stored.meta?.revision ?? 0) + 1 },
+      }
+    })
+    for (const { item, meta } of staged) {
+      item.meta = meta
+      this.records.set(item.id, item)
+    }
+    return staged.map((s) => s.item)
+  }
+
   async delete(id: Id): Promise<void> {
     const stored = this.records.get(id)
     if (!stored || !stored.meta || stored.meta.deletedAt) return
