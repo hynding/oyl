@@ -56,6 +56,12 @@ export function createJournalStore(entriesRepo, tz) {
       return goal.progressOn(journal, day)
     },
 
+    /** Live Journal aggregate for read-only insights — touches revision. @returns {Journal} */
+    peek() {
+      revision.get()
+      return journal
+    },
+
     /** Rebuild the aggregate from the repository. Boot/seed/import/multi-tab only. */
     async hydrate() {
       const fresh = new Journal(tz)

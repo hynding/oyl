@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LocalStorageRepository, COLLECTIONS, Task, Cadence, DayKey } from '@oyl/all-of-oyl'
+import { InMemoryRepository, LocalStorageRepository, COLLECTIONS, Task, Cadence, DayKey } from '@oyl/all-of-oyl'
 import { createPlannerStore } from './planner-store.js'
 import { effect } from '../lib/reactive/effect.js'
 
@@ -141,5 +141,11 @@ describe('createPlannerStore', () => {
     await store.add(task())
     await Promise.resolve()
     expect(seen).toEqual([0, 1])
+  })
+
+  it('peek exposes the live Planner aggregate', async () => {
+    const store = createPlannerStore(/** @type {any} */ (new InMemoryRepository()))
+    await store.add(new Task({ title: 'x', due: DayKey.of('2026-06-16') }))
+    expect(store.peek().all()).toHaveLength(1)
   })
 })

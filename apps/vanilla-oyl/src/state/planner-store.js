@@ -31,6 +31,12 @@ export function createPlannerStore(plansRepo) {
     revision,
     hydrate,
 
+    /** Live Planner aggregate for read-only insights — touches revision. @returns {Planner} */
+    peek() {
+      revision.get()
+      return planner
+    },
+
     /** @param {Plan} plan @returns {Promise<Plan>} */
     async add(plan) {
       const saved = await plansRepo.save(plan)

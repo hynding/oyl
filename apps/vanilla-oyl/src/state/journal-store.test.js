@@ -75,4 +75,11 @@ describe('createJournalStore', () => {
     expect(p.met).toBe(true)
     expect(p.empty).toBe(false)
   })
+
+  it('peek exposes the live Journal aggregate', async () => {
+    const repo = /** @type {InMemoryRepository<Entry>} */ (new InMemoryRepository())
+    const store = createJournalStore(repo, TZ)
+    await store.add(aNote())
+    expect(store.peek().entriesOn(dayOf())).toHaveLength(1)
+  })
 })
