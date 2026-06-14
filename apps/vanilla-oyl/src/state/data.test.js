@@ -49,4 +49,34 @@ describe('data state', () => {
     await ds.refresh()
     expect(ds.planner.agendaFor(due)).toHaveLength(1)
   })
+
+  it('readDiagnostics includes a storage estimate when the Storage API is available', async () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis.navigator, 'storage')
+    Object.defineProperty(globalThis.navigator, 'storage', {
+      configurable: true,
+      value: { estimate: async () => ({ usage: 1234, quota: 5_000_000 }) },
+    })
+    try {
+      const storage = fakeStorage()
+      const ds = createDataState(storage, createThemeState(storage))
+      await ds.refresh()
+      expect(ds.readDiagnostics().storage).toEqual({ usage: 1234, quota: 5_000_000 })
+    } finally {
+      if (original) Object.defineProperty(globalThis.navigator, 'storage', original)
+      else Reflect.deleteProperty(globalThis.navigator, 'storage')
+    }
+  })
+
+  it('readDiagnostics storage is null when the Storage API is unavailable', async () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis.navigator, 'storage')
+    Reflect.deleteProperty(globalThis.navigator, 'storage')
+    try {
+      const storage = fakeStorage()
+      const ds = createDataState(storage, createThemeState(storage))
+      await ds.refresh()
+      expect(ds.readDiagnostics().storage).toBeNull()
+    } finally {
+      if (original) Object.defineProperty(globalThis.navigator, 'storage', original)
+    }
+  })
 })

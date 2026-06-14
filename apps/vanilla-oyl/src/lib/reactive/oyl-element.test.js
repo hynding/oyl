@@ -42,4 +42,17 @@ describe('OylElement', () => {
     await Promise.resolve()
     expect(span?.textContent).toBe('0')
   })
+
+  it('reconnect re-renders cleanly (no duplicate DOM, live bindings restored)', async () => {
+    const el = new Counter()
+    document.body.append(el)
+    el.remove() // disconnect aborts the lifecycle + disposes effects
+    document.body.append(el) // reconnect
+    const root = /** @type {ShadowRoot} */ (el.shadowRoot)
+    expect(root.querySelectorAll('span')).toHaveLength(1) // not doubled
+    el.count.set(5)
+    await Promise.resolve()
+    expect(root.querySelector('span')?.textContent).toBe('5') // bindings live again
+    el.remove()
+  })
 })

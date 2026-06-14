@@ -39,4 +39,10 @@ describe('schema state', () => {
     const s = fakeStorage({ [SCHEMA_VERSION_KEY]: String(CURRENT_SCHEMA_VERSION + 1) })
     expect(readSchemaState(s)).toEqual({ status: 'downgrade', version: CURRENT_SCHEMA_VERSION + 1 })
   })
+
+  it('reports "torn" when the version marker is non-numeric (corrupt)', () => {
+    expect(readSchemaState(fakeStorage({ [SCHEMA_VERSION_KEY]: 'abc' }))).toEqual({ status: 'torn' })
+    const withData = fakeStorage({ [SCHEMA_VERSION_KEY]: 'abc', [dataKey('entries')]: '[]' })
+    expect(readSchemaState(withData)).toEqual({ status: 'torn' })
+  })
 })

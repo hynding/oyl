@@ -21,7 +21,13 @@ export function createJournalStore(entriesRepo, tz) {
   return {
     revision,
 
-    /** Persist an entry, then reflect it in the aggregate. @param {Entry} entry @returns {Promise<Entry>} */
+    /**
+     * Persist a NEW entry, then reflect it in the aggregate. Expects a freshly-created
+     * entry (a new Id). Re-adding an entry already in the aggregate diverges repo and
+     * aggregate: the repo save succeeds but `journal.add` then throws DUPLICATE_ID — so
+     * don't feed back an entry obtained from `entriesOn`; create a new one.
+     * @param {Entry} entry @returns {Promise<Entry>}
+     */
     async add(entry) {
       const saved = await entriesRepo.save(entry)
       journal.add(saved)

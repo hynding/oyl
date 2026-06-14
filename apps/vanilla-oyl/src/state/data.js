@@ -23,12 +23,15 @@ export function createDataState(storage, themeState) {
   const counts = signal(/** @type {Record<string, number>} */ ({}))
   /** @type {import('../lib/reactive/signal.js').Signal<SchemaState>} */
   const schema = signal(readSchemaState(storage))
+  /** @type {import('../lib/reactive/signal.js').Signal<{ usage: number, quota: number } | null>} */
+  const storageEstimate = signal(/** @type {{ usage: number, quota: number } | null} */ (null))
 
   async function refresh() {
     schema.set(readSchemaState(storage))
     counts.set(await collectionCounts(repos))
     await journal.hydrate()
     await planner.hydrate()
+    storageEstimate.set(await readStorageEstimate())
   }
 
   /** Compose the current diagnostics snapshot (reads signals — call inside an effect to stay live). */
@@ -39,8 +42,27 @@ export function createDataState(storage, themeState) {
       counts: counts.get(),
       theme: themeState.settings.get(),
       build: /** @type {any} */ (globalThis).__OYL_LIB_BUILD__ ?? 'dev',
+      storage: storageEstimate.get(),
     }
   }
 
   return { repos, counts, schema, refresh, readDiagnostics, journal, planner }
+}
+
+/**
+ * Best-effort localStorage/quota usage via the Storage API. Returns null when the API
+ * is unavailable (older browsers, test envs) or fails — never throws.
+ * @returns {Promise<{ usage: number, quota: number } | null>}
+ */
+async function readStorageEstimate() {
+  try {
+    const nav = /** @type {Navigator | undefined} */ (globalThis.navigator)
+    if (nav?.storage?.estimate) {
+      const { usage, quota } = await nav.storage.estimate()
+      return { usage: usage ?? 0, quota: quota ?? 0 }
+    }
+  } catch {
+    // ignore — diagnostics are best-effort
+  }
+  return null
 }

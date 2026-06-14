@@ -39,7 +39,18 @@ export function createPlannerStore(plansRepo) {
       return saved
     },
 
-    /** @param {Id} id @param {DayKey} on @returns {Promise<Task | undefined>} */
+    /**
+     * Complete a plan; recurring tasks respawn a successor (domain). On save failure we
+     * re-hydrate (rollback) and rethrow.
+     *
+     * KNOWN LIMITATION (non-atomic persistence): the completed plan and the successor are
+     * two separate `save` calls — `Repository` has no batch write. If `save(completed)`
+     * succeeds but `save(successor)` then fails, the re-hydrate reflects a done plan with
+     * no successor: the recurring chain breaks silently (a retry hits ILLEGAL_TRANSITION).
+     * Narrow trigger (a quota error landing between two synchronous localStorage writes).
+     * Proper fix: an atomic `saveMany` on the shared Repository — tracked follow-up.
+     * @param {Id} id @param {DayKey} on @returns {Promise<Task | undefined>}
+     */
     async complete(id, on) {
       const successor = planner.complete(id, on)
       try {
