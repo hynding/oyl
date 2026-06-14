@@ -16,6 +16,7 @@ import { defineJournal } from './components/oyl-journal.js'
 import { definePlanner } from './components/oyl-planner.js'
 import { defineVault } from './components/oyl-vault.js'
 import { defineGoals } from './components/oyl-goals.js'
+import { defineInsights } from './components/oyl-insights.js'
 
 async function boot() {
   const storage = window.localStorage
@@ -28,6 +29,7 @@ async function boot() {
   definePlanner()
   defineVault()
   defineGoals()
+  defineInsights()
 
   const themeState = createThemeState(storage)
   const routeState = createRouteState(window)
@@ -105,6 +107,12 @@ async function boot() {
       const view = /** @type {import('./components/oyl-goals.js').OylGoals} */ (document.createElement('oyl-goals'))
       view.store = dataState.goals
       view.journal = dataState.journal
+      view.tz = defaultTimezone()
+      return view
+    },
+    insights: () => {
+      const view = /** @type {import('./components/oyl-insights.js').OylInsights} */ (document.createElement('oyl-insights'))
+      view.reviewOn = dataState.reviewOn
       view.tz = defaultTimezone()
       return view
     },
