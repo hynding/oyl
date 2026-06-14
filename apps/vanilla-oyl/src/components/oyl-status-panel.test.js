@@ -14,7 +14,7 @@ describe('<oyl-status-panel>', () => {
     }
     document.body.append(el)
     const root = /** @type {ShadowRoot} */ (el.shadowRoot)
-    expect(root.querySelector('h1')).toBeTruthy()
+    expect(root.querySelector('h2')).toBeTruthy() // screen heading is h2 (shell owns the page h1)
     const text = root.textContent ?? ''
     expect(text).toContain('entries')
     expect(text).toContain('42')

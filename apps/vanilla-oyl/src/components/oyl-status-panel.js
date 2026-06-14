@@ -9,16 +9,20 @@ import { sheet } from './sheet.js'
 
 const styles = sheet(`
   :host { display: block; container-type: inline-size; }
-  h1 { font-size: var(--step-2); margin-block-end: var(--space-4); }
+  h2 { font-size: var(--step-2); margin-block-end: var(--space-4); }
   .grid { display: grid; gap: var(--space-3); }
   @container (min-width: 40rem) { .grid { grid-template-columns: repeat(2, 1fr); } }
   .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-2); padding: var(--space-4); }
-  dt { color: var(--color-muted); font-size: 0.8rem; }
+  dt { color: var(--color-muted); font-size: var(--step--1); }
   dd { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
   .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-block-start: var(--space-6); }
-  button { background: var(--color-accent); color: white; border: 0; border-radius: var(--radius-1); padding: var(--space-2) var(--space-3); cursor: pointer; }
-  button:hover { background: var(--color-accent-hover); }
-  button.danger { background: var(--color-danger); }
+  /* secondary by default; one primary (seed); danger is a quiet outline */
+  button { background: var(--color-surface-2); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: var(--space-2) var(--space-3); cursor: pointer; }
+  button:hover { background: color-mix(in oklch, var(--color-surface-2), var(--color-text) 7%); }
+  button.primary { background: var(--color-accent); color: white; border-color: transparent; }
+  button.primary:hover { background: var(--color-accent-hover); }
+  button.danger { background: transparent; color: var(--color-danger); border-color: color-mix(in oklch, var(--color-danger) 40%, var(--color-border)); }
+  button.danger:hover { background: color-mix(in oklch, var(--color-danger) 12%, transparent); }
 `)
 
 export class OylStatusPanel extends OylElement {
@@ -47,9 +51,9 @@ export class OylStatusPanel extends OylElement {
   render() {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
 
-    const h1 = document.createElement('h1')
-    h1.textContent = 'Status'
-    h1.setAttribute('tabindex', '-1')
+    const h2 = document.createElement('h2')
+    h2.textContent = 'Status'
+    h2.setAttribute('tabindex', '-1')
 
     const grid = document.createElement('div')
     grid.className = 'grid'
@@ -67,13 +71,13 @@ export class OylStatusPanel extends OylElement {
     const actions = document.createElement('div')
     actions.className = 'actions'
     actions.append(
-      this._button('Load demo data', 'seed', () => this.actions.onSeed?.()),
+      this._button('Load demo data', 'seed', () => this.actions.onSeed?.(), 'primary'),
       this._button('Download backup', 'export', () => this.actions.onExport?.()),
       this._button('Import backup', 'import', () => this.actions.onImport?.()),
-      this._button('Reset local data', 'reset', () => this.actions.onReset?.(), true),
+      this._button('Reset local data', 'reset', () => this.actions.onReset?.(), 'danger'),
     )
 
-    root.append(h1, grid, actions)
+    root.append(h2, grid, actions)
 
     this._paint = () => {
       const d = this._diagnostics
@@ -107,12 +111,12 @@ export class OylStatusPanel extends OylElement {
     return wrap
   }
 
-  /** @param {string} label @param {string} act @param {() => void} onClick @param {boolean} [danger] @returns {HTMLButtonElement} */
-  _button(label, act, onClick, danger = false) {
+  /** @param {string} label @param {string} act @param {() => void} onClick @param {'primary'|'secondary'|'danger'} [variant] @returns {HTMLButtonElement} */
+  _button(label, act, onClick, variant = 'secondary') {
     const b = document.createElement('button')
     b.textContent = label
     b.dataset.act = act
-    if (danger) b.classList.add('danger')
+    if (variant !== 'secondary') b.classList.add(variant)
     b.addEventListener('click', onClick, { signal: this.lifecycle })
     return b
   }
