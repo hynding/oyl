@@ -7,15 +7,19 @@ import { defineFinanceComposer } from './oyl-finance-composer.js'
 import { defineVaultItem } from './oyl-vault-item.js'
 import { defineBudgetForm } from './oyl-budget-form.js'
 import { defineBudgetRow } from './oyl-budget-row.js'
+import { defineAccountForm } from './oyl-account-form.js'
+import { accountSpendLabel } from '../account/format.js'
 
 /** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
 /** @typedef {ReturnType<typeof import('../state/budgets-store.js').createBudgetsStore>} BudgetsStore */
+/** @typedef {ReturnType<typeof import('../state/accounts-store.js').createAccountsStore>} AccountsStore */
 
 const styles = sheet(`
   :host { display: block; }
   h2 { font-size: var(--step-2); margin-block-end: var(--space-4); }
   oyl-finance-composer { display: block; margin-block-end: 1.6rem; }
   oyl-budget-form { display: block; margin: .4rem 0 .8rem; }
+  oyl-account-form { display: block; margin: .4rem 0 .8rem; }
   .section-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; color: var(--color-muted); margin: 1.6rem 0 .2rem; }
   ol { list-style: none; margin: 0; padding: 0; }
   .empty { color: var(--color-muted); padding: 1rem 0; }
@@ -33,6 +37,8 @@ export class OylFinance extends OylElement {
     this.tz = 'UTC'
     /** @type {BudgetsStore} */
     this.budgets = /** @type {BudgetsStore} */ (/** @type {unknown} */ (undefined))
+    /** @type {AccountsStore} */
+    this.accounts = /** @type {AccountsStore} */ (/** @type {unknown} */ (undefined))
   }
 
   render() {
@@ -40,6 +46,7 @@ export class OylFinance extends OylElement {
     defineVaultItem()
     defineBudgetForm()
     defineBudgetRow()
+    defineAccountForm()
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
 
     const h2 = document.createElement('h2')
@@ -68,7 +75,17 @@ export class OylFinance extends OylElement {
     const budgetEmpty = document.createElement('div')
     budgetEmpty.className = 'empty'
 
-    root.append(h2, live, composer, label, list, empty, budgetLabelEl, budgetForm, budgetList, budgetEmpty)
+    const accountLabelEl = document.createElement('div')
+    accountLabelEl.className = 'section-label'
+    accountLabelEl.textContent = 'Accounts'
+    const accountForm = /** @type {import('./oyl-account-form.js').OylAccountForm} */ (document.createElement('oyl-account-form'))
+    accountForm.store = this.accounts
+    accountForm.onAdded = () => { live.textContent = 'Account added' }
+    const accountList = document.createElement('ol')
+    const accountEmpty = document.createElement('div')
+    accountEmpty.className = 'empty'
+
+    root.append(h2, live, composer, label, list, empty, budgetLabelEl, budgetForm, budgetList, budgetEmpty, accountLabelEl, accountForm, accountList, accountEmpty)
 
     this.track(() => {
       const today = DayKey.from(now(), this.tz)
@@ -100,6 +117,20 @@ export class OylFinance extends OylElement {
       }
       budgetEmpty.hidden = budgets.length > 0
       budgetEmpty.textContent = budgets.length > 0 ? '' : 'No budgets yet.'
+
+      const accounts = this.accounts.all()
+      accountList.replaceChildren()
+      for (const a of accounts) {
+        const item = /** @type {import('./oyl-vault-item.js').OylVaultItem} */ (document.createElement('oyl-vault-item'))
+        item.label = a.name
+        item.lines = [`${a.currency} · ${accountSpendLabel(this.store.accountSpend(a, today))}`]
+        item.onDelete = () => { void this.accounts.remove(a.id); live.textContent = 'Deleted' }
+        const li = document.createElement('li')
+        li.append(item)
+        accountList.append(li)
+      }
+      accountEmpty.hidden = accounts.length > 0
+      accountEmpty.textContent = accounts.length > 0 ? '' : 'No accounts yet.'
     })
   }
 }
