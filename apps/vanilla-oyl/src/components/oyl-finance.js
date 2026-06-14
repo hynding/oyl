@@ -57,6 +57,7 @@ export class OylFinance extends OylElement {
     live.setAttribute('aria-live', 'polite')
     const composer = /** @type {import('./oyl-finance-composer.js').OylFinanceComposer} */ (document.createElement('oyl-finance-composer'))
     composer.store = this.store
+    composer.accounts = this.accounts
     composer.onAdded = () => { live.textContent = 'Expense added' }
     const label = document.createElement('div')
     label.className = 'section-label'
@@ -92,10 +93,12 @@ export class OylFinance extends OylElement {
       const range = periodWindowOf('month', today)
       const txs = [...this.store.transactionsIn(range)].sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
       list.replaceChildren()
+      const nameById = new Map(this.accounts.all().map((a) => [a.id, a.name]))
       for (const tx of txs) {
         const item = /** @type {import('./oyl-vault-item.js').OylVaultItem} */ (document.createElement('oyl-vault-item'))
         item.label = `${tx.category} · ${formatMoney(tx.amount)}`
-        item.lines = [DayKey.from(tx.occurredAt, this.tz).value, tx.note]
+        const acctName = tx.accountId ? nameById.get(tx.accountId) : undefined
+        item.lines = [`${DayKey.from(tx.occurredAt, this.tz).value}${acctName ? ` · ${acctName}` : ''}`, tx.note]
         item.onDelete = () => { void this.store.remove(tx.id); live.textContent = 'Deleted' }
         const li = document.createElement('li')
         li.append(item)
