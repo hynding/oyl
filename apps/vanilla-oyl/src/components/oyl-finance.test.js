@@ -62,6 +62,20 @@ describe('<oyl-finance>', () => {
     el.remove()
   })
 
+  it('shows a + sign on income ledger rows, not on expenses', async () => {
+    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
+    await store.add(new Transaction({ occurredAt: at(9), amount: Money.of(200000, 'USD', 2), category: 'salary', direction: 'income' }))
+    await store.add(new Transaction({ occurredAt: at(10), amount: Money.of(3000, 'USD', 2), category: 'dining', direction: 'expense' }))
+    const el = screen(store)
+    await Promise.resolve()
+    const items = /** @type {any[]} */ ([...root(el).querySelectorAll('oyl-vault-item')])
+    const salary = items.find((i) => i.label.includes('salary'))
+    const dining = items.find((i) => i.label.includes('dining'))
+    expect(salary.label).toContain('+')
+    expect(dining.label).not.toContain('+')
+    el.remove()
+  })
+
   it('deleting a transaction removes it', async () => {
     const store = createJournalStore(new InMemoryRepository(), TZ)
     await store.add(tx('groceries', 6500, at(10)))

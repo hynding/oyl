@@ -58,7 +58,7 @@ export class OylFinance extends OylElement {
     const composer = /** @type {import('./oyl-finance-composer.js').OylFinanceComposer} */ (document.createElement('oyl-finance-composer'))
     composer.store = this.store
     composer.accounts = this.accounts
-    composer.onAdded = () => { live.textContent = 'Expense added' }
+    composer.onAdded = (dir) => { live.textContent = dir === 'income' ? 'Income added' : 'Expense added' }
     const label = document.createElement('div')
     label.className = 'section-label'
     label.textContent = 'This month'
@@ -96,7 +96,8 @@ export class OylFinance extends OylElement {
       const nameById = new Map(this.accounts.all().map((a) => [a.id, a.name]))
       for (const tx of txs) {
         const item = /** @type {import('./oyl-vault-item.js').OylVaultItem} */ (document.createElement('oyl-vault-item'))
-        item.label = `${tx.category} · ${formatMoney(tx.amount)}`
+        const sign = tx.direction === 'income' ? '+' : ''
+        item.label = `${tx.category} · ${sign}${formatMoney(tx.amount)}`
         const acctName = tx.accountId ? nameById.get(tx.accountId) : undefined
         item.lines = [`${DayKey.from(tx.occurredAt, this.tz).value}${acctName ? ` · ${acctName}` : ''}`, tx.note]
         item.onDelete = () => { void this.store.remove(tx.id); live.textContent = 'Deleted' }
