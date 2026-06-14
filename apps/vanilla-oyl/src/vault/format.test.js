@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DayKey, Money } from '@oyl/all-of-oyl'
-import { dueInLabel, formatMoney, monthlyTotalLabel } from './format.js'
+import { dueInLabel, formatMoney, monthlyTotalLabel, stalenessLabel, monthDayLabel } from './format.js'
 
 const today = DayKey.of('2026-06-13')
 
@@ -39,5 +39,20 @@ describe('monthlyTotalLabel', () => {
   it('sorts multiple currencies by code regardless of insertion order', () => {
     const totals = new Map([['USD', Money.of(1399, 'USD', 2)], ['GBP', Money.of(500, 'GBP', 2)]])
     expect(monthlyTotalLabel(totals)).toBe('£5.00 + $13.99/mo')
+  })
+})
+
+describe('stalenessLabel', () => {
+  it('phrases never / today / yesterday / longer gaps', () => {
+    expect(stalenessLabel(undefined)).toBe('Never contacted')
+    expect(stalenessLabel(0)).toBe('Last contacted today')
+    expect(stalenessLabel(1)).toBe('Last contacted yesterday')
+    expect(stalenessLabel(95)).toBe('Last contacted 3 months ago')
+  })
+})
+
+describe('monthDayLabel', () => {
+  it('formats month and day, ignoring the year', () => {
+    expect(monthDayLabel(DayKey.of('1990-06-20'))).toBe('Jun 20')
   })
 })

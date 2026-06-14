@@ -2,6 +2,14 @@
 /** @typedef {import('@oyl/all-of-oyl').Money} Money */
 
 const SYMBOLS = /** @type {Record<string, string>} */ ({ USD: '$', EUR: '€', GBP: '£' })
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** Magnitude phrase for a positive day count: "5 days" / "3 weeks" / "2 months". @param {number} n @returns {string} */
+function relativeSpan(n) {
+  if (n < 14) return `${n} day${n === 1 ? '' : 's'}`
+  if (n < 60) return `${Math.round(n / 7)} weeks`
+  return `${Math.round(n / 30)} months`
+}
 
 /**
  * Relative phrasing for an upcoming (or past) due day: "today" / "tomorrow" /
@@ -13,8 +21,7 @@ export function dueInLabel(due, today) {
   if (days === 0) return 'today'
   if (days === 1) return 'tomorrow'
   if (days === -1) return 'yesterday'
-  const n = Math.abs(days)
-  const phrase = n < 14 ? `${n} days` : n < 60 ? `${Math.round(n / 7)} weeks` : `${Math.round(n / 30)} months`
+  const phrase = relativeSpan(Math.abs(days))
   return days > 0 ? `in ${phrase}` : `${phrase} ago`
 }
 
@@ -35,4 +42,17 @@ export function monthlyTotalLabel(totals) {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, m]) => formatMoney(m))
   return parts.length === 0 ? '' : `${parts.join(' + ')}/mo`
+}
+
+/** "Last contacted 3 months ago" / "Last contacted today" / "Never contacted". @param {number | undefined} days @returns {string} */
+export function stalenessLabel(days) {
+  if (days === undefined) return 'Never contacted'
+  if (days <= 0) return 'Last contacted today'
+  if (days === 1) return 'Last contacted yesterday'
+  return `Last contacted ${relativeSpan(days)} ago`
+}
+
+/** "Jun 20" — month/day only (birthdays ignore the year). @param {DayKey} day @returns {string} */
+export function monthDayLabel(day) {
+  return `${MONTHS[day.month - 1] ?? ''} ${day.dayOfMonth}`
 }
