@@ -23,7 +23,7 @@ const styles = sheet(`
   .badge { font-size: .68rem; font-weight: 650; padding: .1rem .45rem; border-radius: 999px; }
   .badge.appt { color: var(--color-accent); background: color-mix(in oklch, var(--color-accent) 14%, transparent); }
   .badge.recur { color: var(--color-muted); background: color-mix(in oklch, var(--color-text) 8%, transparent); }
-  .badge.overdue { color: var(--color-danger); background: color-mix(in oklch, var(--color-danger) 14%, transparent); }
+  .badge.overdue { color: var(--color-warn); background: color-mix(in oklch, var(--color-warn) 16%, transparent); }
   .badge.cancel { color: var(--color-muted); background: color-mix(in oklch, var(--color-text) 8%, transparent); }
   .actions { grid-column: 3; align-self: center; display: inline-flex; gap: .2rem; }
   button { font: inherit; color: var(--color-muted); border: 0; background: none; cursor: pointer; border-radius: var(--radius-1); padding: .25rem .5rem; font-size: .85rem; }

@@ -21,7 +21,7 @@ const styles = sheet(`
   .rel { color: var(--color-muted); font-size: .85rem; margin-block-start: .15rem; }
   oyl-plan-composer { display: block; margin-block-end: 1.6rem; }
   .section-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; color: var(--color-muted); margin: 1.4rem 0 .2rem; }
-  .section-label.overdue { color: var(--color-danger); }
+  .section-label.overdue { color: var(--color-warn); }
   ol { list-style: none; margin: 0; padding: 0; }
   .empty { text-align: center; color: var(--color-muted); padding: 2.5rem 1rem; }
   .sr-only { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); }
