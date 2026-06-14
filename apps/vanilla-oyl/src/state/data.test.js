@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Note, DayKey, Task } from '@oyl/all-of-oyl'
+import { Note, Measurement, Goal, DayKey, Task, periodWindowOf } from '@oyl/all-of-oyl'
 import { createThemeState } from './theme.js'
 import { createDataState } from './data.js'
 import { defaultTimezone } from '../storage/clock.js'
@@ -78,6 +78,20 @@ describe('data state', () => {
     const storage = fakeStorage()
     const ds = createDataState(storage, createThemeState(storage))
     expect(typeof ds.goals.all).toBe('function')
+  })
+
+  it('reviewOn composes a review for a period', async () => {
+    const storage = fakeStorage()
+    const ds = createDataState(storage, createThemeState(storage))
+    const iso = '2026-06-10T16:00:00Z'
+    await ds.repos.goals.save(new Goal({ name: 'Sleep', metric: 'sleep.hours', target: 7, direction: 'atLeast', period: 'day' }))
+    await ds.repos.entries.save(new Measurement({ occurredAt: new Date(iso), metric: 'sleep.hours', value: 7 }))
+    await ds.refresh()
+    const day = DayKey.from(new Date(iso), defaultTimezone())
+    const r = ds.reviewOn(periodWindowOf('day', day))
+    expect(r.goals).toHaveLength(1)
+    expect(r.goals[0]?.progress.current).toBe(7)
+    expect(r.totals).toBeDefined()
   })
 
   it('readDiagnostics storage is null when the Storage API is unavailable', async () => {

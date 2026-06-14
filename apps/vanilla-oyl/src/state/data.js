@@ -1,3 +1,4 @@
+import { review } from '@oyl/all-of-oyl'
 import { signal } from '../lib/reactive/signal.js'
 import { makeRepositories, collectionCounts } from '../storage/bootstrap.js'
 import { readSchemaState } from '../storage/schema.js'
@@ -52,7 +53,24 @@ export function createDataState(storage, themeState) {
     }
   }
 
-  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals }
+  /**
+   * Compose the domain review for a period. Reactive: journal.peek()/planner.peek()/goals.all()
+   * each touch their revision, so a reactive reader (the insights screen) re-runs on any change.
+   * Slice 1 passes empty activities/areas — only the life-wheel (a later slice) needs the catalogs.
+   * @param {import('@oyl/all-of-oyl').DayRange} range @returns {import('@oyl/all-of-oyl').Review}
+   */
+  function reviewOn(range) {
+    return review({
+      journal: journal.peek(),
+      planner: planner.peek(),
+      goals: goals.all(),
+      activities: /** @type {any[]} */ ([]),
+      areas: /** @type {any[]} */ ([]),
+      period: range,
+    })
+  }
+
+  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn }
 }
 
 /**
