@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryRepository, Document, Possession, Subscription, Cadence, Money, DayKey, DayRange } from '@oyl/all-of-oyl'
+import { InMemoryRepository, Document, Possession, Subscription, Cadence, Money, DayKey, DayRange, Contact, GiftIdea } from '@oyl/all-of-oyl'
 import { createVaultStore } from './vault-store.js'
 
 const today = DayKey.of('2026-06-13')
 const range = DayRange.of(today, today.addDays(90))
+
+/** @param {string} [name] @param {Record<string, unknown>} [opts] */
+const contact = (name = 'Sam', opts = {}) => new Contact({ name, ...opts })
 
 /** @param {Record<string, unknown>} [opts] */
 const sub = (opts = {}) => new Subscription({
@@ -104,5 +107,45 @@ describe('createVaultStore', () => {
     const labels = store.upcoming(range).map((u) => u.label)
     expect(labels).toContain('Passport')
     expect(labels).toContain('Espresso (warranty)')
+  })
+
+  it('addContact persists and reflects in contacts()', async () => {
+    const r = repos()
+    const store = createVaultStore(r)
+    await store.addContact(contact())
+    expect(store.contacts()).toHaveLength(1)
+    expect(await r.contacts.list()).toHaveLength(1)
+  })
+
+  it('recordContact sets staleness to 0', async () => {
+    const r = repos()
+    const store = createVaultStore(r)
+    const saved = await store.addContact(contact('Sam', { lastContactedOn: today.addDays(-30) }))
+    await store.recordContact(saved.id, today)
+    const c = /** @type {Contact} */ (store.contacts()[0])
+    expect(c.staleness(today)).toBe(0)
+  })
+
+  it('removeContact cascade-deletes only that contact\'s gift ideas', async () => {
+    const r = repos()
+    const store = createVaultStore(r)
+    const a = await store.addContact(contact('A'))
+    const b = await store.addContact(contact('B'))
+    await store.addGiftIdea(new GiftIdea({ text: 'for A', contactId: a.id }))
+    await store.addGiftIdea(new GiftIdea({ text: 'for B', contactId: b.id }))
+    await store.removeContact(a.id)
+    expect(store.contacts().map((c) => c.name)).toEqual(['B'])
+    expect(store.giftIdeas().map((g) => g.text)).toEqual(['for B'])
+    expect(await r.giftIdeas.list()).toHaveLength(1)
+  })
+
+  it('addGiftIdea / removeGiftIdea / giftIdeas()', async () => {
+    const r = repos()
+    const store = createVaultStore(r)
+    const c = await store.addContact(contact())
+    const g = await store.addGiftIdea(new GiftIdea({ text: 'kettle', contactId: c.id }))
+    expect(store.giftIdeas()).toHaveLength(1)
+    await store.removeGiftIdea(g.id)
+    expect(store.giftIdeas()).toHaveLength(0)
   })
 })

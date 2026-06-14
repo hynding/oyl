@@ -9,6 +9,8 @@ import { signal } from '../lib/reactive/signal.js'
 /** @typedef {import('@oyl/all-of-oyl').DayRange} DayRange */
 /** @typedef {import('@oyl/all-of-oyl').DayKey} DayKey */
 /** @typedef {import('@oyl/all-of-oyl').Id} Id */
+/** @typedef {import('@oyl/all-of-oyl').Contact} Contact */
+/** @typedef {import('@oyl/all-of-oyl').GiftIdea} GiftIdea */
 /** @typedef {import('@oyl/all-of-oyl').Repository<Document>} DocumentsRepo */
 /** @typedef {import('@oyl/all-of-oyl').Repository<Possession>} PossessionsRepo */
 /**
@@ -108,6 +110,53 @@ export function createVaultStore(repos) {
       return charge
     },
 
+    /** @param {Contact} c @returns {Promise<Contact>} */
+    async addContact(c) {
+      const saved = await repos.contacts.save(c)
+      vault.addContact(saved)
+      revision.set((n += 1))
+      return saved
+    },
+    /** Remove a contact and CASCADE-delete its gift ideas (domain Vault doesn't cascade). @param {Id} id */
+    async removeContact(id) {
+      for (const g of vault.giftIdeasFor(id)) {
+        await repos.giftIdeas.delete(g.id)
+        vault.removeGiftIdea(g.id)
+      }
+      await repos.contacts.delete(id)
+      vault.removeContact(id)
+      revision.set((n += 1))
+    },
+    /**
+     * Record contact (stateful: mutate lastContactedOn in place, persist, re-hydrate —
+     * rollback-on-failure, like renew). @param {Id} id @param {DayKey} on
+     */
+    async recordContact(id, on) {
+      const c = vault.contacts().find((x) => x.id === id)
+      if (!c) return
+      c.recordContact(on)
+      try {
+        await repos.contacts.save(c)
+      } catch (err) {
+        await hydrate()
+        throw err
+      }
+      await hydrate()
+    },
+    /** @param {GiftIdea} g @returns {Promise<GiftIdea>} */
+    async addGiftIdea(g) {
+      const saved = await repos.giftIdeas.save(g)
+      vault.addGiftIdea(saved)
+      revision.set((n += 1))
+      return saved
+    },
+    /** @param {Id} id */
+    async removeGiftIdea(id) {
+      await repos.giftIdeas.delete(id)
+      vault.removeGiftIdea(id)
+      revision.set((n += 1))
+    },
+
     /** @returns {readonly Document[]} */
     documents() {
       revision.get()
@@ -127,6 +176,16 @@ export function createVaultStore(repos) {
     monthlySubscriptionTotals() {
       revision.get()
       return vault.monthlySubscriptionTotals()
+    },
+    /** @returns {readonly Contact[]} */
+    contacts() {
+      revision.get()
+      return vault.contacts()
+    },
+    /** @returns {readonly GiftIdea[]} */
+    giftIdeas() {
+      revision.get()
+      return vault.giftIdeas()
     },
     /** @param {DayRange} range @returns {readonly import('@oyl/all-of-oyl').UpcomingDue[]} */
     upcoming(range) {
