@@ -95,7 +95,7 @@ On success, reset amount/note (as today); leave the account selection as-is (so 
 
 ### 2. `src/components/oyl-finance.js` — wire the composer + ledger label
 
-- In `render()` where the composer is created, add `composer.accounts = this.accounts`.
+- In `render()` where the composer is created, add `composer.accounts = this.accounts` **in the same pre-`root.append(...)` block as `composer.store`** (R-1) — the composer's new `track()` reads `this.accounts` when it renders on append, so it must be set first or the composer throws.
 - In the ledger loop inside `track()`, build an id→name Map (the track already reads `this.accounts` for the 4a section) and append the name to the date line:
 ```js
 const nameById = new Map(this.accounts.all().map((a) => [a.id, a.name]))
@@ -123,7 +123,7 @@ add/delete an account (Accounts section) → composer options refresh (typed inp
 
 ## Testing (Vitest + happy-dom)
 
-- **`oyl-finance-composer.test.js`** (extend/create — its tests construct the composer with `el.store`; now also set `el.accounts = createAccountsStore(new InMemoryRepository())`):
+- **`oyl-finance-composer.test.js`** (extend — **update the shared `composer(store)` helper to also default `el.accounts = createAccountsStore(new InMemoryRepository())` before it appends the element (R-2)**, or every existing composer test crashes on the new `track()` reading `this.accounts.all()`; new tests pass a specific accounts store):
   - selecting an account posts a `Transaction` whose `accountId` is that account's id and whose `amount.currency` is the account's currency;
   - the currency `<select>` is `hidden` when an account is selected and visible for "Cash";
   - "Cash" posts a transaction with `accountId === undefined`;
