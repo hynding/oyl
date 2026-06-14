@@ -21,6 +21,10 @@ The demo seed has four goals (calories, run, sleep, weight — one already pause
 4. **(R4) Add/delete only** — no editing (consistent with vault); pause/resume covers the main "adjust" need.
 5. **(R5) Progress row with distinct states.** Render `ratio` as a bar with met (accent + ✓) / in-progress (neutral) / **paused** (muted "Paused") / **empty** (muted "No data this period"); `atLeast` reads "12 / 20 h", `atMost` reads "1800 of 2200 kcal used".
 6. **(R6) Target unit hint** beside the target input, from the preset.
+7. **(R7) Target input `step="any"`** — accept decimal targets without number-input validity errors.
+8. **(R8) No failure state for `met === false`** — only `met === true` is highlighted (accent + ✓); in-progress/over-budget render neutral, the label carries the nuance.
+9. **(R9) `GoalsStore.all()` returns a copy** — consistent with the domain stores; internal array stays unmutated.
+10. **(R10) Nav wraps** — `flex-wrap: wrap` added as the bar reaches 5–6 items.
 
 ### Out of scope (future)
 
@@ -83,7 +87,7 @@ export function createGoalsStore(goalsRepo) {
       try { await goalsRepo.save(g) } catch (err) { await hydrate(); throw err }
       await hydrate()
     },
-    /** @returns {readonly Goal[]} */ all() { revision.get(); return goals },
+    /** @returns {readonly Goal[]} */ all() { revision.get(); return [...goals] }, // R9: copy, matching the domain stores
   }
 }
 ```
@@ -128,7 +132,7 @@ const PRESETS = [
 Fields (form, reusing the composer CSS conventions — `.field`, `[data-role="error"]`, `button.primary`):
 - **Metric** `<select name="preset">` (options = preset labels, value = index). On change, update the target's unit hint + the period default.
 - **Name** (optional text).
-- **Target** (number, `min` > 0) with a unit hint span (`metricUnit(preset.metric)`) beside it (R6).
+- **Target** (number, `min="0"`, **`step="any"`** so decimal targets like 81.5 kg / 7.5 h aren't rejected by number-input validity — R7) with a unit hint span (`metricUnit(preset.metric)`) beside it (R6).
 - **Period** `<select name="period">` (day/week/month), defaulted from the preset on preset-change.
 
 Submit builds:
@@ -145,7 +149,7 @@ Validation delegated to the domain (`target` 0/NaN → `Goal` throws → caught 
 Mirrors `oyl-subscription-row` (two actions; Delete via shared `inlineConfirm`). Properties: `goal` (Goal), `progress` (GoalProgress — passed by the screen, already computed), `onPause` / `onResume` / `onDelete` (`(id) => void`).
 Render:
 - **title** = `goal.name ?? goal.metric` (no coupling to the composer's preset table; seeded goals carry names, so the raw-metric fallback is rare).
-- a **progress bar**: a track + a fill element whose inline `style.inlineSize = (ratio * 100) + '%'`; add a `met` class when `progress.met === true`, a `paused`/`empty` class for muted styling.
+- a **progress bar**: a track + a fill element whose inline `style.inlineSize = (ratio * 100) + '%'`; add a `met` class when `progress.met === true`, and a `muted` class when `paused` or `empty` (greyed track). **(R8) `met === false` is NOT a failure state** — for an in-progress `atLeast` goal `met` is false all period until the target is hit, so it must render as neutral in-progress, never red/"missed". Only `met === true` gets the accent + ✓; an over-budget `atMost` (ratio clamped to 1, `met` false) stays neutral and the label conveys the overage ("2300 of 2200 used").
 - **label line**: `goalProgressLabel(progress, goal.direction, metricUnit(goal.metric))`.
 - actions: **Pause** when not paused / **Resume** when `progress.paused` (single click → `onPause`/`onResume`), and **Delete** (inline-confirm).
 
@@ -174,7 +178,7 @@ Reading both `store.all()` and `journal.progressOf(...)` inside one `track()` su
 ### 7. Wiring
 
 - `src/state/data.js`: `import { createGoalsStore }`; `const goals = createGoalsStore(repos.goals)`; `await goals.hydrate()` in `refresh()`; add `goals` to the returned object.
-- `src/components/oyl-nav.js`: add `['goals', 'Goals']` to `ITEMS`.
+- `src/components/oyl-nav.js`: add `['goals', 'Goals']` to `ITEMS`, and add `flex-wrap: wrap` to the `nav` style rule (R10 — 5 items now, 6 with Insights).
 - `src/main.js`: `defineGoals()`; route `goals: () => { const v = document.createElement('oyl-goals'); v.store = dataState.goals; v.journal = dataState.journal; v.tz = defaultTimezone(); return v }`.
 
 ---
