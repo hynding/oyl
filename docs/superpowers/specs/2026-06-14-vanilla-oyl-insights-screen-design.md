@@ -24,6 +24,10 @@ Read-only: no composer, no mutations, no inline-confirm — simpler than the CRU
 5. **(R5) Graceful empties** in every section — `completionRate` `undefined` → "—"; no goals → "No goals yet"; empty spending/activity → muted "Nothing this period". An unseeded vault renders cleanly.
 6. **(R6) Period = Week / Month** via the existing `periodWindowOf`, default **Month** (so the seed's ~2-week-old entries fall in range). No Day (too thin) or Year (needs a custom range) in v1.
 7. **(R7 — corrected) `reviewGoalLabel(progress)` from `GoalProgress` alone.** `review()`'s `GoalReview` carries `{goalId, name?, progress, streak}` but **not** `direction`/`metric`/`unit`, so `goalProgressLabel` (needs direction+unit) can't be reused. The dashboard derives a label from `GoalProgress` only: paused → "Paused", empty → "No data", met → "Met", else `${round(ratio*100)}%`.
+8. **(R8) Static skeleton built once** (select + section containers); `track()` only repaints container contents — never rebuilds the select.
+9. **(R9) Round non-money totals/deltas** (`Math.round`) for display; spending uses `money()`.
+10. **(R10) Omit the delta chip when delta === 0** (no-change → no noise).
+11. **(R11) Screen receives the bound `reviewOn` function**, not the whole `dataState` — narrows coupling, keeps `peek()` in the data layer.
 
 ### Out of scope (Slice 2 / later)
 
@@ -96,27 +100,27 @@ export function reviewGoalLabel(p) {
 
 ### 4. `src/components/oyl-insights.js` — `<oyl-insights>` (the screen)
 
-Properties: `data` (the data state — calls `data.reviewOn`), `tz`. A local `_period` signal (`'month'` default). Everything renders into the screen's own shadow root (no child components → tests can read `shadowRoot.textContent` directly).
+Properties: **`reviewOn`** (the bound `dataState.reviewOn` — R11; the screen only needs this one function, keeping `peek()` strictly in the data layer) and `tz`. A local `_period` signal (`'month'` default). Everything renders into the screen's own shadow root (no child components → tests read `shadowRoot.textContent` directly).
 
-Render skeleton: `<h2 tabindex="-1">Insights</h2>`, a period `<select>` (Week/Month), then section containers. One `this.track(() => { … })`:
+**(R8) Build the static skeleton ONCE in `render()`** — `<h2 tabindex="-1">Insights</h2>`, the period `<select>` (Week/Month, change → `_period.set(...)`), and one container element per section. The single `this.track(() => { … })` only repaints the container *contents* (never rebuilds the select, or its value/listener would drop):
 ```js
 const today = DayKey.from(now(), this.tz)
 const range = periodWindowOf(this._period.get(), today)   // 'week' | 'month'
-const r = this.data.reviewOn(range)
-// — Totals: 3 stats (Spending money(r.totals.spending), Active min r.totals.activityMinutes, Calories r.totals.calories),
-//   each with a delta: arrow = d>0?'↑':d<0?'↓':'·'; magnitude = (spending? money(|d|) : String(|d|)); neutral color.
+const r = this.reviewOn(range)
+// — Totals: 3 stats — Spending money(r.totals.spending), Active min Math.round(r.totals.activityMinutes), Calories Math.round(r.totals.calories).
+//   Each shows a delta chip ONLY when the delta ≠ 0 (R10): arrow = d>0?'↑':'↓'; magnitude = spending? money(Math.abs(d)) : String(Math.round(Math.abs(d))); neutral color (R3, R9).
 // — Completion: r.completionRate === undefined ? '—' : `${Math.round(r.completionRate*100)}%`
 // — Goals: r.goals.map → `${name ?? 'Goal'} · ${reviewGoalLabel(progress)}` + (streak>0 ? ` · 🔥 ${streak}` : ''); empty → "No goals yet"
 // — Top spending: r.topSpending.map → `${category} · ${money(total)}`; empty → muted "Nothing this period"
-// — Activity: r.activityTotals.map → `${slug} · ${minutes ? minutes+' min' : ''}${count ? ' · '+count+'×' : ''}`; empty → muted "Nothing this period"
+// — Activity: r.activityTotals.map → `${slug} · ${minutes ? Math.round(minutes)+' min' : ''}${count ? ' · '+count+'×' : ''}`; empty → muted "Nothing this period"
 ```
-The period `<select>` change sets `_period`, re-running `track()`. A `.section-label` per section (reuse the vault/goals label style). `defineInsights()` idempotent.
+A `.section-label` per section (reuse the vault/goals label style). `defineInsights()` idempotent.
 
 ### 5. Wiring
 
 - `src/components/oyl-nav.js`: add `['insights', 'Insights']` to `ITEMS` (the nav already wraps from the Goals slice).
-- `src/main.js`: `defineInsights()`; route `insights: () => { const v = document.createElement('oyl-insights'); v.data = dataState; v.tz = defaultTimezone(); return v }`.
-- (No `data.js` return-shape change beyond adding `reviewOn`; the screen takes the whole `dataState`.)
+- `src/main.js`: `defineInsights()`; route `insights: () => { const v = document.createElement('oyl-insights'); v.reviewOn = dataState.reviewOn; v.tz = defaultTimezone(); return v }`.
+- (`data.js` only gains `reviewOn` in its return; the screen receives the bound `reviewOn` function, not the whole `dataState` — R11.)
 
 ---
 
@@ -125,7 +129,7 @@ The period `<select>` change sets `_period`, re-running `track()`. A `.section-l
 ```
 period select change → _period signal → track() re-runs
   → range = periodWindowOf(period, today)
-  → r = data.reviewOn(range)
+  → r = this.reviewOn(range)   // = dataState.reviewOn
        → review({ journal: journal.peek(), planner: planner.peek(), goals: goals.all(), activities:[], areas:[], period: range })
   → render totals/deltas, goals+streaks, spending, activity, completion
 entries/plans/goals change elsewhere → their revision bumps → reviewOn re-reads → dashboard recomputes
@@ -141,7 +145,7 @@ entries/plans/goals change elsewhere → their revision bumps → reviewOn re-re
 - **`insights/format.test.js`** (new): `money(42.5)` → `'$42.50'`, `money(0)` → `'$0.00'`; `reviewGoalLabel` for paused/empty/met/ratio (e.g. `{ratio:0.8,...}` → `'80%'`).
 - **`journal-store.test.js`** / **`planner-store.test.js`** (extend): `peek()` returns an aggregate whose methods work (e.g. `store.peek().aggregate?` / `store.peek().completionRate(range)`), and reflects added data.
 - **`data.test.js`** (extend): `reviewOn(periodWindowOf('day', today))` returns a Review-shaped object; after saving a `Goal` + a matching `Measurement` and `refresh()`, `reviewOn(...).goals` has length 1 with `progress.current` set. (Use `fakeStorage` + the file's existing helpers; build the range with `periodWindowOf` + `DayKey.from(new Date(), defaultTimezone())`.)
-- **`oyl-insights.test.js`** (new): with a **fake** `data = { reviewOn: (range) => REVIEW }` returning a canned `Review`, the screen renders totals (`$…`, minutes, calories), a delta arrow, a goal line with `🔥 N`, top spending, activity totals, and the completion %; changing the period `<select>` calls `reviewOn` again (assert via a spy and/or re-render). A second canned review with empty arrays + `completionRate: undefined` renders the empty states ("No goals yet", "Nothing this period", "—"). (Screen content is in its own shadow root — assert via `shadowRoot.textContent`.)
+- **`oyl-insights.test.js`** (new): set `el.reviewOn = (range) => REVIEW` (a canned `Review`) + `el.tz = 'UTC'`; the screen renders totals (`$…`, minutes, calories), a delta chip, a goal line with `🔥 N`, top spending, activity totals, and the completion %; changing the period `<select>` (a `vi.fn` reviewOn) is called again with a different range. A second canned review with empty arrays + `completionRate: undefined` renders the empty states ("No goals yet", "Nothing this period", "—") and shows no delta chip when deltas are 0 (R10). (Screen content is in its own shadow root — assert via `shadowRoot.textContent`.)
 
 ## File structure
 
