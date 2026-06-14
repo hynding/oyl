@@ -3,7 +3,11 @@ import { signal } from '../lib/reactive/signal.js'
 
 /** @typedef {import('@oyl/all-of-oyl').Document} Document */
 /** @typedef {import('@oyl/all-of-oyl').Possession} Possession */
+/** @typedef {import('@oyl/all-of-oyl').Subscription} Subscription */
+/** @typedef {import('@oyl/all-of-oyl').SubscriptionCharge} SubscriptionCharge */
+/** @typedef {import('@oyl/all-of-oyl').Money} Money */
 /** @typedef {import('@oyl/all-of-oyl').DayRange} DayRange */
+/** @typedef {import('@oyl/all-of-oyl').DayKey} DayKey */
 /** @typedef {import('@oyl/all-of-oyl').Id} Id */
 /** @typedef {import('@oyl/all-of-oyl').Repository<Document>} DocumentsRepo */
 /** @typedef {import('@oyl/all-of-oyl').Repository<Possession>} PossessionsRepo */
@@ -71,6 +75,39 @@ export function createVaultStore(repos) {
       revision.set((n += 1))
     },
 
+    /** @param {Subscription} sub @returns {Promise<Subscription>} */
+    async addSubscription(sub) {
+      const saved = await repos.subscriptions.save(sub)
+      vault.addSubscription(saved)
+      revision.set((n += 1))
+      return saved
+    },
+    /** @param {Id} id */
+    async removeSubscription(id) {
+      await repos.subscriptions.delete(id)
+      vault.removeSubscription(id)
+      revision.set((n += 1))
+    },
+    /**
+     * Pay the pending occurrence (stateful: advances the cursor in place, persists,
+     * re-hydrates to resync — rollback-on-failure, like planner cancel). The returned
+     * SubscriptionCharge is the finance seam; Slice 2 callers ignore it.
+     * @param {Id} id @param {DayKey} on @returns {Promise<SubscriptionCharge | undefined>}
+     */
+    async renew(id, on) {
+      const sub = vault.subscriptions().find((s) => s.id === id)
+      if (!sub) return undefined
+      const charge = sub.renew(on)
+      try {
+        await repos.subscriptions.save(sub)
+      } catch (err) {
+        await hydrate()
+        throw err
+      }
+      await hydrate()
+      return charge
+    },
+
     /** @returns {readonly Document[]} */
     documents() {
       revision.get()
@@ -80,6 +117,16 @@ export function createVaultStore(repos) {
     possessions() {
       revision.get()
       return vault.possessions()
+    },
+    /** @returns {readonly Subscription[]} */
+    subscriptions() {
+      revision.get()
+      return vault.subscriptions()
+    },
+    /** @returns {ReadonlyMap<string, Money>} */
+    monthlySubscriptionTotals() {
+      revision.get()
+      return vault.monthlySubscriptionTotals()
     },
     /** @param {DayRange} range @returns {readonly import('@oyl/all-of-oyl').UpcomingDue[]} */
     upcoming(range) {

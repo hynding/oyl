@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryRepository, Document, Possession, DayKey, DayRange } from '@oyl/all-of-oyl'
+import { InMemoryRepository, Document, Possession, Subscription, Cadence, Money, DayKey, DayRange } from '@oyl/all-of-oyl'
 import { createVaultStore } from './vault-store.js'
 
 const today = DayKey.of('2026-06-13')
 const range = DayRange.of(today, today.addDays(90))
+
+/** @param {Record<string, unknown>} [opts] */
+const sub = (opts = {}) => new Subscription({
+  name: 'Netflix', amount: Money.of(1399, 'USD', 2), cadence: Cadence.of(1, 'months'),
+  anchor: today, category: 'entertainment', ...opts,
+})
 
 /** Five in-memory repositories, the shape createVaultStore expects. */
 function repos() {
@@ -50,6 +56,42 @@ describe('createVaultStore', () => {
     await store.removeDocument(saved.id)
     expect(store.documents()).toHaveLength(0)
     expect(await r.documents.list()).toHaveLength(0)
+  })
+
+  it('addSubscription persists, reflects in subscriptions(), and in upcoming()', async () => {
+    const r = repos()
+    const store = createVaultStore(r)
+    await store.addSubscription(sub())
+    expect(store.subscriptions()).toHaveLength(1)
+    expect(await r.subscriptions.list()).toHaveLength(1)
+    expect(store.upcoming(range).map((u) => u.label)).toContain('Netflix')
+  })
+
+  it('removeSubscription deletes from the repo and the aggregate', async () => {
+    const r = repos()
+    const store = createVaultStore(r)
+    const saved = await store.addSubscription(sub())
+    await store.removeSubscription(saved.id)
+    expect(store.subscriptions()).toHaveLength(0)
+    expect(await r.subscriptions.list()).toHaveLength(0)
+  })
+
+  it('renew advances the next due to the following occurrence', async () => {
+    const r = repos()
+    const store = createVaultStore(r)
+    const saved = await store.addSubscription(sub())
+    const before = /** @type {import('@oyl/all-of-oyl').DayKey} */ (saved.nextDueOn(today)) // never renewed → pending = anchor (today)
+    await store.renew(saved.id, today)
+    const renewed = /** @type {import('@oyl/all-of-oyl').Subscription} */ (store.subscriptions()[0])
+    const after = /** @type {import('@oyl/all-of-oyl').DayKey} */ (renewed.nextDueOn(today))
+    expect(after.compare(before)).toBeGreaterThan(0)
+  })
+
+  it('monthlySubscriptionTotals reflects added subscriptions', async () => {
+    const r = repos()
+    const store = createVaultStore(r)
+    await store.addSubscription(sub()) // $13.99 monthly → $13.99/mo
+    expect(store.monthlySubscriptionTotals().get('USD')?.minor).toBe(1399)
   })
 
   it('hydrate rebuilds every registry so upcoming() is complete', async () => {
