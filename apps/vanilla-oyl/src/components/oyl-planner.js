@@ -12,7 +12,7 @@ import { definePlanRow } from './oyl-plan-row.js'
 /** @typedef {import('@oyl/all-of-oyl').Id} Id */
 
 const styles = sheet(`
-  :host { display: block; max-inline-size: 680px; margin-inline: auto; padding: clamp(1rem, 4vw, 2rem) 1rem 4rem; }
+  :host { display: block; }
   .daynav { display: flex; align-items: center; justify-content: center; gap: .4rem; margin-block-end: 1.4rem; }
   .daynav button { font: inherit; color: var(--color-muted); border: 0; background: none; cursor: pointer; inline-size: 2.1rem; block-size: 2.1rem; border-radius: 999px; font-size: 1.1rem; }
   .daynav button:hover { background: color-mix(in oklch, var(--color-text) 6%, transparent); color: var(--color-text); }

@@ -10,6 +10,10 @@ const styles = sheet(`
   }
   h1 { font-size: var(--step-1); }
   @container (min-width: 48rem) { header { padding-inline: var(--space-8); } }
+  /* The shared page frame: every routed view is centered + padded here, so views
+     don't each re-declare their own max-width/margin/padding. */
+  .page { inline-size: 100%; max-inline-size: 680px; margin-inline: auto; padding: clamp(var(--space-4), 4vw, var(--space-8)) var(--space-4) 4rem; }
+  ::slotted([slot="main"]) { display: block; }
 `)
 
 export class OylShell extends OylElement {
@@ -27,7 +31,10 @@ export class OylShell extends OylElement {
     header.append(h1, navSlot, toolbar)
     const main = document.createElement('slot')
     main.setAttribute('name', 'main')
-    root.append(header, main)
+    const page = document.createElement('div')
+    page.className = 'page'
+    page.append(main)
+    root.append(header, page)
   }
 }
 
