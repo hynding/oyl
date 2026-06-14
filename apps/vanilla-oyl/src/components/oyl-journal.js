@@ -87,7 +87,7 @@ export class OylJournal extends OylElement {
       const today = DayKey.from(now(), this.tz)
       h2.textContent = formatDayHeading(day)
       rel.textContent = relativeDayLabel(day, today)
-      const entries = [...this.store.entriesOn(day)].sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
+      const entries = [...this.store.entriesOn(day)].filter((e) => e.kind !== 'transaction').sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
       list.replaceChildren()
       for (const entry of entries) {
         const row = /** @type {import('./oyl-entry-row.js').OylEntryRow} */ (document.createElement('oyl-entry-row'))

@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll } from 'vitest'
-import { InMemoryRepository, Note } from '@oyl/all-of-oyl'
+import { InMemoryRepository, Note, Transaction, Money } from '@oyl/all-of-oyl'
 import { createJournalStore } from '../state/journal-store.js'
 import { defineJournal } from './oyl-journal.js'
 
@@ -41,6 +41,16 @@ describe('<oyl-journal>', () => {
     prev.click()
     await Promise.resolve()
     expect(rows(el)).toHaveLength(0)
+    el.remove()
+  })
+
+  it('does not render transactions in the day view (they live on #/finance)', async () => {
+    const store = createJournalStore(new InMemoryRepository(), TZ)
+    await store.add(new Note({ occurredAt: new Date(), text: 'a note' }))
+    await store.add(new Transaction({ occurredAt: new Date(), amount: Money.of(500, 'USD', 2), category: 'groceries', direction: 'expense' }))
+    const el = screen(store)
+    await Promise.resolve()
+    expect(rows(el)).toHaveLength(1)        // only the note; transaction filtered out
     el.remove()
   })
 
