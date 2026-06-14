@@ -1,9 +1,10 @@
-import { Journal } from '@oyl/all-of-oyl'
+import { Journal, Transaction } from '@oyl/all-of-oyl'
 import { signal } from '../lib/reactive/signal.js'
 
 /** @typedef {import('@oyl/all-of-oyl').Entry} Entry */
 /** @typedef {import('@oyl/all-of-oyl').Id} Id */
 /** @typedef {import('@oyl/all-of-oyl').DayKey} DayKey */
+/** @typedef {import('@oyl/all-of-oyl').DayRange} DayRange */
 /** @typedef {import('@oyl/all-of-oyl').Goal} Goal */
 /** @typedef {import('@oyl/all-of-oyl').GoalProgress} GoalProgress */
 /** @typedef {import('@oyl/all-of-oyl').Repository<Entry>} EntriesRepo */
@@ -60,6 +61,12 @@ export function createJournalStore(entriesRepo, tz) {
     peek() {
       revision.get()
       return journal
+    },
+
+    /** Transactions whose day falls in `range`, for the finance ledger (auto-tracks revision). @param {DayRange} range @returns {readonly Transaction[]} */
+    transactionsIn(range) {
+      revision.get()
+      return /** @type {Transaction[]} */ (journal.entriesIn(range).filter((e) => e instanceof Transaction))
     },
 
     /** Rebuild the aggregate from the repository. Boot/seed/import/multi-tab only. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryRepository, Note, Measurement, Goal, DayKey } from '@oyl/all-of-oyl'
+import { InMemoryRepository, Note, Measurement, Goal, Transaction, Money, DayKey, DayRange } from '@oyl/all-of-oyl'
 import { createJournalStore } from './journal-store.js'
 import { effect } from '../lib/reactive/effect.js'
 
@@ -81,5 +81,16 @@ describe('createJournalStore', () => {
     const store = createJournalStore(repo, TZ)
     await store.add(aNote())
     expect(store.peek().entriesOn(dayOf())).toHaveLength(1)
+  })
+
+  it('transactionsIn returns only transactions whose day is in range', async () => {
+    const repo = /** @type {InMemoryRepository<Entry>} */ (new InMemoryRepository())
+    const store = createJournalStore(repo, TZ)
+    await store.add(new Note({ occurredAt: new Date(ISO), text: 'a note' }))
+    await store.add(new Transaction({ occurredAt: new Date(ISO), amount: Money.of(6500, 'USD', 2), category: 'groceries', direction: 'expense' }))
+    const range = DayRange.of(dayOf(), dayOf())
+    const txs = store.transactionsIn(range)
+    expect(txs).toHaveLength(1)
+    expect(txs[0]?.category).toBe('groceries')
   })
 })
