@@ -1,11 +1,14 @@
-import { Document, Possession, Money, DayKey } from '@oyl/all-of-oyl'
+import { Document, Possession, Subscription, Money, Cadence, DayKey } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { signal } from '../lib/reactive/signal.js'
 import { sheet } from './sheet.js'
+import { now } from '../storage/clock.js'
 
 /** @typedef {ReturnType<typeof import('../state/vault-store.js').createVaultStore>} VaultStore */
 
 const CURRENCIES = ['USD', 'EUR', 'GBP']
+const CADENCE_UNITS = ['days', 'weeks', 'months', 'years']
+const CATEGORIES = ['entertainment', 'software', 'fitness', 'utilities', 'news', 'other']
 
 const styles = sheet(`
   form { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-2); padding: 1rem; }
@@ -51,7 +54,11 @@ export class OylVaultComposer extends OylElement {
     posBtn.type = 'button'
     posBtn.dataset.type = 'possession'
     posBtn.textContent = 'Possession'
-    seg.append(docBtn, posBtn)
+    const subBtn = document.createElement('button')
+    subBtn.type = 'button'
+    subBtn.dataset.type = 'subscription'
+    subBtn.textContent = 'Subscription'
+    seg.append(docBtn, posBtn, subBtn)
 
     const name = this._input('name', 'text')
 
@@ -84,6 +91,36 @@ export class OylVaultComposer extends OylElement {
     const priceField = this._labeled('amount', 'Price (optional)', priceWrap)
     const purchasedField = this._labeled('purchasedOn', 'Purchased (optional)', purchasedOn)
 
+    // Subscription-only fields
+    const cadenceN = this._input('cadenceN', 'number')
+    cadenceN.value = '1'
+    cadenceN.min = '1'
+    const cadenceUnit = document.createElement('select')
+    cadenceUnit.name = 'cadenceUnit'
+    for (const u of CADENCE_UNITS) {
+      const o = document.createElement('option')
+      o.value = u
+      o.textContent = u
+      if (u === 'months') o.selected = true
+      cadenceUnit.append(o)
+    }
+    const cadenceWrap = document.createElement('div')
+    cadenceWrap.className = 'price'
+    cadenceWrap.append(cadenceN, cadenceUnit)
+    const anchor = this._input('anchor', 'date')
+    anchor.value = now().toISOString().slice(0, 10)
+    const category = document.createElement('select')
+    category.name = 'category'
+    for (const c of CATEGORIES) {
+      const o = document.createElement('option')
+      o.value = c
+      o.textContent = c
+      category.append(o)
+    }
+    const cadenceField = this._labeled('cadenceN', 'Every', cadenceWrap)
+    const anchorField = this._labeled('anchor', 'Renews on', anchor)
+    const categoryField = this._labeled('category', 'Category', category)
+
     const error = document.createElement('div')
     error.dataset.role = 'error'
     error.setAttribute('aria-live', 'polite')
@@ -101,36 +138,48 @@ export class OylVaultComposer extends OylElement {
       this._labeled('name', 'Name', name),
       kindField, expiresField,
       locationField, warrantyField, priceField, purchasedField,
+      cadenceField, anchorField, categoryField,
       error, actions,
     )
     root.append(formEl)
 
+    const priceLabel = /** @type {HTMLLabelElement} */ (priceField.querySelector('label'))
     /** @param {string} type */
     const applyType = (type) => {
       const isDoc = type === 'document'
+      const isPos = type === 'possession'
+      const isSub = type === 'subscription'
       kindField.hidden = !isDoc
       expiresField.hidden = !isDoc
-      locationField.hidden = isDoc
-      warrantyField.hidden = isDoc
-      priceField.hidden = isDoc
-      purchasedField.hidden = isDoc
+      locationField.hidden = !isPos
+      warrantyField.hidden = !isPos
+      purchasedField.hidden = !isPos
+      priceField.hidden = isDoc // shown for possession AND subscription
+      priceLabel.textContent = isSub ? 'Amount' : 'Price (optional)'
+      cadenceField.hidden = !isSub
+      anchorField.hidden = !isSub
+      categoryField.hidden = !isSub
       docBtn.setAttribute('aria-pressed', String(isDoc))
-      posBtn.setAttribute('aria-pressed', String(!isDoc))
+      posBtn.setAttribute('aria-pressed', String(isPos))
+      subBtn.setAttribute('aria-pressed', String(isSub))
     }
     applyType(this._type.get())
     docBtn.addEventListener('click', () => { this._type.set('document'); applyType('document') }, { signal: this.lifecycle })
     posBtn.addEventListener('click', () => { this._type.set('possession'); applyType('possession') }, { signal: this.lifecycle })
+    subBtn.addEventListener('click', () => { this._type.set('subscription'); applyType('subscription') }, { signal: this.lifecycle })
 
     formEl.addEventListener('submit', (e) => {
       e.preventDefault()
-      void this._submit({ error, name, kind, expiresOn, location, warrantyUntil, amount, currency, purchasedOn, formEl })
+      void this._submit({ error, name, kind, expiresOn, location, warrantyUntil, amount, currency, purchasedOn, cadenceN, cadenceUnit, anchor, category, formEl })
     }, { signal: this.lifecycle })
   }
 
   /**
    * @param {{ error: HTMLElement, name: HTMLInputElement, kind: HTMLInputElement, expiresOn: HTMLInputElement,
    *   location: HTMLInputElement, warrantyUntil: HTMLInputElement, amount: HTMLInputElement,
-   *   currency: HTMLSelectElement, purchasedOn: HTMLInputElement, formEl: HTMLFormElement }} ctx
+   *   currency: HTMLSelectElement, purchasedOn: HTMLInputElement, cadenceN: HTMLInputElement,
+   *   cadenceUnit: HTMLSelectElement, anchor: HTMLInputElement, category: HTMLSelectElement,
+   *   formEl: HTMLFormElement }} ctx
    */
   async _submit(ctx) {
     ctx.error.textContent = ''
@@ -139,7 +188,7 @@ export class OylVaultComposer extends OylElement {
         const props = /** @type {{ name: string, kind: string, expiresOn?: DayKey }} */ ({ name: ctx.name.value, kind: ctx.kind.value })
         if (ctx.expiresOn.value) props.expiresOn = DayKey.of(ctx.expiresOn.value)
         await this.store.addDocument(new Document(props))
-      } else {
+      } else if (this._type.get() === 'possession') {
         const props = /** @type {{ name: string, location?: string, warrantyUntil?: DayKey, purchasePrice?: Money, purchasedOn?: DayKey }} */ ({ name: ctx.name.value })
         if (ctx.location.value) props.location = ctx.location.value
         if (ctx.warrantyUntil.value) props.warrantyUntil = DayKey.of(ctx.warrantyUntil.value)
@@ -147,8 +196,19 @@ export class OylVaultComposer extends OylElement {
         if (ctx.amount.value && amt > 0) props.purchasePrice = Money.fromMajor(amt, ctx.currency.value)
         if (ctx.purchasedOn.value) props.purchasedOn = DayKey.of(ctx.purchasedOn.value)
         await this.store.addPossession(new Possession(props))
+      } else {
+        const sub = new Subscription({
+          name: ctx.name.value,
+          amount: Money.fromMajor(Number(ctx.amount.value), ctx.currency.value),
+          cadence: Cadence.of(Number(ctx.cadenceN.value), /** @type {any} */ (ctx.cadenceUnit.value)),
+          anchor: DayKey.of(ctx.anchor.value),
+          category: ctx.category.value,
+        })
+        await this.store.addSubscription(sub)
       }
       ctx.formEl.reset()
+      ctx.cadenceN.value = '1'
+      ctx.anchor.value = now().toISOString().slice(0, 10)
       this.onAdded()
     } catch (err) {
       ctx.error.textContent = err instanceof Error ? err.message : String(err)

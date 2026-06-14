@@ -1,10 +1,10 @@
 import { describe, expect, it, beforeAll } from 'vitest'
-import { Document, Possession } from '@oyl/all-of-oyl'
+import { Document, Possession, Subscription } from '@oyl/all-of-oyl'
 import { defineVaultComposer } from './oyl-vault-composer.js'
 
 beforeAll(() => defineVaultComposer())
 
-/** @param {{ addDocument?: (d: any) => Promise<any>, addPossession?: (p: any) => Promise<any> }} store */
+/** @param {{ addDocument?: (d: any) => Promise<any>, addPossession?: (p: any) => Promise<any>, addSubscription?: (s: any) => Promise<any> }} store */
 function composer(store) {
   const el = /** @type {import('./oyl-vault-composer.js').OylVaultComposer} */ (document.createElement('oyl-vault-composer'))
   el.store = /** @type {any} */ (store)
@@ -66,6 +66,55 @@ describe('<oyl-vault-composer>', () => {
     expect(kindField.hidden).toBe(false)
     q(el, 'button[data-type="possession"]').click()
     expect(kindField.hidden).toBe(true)
+    el.remove()
+  })
+
+  it('adds a subscription with amount, cadence, anchor, and category', async () => {
+    const added = /** @type {any[]} */ ([])
+    const el = composer({ addSubscription: async (s) => { added.push(s); return s } })
+    q(el, 'button[data-type="subscription"]').click()
+    q(el, 'input[name="name"]').value = 'Netflix'
+    q(el, 'input[name="amount"]').value = '13.99'
+    q(el, 'select[name="currency"]').value = 'USD'
+    q(el, 'input[name="cadenceN"]').value = '1'
+    q(el, 'select[name="cadenceUnit"]').value = 'months'
+    q(el, 'input[name="anchor"]').value = '2026-06-01'
+    q(el, 'select[name="category"]').value = 'entertainment'
+    submit(el)
+    await Promise.resolve(); await Promise.resolve()
+    expect(added[0]).toBeInstanceOf(Subscription)
+    expect(added[0].name).toBe('Netflix')
+    expect(added[0].amount.minor).toBe(1399)
+    expect(added[0].cadence.n).toBe(1)
+    expect(added[0].cadence.unit).toBe('months')
+    expect(added[0].anchor.value).toBe('2026-06-01')
+    expect(added[0].category).toBe('entertainment')
+    el.remove()
+  })
+
+  it('subscription with a non-positive amount shows an error and does not add', async () => {
+    const added = /** @type {any[]} */ ([])
+    const el = composer({ addSubscription: async (s) => { added.push(s); return s } })
+    q(el, 'button[data-type="subscription"]').click()
+    q(el, 'input[name="name"]').value = 'Bad'
+    q(el, 'input[name="amount"]').value = '0'
+    q(el, 'input[name="anchor"]').value = '2026-06-01'
+    submit(el)
+    await Promise.resolve(); await Promise.resolve()
+    expect(added).toHaveLength(0)
+    expect((q(el, '[data-role="error"]').textContent ?? '').length).toBeGreaterThan(0)
+    el.remove()
+  })
+
+  it('toggling to Subscription shows cadence/anchor/category and hides doc & possession-only fields', () => {
+    const el = composer({})
+    q(el, 'button[data-type="subscription"]').click()
+    expect(q(el, 'input[name="cadenceN"]').closest('.field').hidden).toBe(false)
+    expect(q(el, 'input[name="anchor"]').closest('.field').hidden).toBe(false)
+    expect(q(el, 'select[name="category"]').closest('.field').hidden).toBe(false)
+    expect(q(el, 'input[name="kind"]').closest('.field').hidden).toBe(true)
+    expect(q(el, 'input[name="location"]').closest('.field').hidden).toBe(true)
+    expect(q(el, 'input[name="amount"]').closest('.field').hidden).toBe(false) // price shared
     el.remove()
   })
 })
