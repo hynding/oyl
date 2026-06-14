@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Note, Measurement, Goal, DayKey, Task, periodWindowOf, Subscription, Cadence, Money } from '@oyl/all-of-oyl'
+import { Note, Measurement, Goal, DayKey, Task, periodWindowOf, Subscription, Cadence, Money, Account } from '@oyl/all-of-oyl'
 import { createThemeState } from './theme.js'
 import { createDataState } from './data.js'
 import { defaultTimezone } from '../storage/clock.js'
@@ -85,6 +85,14 @@ describe('data state', () => {
     const storage = fakeStorage()
     const ds = createDataState(storage, createThemeState(storage))
     expect(typeof ds.budgets.all).toBe('function')
+  })
+
+  it('exposes an accounts store hydrated by refresh', async () => {
+    const storage = fakeStorage()
+    const ds = createDataState(storage, createThemeState(storage))
+    await ds.repos.accounts.save(new Account({ name: 'Checking', currency: 'USD' }))
+    await ds.refresh()
+    expect(ds.accounts.all().map((a) => a.name)).toContain('Checking')
   })
 
   it('reviewOn composes a review for a period', async () => {
