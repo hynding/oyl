@@ -1,4 +1,4 @@
-import { Journal, Transaction } from '@oyl/all-of-oyl'
+import { Journal, Transaction, Money, periodWindowOf } from '@oyl/all-of-oyl'
 import { signal } from '../lib/reactive/signal.js'
 
 /** @typedef {import('@oyl/all-of-oyl').Entry} Entry */
@@ -8,7 +8,7 @@ import { signal } from '../lib/reactive/signal.js'
 /** @typedef {import('@oyl/all-of-oyl').Goal} Goal */
 /** @typedef {import('@oyl/all-of-oyl').GoalProgress} GoalProgress */
 /** @typedef {import('@oyl/all-of-oyl').Budget} Budget */
-/** @typedef {import('@oyl/all-of-oyl').Money} Money */
+/** @typedef {import('@oyl/all-of-oyl').Account} Account */
 /** @typedef {import('@oyl/all-of-oyl').Repository<Entry>} EntriesRepo */
 
 /**
@@ -75,6 +75,16 @@ export function createJournalStore(entriesRepo, tz) {
     budgetStatus(budget, day) {
       revision.get()
       return { progress: budget.progressOn(journal, day), spent: budget.spent(journal, day) }
+    },
+
+    /** This-month expense total for `account` (Money in the account's currency; reactive). @param {Account} account @param {DayKey} day @returns {Money} */
+    accountSpend(account, day) {
+      revision.get()
+      const range = periodWindowOf('month', day)
+      return journal.entriesIn(range).reduce(
+        (sum, e) => (e instanceof Transaction && e.direction === 'expense' && e.accountId === account.id ? sum.add(e.amount) : sum),
+        Money.fromMajor(0, account.currency),
+      )
     },
 
     /** Rebuild the aggregate from the repository. Boot/seed/import/multi-tab only. */

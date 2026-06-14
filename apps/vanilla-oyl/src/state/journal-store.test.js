@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryRepository, Note, Measurement, Goal, Transaction, Budget, Money, DayKey, DayRange } from '@oyl/all-of-oyl'
+import { InMemoryRepository, Note, Measurement, Goal, Transaction, Budget, Money, DayKey, DayRange, Account } from '@oyl/all-of-oyl'
 import { createJournalStore } from './journal-store.js'
 import { effect } from '../lib/reactive/effect.js'
 
@@ -104,5 +104,32 @@ describe('createJournalStore', () => {
     expect(under.progress.met).toBe(true)            // $60 ≤ $100
     await store.add(new Transaction({ occurredAt: new Date(ISO), amount: Money.of(5000, 'USD', 2), category: 'groceries', direction: 'expense' }))
     expect(store.budgetStatus(budget, dayOf()).progress.met).toBe(false) // $110 > $100
+  })
+})
+
+describe('accountSpend', () => {
+  it('sums this-month expenses for the account, ignoring others and prior months', async () => {
+    const store = createJournalStore(new InMemoryRepository(), 'UTC')
+    const checking = new Account({ name: 'Checking', currency: 'USD' })
+    const visa = new Account({ name: 'Visa', currency: 'USD' })
+    const today = DayKey.from(new Date(), 'UTC')
+    const noon = () => { const d = new Date(); d.setHours(12, 0, 0, 0); return d }
+    const prior = () => { const d = new Date(Date.now() - 40 * 86400000); d.setHours(12, 0, 0, 0); return d }
+    /** @param {string} cat @param {number} minor @param {any} acc @param {Date} when */
+    const txa = (cat, minor, acc, when) => new Transaction({ occurredAt: when, amount: Money.of(minor, 'USD', 2), category: cat, direction: 'expense', accountId: acc.id })
+    await store.add(txa('groceries', 6500, checking, noon()))
+    await store.add(txa('dining', 1500, checking, noon()))
+    await store.add(txa('other', 9999, visa, noon()))
+    await store.add(txa('groceries', 5000, checking, prior()))
+
+    expect(store.accountSpend(checking, today).minor).toBe(8000)
+    expect(store.accountSpend(visa, today).minor).toBe(9999)
+  })
+
+  it('returns a typed zero in the account currency when there are no transactions', () => {
+    const store = createJournalStore(new InMemoryRepository(), 'UTC')
+    const z = store.accountSpend(new Account({ name: 'Savings', currency: 'EUR' }), DayKey.from(new Date(), 'UTC'))
+    expect(z.minor).toBe(0)
+    expect(z.currency).toBe('EUR')
   })
 })
