@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, vi } from 'vitest'
-import { InMemoryRepository, Document, Possession, DayKey } from '@oyl/all-of-oyl'
+import { InMemoryRepository, Document, Possession, Subscription, Cadence, Money, DayKey } from '@oyl/all-of-oyl'
 import { createVaultStore } from '../state/vault-store.js'
 import { now } from '../storage/clock.js'
 import { defineVault } from './oyl-vault.js'
@@ -20,6 +20,7 @@ async function seededStore() {
   }
   await repos.documents.save(new Document({ name: 'Passport', kind: 'passport', expiresOn: today().addDays(60) }))
   await repos.possessions.save(new Possession({ name: 'Espresso', warrantyUntil: today().addDays(10) }))
+  await repos.subscriptions.save(new Subscription({ name: 'Spotify', amount: Money.of(999, 'USD', 2), cadence: Cadence.of(1, 'months'), anchor: today(), category: 'entertainment' }))
   const store = createVaultStore(repos)
   await store.hydrate()
   return store
@@ -84,6 +85,39 @@ describe('<oyl-vault>', () => {
     const r = /** @type {ShadowRoot} */ (espresso.shadowRoot)
     ;/** @type {HTMLButtonElement} */ (r.querySelector('button[data-act="delete"]')).click()
     ;/** @type {HTMLButtonElement} */ (r.querySelector('button[data-act="confirm-yes"]')).click()
+    await Promise.resolve(); await Promise.resolve()
+    expect(removeSpy).toHaveBeenCalled()
+    el.remove()
+  })
+
+  it('renders the Subscriptions section with a monthly total', async () => {
+    const el = screen(await seededStore())
+    await Promise.resolve()
+    const text = root(el).textContent ?? ''
+    expect(text).toContain('Subscriptions')
+    expect(text).toContain('Spotify')
+    expect(root(el).querySelectorAll('oyl-subscription-row')).toHaveLength(1)
+    const total = root(el).querySelector('.monthly-total')?.textContent ?? ''
+    expect(total).toContain('$9.99')
+    el.remove()
+  })
+
+  it('renew advances a subscription and delete removes it', async () => {
+    const store = await seededStore()
+    const renewSpy = vi.spyOn(store, 'renew')
+    const removeSpy = vi.spyOn(store, 'removeSubscription')
+    const el = screen(store)
+    await Promise.resolve()
+    const row1 = /** @type {any} */ (root(el).querySelector('oyl-subscription-row'))
+    const renewBtn = /** @type {HTMLButtonElement} */ (row1.shadowRoot.querySelector('button[data-act="renew"]'))
+    renewBtn.click()
+    await Promise.resolve(); await Promise.resolve()
+    expect(renewSpy).toHaveBeenCalled()
+    const row2 = /** @type {any} */ (root(el).querySelector('oyl-subscription-row'))
+    const delBtn = /** @type {HTMLButtonElement} */ (row2.shadowRoot.querySelector('button[data-act="delete"]'))
+    delBtn.click()
+    const yes = /** @type {HTMLButtonElement} */ (row2.shadowRoot.querySelector('button[data-act="confirm-yes"]'))
+    yes.click()
     await Promise.resolve(); await Promise.resolve()
     expect(removeSpy).toHaveBeenCalled()
     el.remove()

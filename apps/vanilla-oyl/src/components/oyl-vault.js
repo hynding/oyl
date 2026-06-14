@@ -3,9 +3,10 @@ import { OylElement } from '../lib/reactive/oyl-element.js'
 import { signal } from '../lib/reactive/signal.js'
 import { sheet } from './sheet.js'
 import { now } from '../storage/clock.js'
-import { dueInLabel, formatMoney } from '../vault/format.js'
+import { dueInLabel, formatMoney, monthlyTotalLabel } from '../vault/format.js'
 import { defineVaultComposer } from './oyl-vault-composer.js'
 import { defineVaultItem } from './oyl-vault-item.js'
+import { defineSubscriptionRow } from './oyl-subscription-row.js'
 
 /** @typedef {ReturnType<typeof import('../state/vault-store.js').createVaultStore>} VaultStore */
 
@@ -28,6 +29,7 @@ const styles = sheet(`
   .due .when { color: var(--color-muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
   .due .date { grid-column: 2; color: var(--color-muted); font-family: var(--font-mono); font-size: var(--step--1); }
   .empty { color: var(--color-muted); padding: 1rem 0; }
+  .monthly-total { color: var(--color-muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
   .sr-only { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 `)
 
@@ -47,6 +49,7 @@ export class OylVault extends OylElement {
   render() {
     defineVaultComposer()
     defineVaultItem()
+    defineSubscriptionRow()
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
     this._horizon = signal(90)
 
@@ -95,7 +98,19 @@ export class OylVault extends OylElement {
     const posEmpty = document.createElement('div')
     posEmpty.className = 'empty'
 
-    root.append(h2, live, composer, upHead, upList, upEmpty, docLabel, docList, docEmpty, posLabel, posList, posEmpty)
+    const subHead = document.createElement('div')
+    subHead.className = 'upcoming-head'
+    const subLabel = document.createElement('div')
+    subLabel.className = 'section-label'
+    subLabel.textContent = 'Subscriptions'
+    const subTotal = document.createElement('span')
+    subTotal.className = 'monthly-total'
+    subHead.append(subLabel, subTotal)
+    const subsList = document.createElement('ol')
+    const subsEmpty = document.createElement('div')
+    subsEmpty.className = 'empty'
+
+    root.append(h2, live, composer, upHead, upList, upEmpty, docLabel, docList, docEmpty, posLabel, posList, posEmpty, subHead, subsList, subsEmpty)
 
     /** @param {number} horizon */
     const repaintUpcoming = (horizon) => {
@@ -127,6 +142,23 @@ export class OylVault extends OylElement {
       for (const p of poss) posList.append(this._itemEl(p.name, [p.location, p.warrantyUntil ? `Warranty until ${p.warrantyUntil.value}` : null, p.purchasePrice ? formatMoney(p.purchasePrice) : null], () => { void this.store.removePossession(p.id); live.textContent = 'Deleted' }))
       posEmpty.hidden = poss.length > 0
       posEmpty.textContent = posEmpty.hidden ? '' : 'No possessions yet.'
+
+      const today = DayKey.from(now(), this.tz)
+      const subs = this.store.subscriptions()
+      subTotal.textContent = monthlyTotalLabel(this.store.monthlySubscriptionTotals())
+      subsList.replaceChildren()
+      for (const s of subs) {
+        const srow = /** @type {import('./oyl-subscription-row.js').OylSubscriptionRow} */ (document.createElement('oyl-subscription-row'))
+        srow.subscription = s
+        srow.today = today
+        srow.onRenew = (id) => { void this.store.renew(id, today); live.textContent = 'Renewed' }
+        srow.onDelete = (id) => { void this.store.removeSubscription(id); live.textContent = 'Deleted' }
+        const li = document.createElement('li')
+        li.append(srow)
+        subsList.append(li)
+      }
+      subsEmpty.hidden = subs.length > 0
+      subsEmpty.textContent = subsEmpty.hidden ? '' : 'No subscriptions yet.'
     })
   }
 
