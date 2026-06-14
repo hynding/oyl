@@ -29,6 +29,14 @@ export class OylElement extends HTMLElement {
   }
 
   connectedCallback() {
+    // Support reconnect: disconnect aborts the lifecycle and leaves the prior render in
+    // the shadow root. On a fresh connect, replace the spent controller and clear the old
+    // DOM so render() starts clean (no duplicate nodes, live listeners/effects again).
+    if (this._lifecycle.signal.aborted) {
+      this._lifecycle = new AbortController()
+      this._disposers = []
+      this.shadowRoot?.replaceChildren()
+    }
     this.render()
   }
 

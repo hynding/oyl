@@ -33,6 +33,9 @@ export function readSchemaState(storage) {
   const dataPresent = hasData(storage)
   if (raw === null) return dataPresent ? { status: 'torn' } : { status: 'fresh' }
   const version = Number(raw)
+  // A non-numeric marker is corrupt — treat it as a torn write needing recovery,
+  // not a silent "ok" (which would let hydration run against malformed state).
+  if (!Number.isInteger(version)) return { status: 'torn' }
   if (version > CURRENT_SCHEMA_VERSION) return { status: 'downgrade', version }
   return { status: 'ok', version: CURRENT_SCHEMA_VERSION }
 }
