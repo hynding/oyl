@@ -3,7 +3,8 @@ import { sheet } from './sheet.js'
 
 /** @typedef {{ status: string, version?: number }} SchemaInfo */
 /** @typedef {{ theme: string, mode: string }} ThemeInfo */
-/** @typedef {{ schema: SchemaInfo, counts: Record<string, number>, theme: ThemeInfo, build?: string, storage?: unknown }} Diagnostics */
+/** @typedef {{ usage: number, quota: number } | null} StorageEstimate */
+/** @typedef {{ schema: SchemaInfo, counts: Record<string, number>, theme: ThemeInfo, build?: string, storage?: StorageEstimate }} Diagnostics */
 /** @typedef {{ onSeed?: () => void, onExport?: () => void, onImport?: () => void, onReset?: () => void }} Actions */
 
 const styles = sheet(`
@@ -86,6 +87,7 @@ export class OylStatusPanel extends OylElement {
         this._row('schema', `${d.schema.status}${d.schema.version != null ? ' v' + d.schema.version : ''}`),
         this._row('theme', `${d.theme.theme} / ${d.theme.mode}`),
         this._row('build', d.build ?? '—'),
+        this._row('storage', d.storage ? `${formatBytes(d.storage.usage)} / ${formatBytes(d.storage.quota)}` : '—'),
       )
       for (const [name, count] of Object.entries(d.counts)) {
         countsDl.append(this._row(name, String(count)))
@@ -114,6 +116,19 @@ export class OylStatusPanel extends OylElement {
     b.addEventListener('click', onClick, { signal: this.lifecycle })
     return b
   }
+}
+
+/** Human-readable byte size (B/KB/MB/GB). @param {number} n @returns {string} */
+function formatBytes(n) {
+  if (n < 1024) return `${n} B`
+  const units = ['KB', 'MB', 'GB', 'TB']
+  let v = n / 1024
+  let i = 0
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024
+    i += 1
+  }
+  return `${v.toFixed(1)} ${units[i]}`
 }
 
 /** Register the element (idempotent). */
