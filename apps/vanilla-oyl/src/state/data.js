@@ -4,6 +4,7 @@ import { readSchemaState } from '../storage/schema.js'
 import { createJournalStore } from './journal-store.js'
 import { createPlannerStore } from './planner-store.js'
 import { createVaultStore } from './vault-store.js'
+import { createGoalsStore } from './goals-store.js'
 import { defaultTimezone } from '../storage/clock.js'
 
 /** @typedef {import('../storage/schema.js').SchemaState} SchemaState */
@@ -21,6 +22,7 @@ export function createDataState(storage, themeState) {
   const journal = createJournalStore(repos.entries, defaultTimezone())
   const planner = createPlannerStore(repos.plans)
   const vault = createVaultStore(repos)
+  const goals = createGoalsStore(repos.goals)
   /** @type {import('../lib/reactive/signal.js').Signal<Record<string, number>>} */
   const counts = signal(/** @type {Record<string, number>} */ ({}))
   /** @type {import('../lib/reactive/signal.js').Signal<SchemaState>} */
@@ -34,6 +36,7 @@ export function createDataState(storage, themeState) {
     await journal.hydrate()
     await planner.hydrate()
     await vault.hydrate()
+    await goals.hydrate()
     storageEstimate.set(await readStorageEstimate())
   }
 
@@ -49,7 +52,7 @@ export function createDataState(storage, themeState) {
     }
   }
 
-  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault }
+  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals }
 }
 
 /**

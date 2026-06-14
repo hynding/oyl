@@ -74,6 +74,12 @@ describe('data state', () => {
     expect(typeof ds.vault.upcoming).toBe('function')
   })
 
+  it('exposes a goals store', () => {
+    const storage = fakeStorage()
+    const ds = createDataState(storage, createThemeState(storage))
+    expect(typeof ds.goals.all).toBe('function')
+  })
+
   it('readDiagnostics storage is null when the Storage API is unavailable', async () => {
     const original = Object.getOwnPropertyDescriptor(globalThis.navigator, 'storage')
     Reflect.deleteProperty(globalThis.navigator, 'storage')

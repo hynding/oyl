@@ -8,10 +8,11 @@ const ITEMS = /** @type {ReadonlyArray<readonly [string, string]>} */ ([
   ['journal', 'Journal'],
   ['planner', 'Planner'],
   ['vault', 'Vault'],
+  ['goals', 'Goals'],
 ])
 
 const styles = sheet(`
-  nav { display: flex; gap: .25rem; }
+  nav { display: flex; flex-wrap: wrap; gap: .25rem; }
   a {
     text-decoration: none; color: var(--color-muted); font-weight: 550;
     padding: .35rem .7rem; border-radius: 999px; min-block-size: 44px;
