@@ -4,6 +4,7 @@ import { sheet } from './sheet.js'
 import { now } from '../storage/clock.js'
 
 /** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
+/** @typedef {ReturnType<typeof import('../state/accounts-store.js').createAccountsStore>} AccountsStore */
 
 const CURRENCIES = ['USD', 'EUR', 'GBP']
 const CATEGORIES = ['groceries', 'dining', 'transport', 'utilities', 'entertainment', 'other']
@@ -29,6 +30,8 @@ export class OylFinanceComposer extends OylElement {
     this.store = /** @type {JournalStore} */ (/** @type {unknown} */ (undefined))
     /** @type {() => void} */
     this.onAdded = () => {}
+    /** @type {AccountsStore} */
+    this.accounts = /** @type {AccountsStore} */ (/** @type {unknown} */ (undefined))
   }
 
   render() {
@@ -59,6 +62,11 @@ export class OylFinanceComposer extends OylElement {
       category.append(o)
     }
 
+    const account = document.createElement('select')
+    account.name = 'account'
+    const syncCurrencyVisibility = () => { currency.hidden = account.value !== '' }
+    account.addEventListener('change', syncCurrencyVisibility, { signal: this.lifecycle })
+
     const date = this._input('date', 'date')
     date.value = now().toISOString().slice(0, 10)
     const note = this._input('note', 'text')
@@ -77,6 +85,7 @@ export class OylFinanceComposer extends OylElement {
 
     formEl.append(
       this._labeled('amount', 'Amount', priceWrap),
+      this._labeled('account', 'Account', account),
       this._labeled('category', 'Category', category),
       this._labeled('date', 'Date', date),
       this._labeled('note', 'Note (optional)', note),
@@ -88,6 +97,24 @@ export class OylFinanceComposer extends OylElement {
       e.preventDefault()
       void this._submit({ error, amount, currency, category, date, note })
     }, { signal: this.lifecycle })
+
+    this.track(() => {
+      const list = this.accounts.all()
+      const prev = account.value
+      account.replaceChildren()
+      const cash = document.createElement('option')
+      cash.value = ''
+      cash.textContent = 'Cash (no account)'
+      account.append(cash)
+      for (const a of list) {
+        const o = document.createElement('option')
+        o.value = a.id
+        o.textContent = `${a.name} · ${a.currency}`
+        account.append(o)
+      }
+      account.value = list.some((a) => a.id === prev) ? prev : ''
+      syncCurrencyVisibility()
+    })
   }
 
   /** @param {{ error: HTMLElement, amount: HTMLInputElement, currency: HTMLSelectElement, category: HTMLSelectElement, date: HTMLInputElement, note: HTMLInputElement }} ctx */
