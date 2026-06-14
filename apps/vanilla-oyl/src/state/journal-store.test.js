@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryRepository, Note, Measurement, Goal, Transaction, Money, DayKey, DayRange } from '@oyl/all-of-oyl'
+import { InMemoryRepository, Note, Measurement, Goal, Transaction, Budget, Money, DayKey, DayRange } from '@oyl/all-of-oyl'
 import { createJournalStore } from './journal-store.js'
 import { effect } from '../lib/reactive/effect.js'
 
@@ -92,5 +92,17 @@ describe('createJournalStore', () => {
     const txs = store.transactionsIn(range)
     expect(txs).toHaveLength(1)
     expect(txs[0]?.category).toBe('groceries')
+  })
+
+  it('budgetStatus reports spent + progress, reflecting transactions', async () => {
+    const repo = /** @type {InMemoryRepository<Entry>} */ (new InMemoryRepository())
+    const store = createJournalStore(repo, TZ)
+    const budget = new Budget({ category: 'groceries', limit: Money.of(10000, 'USD', 2) }) // $100
+    await store.add(new Transaction({ occurredAt: new Date(ISO), amount: Money.of(6000, 'USD', 2), category: 'groceries', direction: 'expense' }))
+    const under = store.budgetStatus(budget, dayOf())
+    expect(under.spent.minor).toBe(6000)
+    expect(under.progress.met).toBe(true)            // $60 ≤ $100
+    await store.add(new Transaction({ occurredAt: new Date(ISO), amount: Money.of(5000, 'USD', 2), category: 'groceries', direction: 'expense' }))
+    expect(store.budgetStatus(budget, dayOf()).progress.met).toBe(false) // $110 > $100
   })
 })

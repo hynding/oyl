@@ -7,6 +7,8 @@ import { signal } from '../lib/reactive/signal.js'
 /** @typedef {import('@oyl/all-of-oyl').DayRange} DayRange */
 /** @typedef {import('@oyl/all-of-oyl').Goal} Goal */
 /** @typedef {import('@oyl/all-of-oyl').GoalProgress} GoalProgress */
+/** @typedef {import('@oyl/all-of-oyl').Budget} Budget */
+/** @typedef {import('@oyl/all-of-oyl').Money} Money */
 /** @typedef {import('@oyl/all-of-oyl').Repository<Entry>} EntriesRepo */
 
 /**
@@ -67,6 +69,12 @@ export function createJournalStore(entriesRepo, tz) {
     transactionsIn(range) {
       revision.get()
       return /** @type {Transaction[]} */ (journal.entriesIn(range).filter((e) => e instanceof Transaction))
+    },
+
+    /** Budget progress + spent (Money) for the month containing `day` (reactive). @param {Budget} budget @param {DayKey} day @returns {{ progress: GoalProgress, spent: Money }} */
+    budgetStatus(budget, day) {
+      revision.get()
+      return { progress: budget.progressOn(journal, day), spent: budget.spent(journal, day) }
     },
 
     /** Rebuild the aggregate from the repository. Boot/seed/import/multi-tab only. */
