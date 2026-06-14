@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { OylElement } from './oyl-element.js'
+import { OylElement, baseStyles } from './oyl-element.js'
 import { signal } from './signal.js'
 
 class Counter extends OylElement {
@@ -54,5 +54,15 @@ describe('OylElement', () => {
     await Promise.resolve()
     expect(root.querySelector('span')?.textContent).toBe('5') // bindings live again
     el.remove()
+  })
+})
+
+describe('OylElement base styles', () => {
+  it('prepends the shared focus-visible stylesheet to every component', () => {
+    class FocusProbe extends OylElement {}
+    if (!customElements.get('oyl-focus-probe')) customElements.define('oyl-focus-probe', FocusProbe)
+    const el = document.createElement('oyl-focus-probe')
+    const sheets = /** @type {ShadowRoot} */ (el.shadowRoot).adoptedStyleSheets
+    expect(sheets[0]).toBe(baseStyles)
   })
 })

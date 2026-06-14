@@ -1,5 +1,9 @@
 import { effect } from './effect.js'
 
+/** Shared focus ring so keyboard focus inside shadow DOM matches the design token (reset.css only reaches the light DOM). */
+export const baseStyles = new CSSStyleSheet()
+baseStyles.replaceSync(':host(:focus-visible), :focus-visible { outline: var(--focus-ring); outline-offset: 2px; }')
+
 /**
  * Base class for OYL Web Components. Provides a shadow root, fine-grained signal
  * bindings (one effect per dynamic part — no VDOM), and automatic teardown of every
@@ -14,8 +18,8 @@ export class OylElement extends HTMLElement {
     super()
     this.attachShadow({ mode: 'open' })
     const styles = /** @type {typeof OylElement} */ (this.constructor).styles
-    if (styles.length && this.shadowRoot && 'adoptedStyleSheets' in this.shadowRoot) {
-      this.shadowRoot.adoptedStyleSheets = styles
+    if (this.shadowRoot && 'adoptedStyleSheets' in this.shadowRoot) {
+      this.shadowRoot.adoptedStyleSheets = [baseStyles, ...styles]
     }
     /** @type {AbortController} */
     this._lifecycle = new AbortController()
