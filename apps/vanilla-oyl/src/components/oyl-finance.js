@@ -5,13 +5,17 @@ import { now } from '../storage/clock.js'
 import { formatMoney } from '../vault/format.js'
 import { defineFinanceComposer } from './oyl-finance-composer.js'
 import { defineVaultItem } from './oyl-vault-item.js'
+import { defineBudgetForm } from './oyl-budget-form.js'
+import { defineBudgetRow } from './oyl-budget-row.js'
 
 /** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
+/** @typedef {ReturnType<typeof import('../state/budgets-store.js').createBudgetsStore>} BudgetsStore */
 
 const styles = sheet(`
   :host { display: block; }
   h2 { font-size: var(--step-2); margin-block-end: var(--space-4); }
   oyl-finance-composer { display: block; margin-block-end: 1.6rem; }
+  oyl-budget-form { display: block; margin: .4rem 0 .8rem; }
   .section-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; color: var(--color-muted); margin: 1.6rem 0 .2rem; }
   ol { list-style: none; margin: 0; padding: 0; }
   .empty { color: var(--color-muted); padding: 1rem 0; }
@@ -27,11 +31,15 @@ export class OylFinance extends OylElement {
     this.store = /** @type {JournalStore} */ (/** @type {unknown} */ (undefined))
     /** @type {string} */
     this.tz = 'UTC'
+    /** @type {BudgetsStore} */
+    this.budgets = /** @type {BudgetsStore} */ (/** @type {unknown} */ (undefined))
   }
 
   render() {
     defineFinanceComposer()
     defineVaultItem()
+    defineBudgetForm()
+    defineBudgetRow()
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
 
     const h2 = document.createElement('h2')
@@ -50,7 +58,17 @@ export class OylFinance extends OylElement {
     const empty = document.createElement('div')
     empty.className = 'empty'
 
-    root.append(h2, live, composer, label, list, empty)
+    const budgetLabelEl = document.createElement('div')
+    budgetLabelEl.className = 'section-label'
+    budgetLabelEl.textContent = 'Budgets'
+    const budgetForm = /** @type {import('./oyl-budget-form.js').OylBudgetForm} */ (document.createElement('oyl-budget-form'))
+    budgetForm.store = this.budgets
+    budgetForm.onAdded = () => { live.textContent = 'Budget added' }
+    const budgetList = document.createElement('ol')
+    const budgetEmpty = document.createElement('div')
+    budgetEmpty.className = 'empty'
+
+    root.append(h2, live, composer, label, list, empty, budgetLabelEl, budgetForm, budgetList, budgetEmpty)
 
     this.track(() => {
       const today = DayKey.from(now(), this.tz)
@@ -68,6 +86,20 @@ export class OylFinance extends OylElement {
       }
       empty.hidden = txs.length > 0
       empty.textContent = empty.hidden ? '' : 'No transactions this month.'
+
+      const budgets = this.budgets.all()
+      budgetList.replaceChildren()
+      for (const b of budgets) {
+        const row = /** @type {import('./oyl-budget-row.js').OylBudgetRow} */ (document.createElement('oyl-budget-row'))
+        row.budget = b
+        row.status = this.store.budgetStatus(b, today)
+        row.onDelete = (id) => { void this.budgets.remove(id); live.textContent = 'Deleted' }
+        const li = document.createElement('li')
+        li.append(row)
+        budgetList.append(li)
+      }
+      budgetEmpty.hidden = budgets.length > 0
+      budgetEmpty.textContent = budgets.length > 0 ? '' : 'No budgets yet.'
     })
   }
 }

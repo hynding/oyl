@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeAll } from 'vitest'
-import { InMemoryRepository, Transaction, Money } from '@oyl/all-of-oyl'
+import { InMemoryRepository, Transaction, Budget, Money } from '@oyl/all-of-oyl'
 import { createJournalStore } from '../state/journal-store.js'
+import { createBudgetsStore } from '../state/budgets-store.js'
 import { defineFinance } from './oyl-finance.js'
 
 beforeAll(() => defineFinance())
@@ -11,10 +12,11 @@ const at = (h) => { const d = new Date(); d.setHours(h, 0, 0, 0); return d }
 /** @param {string} cat @param {number} minor @param {Date} when @returns {any} */
 const tx = (cat, minor, when) => new Transaction({ occurredAt: when, amount: Money.of(minor, 'USD', 2), category: cat, direction: 'expense' })
 
-/** @param {any} store */
-function screen(store) {
+/** @param {any} store @param {any} [budgets] */
+function screen(store, budgets = createBudgetsStore(new InMemoryRepository())) {
   const el = /** @type {import('./oyl-finance.js').OylFinance} */ (document.createElement('oyl-finance'))
   el.store = store
+  el.budgets = budgets
   el.tz = TZ
   document.body.append(el)
   return el
@@ -41,6 +43,20 @@ describe('<oyl-finance>', () => {
     const el = screen(createJournalStore(new InMemoryRepository(), TZ))
     await Promise.resolve()
     expect(root(el).textContent).toContain('No transactions this month.')
+    el.remove()
+  })
+
+  it('renders a Budgets section with per-budget progress', async () => {
+    const store = createJournalStore(new InMemoryRepository(), TZ)
+    await store.add(tx('groceries', 6000, at(10)))          // $60 spent this month
+    const budgets = createBudgetsStore(/** @type {any} */ (new InMemoryRepository()))
+    await budgets.add(new Budget({ category: 'groceries', limit: Money.of(10000, 'USD', 2) })) // $100
+    const el = screen(store, budgets)
+    await Promise.resolve()
+    const rowsList = /** @type {any[]} */ ([...root(el).querySelectorAll('oyl-budget-row')])
+    expect(rowsList).toHaveLength(1)
+    expect(rowsList[0].shadowRoot.textContent).toContain('groceries')
+    expect(rowsList[0].shadowRoot.textContent).toContain('$40.00 left')   // 100 - 60
     el.remove()
   })
 
