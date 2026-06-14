@@ -2,12 +2,14 @@ import { Transaction, Money } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 import { now } from '../storage/clock.js'
+import { signal } from '../lib/reactive/signal.js'
 
 /** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
 /** @typedef {ReturnType<typeof import('../state/accounts-store.js').createAccountsStore>} AccountsStore */
 
 const CURRENCIES = ['USD', 'EUR', 'GBP']
-const CATEGORIES = ['groceries', 'dining', 'transport', 'utilities', 'entertainment', 'other']
+const EXPENSE_CATEGORIES = ['groceries', 'dining', 'transport', 'utilities', 'entertainment', 'other']
+const INCOME_CATEGORIES = ['salary', 'freelance', 'gift', 'refund', 'other']
 
 const styles = sheet(`
   form { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-2); padding: 1rem; }
@@ -18,6 +20,9 @@ const styles = sheet(`
   .price select { width: auto; }
   .actions { display: flex; justify-content: flex-end; margin-block-start: .9rem; }
   button.primary { background: var(--color-accent); color: white; border: 0; border-radius: var(--radius-1); padding: .5rem 1.1rem; font: inherit; font-weight: 600; cursor: pointer; }
+  .seg { display: inline-flex; background: color-mix(in oklch, var(--color-text) 6%, transparent); border-radius: 999px; padding: .2rem; gap: .15rem; margin-block-end: .85rem; }
+  .seg button { font: inherit; border: 0; background: none; cursor: pointer; padding: .3rem .9rem; border-radius: 999px; font-size: .85rem; font-weight: 550; color: var(--color-muted); }
+  .seg button[aria-pressed="true"] { background: var(--color-surface); color: var(--color-text); }
   [data-role="error"]:not(:empty) { color: var(--color-danger); font-size: .85rem; margin-block-start: .5rem; }
 `)
 
@@ -28,15 +33,24 @@ export class OylFinanceComposer extends OylElement {
     super()
     /** @type {JournalStore} */
     this.store = /** @type {JournalStore} */ (/** @type {unknown} */ (undefined))
-    /** @type {() => void} */
+    /** @type {(direction?: 'expense' | 'income') => void} */
     this.onAdded = () => {}
     /** @type {AccountsStore} */
     this.accounts = /** @type {AccountsStore} */ (/** @type {unknown} */ (undefined))
+    this._direction = /** @type {import('../lib/reactive/signal.js').Signal<'expense' | 'income'>} */ (signal('expense'))
   }
 
   render() {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
     const formEl = document.createElement('form')
+
+    const seg = document.createElement('div')
+    seg.className = 'seg'
+    seg.setAttribute('role', 'group')
+    seg.setAttribute('aria-label', 'Direction')
+    const expenseBtn = this._segButton('expense', 'Expense')
+    const incomeBtn = this._segButton('income', 'Income')
+    seg.append(expenseBtn, incomeBtn)
 
     const amount = this._input('amount', 'number')
     amount.min = '0'
@@ -57,7 +71,7 @@ export class OylFinanceComposer extends OylElement {
 
     const category = document.createElement('select')
     category.name = 'category'
-    for (const c of CATEGORIES) {
+    for (const c of EXPENSE_CATEGORIES) {
       const o = document.createElement('option')
       o.value = c
       o.textContent = c
@@ -86,6 +100,7 @@ export class OylFinanceComposer extends OylElement {
     actions.append(submit)
 
     formEl.append(
+      seg,
       this._labeled('amount', 'Amount', priceWrap),
       this._labeled('account', 'Account', account),
       this._labeled('category', 'Category', category),
@@ -116,6 +131,20 @@ export class OylFinanceComposer extends OylElement {
       }
       account.value = list.some((a) => a.id === prev) ? prev : ''
       syncCurrencyVisibility()
+      const dir = this._direction.get()
+      const cats = dir === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+      const prevCat = category.value
+      category.replaceChildren()
+      for (const c of cats) {
+        const o = document.createElement('option')
+        o.value = c
+        o.textContent = c
+        category.append(o)
+      }
+      category.value = cats.includes(prevCat) ? prevCat : (cats[0] ?? '')
+      expenseBtn.setAttribute('aria-pressed', String(dir === 'expense'))
+      incomeBtn.setAttribute('aria-pressed', String(dir === 'income'))
+      submit.textContent = dir === 'income' ? 'Add income' : 'Add expense'
     })
   }
 
@@ -129,21 +158,31 @@ export class OylFinanceComposer extends OylElement {
       const selectedId = ctx.account.value
       const acc = selectedId ? this.accounts.all().find((a) => a.id === selectedId) : undefined
       const currency = acc ? acc.currency : ctx.currency.value
-      const props = /** @type {{ occurredAt: Date, amount: Money, category: string, direction: 'expense', note?: string, account?: { id: import('@oyl/all-of-oyl').Id, currency: string } }} */ ({
+      const props = /** @type {{ occurredAt: Date, amount: Money, category: string, direction: 'expense' | 'income', note?: string, account?: { id: import('@oyl/all-of-oyl').Id, currency: string } }} */ ({
         occurredAt: new Date(`${ctx.date.value}T12:00:00`),
         amount: Money.fromMajor(amt, currency),
         category: ctx.category.value,
-        direction: 'expense',
+        direction: this._direction.get(),
       })
       if (acc) props.account = { id: acc.id, currency: acc.currency }
       if (ctx.note.value) props.note = ctx.note.value
       await this.store.add(new Transaction(props))
       ctx.amount.value = ''
       ctx.note.value = ''
-      this.onAdded()
+      this.onAdded(this._direction.get())
     } catch (err) {
       ctx.error.textContent = err instanceof Error ? err.message : String(err)
     }
+  }
+
+  /** @param {'expense' | 'income'} value @param {string} label @returns {HTMLButtonElement} */
+  _segButton(value, label) {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.dataset.value = value
+    b.textContent = label
+    b.addEventListener('click', () => this._direction.set(value), { signal: this.lifecycle })
+    return b
   }
 
   /** @param {string} name @param {string} type @returns {HTMLInputElement} */

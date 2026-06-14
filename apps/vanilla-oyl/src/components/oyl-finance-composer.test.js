@@ -148,4 +148,41 @@ describe('<oyl-finance-composer> account picker', () => {
     expect(q(el, 'select[name="currency"]').getAttribute('aria-label')).toBeTruthy()
     el.remove()
   })
+
+  it('defaults to Expense with expense categories', async () => {
+    const el = composer({ add: async (e) => e })
+    await Promise.resolve()
+    const cats = [...q(el, 'select[name="category"]').options].map((o) => o.value)
+    expect(cats).toContain('groceries')
+    expect(q(el, '.seg button[data-value="expense"]').getAttribute('aria-pressed')).toBe('true')
+    el.remove()
+  })
+
+  it('switches to income categories when Income is selected', async () => {
+    const el = composer({ add: async (e) => e })
+    await Promise.resolve()
+    q(el, '.seg button[data-value="income"]').click()
+    await Promise.resolve()
+    const cats = [...q(el, 'select[name="category"]').options].map((o) => o.value)
+    expect(cats).toContain('salary')
+    expect(cats).not.toContain('groceries')
+    expect(q(el, '.seg button[data-value="income"]').getAttribute('aria-pressed')).toBe('true')
+    el.remove()
+  })
+
+  it('posts an income transaction with the income direction', async () => {
+    const added = /** @type {any[]} */ ([])
+    const el = composer({ add: async (e) => { added.push(e); return e } })
+    await Promise.resolve()
+    q(el, '.seg button[data-value="income"]').click()
+    await Promise.resolve()
+    q(el, 'input[name="amount"]').value = '2000'
+    q(el, 'select[name="category"]').value = 'salary'
+    q(el, 'input[name="date"]').value = '2026-06-10'
+    submit(el)
+    await Promise.resolve(); await Promise.resolve()
+    expect(added[0].direction).toBe('income')
+    expect(added[0].category).toBe('salary')
+    el.remove()
+  })
 })
