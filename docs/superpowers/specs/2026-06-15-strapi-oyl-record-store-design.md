@@ -11,7 +11,7 @@
 
 A fresh Strapi 5 app whose entire domain model is one content-type, `oyl-record`, and whose only surface is the custom `/v1` routes (the default content-API for the type is locked down). The server is a **generic blob store**: it never parses `data`; it enforces optimistic concurrency on an integer `revision` and soft-deletes via `deletedAt` — mirroring `InMemoryRepository`/`LocalStorageRepository` semantics so the SP1 `httpProtocolContract` will pass it (in SP2.2).
 
-**SP2.1 scope:** scaffold + content-type + `GET /v1/:collection`, `GET /v1/:collection/:id`, `PUT /v1/:collection/:id`, `DELETE /v1/:collection/:id` (`?purge=1`) + the revision/upsert/tombstone rule (extracted as a pure, unit-tested function) + a **stub owner** (`ownerOf(ctx)` returns a fixed dev owner / `null`; routes `auth: false`). Curl-verifiable with no auth setup.
+**SP2.1 scope:** scaffold + content-type + `GET /v1/:collection`, `GET /v1/:collection/:id`, `PUT /v1/:collection/:id`, `DELETE /v1/:collection/:id` (`?purge=1`) + the revision/upsert/tombstone rule (extracted as a pure, unit-tested function) + a **stub owner** (`ownerOf(ctx)` returns a fixed dev owner / `null`; routes `auth: false`) + a **boot harness + booted smoke test** (R-C) so the endpoints are actually verified, not just curl-described.
 
 ### Decisions (settled)
 
@@ -20,12 +20,15 @@ A fresh Strapi 5 app whose entire domain model is one content-type, `oyl-record`
 3. **Lock down the default content-API** for `oyl-record` (fork D): the only exposed surface is the custom `/v1` routes.
 4. **Stub owner in SP2.1** (auth deferred to SP2.2): a single `ownerOf(ctx)` seam returns a fixed dev owner id or `null`; `/v1` routes use `config: { auth: false }`. SP2.2 swaps `ownerOf` to `ctx.state.user.id` + requires auth, with no other controller change.
 5. **DB:** SQLite for dev/test (fork A), Postgres-ready via `DATABASE_CLIENT`/`DATABASE_URL` (mirror `packages/strapi-oyl/config/database.ts`).
-6. **The revision rule is a pure function** `decideUpsert(stored, body)` (no Strapi deps) → unit-tested directly; the controller is a thin Strapi adapter over it.
+6. **The revision rule (and more) are pure functions** (R-B): `decideUpsert(stored, asserted)`, `toEnvelope(row)`, the list-filter builder, and the soft-delete patch builder — all no-Strapi, unit-tested; the controller is a thin adapter that orchestrates them + the document service.
+7. **Scaffold by copying the proven boilerplate** (R-A): copy `config/*`, `tsconfig.json`, `package.json` from `packages/strapi-oyl` as the skeleton (change name, secrets, db path), then strip its `src/api/*` and add `oyl-record`. "No dependency" = no runtime import; copying boilerplate file *content* is fine and far less boot-fragile than authoring from scratch.
+8. **Lock down the default content-API by NOT defining a core router** (R-E) — with only `routes/v1.ts` and no `createCoreRouter`, Strapi generates no `/api/oyl-records` CRUD; only `/v1` is exposed.
+9. **The protocol baseUrl includes Strapi's `/api` prefix** (R-F): custom API routes mount under `/api`, so `path: '/v1/:collection'` serves at `/api/v1/...`; clients/conformance use `baseUrl = http://host/api` (the adapter appends `/v1`). **Do NOT** change Strapi's global `rest.prefix` (it would also move users-permissions' `/auth/*` routes, complicating SP2.2/SP3).
 
 ### Out of scope (→ SP2.2 / later)
 
-- Real users-permissions auth (JWT → `ctx.state.user` → owner), the bootstrap permission grant, the **batch** endpoint, and the **conformance test** (`httpProtocolContract` against the running server). All SP2.2.
-- Fully-transactional compare-and-set (SP2.1 does find-then-write; the unique index guards create races; production CAS hardening noted).
+- Real users-permissions auth (JWT → `ctx.state.user` → owner), the bootstrap permission grant, the **batch** endpoint, and the full 12-case **conformance** (`httpProtocolContract` against the running server). All SP2.2 — which **reuses SP2.1's boot harness** (R-D).
+- Fully-transactional compare-and-set (SP2.1 does find-then-write). The composite unique index on `(owner, collection, recordId)` is **best-effort** (R-G): implement via a DB migration/lifecycle if straightforward in 5.47; otherwise defer to hardening — find-then-write suffices for single-threaded tests (and SQL treats `NULL` owners as distinct anyway, so it only bites once owners are real in SP2.2).
 - Docker compose service + port mapping (SP4 wiring).
 
 ---
@@ -102,25 +105,28 @@ A thin adapter over `strapi.documents('api::oyl-record.oyl-record')` + `decideUp
 
 ## Testing
 
-- **`upsert-rule.test.ts`** (pure, no Strapi): `decideUpsert(undefined, anything)` → `create`; `decideUpsert({revision:3}, 3)` → `{update, revision:4}`; `decideUpsert({revision:3}, 2)` and `(…, null)` → `conflict`. This is SP2.1's real automated coverage.
-- **Manual/curl acceptance** (SP2.1 has no booted-server test — that's SP2.2's conformance): with `pnpm strapi-app develop` running, `PUT /v1/lifeAreas/<uuid>` `{data:{…},revision:null}` → 200 envelope rev 1; repeat with `revision:null` → 409; with `revision:1` → 200 rev 2; `GET /v1/lifeAreas` → the record; `DELETE` → 204 then `GET` list empty, `?includeDeleted=1` shows it; `?purge=1` hard-removes.
+- **Pure-helper unit tests** (no Strapi, R-B): `upsert-rule.test.ts` — `decideUpsert(undefined, anything)` → `create`; `({revision:3}, 3)` → `{update, revision:4}`; `({revision:3}, 2)` and `(…, null)` → `conflict`. Plus tests for `toEnvelope` (row → envelope, `deletedAt` → `null` when absent) and the list-filter / soft-delete-patch builders.
+- **Boot harness** (R-C/R-D, reusable) — `test/boot.ts`: programmatically start the Strapi app (`NODE_ENV=test`, SQLite temp/in-memory DB, secrets from env) on an ephemeral port and return `{ baseUrl, stop }` where `baseUrl` ends in `/api` (R-F). SP2.2's conformance reuses it.
+- **Booted smoke test** — `oyl-record.smoke.test.ts`: boot the app, then over real `fetch` against `${baseUrl}/v1/lifeAreas/<uuid>`: `PUT {data,revision:null}` → 200 envelope rev 1; `PUT {revision:null}` again → 409 `REVISION_CONFLICT`; `PUT {revision:1}` → 200 rev 2; `GET /v1/lifeAreas` → 1 record; `DELETE` → 204, then list empty but `?includeDeleted=1` shows it; `DELETE ?purge=1` → 204 and `?includeDeleted=1` now empty. This proves the routes + controller + revision/tombstone work end-to-end (the implementer needs no manual curl).
 
 ## File structure
 
 ```
-apps/strapi-oyl/                      (new Strapi 5 app, @oyl/strapi-oyl-app)
-  package.json, tsconfig.json, .env(.example)
+apps/strapi-oyl/                      (new Strapi 5 app, @oyl/strapi-oyl-app; boilerplate copied from packages/strapi-oyl per R-A)
+  package.json, tsconfig.json, .env, .env.example   (R-H: required secrets documented)
   config/{server,admin,database,middlewares,api,plugins}.ts
   src/index.ts                        (empty register/bootstrap; SP2.2 fills bootstrap)
   src/api/oyl-record/
     content-types/oyl-record/schema.json
-    routes/v1.ts
-    controllers/oyl-record.ts
-    services/upsert-rule.ts  (+ upsert-rule.test.ts)
+    routes/v1.ts                       (custom routes only — no createCoreRouter, R-E)
+    controllers/oyl-record.ts          (thin adapter over the pure helpers + document service)
+    services/upsert-rule.ts            (pure: decideUpsert, toEnvelope, filter/patch builders) (+ upsert-rule.test.ts)
+  test/boot.ts                         (reusable boot harness, R-D)
+  test/oyl-record.smoke.test.ts        (booted round-trip, R-C)
 + root package.json: "strapi-app" filter alias
 ```
-Nothing imports from `packages/strapi-oyl`.
+Nothing imports from `packages/strapi-oyl` at runtime (boilerplate file content is copied, not depended on).
 
 ## Acceptance
 
-`pnpm strapi-app build` succeeds; `pnpm strapi-app typecheck` clean; `upsert-rule.test.ts` green. With `pnpm strapi-app develop`, the curl sequence above behaves per the protocol (create/conflict/bump, list with/without tombstones, soft+hard delete). The app is a standalone Strapi with one generic `oyl-record` type and the `/v1` single-record protocol surface — ready for SP2.2 to add real auth + batch + the `httpProtocolContract` conformance run.
+`pnpm strapi-app build` succeeds; `pnpm strapi-app typecheck` clean; the **pure-helper tests** green; and the **booted smoke test** green — i.e. the real app boots and the `/v1` single-record endpoints behave per the protocol (create/conflict/bump, list with/without tombstones, soft + hard delete) end-to-end. The app is a standalone Strapi with one generic `oyl-record` type and the `/v1` single-record protocol surface, with a reusable boot harness — ready for SP2.2 to add real auth + batch + the full `httpProtocolContract` conformance run.
