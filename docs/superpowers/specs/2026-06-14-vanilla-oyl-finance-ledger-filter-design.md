@@ -65,6 +65,7 @@ A filter `<select>` above the "This month" ledger that scopes it to **one accoun
       filterSel.replaceChildren(mk('', 'All accounts'), mk('cash', 'Cash'))
       for (const a of accts) filterSel.append(mk(a.id, a.name))
       filterSel.value = filter
+      filterSel.hidden = accts.length === 0   // R-A: with no accounts every tx is cash → the filter is pointless
 
       const nameById = new Map(accts.map((a) => [a.id, a.name]))
       const txs = [...this.store.transactionsIn(range)]
@@ -100,6 +101,7 @@ Extend `oyl-finance.test.js` (helpers `at`, `root`, `screen(store, budgets, acco
 - **filter to Cash:** value `'cash'` → only the no-account row renders.
 - **R-K:** select the account, then `accounts.remove(id)` + a journal change (or just `await`) → the select value snaps back to `''` and all rows render again. (Removing an account bumps the accounts revision → track re-runs.)
 - **empty message:** filter to an account with no transactions → the empty div reads "No transactions for this view."
+- **R-A hidden when no accounts:** with an empty accounts store, `select.ledger-filter` is `hidden`; after adding an account it becomes visible.
 
 ## File structure
 
