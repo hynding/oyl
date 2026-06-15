@@ -57,4 +57,12 @@ describe('createHttpRepository — wire shape & auth', () => {
     expect(saved.meta!.revision).toBe(1)
     expect(await repo.list()).toHaveLength(1)
   })
+
+  it('calls onAuthError before throwing on a 401', async () => {
+    const onAuthError = vi.fn()
+    const fetch = vi.fn(async () => new Response(JSON.stringify({}), { status: 401 })) as any
+    const repo = createHttpRepository(createHttpClient({ baseUrl: 'http://x', fetch, getToken: async () => 't', onAuthError }), 'lifeAreas', COLLECTIONS.lifeAreas)
+    await expect(repo.list()).rejects.toMatchObject({ kind: 'auth' })
+    expect(onAuthError).toHaveBeenCalledTimes(1)
+  })
 })
