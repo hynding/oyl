@@ -127,7 +127,10 @@ export class OylFinance extends OylElement {
       for (const a of accounts) {
         const item = /** @type {import('./oyl-vault-item.js').OylVaultItem} */ (document.createElement('oyl-vault-item'))
         item.label = a.name
-        item.lines = [`${a.currency} · ${accountSpendLabel(this.store.accountSpend(a, today))}`]
+        item.lines = [
+          `${a.currency} · ${formatMoney(this.store.accountBalance(a))}`,
+          accountSpendLabel(this.store.accountSpend(a, today)),
+        ]
         item.onDelete = () => { void this.accounts.remove(a.id); live.textContent = 'Deleted' }
         const li = document.createElement('li')
         li.append(item)

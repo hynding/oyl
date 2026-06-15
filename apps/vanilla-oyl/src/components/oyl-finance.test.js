@@ -149,4 +149,18 @@ describe('<oyl-finance> accounts', () => {
     expect(dining.lines.join(' ')).not.toContain('Checking')
     el.remove()
   })
+
+  it('shows the account balance (income minus expense) as the headline, with spend below', async () => {
+    const accounts = createAccountsStore(/** @type {any} */ (new InMemoryRepository()))
+    const acc = await accounts.add(new Account({ name: 'Checking', currency: 'USD' }))
+    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
+    await store.add(new Transaction({ occurredAt: at(9), amount: Money.of(200000, 'USD', 2), category: 'salary', direction: 'income', account: { id: acc.id, currency: 'USD' } }))
+    await store.add(new Transaction({ occurredAt: at(10), amount: Money.of(50000, 'USD', 2), category: 'groceries', direction: 'expense', account: { id: acc.id, currency: 'USD' } }))
+    const el = screen(store, undefined, accounts)
+    await Promise.resolve()
+    const item = /** @type {any} */ ([...root(el).querySelectorAll('oyl-vault-item')].find((i) => /** @type {any} */ (i).label === 'Checking'))
+    expect(item.lines[0]).toContain('$1500.00')
+    expect(item.lines.join(' ')).toContain('this month')
+    el.remove()
+  })
 })
