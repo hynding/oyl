@@ -22,6 +22,8 @@ The integration is small *because the stores already consume the `Repository` po
 7. **R-C global error surface:** a minimal `noticeState` (a `notice` signal + `show`/`clear`) rendered by an `oyl-notice` banner; an `unhandledrejection` handler turns swallowed remote write failures (the screens' `void store.X()`) into a non-fatal "Sync failed — your change may not be saved." (Per-action retry = SP5.)
 8. **R-B parallel hydrate:** `refresh()` runs its independent hydrates/lists via `Promise.all` (remote boot is otherwise ~18 serial round-trips).
 9. **Mode switch = reload-to-apply (fork C); local & remote are separate datasets, no SP4 sync (fork D).**
+10. **R-E:** `refresh()` parallelizes via `Promise.allSettled` + one aggregated throw (not `Promise.all`, which would leak the non-first parallel failures into `unhandledrejection` → notice spam).
+11. **Notes:** R-F — stateful stores re-hydrate per mutation (write = 2 round-trips in remote; SP5 optimizes). R-G — boot-failure retry is **reload** (the R-A notice says "reload to retry"); `oyl-notice` stays minimal. Remote-mode data changes emit no `storage` events, so multi-tab data sync is a no-op until SP5.
 
 ### Out of scope (→ SP4b / SP4c / SP5)
 
@@ -52,18 +54,28 @@ export function getStorageMode(storage) {
 ```
 (`STORAGE_MODE_KEY = 'oyl/storage-mode'` in `keys.js`.)
 
-### 4. `state/data.js` — accept `{ client }`, parallelize refresh
-`createDataState(storage, themeState, opts = {})` → `makeRepositories(storage, { client: opts.client })`. `refresh()` parallelizes independents:
+### 4. `state/data.js` — accept `{ client }`, parallelize refresh (R-B + R-E)
+`createDataState(storage, themeState, opts = {})` → `makeRepositories(storage, { client: opts.client })`. `refresh()` parallelizes independents with **`Promise.allSettled`** so multiple parallel failures don't leak as unhandled rejections (R-E); it throws **one** aggregated error if any settled rejected (→ R-A shows a single boot notice):
 ```js
 async function refresh() {
   schema.set(readSchemaState(storage))
-  const [, , , , , , la, act, proj, est, cnt] = await Promise.all([
-    journal.hydrate(), planner.hydrate(), vault.hydrate(), goals.hydrate(), budgets.hydrate(), accounts.hydrate(),
-    repos.lifeAreas.list(), repos.activities.list(), repos.projects.list(), readStorageEstimate(), collectionCounts(repos),
-  ])
-  lifeAreas = la; activities = act; projects = proj; storageEstimate.set(est); counts.set(cnt)
+  const tasks = {
+    journal: journal.hydrate(), planner: planner.hydrate(), vault: vault.hydrate(),
+    goals: goals.hydrate(), budgets: budgets.hydrate(), accounts: accounts.hydrate(),
+    lifeAreas: repos.lifeAreas.list(), activities: repos.activities.list(), projects: repos.projects.list(),
+    estimate: readStorageEstimate(), counts: collectionCounts(repos),
+  }
+  const results = await Promise.allSettled(Object.values(tasks))
+  const keys = Object.keys(tasks)
+  const failed = results.find((r) => r.status === 'rejected')
+  if (failed && failed.status === 'rejected') throw failed.reason // single aggregated failure → R-A
+  /** @type {any} */ const r = {}
+  results.forEach((res, i) => { if (res.status === 'fulfilled') r[keys[i]] = res.value })
+  lifeAreas = r.lifeAreas; activities = r.activities; projects = r.projects
+  storageEstimate.set(r.estimate); counts.set(r.counts)
 }
 ```
+(Exact destructuring is the implementer's call; the contract is: parallel, `allSettled`, one thrown error on any rejection, no leaked unhandled rejections.)
 
 ### 5. `state/notice.js` (new) — minimal error surface (R-A/R-C)
 ```js
