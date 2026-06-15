@@ -54,6 +54,12 @@ All requests carry `Authorization: Bearer <token>`; the server resolves the **ow
 
 This table *is* the SP2 acceptance spec; the exported conformance harness (R1) checks a real server against it.
 
+**Protocol notes (documented for backend authors; not built in SP1):**
+- **R15 — `list` is unpaginated** (the aggregate stores hydrate whole collections, matching `LocalStorageRepository`). A `?cursor=`/`limit` extension is a backward-compatible future addition.
+- **R16 — the server should cap `data` size** (respond `413` over a limit). Blobs are opaque to the server, so this is the DoS guard the type-agnostic model trades for.
+- **R18 — reserve an `Idempotency-Key` request header** (unused in SP1) so SP5 can add retry-dedup without a protocol break.
+- **R17 — an OpenAPI/JSON-Schema description** of this table is a nice later add for polyglot (Express/PHP) backend authors; the markdown spec suffices for SP1.
+
 ---
 
 ## Architecture — `packages/all-of-oyl/src/core/`
@@ -69,14 +75,14 @@ export class HttpRepositoryError extends Error {
   constructor(kind, message, status) { super(message); this.name = 'HttpRepositoryError'; this.kind = kind; this.status = status }
 }
 
-/** Shared transport: base URL (+/v1), bearer auth, JSON, error mapping. Reused across all collections (R11). */
-export function createHttpClient({ baseUrl, fetch, getToken }) { /* returns { request(method, path, body?) } */ }
+/** Shared transport: base URL (+/v1), bearer auth, JSON, error mapping, optional timeout. Reused across all collections (R11). */
+export function createHttpClient({ baseUrl, fetch, getToken, timeoutMs }) { /* returns { request(method, path, body?) } */ }
 
 /** A Repository<T> over the sync protocol for one collection (R11). */
 export function createHttpRepository(client, collection, codec) { /* returns { get, list, save, saveMany, delete, purge } */ }
 ```
 
-- **`createHttpClient`** wraps `fetch`: prefixes `{baseUrl}/v1`, attaches `Authorization: Bearer ${await getToken()}`, sets `Content-Type: application/json`, parses JSON, and maps status → errors (R3):
+- **`createHttpClient`** wraps `fetch`: prefixes `{baseUrl}/v1`, attaches `Authorization: Bearer ${token}` **only when `await getToken()` is truthy** (R13 — otherwise omit the header and let the server `401`), sets `Content-Type: application/json`, parses JSON, applies an optional `timeoutMs` via `AbortController` (R14 — abort → `HttpRepositoryError('transport')`), and maps status → errors (R3):
   - `409` → `new DomainError('REVISION_CONFLICT', …)` (so the existing contract passes).
   - `401/403` → `new HttpRepositoryError('auth', …, status)`.
   - network throw / `5xx` → `new HttpRepositoryError('transport'|'server', …)`.
@@ -91,7 +97,7 @@ export function createHttpRepository(client, collection, codec) { /* returns { g
 
 ### 2. `http-repository-fake.ts` (test/dev utility — excluded from the browser dist, R5)
 
-`createProtocolFake()` → `{ fetch }`, a `fetch`-shaped function implementing the v1 protocol in memory by **delegating to one `InMemoryRepository` per collection**. Because `InMemoryRepository` already implements the port (meta stamping, `REVISION_CONFLICT`, soft delete, idempotent purge), the fake's semantics *are* the port; it only does HTTP↔repo translation + `DomainError(REVISION_CONFLICT) → 409`. Exported for reuse in vanilla-oyl's own tests and as a zero-backend dev stand-in.
+`createProtocolFake()` → `{ fetch }`, a `fetch`-shaped function implementing the v1 protocol in memory by **delegating to one `InMemoryRepository` per collection** (each record wrapped as `{ id, data, meta }` so `data` rides opaquely while `InMemoryRepository` owns meta/revision/tombstones). Because `InMemoryRepository` already implements the port, the fake's semantics *are* the port; it only does HTTP↔repo translation + `DomainError(REVISION_CONFLICT) → 409`. **R12: the fake constructs each `InMemoryRepository` with a *monotonic* clock** (strictly increasing instants) so the contract's `updatedAt > createdAt` assertion is deterministic, never colliding on a single millisecond. Exported for reuse in vanilla-oyl's own tests and as a zero-backend dev stand-in.
 
 ### 3. `http-repository-contract.ts` (conformance harness — excluded from dist, imports vitest, R1)
 
@@ -125,7 +131,7 @@ SP1 calls it with the fake's `fetch`; SP2 calls it with real `fetch` + a test se
 
 1. **`http-repository-fake.test.js`** — sanity that the fake routes verbs/paths and round-trips an envelope (small; the contract below is the real proof).
 2. **`http-repository.test.js`** — `httpProtocolContract('HttpRepository (fake)', { baseUrl:'http://x', fetch: fake.fetch, getToken: async () => 't' })` → the **full `repositoryContract`** passes against the fake (meta stamping, revision conflict, foreign-meta-create, soft delete, idempotent purge). This is the headline test.
-3. **Adapter-specific unit tests** (R7), against the fake or a spy `fetch`:
+3. **Adapter-specific unit tests** (R7) — these **pin protocol fidelity independent of the fake** (the conformance run proves *semantics*; these prove the *wire format* matches `oyl-sync-protocol-v1.md`, guarding against a fake+adapter co-bug that round-trips green but diverges from spec). Against the fake or a spy `fetch`:
    - request shape: `list` hits `GET /v1/{c}`, `save` `PUT /v1/{c}/{id}` with `{data,revision}`, `delete` `DELETE …`, `purge` `?purge=1`, batch `POST /v1/{c}:batch`.
    - `Authorization: Bearer` present; `getToken` invoked per request.
    - `includeDeleted` passthrough (`?includeDeleted=1`).
