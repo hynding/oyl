@@ -115,7 +115,11 @@ httpProtocolContract('apps/strapi-oyl (booted)', () => ({
   getToken: async () => jwt,
 }))
 ```
-The `makeDeps` closure reads the `baseUrl`/`jwt` bindings set by `beforeAll`; `httpProtocolContract` registers the contract `it`s, which the file's `beforeEach` truncate resets. (Verify `@oyl/all-of-oyl/testing` resolves to TS source in `apps/strapi-oyl`'s vitest — vanilla-oyl already consumes `@oyl/all-of-oyl` source via its `exports`; if the subpath needs a vite alias, add it.)
+The `makeDeps` closure reads the `baseUrl`/`jwt` bindings set by `beforeAll`; `httpProtocolContract` registers the contract `it`s, which the file's `beforeEach` truncate resets.
+
+**R-H (verify cross-package TS resolution):** `@oyl/all-of-oyl/testing` resolves to TS source whose imports use NodeNext `.js` extensions (`./repository-contract.js`→`.ts`, `../collections.js`→`.ts`). `apps/strapi-oyl` is a CommonJS app, so its vitest must resolve that `.js`→`.ts` chain across the package boundary. **`vanilla-oyl` already consumes `@oyl/all-of-oyl` source in its vitest — mirror its vitest/vite resolution config** (conditions/alias); if the subpath won't resolve, copy vanilla-oyl's setup rather than inventing one.
+
+**R-G (watch-point — same-millisecond timestamp flake):** the contract's *"bumps revision and updatedAt"* case asserts `updatedAt > createdAt`. The fake guarantees this with a monotonic clock; the real Strapi uses wall-clock timestamps, so a create + follow-up save in the same millisecond would make them equal and fail. Each contract step is a separate awaited HTTP round-trip (≫1ms), so it should hold — but if it flakes here, fix it **server-side** (ensure `updatedAt` strictly advances on update), not by loosening the contract.
 
 ---
 
