@@ -7,7 +7,7 @@ import { createAuthState } from './state/auth.js'
 import { loadDemoData, isEmpty } from './storage/seed.js'
 import { exportData, importData } from './storage/backup.js'
 import { isOylKey, SETTINGS_KEY, AUTH_KEY } from './storage/keys.js'
-import { getApiBaseUrl } from './storage/config.js'
+import { getApiBaseUrl, getStorageMode } from './storage/config.js'
 import { defaultTimezone } from './storage/clock.js'
 import { defineShell } from './components/oyl-shell.js'
 import { defineThemeToggle } from './components/oyl-theme-toggle.js'
@@ -20,6 +20,9 @@ import { defineVault } from './components/oyl-vault.js'
 import { defineGoals } from './components/oyl-goals.js'
 import { defineInsights } from './components/oyl-insights.js'
 import { defineFinance } from './components/oyl-finance.js'
+import { createNoticeState } from './state/notice.js'
+import { defineNotice } from './components/oyl-notice.js'
+import { createHttpClient } from '@oyl/all-of-oyl'
 
 async function boot() {
   const storage = window.localStorage
@@ -34,16 +37,27 @@ async function boot() {
   defineGoals()
   defineInsights()
   defineFinance()
+  defineNotice()
 
   const themeState = createThemeState(storage)
   const routeState = createRouteState(window)
-  const dataState = createDataState(storage, themeState)
   const authState = createAuthState(storage, { baseUrl: getApiBaseUrl(storage), fetch: window.fetch.bind(window) })
+  const noticeState = createNoticeState()
+  const mode = getStorageMode(storage)
+  const client = mode === 'remote'
+    ? createHttpClient({ baseUrl: getApiBaseUrl(storage), fetch: window.fetch.bind(window), getToken: authState.getToken, onAuthError: () => authState.logout() })
+    : undefined
+  const dataState = createDataState(storage, themeState, client ? { client } : {})
 
   // Theme applied reactively (the inline head script already set the first paint).
   effect(() => applyTheme(document, themeState.settings.get()))
   routeState.start()
-  await dataState.refresh()
+  try {
+    await dataState.refresh()
+  } catch (err) {
+    if (mode === 'remote') noticeState.show("Couldn't reach the backend — sign in (Status → Account) or reload to retry.")
+    else throw err
+  }
 
   // Multi-tab coherence: react to writes from other tabs.
   window.addEventListener('storage', (e) => {
@@ -53,6 +67,14 @@ async function boot() {
     else void dataState.refresh()
   })
 
+  window.addEventListener('unhandledrejection', (e) => {
+    const r = /** @type {any} */ (e).reason
+    if (r && (r.name === 'HttpRepositoryError' || r.code === 'REVISION_CONFLICT')) {
+      noticeState.show('Sync failed — your last change may not be saved.')
+      e.preventDefault()
+    }
+  })
+
   // ?seed convenience for dev.
   if (new URLSearchParams(location.search).has('seed')) {
     await loadDemoData(storage)
@@ -60,6 +82,11 @@ async function boot() {
   }
 
   const shell = document.createElement('oyl-shell')
+
+  const notice = /** @type {import('./components/oyl-notice.js').OylNotice} */ (document.createElement('oyl-notice'))
+  notice.notice = noticeState.notice
+  notice.onDismiss = () => noticeState.clear()
+  document.body.append(notice)
 
   const navEl = /** @type {import('./components/oyl-nav.js').OylNav} */ (document.createElement('oyl-nav'))
   navEl.slot = 'nav'

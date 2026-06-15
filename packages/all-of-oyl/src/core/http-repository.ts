@@ -57,6 +57,8 @@ export function createHttpClient(opts: {
   baseUrl: string
   fetch: FetchFn
   getToken: () => Promise<string | undefined | null>
+  /** Called before throwing on a 401 or 403; use to trigger logout or token refresh. */
+  onAuthError?: () => void
   timeoutMs?: number
   /** Injectable AbortController factory; defaults to `() => new AbortController()` in runtimes that provide it. */
   newAbortController?: () => AbortControllerLike
@@ -100,7 +102,10 @@ export function createHttpClient(opts: {
         const b = (await res.json().catch(() => ({}))) as { error?: { message?: string } }
         throw new DomainError('REVISION_CONFLICT', b?.error?.message ?? 'revision conflict')
       }
-      if (res.status === 401 || res.status === 403) throw new HttpRepositoryError('auth', `unauthorized (${res.status})`, res.status)
+      if (res.status === 401 || res.status === 403) {
+        opts.onAuthError?.()
+        throw new HttpRepositoryError('auth', `unauthorized (${res.status})`, res.status)
+      }
       throw new HttpRepositoryError('server', `server error (${res.status})`, res.status)
     },
   }

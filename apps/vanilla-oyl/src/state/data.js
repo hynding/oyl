@@ -19,9 +19,10 @@ import { defaultTimezone } from '../storage/clock.js'
  * screen reads. refresh() re-reads everything (boot, seed, import, multi-tab).
  * @param {AppStorage & import('@oyl/all-of-oyl').StorageLike} storage
  * @param {ThemeState} themeState
+ * @param {{ client?: import('@oyl/all-of-oyl').HttpClient }} [opts]
  */
-export function createDataState(storage, themeState) {
-  const repos = makeRepositories(storage)
+export function createDataState(storage, themeState, opts = {}) {
+  const repos = makeRepositories(storage, opts.client ? { client: opts.client } : {})
   const journal = createJournalStore(repos.entries, defaultTimezone())
   const planner = createPlannerStore(repos.plans)
   const vault = createVaultStore(repos)
@@ -43,17 +44,16 @@ export function createDataState(storage, themeState) {
 
   async function refresh() {
     schema.set(readSchemaState(storage))
-    counts.set(await collectionCounts(repos))
-    await journal.hydrate()
-    await planner.hydrate()
-    await vault.hydrate()
-    await goals.hydrate()
-    await budgets.hydrate()
-    await accounts.hydrate()
-    lifeAreas = await repos.lifeAreas.list()
-    activities = await repos.activities.list()
-    projects = await repos.projects.list()
-    storageEstimate.set(await readStorageEstimate())
+    const tasks = [
+      journal.hydrate(), planner.hydrate(), vault.hydrate(), goals.hydrate(), budgets.hydrate(), accounts.hydrate(),
+      repos.lifeAreas.list(), repos.activities.list(), repos.projects.list(), readStorageEstimate(), collectionCounts(repos),
+    ]
+    const results = await Promise.allSettled(tasks)
+    const failure = results.find((r) => r.status === 'rejected')
+    if (failure && failure.status === 'rejected') throw failure.reason
+    const val = (/** @type {number} */ i) => /** @type {any} */ (results[i]).value
+    lifeAreas = val(6); activities = val(7); projects = val(8)
+    storageEstimate.set(val(9)); counts.set(val(10))
   }
 
   /** Compose the current diagnostics snapshot (reads signals — call inside an effect to stay live). */

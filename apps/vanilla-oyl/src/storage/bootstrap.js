@@ -1,23 +1,26 @@
-import { COLLECTIONS, LocalStorageRepository } from '@oyl/all-of-oyl'
+import { COLLECTIONS, LocalStorageRepository, createHttpRepository } from '@oyl/all-of-oyl'
 import { dataKey } from './keys.js'
 import { now } from './clock.js'
 
 /**
  * @typedef {keyof typeof COLLECTIONS} CollectionName
- * @typedef {Record<CollectionName, import('@oyl/all-of-oyl').LocalStorageRepository<any>>} Repositories
+ * @typedef {Record<CollectionName, import('@oyl/all-of-oyl').Repository<any>>} Repositories
  */
 
 /**
- * Construct one LocalStorageRepository per manifest collection, all sharing the given
- * storage and clock. The manifest is the single source of which collections exist.
+ * Construct one repository per manifest collection. When `opts.client` is provided each
+ * repo delegates to the HTTP API; otherwise falls back to localStorage.
  * @param {import('@oyl/all-of-oyl').StorageLike} storage
+ * @param {{ client?: import('@oyl/all-of-oyl').HttpClient }} [opts]
  * @returns {Repositories}
  */
-export function makeRepositories(storage) {
+export function makeRepositories(storage, opts = {}) {
   const repos = /** @type {Repositories} */ ({})
   for (const name of /** @type {CollectionName[]} */ (Object.keys(COLLECTIONS))) {
     const codec = /** @type {any} */ (COLLECTIONS[name])
-    repos[name] = new LocalStorageRepository(storage, dataKey(name), codec, now)
+    repos[name] = opts.client
+      ? /** @type {any} */ (createHttpRepository(opts.client, name, codec))
+      : new LocalStorageRepository(storage, dataKey(name), codec, now)
   }
   return repos
 }
