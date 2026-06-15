@@ -7,7 +7,7 @@ import { createAuthState } from './state/auth.js'
 import { loadDemoData, isEmpty } from './storage/seed.js'
 import { exportData, importData } from './storage/backup.js'
 import { isOylKey, SETTINGS_KEY, AUTH_KEY } from './storage/keys.js'
-import { getApiBaseUrl, getStorageMode } from './storage/config.js'
+import { getApiBaseUrl, getStorageMode, setApiBaseUrl, setStorageMode, DEFAULT_API_BASE_URL } from './storage/config.js'
 import { defaultTimezone } from './storage/clock.js'
 import { defineShell } from './components/oyl-shell.js'
 import { defineThemeToggle } from './components/oyl-theme-toggle.js'
@@ -103,6 +103,12 @@ async function boot() {
     status: () => {
       const panel = /** @type {import('./components/oyl-status-panel.js').OylStatusPanel} */ (document.createElement('oyl-status-panel'))
       panel.auth = authState
+      panel.connection = {
+        mode,
+        apiBaseUrl: getApiBaseUrl(storage),
+        defaultApiBaseUrl: DEFAULT_API_BASE_URL,
+        onApply: (m, url) => { setStorageMode(storage, m); setApiBaseUrl(storage, url); location.reload() },
+      }
       panel.actions = {
         onSeed: () => void seedWithConfirm(storage, dataState),
         onExport: () => download(exportData(storage)),
