@@ -1,6 +1,7 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 import { defineAuth } from './oyl-auth.js'
+import { defineConnection } from './oyl-connection.js'
 
 /** @typedef {{ status: string, version?: number }} SchemaInfo */
 /** @typedef {{ theme: string, mode: string }} ThemeInfo */
@@ -20,6 +21,7 @@ const styles = sheet(`
   /* secondary by default; one primary (seed); danger is a quiet outline */
   button { background: var(--color-surface-2); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: var(--space-2) var(--space-3); cursor: pointer; }
   button:hover { background: color-mix(in oklch, var(--color-surface-2), var(--color-text) 7%); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
   button.primary { background: var(--color-accent); color: white; border-color: transparent; }
   button.primary:hover { background: var(--color-accent-hover); }
   button.danger { background: transparent; color: var(--color-danger); border-color: color-mix(in oklch, var(--color-danger) 40%, var(--color-border)); }
@@ -37,6 +39,8 @@ export class OylStatusPanel extends OylElement {
     this.actions = {}
     /** @type {any} */
     this.auth = null
+    /** @type {import('./oyl-connection.js').ConnectionConfig | null} */
+    this.connection = null
     /** @type {(() => void) | null} */
     this._paint = null
   }
@@ -54,6 +58,7 @@ export class OylStatusPanel extends OylElement {
   render() {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
     defineAuth()
+    defineConnection()
 
     const h2 = document.createElement('h2')
     h2.textContent = 'Status'
@@ -81,11 +86,25 @@ export class OylStatusPanel extends OylElement {
       this._button('Reset local data', 'reset', () => this.actions.onReset?.(), 'danger'),
     )
 
+    if (this.connection?.mode === 'remote') {
+      for (const b of actions.querySelectorAll('button')) /** @type {HTMLButtonElement} */ (b).disabled = true
+      const note = document.createElement('p')
+      note.id = 'local-tools-note'
+      note.textContent = 'Local-data tools — unavailable in Remote mode.'
+      actions.append(note)
+      actions.setAttribute('aria-describedby', 'local-tools-note')
+    }
+
+    const connLabel = document.createElement('h2')
+    connLabel.textContent = 'Connection'
+    const connEl = /** @type {import('./oyl-connection.js').OylConnection} */ (document.createElement('oyl-connection'))
+    connEl.connection = this.connection
+
     const accountLabel = document.createElement('h2')
     accountLabel.textContent = 'Account'
     const authEl = /** @type {import('./oyl-auth.js').OylAuth} */ (document.createElement('oyl-auth'))
     authEl.auth = this.auth
-    root.append(h2, grid, actions, accountLabel, authEl)
+    root.append(h2, grid, actions, connLabel, connEl, accountLabel, authEl)
 
     this._paint = () => {
       const d = this._diagnostics

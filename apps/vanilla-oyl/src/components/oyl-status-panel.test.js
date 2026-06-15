@@ -61,3 +61,48 @@ describe('<oyl-status-panel> account section', () => {
     el.remove()
   })
 })
+
+describe('<oyl-status-panel> connection section', () => {
+  /** @param {'local'|'remote'} mode */
+  function connConfig(mode) {
+    return { mode, apiBaseUrl: 'http://localhost:1340/api', defaultApiBaseUrl: 'http://localhost:1340/api', onApply: () => {} }
+  }
+
+  it('renders an oyl-connection wired to the connection config', () => {
+    const el = /** @type {any} */ (document.createElement('oyl-status-panel'))
+    const connection = connConfig('local')
+    el.connection = connection
+    el.diagnostics = { schema: { status: 'ok' }, counts: {}, theme: { theme: 'classic', mode: 'system' }, build: 'dev' }
+    document.body.append(el)
+    const connEl = /** @type {any} */ (el.shadowRoot.querySelector('oyl-connection'))
+    expect(connEl).toBeTruthy()
+    expect(connEl.connection).toBe(connection)
+    el.remove()
+  })
+
+  it('enables the local-data actions in local mode', () => {
+    const el = /** @type {any} */ (document.createElement('oyl-status-panel'))
+    el.connection = connConfig('local')
+    el.diagnostics = { schema: { status: 'ok' }, counts: {}, theme: { theme: 'classic', mode: 'system' }, build: 'dev' }
+    document.body.append(el)
+    const root = /** @type {ShadowRoot} */ (el.shadowRoot)
+    expect(/** @type {HTMLButtonElement} */ (root.querySelector('button[data-act="seed"]')).disabled).toBe(false)
+    expect(root.querySelector('#local-tools-note')).toBeNull()
+    el.remove()
+  })
+
+  it('disables and explains the local-data actions in remote mode', () => {
+    const el = /** @type {any} */ (document.createElement('oyl-status-panel'))
+    el.connection = connConfig('remote')
+    el.diagnostics = { schema: { status: 'ok' }, counts: {}, theme: { theme: 'classic', mode: 'system' }, build: 'dev' }
+    document.body.append(el)
+    const root = /** @type {ShadowRoot} */ (el.shadowRoot)
+    for (const act of ['seed', 'export', 'import', 'reset']) {
+      expect(/** @type {HTMLButtonElement} */ (root.querySelector(`button[data-act="${act}"]`)).disabled).toBe(true)
+    }
+    const note = root.querySelector('#local-tools-note')
+    expect(note).toBeTruthy()
+    expect(note?.textContent).toMatch(/remote mode/i)
+    el.remove()
+  })
+})
