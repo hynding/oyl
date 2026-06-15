@@ -1,0 +1,14 @@
+{
+  "kind": "collectionType",
+  "collectionName": "oyl_records",
+  "info": { "singularName": "oyl-record", "pluralName": "oyl-records", "displayName": "OYL Record" },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "collection": { "type": "string", "required": true },
+    "recordId": { "type": "string", "required": true },
+    "data": { "type": "json" },
+    "revision": { "type": "integer", "default": 0, "required": true },
+    "deletedAt": { "type": "datetime" },
+    "owner": { "type": "relation", "relation": "manyToOne", "target": "plugin::users-permissions.user" }
+  }
+}
