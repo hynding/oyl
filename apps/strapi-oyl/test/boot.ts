@@ -45,7 +45,7 @@ export async function boot(): Promise<{ baseUrl: string; stop: () => Promise<voi
   // Environment — SQLite test DB, minimal secrets
   process.env['NODE_ENV'] ??= 'test'
   process.env['DATABASE_CLIENT'] = 'sqlite'
-  process.env['DATABASE_FILENAME'] = '.tmp/test.db'
+  process.env['DATABASE_FILENAME'] = `.tmp/test-${process.pid}-${Date.now()}.db`
   process.env['APP_KEYS'] ??= 'k1aaaaaaaaaaaaaaaaaaaa==,k2aaaaaaaaaaaaaaaaaaaa=='
   process.env['JWT_SECRET'] ??= 'test'
   process.env['ADMIN_JWT_SECRET'] ??= 'test'

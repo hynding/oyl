@@ -1,5 +1,17 @@
 import type { Core } from '@strapi/strapi'
+
+const V1_ACTIONS = ['list', 'findOne', 'upsert', 'remove'].map((a) => `api::oyl-record.oyl-record.${a}`)
+
+async function grantAuthenticated(strapi: Core.Strapi) {
+  const role = (await strapi.db.query('plugin::users-permissions.role').findOne({ where: { type: 'authenticated' } })) as { id: number } | null
+  if (!role) { strapi.log.warn('[oyl] authenticated role not found; skipping /v1 permission grant'); return }
+  for (const action of V1_ACTIONS) {
+    const existing = await strapi.db.query('plugin::users-permissions.permission').findOne({ where: { action, role: role.id } })
+    if (!existing) await strapi.db.query('plugin::users-permissions.permission').create({ data: { action, role: role.id } })
+  }
+}
+
 export default {
   register(_ctx: { strapi: Core.Strapi }) {},
-  async bootstrap(_ctx: { strapi: Core.Strapi }) {}, // SP2.2 grants the authenticated role the /v1 actions here
+  async bootstrap({ strapi }: { strapi: Core.Strapi }) { await grantAuthenticated(strapi) },
 }
