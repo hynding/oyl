@@ -1,6 +1,6 @@
 import type { Core } from '@strapi/strapi'
 
-const V1_ACTIONS = ['list', 'findOne', 'upsert', 'remove'].map((a) => `api::oyl-record.oyl-record.${a}`)
+const V1_ACTIONS = ['list', 'findOne', 'upsert', 'remove', 'batch'].map((a) => `api::oyl-record.oyl-record.${a}`)
 
 async function grantAuthenticated(strapi: Core.Strapi) {
   const role = (await strapi.db.query('plugin::users-permissions.role').findOne({ where: { type: 'authenticated' } })) as { id: number } | null

@@ -61,5 +61,37 @@ export default factories.createCoreController(UID, ({ strapi }) => {
       }
       ctx.status = 204
     },
+
+    async batch(ctx: any) {
+      const owner = ctx.state.user?.id
+      if (owner == null) return ctx.unauthorized()
+      const collection = String(ctx.params.collection).replace(/:batch$/, '')
+      const items = (ctx.request.body?.items ?? []) as Array<{ id: string; data: unknown; revision: number | null }>
+      if (items.length === 0) { ctx.body = { records: [] }; return }
+
+      // (1) decide all — any conflict aborts before any write (validate-first atomicity)
+      const plans: Array<{ item: { id: string; data: unknown }; existingId: number | null; revision: number }> = []
+      for (const item of items) {
+        const existing = await findRow(owner, collection, item.id)
+        const decision = decideUpsert(existing ? { revision: existing.revision } : undefined, item.revision ?? null)
+        if (decision.action === 'conflict') {
+          ctx.status = 409
+          ctx.body = { error: { code: 'REVISION_CONFLICT', message: `stale revision for ${collection}/${item.id}` } }
+          return
+        }
+        plans.push({ item, existingId: existing ? existing.id : null, revision: decision.action === 'update' ? decision.revision : 1 })
+      }
+
+      // (2) apply all
+      const records: ReturnType<typeof toEnvelope>[] = []
+      for (const { item, existingId, revision } of plans) {
+        const saved =
+          existingId == null
+            ? await query().create({ data: { owner: owner, collection, recordId: item.id, data: item.data as any, revision: 1, deletedAt: null } })
+            : await query().update({ where: { id: existingId }, data: { data: item.data as any, revision, deletedAt: null } })
+        records.push(toEnvelope(saved as unknown as RecordRow))
+      }
+      ctx.body = { records }
+    },
   }
 })

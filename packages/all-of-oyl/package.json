@@ -9,6 +9,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./testing": "./src/core/http-repository-contract.ts",
     "./modules": "./modules/index.ts",
     "./modules/*": "./modules/*",
     "./vendors/*": "./vendors/*",

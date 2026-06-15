@@ -48,6 +48,9 @@ importers:
         specifier: ^6.0.0
         version: 6.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@oyl/all-of-oyl':
+        specifier: workspace:*
+        version: link:../../packages/all-of-oyl
       '@types/node':
         specifier: ^20
         version: 20.19.39
