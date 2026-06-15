@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Note, Measurement, Goal, DayKey, Task, periodWindowOf, Subscription, Cadence, Money, Account } from '@oyl/all-of-oyl'
 import { createThemeState } from './theme.js'
 import { createDataState } from './data.js'
@@ -130,6 +130,14 @@ describe('data state', () => {
     const day = DayKey.from(new Date(), defaultTimezone())
     const r = ds.reviewOn(periodWindowOf('month', day))
     expect(r.areas.map((a) => a.name)).toContain('Health')
+  })
+
+  it('routes through an http client when one is provided', async () => {
+    const client = { request: vi.fn(async () => ({ records: [] })) }
+    const storage = fakeStorage()
+    const ds = createDataState(storage, createThemeState(storage), { client: /** @type {any} */ (client) })
+    await ds.refresh()
+    expect(client.request).toHaveBeenCalled()
   })
 })
 
