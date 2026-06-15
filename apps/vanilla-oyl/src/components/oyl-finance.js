@@ -9,6 +9,7 @@ import { defineBudgetForm } from './oyl-budget-form.js'
 import { defineBudgetRow } from './oyl-budget-row.js'
 import { defineAccountForm } from './oyl-account-form.js'
 import { accountSpendLabel } from '../account/format.js'
+import { signal } from '../lib/reactive/signal.js'
 
 /** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
 /** @typedef {ReturnType<typeof import('../state/budgets-store.js').createBudgetsStore>} BudgetsStore */
@@ -24,6 +25,7 @@ const styles = sheet(`
   ol { list-style: none; margin: 0; padding: 0; }
   .empty { color: var(--color-muted); padding: 1rem 0; }
   .sr-only { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  select.ledger-filter { font: inherit; color: var(--color-text); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: .35rem .5rem; margin-block-end: .6rem; }
 `)
 
 export class OylFinance extends OylElement {
@@ -39,6 +41,7 @@ export class OylFinance extends OylElement {
     this.budgets = /** @type {BudgetsStore} */ (/** @type {unknown} */ (undefined))
     /** @type {AccountsStore} */
     this.accounts = /** @type {AccountsStore} */ (/** @type {unknown} */ (undefined))
+    this._filter = /** @type {import('../lib/reactive/signal.js').Signal<string>} */ (signal(''))
   }
 
   render() {
@@ -63,6 +66,11 @@ export class OylFinance extends OylElement {
     label.className = 'section-label'
     label.textContent = 'This month'
     const list = document.createElement('ol')
+    list.className = 'ledger'
+    const filterSel = document.createElement('select')
+    filterSel.className = 'ledger-filter'
+    filterSel.setAttribute('aria-label', 'Filter by account')
+    filterSel.addEventListener('change', () => this._filter.set(filterSel.value), { signal: this.lifecycle })
     const empty = document.createElement('div')
     empty.className = 'empty'
 
@@ -86,14 +94,26 @@ export class OylFinance extends OylElement {
     const accountEmpty = document.createElement('div')
     accountEmpty.className = 'empty'
 
-    root.append(h2, live, composer, label, list, empty, budgetLabelEl, budgetForm, budgetList, budgetEmpty, accountLabelEl, accountForm, accountList, accountEmpty)
+    root.append(h2, live, composer, label, filterSel, list, empty, budgetLabelEl, budgetForm, budgetList, budgetEmpty, accountLabelEl, accountForm, accountList, accountEmpty)
 
     this.track(() => {
       const today = DayKey.from(now(), this.tz)
       const range = periodWindowOf('month', today)
-      const txs = [...this.store.transactionsIn(range)].sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
+      const accts = this.accounts.all()
+
+      const raw = this._filter.get()
+      const filter = raw === '' || raw === 'cash' || accts.some((a) => a.id === raw) ? raw : ''
+      const mk = (/** @type {string} */ value, /** @type {string} */ text) => { const o = document.createElement('option'); o.value = value; o.textContent = text; return o }
+      filterSel.replaceChildren(mk('', 'All accounts'), mk('cash', 'Cash'))
+      for (const a of accts) filterSel.append(mk(a.id, a.name))
+      filterSel.value = filter
+      filterSel.hidden = accts.length === 0
+
+      const nameById = new Map(accts.map((a) => [a.id, a.name]))
+      const txs = [...this.store.transactionsIn(range)]
+        .filter((tx) => (filter === '' ? true : filter === 'cash' ? !tx.accountId : tx.accountId === filter))
+        .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
       list.replaceChildren()
-      const nameById = new Map(this.accounts.all().map((a) => [a.id, a.name]))
       for (const tx of txs) {
         const item = /** @type {import('./oyl-vault-item.js').OylVaultItem} */ (document.createElement('oyl-vault-item'))
         const sign = tx.direction === 'income' ? '+' : ''
@@ -106,7 +126,7 @@ export class OylFinance extends OylElement {
         list.append(li)
       }
       empty.hidden = txs.length > 0
-      empty.textContent = empty.hidden ? '' : 'No transactions this month.'
+      empty.textContent = txs.length > 0 ? '' : filter === '' ? 'No transactions this month.' : 'No transactions for this view.'
 
       const budgets = this.budgets.all()
       budgetList.replaceChildren()

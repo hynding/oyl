@@ -164,3 +164,94 @@ describe('<oyl-finance> accounts', () => {
     el.remove()
   })
 })
+
+describe('<oyl-finance> ledger filter', () => {
+  /** @param {any} el */
+  const ledgerRows = (el) => [...root(el).querySelectorAll('.ledger oyl-vault-item')]
+  /** @param {any} el @param {string} value */
+  const setFilter = async (el, value) => {
+    const f = /** @type {any} */ (root(el).querySelector('select.ledger-filter'))
+    f.value = value
+    f.dispatchEvent(new Event('change', { bubbles: true }))
+    await Promise.resolve()
+  }
+
+  async function seeded() {
+    const accounts = createAccountsStore(/** @type {any} */ (new InMemoryRepository()))
+    const acc = await accounts.add(new Account({ name: 'Checking', currency: 'USD' }))
+    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
+    await store.add(new Transaction({ occurredAt: at(9), amount: Money.of(6500, 'USD', 2), category: 'groceries', direction: 'expense', account: { id: acc.id, currency: 'USD' } }))
+    await store.add(new Transaction({ occurredAt: at(10), amount: Money.of(3000, 'USD', 2), category: 'dining', direction: 'expense' }))
+    return { accounts, acc, store }
+  }
+
+  it('shows all ledger rows by default', async () => {
+    const { accounts, store } = await seeded()
+    const el = screen(store, undefined, accounts)
+    await Promise.resolve()
+    expect(ledgerRows(el)).toHaveLength(2)
+    el.remove()
+  })
+
+  it('filters to a single account', async () => {
+    const { accounts, acc, store } = await seeded()
+    const el = screen(store, undefined, accounts)
+    await Promise.resolve()
+    await setFilter(el, acc.id)
+    const rows = ledgerRows(el)
+    expect(rows).toHaveLength(1)
+    expect(/** @type {any} */ (rows[0]).label).toContain('groceries')
+    el.remove()
+  })
+
+  it('filters to Cash (no-account transactions)', async () => {
+    const { accounts, store } = await seeded()
+    const el = screen(store, undefined, accounts)
+    await Promise.resolve()
+    await setFilter(el, 'cash')
+    const rows = ledgerRows(el)
+    expect(rows).toHaveLength(1)
+    expect(/** @type {any} */ (rows[0]).label).toContain('dining')
+    el.remove()
+  })
+
+  it('reverts to All when the selected account is deleted (R-K)', async () => {
+    const { accounts, acc, store } = await seeded()
+    const el = screen(store, undefined, accounts)
+    await Promise.resolve()
+    await setFilter(el, acc.id)
+    expect(ledgerRows(el)).toHaveLength(1)
+    await accounts.remove(acc.id)
+    await Promise.resolve()
+    expect(/** @type {any} */ (root(el).querySelector('select.ledger-filter')).value).toBe('')
+    expect(ledgerRows(el)).toHaveLength(2)
+    el.remove()
+  })
+
+  it('shows an empty message when the filter yields nothing', async () => {
+    const accounts = createAccountsStore(/** @type {any} */ (new InMemoryRepository()))
+    const acc = await accounts.add(new Account({ name: 'Visa', currency: 'USD' }))
+    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
+    await store.add(new Transaction({ occurredAt: at(9), amount: Money.of(6500, 'USD', 2), category: 'groceries', direction: 'expense' }))
+    const el = screen(store, undefined, accounts)
+    await Promise.resolve()
+    await setFilter(el, acc.id)
+    expect(ledgerRows(el)).toHaveLength(0)
+    expect(root(el).textContent).toContain('No transactions for this view.')
+    el.remove()
+  })
+
+  it('hides the filter when there are no accounts (R-A)', async () => {
+    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
+    const noAccts = screen(store)
+    await Promise.resolve()
+    expect(/** @type {any} */ (root(noAccts).querySelector('select.ledger-filter')).hidden).toBe(true)
+    noAccts.remove()
+
+    const { accounts, store: s2 } = await seeded()
+    const withAccts = screen(s2, undefined, accounts)
+    await Promise.resolve()
+    expect(/** @type {any} */ (root(withAccts).querySelector('select.ledger-filter')).hidden).toBe(false)
+    withAccts.remove()
+  })
+})
