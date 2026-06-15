@@ -27,6 +27,10 @@ describe('formatMoney', () => {
   it('falls back to a trailing code for unknown currencies and respects exponent', () => {
     expect(formatMoney(Money.of(1000, 'JPY', 0))).toBe('1000 JPY')
   })
+  it('renders negatives with the sign before the symbol', () => {
+    expect(formatMoney(Money.of(-20000, 'USD', 2))).toBe('-$200.00')
+    expect(formatMoney(Money.of(-1000, 'JPY', 0))).toBe('-1000 JPY')
+  })
 })
 
 describe('monthlyTotalLabel', () => {

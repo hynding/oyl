@@ -25,11 +25,13 @@ export function dueInLabel(due, today) {
   return days > 0 ? `in ${phrase}` : `${phrase} ago`
 }
 
-/** "$649.00" for USD/EUR/GBP, else "<amount> <CUR>". @param {Money} m @returns {string} */
+/** "$649.00" for USD/EUR/GBP, else "<amount> <CUR>"; negatives as "-$200.00". @param {Money} m @returns {string} */
 export function formatMoney(m) {
-  const amount = (m.minor / 10 ** m.exponent).toFixed(m.exponent)
+  const neg = m.minor < 0
+  const amount = (Math.abs(m.minor) / 10 ** m.exponent).toFixed(m.exponent)
   const sym = SYMBOLS[m.currency]
-  return sym ? `${sym}${amount}` : `${amount} ${m.currency}`
+  const body = sym ? `${sym}${amount}` : `${amount} ${m.currency}`
+  return neg ? `-${body}` : body
 }
 
 /**
