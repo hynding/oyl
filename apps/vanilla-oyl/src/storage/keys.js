@@ -2,6 +2,8 @@
 export const PREFIX = 'oyl/'
 export const SCHEMA_VERSION_KEY = 'oyl/schema-version'
 export const SETTINGS_KEY = 'oyl/settings'
+export const AUTH_KEY = 'oyl/auth'
+export const API_BASE_URL_KEY = 'oyl/api-base-url'
 
 /** Full storage key for a collection. @param {string} collection @returns {string} */
 export function dataKey(collection) {
