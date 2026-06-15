@@ -3,9 +3,11 @@ import { applyTheme } from './theme/theme-manager.js'
 import { createThemeState } from './state/theme.js'
 import { createRouteState } from './state/route.js'
 import { createDataState } from './state/data.js'
+import { createAuthState } from './state/auth.js'
 import { loadDemoData, isEmpty } from './storage/seed.js'
 import { exportData, importData } from './storage/backup.js'
-import { isOylKey, SETTINGS_KEY } from './storage/keys.js'
+import { isOylKey, SETTINGS_KEY, AUTH_KEY } from './storage/keys.js'
+import { getApiBaseUrl } from './storage/config.js'
 import { defaultTimezone } from './storage/clock.js'
 import { defineShell } from './components/oyl-shell.js'
 import { defineThemeToggle } from './components/oyl-theme-toggle.js'
@@ -36,6 +38,7 @@ async function boot() {
   const themeState = createThemeState(storage)
   const routeState = createRouteState(window)
   const dataState = createDataState(storage, themeState)
+  const authState = createAuthState(storage, { baseUrl: getApiBaseUrl(storage), fetch: window.fetch.bind(window) })
 
   // Theme applied reactively (the inline head script already set the first paint).
   effect(() => applyTheme(document, themeState.settings.get()))
@@ -46,6 +49,7 @@ async function boot() {
   window.addEventListener('storage', (e) => {
     if (!e.key || !isOylKey(e.key)) return
     if (e.key === SETTINGS_KEY) themeState.refresh()
+    else if (e.key === AUTH_KEY) authState.refresh()
     else void dataState.refresh()
   })
 
@@ -71,6 +75,7 @@ async function boot() {
   router.routes = {
     status: () => {
       const panel = /** @type {import('./components/oyl-status-panel.js').OylStatusPanel} */ (document.createElement('oyl-status-panel'))
+      panel.auth = authState
       panel.actions = {
         onSeed: () => void seedWithConfirm(storage, dataState),
         onExport: () => download(exportData(storage)),

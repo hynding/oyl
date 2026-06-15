@@ -1,5 +1,6 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
+import { defineAuth } from './oyl-auth.js'
 
 /** @typedef {{ status: string, version?: number }} SchemaInfo */
 /** @typedef {{ theme: string, mode: string }} ThemeInfo */
@@ -34,6 +35,8 @@ export class OylStatusPanel extends OylElement {
     this._diagnostics = null
     /** @type {Actions} */
     this.actions = {}
+    /** @type {any} */
+    this.auth = null
     /** @type {(() => void) | null} */
     this._paint = null
   }
@@ -50,6 +53,7 @@ export class OylStatusPanel extends OylElement {
 
   render() {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
+    defineAuth()
 
     const h2 = document.createElement('h2')
     h2.textContent = 'Status'
@@ -77,7 +81,11 @@ export class OylStatusPanel extends OylElement {
       this._button('Reset local data', 'reset', () => this.actions.onReset?.(), 'danger'),
     )
 
-    root.append(h2, grid, actions)
+    const accountLabel = document.createElement('h2')
+    accountLabel.textContent = 'Account'
+    const authEl = /** @type {import('./oyl-auth.js').OylAuth} */ (document.createElement('oyl-auth'))
+    authEl.auth = this.auth
+    root.append(h2, grid, actions, accountLabel, authEl)
 
     this._paint = () => {
       const d = this._diagnostics

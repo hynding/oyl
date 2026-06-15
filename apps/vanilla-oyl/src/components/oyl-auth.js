@@ -60,7 +60,7 @@ export class OylAuth extends OylElement {
     const signout = document.createElement('button')
     signout.dataset.act = 'signout'
     signout.textContent = 'Sign out'
-    signout.addEventListener('click', () => this.auth.logout(), { signal: this.lifecycle })
+    signout.addEventListener('click', () => this.auth?.logout(), { signal: this.lifecycle })
     inn.append(who, signout)
 
     root.append(out, inn)
@@ -80,6 +80,7 @@ export class OylAuth extends OylElement {
     }, { signal: this.lifecycle })
 
     this.track(() => {
+      if (!this.auth) return
       const s = this.auth.session.get()
       out.hidden = !!s
       inn.hidden = !s
