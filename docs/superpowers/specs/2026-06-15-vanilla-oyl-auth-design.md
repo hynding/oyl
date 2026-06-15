@@ -101,6 +101,13 @@ A web component (OylElement) with an `auth` prop (the auth state). Reactive on `
 ### `components/oyl-status-panel.js` — host the Account section
 Add an `auth` prop; in `render()`, define + append an **Account** `section-label` + `<oyl-auth>` (`authEl.auth = this.auth`) after the existing cards.
 
+### `apps/strapi-oyl/config/middlewares.ts` — allow the vanilla origin (R-A2, CORS)
+The browser blocks cross-origin `:8041 → :1340` auth unless Strapi allows the origin. Configure `strapi::cors` to allow the vanilla dev origin(s); bearer tokens mean **no credentials/cookies**, so allowing the origin is enough (no `Access-Control-Allow-Credentials`). Replace the bare `'strapi::cors'` entry with the configured form:
+```ts
+{ name: 'strapi::cors', config: { origin: ['http://localhost:8041', 'http://localhost:5173'], credentials: false } },
+```
+(`8041` = `pnpm vanilla dev`; `5173` = Vite default, harmless to include. This touches the backend app's *config* only — no runtime coupling. SP4 extends the origin list for compose/prod.)
+
 ### `main.js` — wire it
 ```js
 import { createAuthState } from './state/auth.js'
@@ -128,8 +135,11 @@ apps/vanilla-oyl/src/
   components/oyl-auth.js          (new) + oyl-auth.test.js
   components/oyl-status-panel.js   (modify: auth prop + Account section)
   main.js                         (modify: createAuthState + status wiring + storage-event refresh)
+apps/strapi-oyl/config/middlewares.ts (modify: strapi::cors allow the vanilla dev origin — R-A2)
 ```
-No HttpRepository wiring, no storage switch (SP4). Pure-helper/domain code untouched.
+No HttpRepository wiring, no storage switch (SP4). Pure-helper/domain code untouched. The only backend change is the CORS origin list (config, not runtime).
+
+**Test-coverage note (R-B2):** `/auth/local` (login) is covered by fake-`fetch` unit tests + the manual real-Chrome pass; an automated cross-app integration test (booting Strapi from vanilla's vitest) is out of scope for a standard endpoint. **Errors (R-C2):** surface Strapi's message verbatim; no client logic distinguishing user-exists vs wrong-password (avoid enumeration).
 
 ## Acceptance
 
