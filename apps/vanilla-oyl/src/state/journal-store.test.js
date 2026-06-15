@@ -133,3 +133,42 @@ describe('accountSpend', () => {
     expect(z.currency).toBe('EUR')
   })
 })
+
+describe('accountBalance', () => {
+  const noon = () => { const d = new Date(); d.setHours(12, 0, 0, 0); return d }
+  /** @param {any} store @param {'income'|'expense'} dir @param {number} minor @param {any} acc @param {string} [cur] */
+  const post = (store, dir, minor, acc, cur = 'USD') => store.add(new Transaction({ occurredAt: noon(), amount: Money.of(minor, cur, 2), category: dir === 'income' ? 'salary' : 'groceries', direction: dir, accountId: acc.id }))
+
+  it('is income minus expense over all recorded transactions for the account', async () => {
+    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
+    const checking = new Account({ name: 'Checking', currency: 'USD' })
+    const visa = new Account({ name: 'Visa', currency: 'USD' })
+    await post(store, 'income', 200000, checking)
+    await post(store, 'expense', 50000, checking)
+    await post(store, 'expense', 9999, visa)
+    expect(store.accountBalance(checking).minor).toBe(150000)
+  })
+
+  it('is negative when expenses exceed income', async () => {
+    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
+    const acc = new Account({ name: 'Cash', currency: 'USD' })
+    await post(store, 'expense', 5000, acc)
+    expect(store.accountBalance(acc).minor).toBe(-5000)
+  })
+
+  it('returns a typed zero for an account with no transactions', () => {
+    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
+    const z = store.accountBalance(new Account({ name: 'Savings', currency: 'EUR' }))
+    expect(z.minor).toBe(0)
+    expect(z.currency).toBe('EUR')
+  })
+
+  it('skips a transaction tagged to the account but in a different currency (no throw)', async () => {
+    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
+    const checking = new Account({ name: 'Checking', currency: 'USD' })
+    await post(store, 'income', 10000, checking, 'USD')
+    await post(store, 'income', 5000, checking, 'EUR')
+    expect(store.accountBalance(checking).minor).toBe(10000)
+    expect(store.accountBalance(checking).currency).toBe('USD')
+  })
+})

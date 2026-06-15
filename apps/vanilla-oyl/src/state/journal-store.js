@@ -82,8 +82,23 @@ export function createJournalStore(entriesRepo, tz) {
       revision.get()
       const range = periodWindowOf('month', day)
       return journal.entriesIn(range).reduce(
-        (sum, e) => (e instanceof Transaction && e.direction === 'expense' && e.accountId === account.id ? sum.add(e.amount) : sum),
+        (sum, e) => (e instanceof Transaction && e.direction === 'expense' && e.accountId === account.id && e.amount.currency === account.currency ? sum.add(e.amount) : sum),
         Money.fromMajor(0, account.currency),
+      )
+    },
+
+    /** All-time balance for `account`: income minus expense over every recorded transaction (Money in the account's currency; reactive). No opening-balance field exists, so this is net-of-recorded. @param {Account} account @returns {Money} */
+    accountBalance(account) {
+      revision.get()
+      const zero = Money.fromMajor(0, account.currency)
+      const span = journal.span()
+      if (!span) return zero
+      return journal.entriesIn(span).reduce(
+        (bal, e) =>
+          e instanceof Transaction && e.accountId === account.id && e.amount.currency === account.currency
+            ? (e.direction === 'income' ? bal.add(e.amount) : bal.subtract(e.amount))
+            : bal,
+        zero,
       )
     },
 
