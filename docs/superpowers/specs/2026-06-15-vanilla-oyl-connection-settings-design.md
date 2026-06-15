@@ -80,11 +80,16 @@ An `OylElement` with a single `connection` prop:
 
 `render()` (guard `if (!this.connection) return` — the `oyl-auth` pattern):
 
-- **Mode control** — the `.seg` segmented control as a **radiogroup**: a `[role="radiogroup"]` `aria-label="Storage mode"` with two buttons `Local` / `Remote` (the selected one `aria-checked="true"`), matching `oyl-auth`'s seg. Clicking sets the **staged** mode (does not persist).
-- **Backend URL** — a labelled `type="url"` input (`<label>` "Backend URL" + `autocomplete="off"`); `placeholder = connection.defaultApiBaseUrl`; value initialised from `connection.apiBaseUrl`; a hint "Used in Remote mode." Always editable. `input` updates the staged url.
-- **Error region** — `[data-role="error"]` with `role="alert"`, empty unless validation fails.
-- **Apply & reload** — a `button.primary`; `(was: <SavedMode> · <savedUrl>)` caption below it. **Enabled iff** `stagedMode !== savedMode || normalizeBaseUrl(stagedUrl) !== savedUrl`, where `savedUrl = normalizeBaseUrl(connection.apiBaseUrl)` and `savedMode = connection.mode`. Re-evaluate enablement on every mode-click / url-input.
+- **Mode control (R-E — match `oyl-auth`'s seg exactly)** — a `.seg` with `[role="group"]` `aria-label="Storage mode"` and two `type="button"` buttons `Local` / `Remote`, the selected one marked via **`aria-pressed="true"`** (NOT a radiogroup/`aria-checked` — consistency with the two existing segs in `oyl-auth`/`oyl-log-form`). Clicking sets the **staged** mode (does not persist) and calls `recompute()`.
+- **Sign-in hint (R-L)** — a static line by the mode control: "Remote mode requires sign-in (Account, below)." Pure text, no auth-state coupling.
+- **Backend URL** — a labelled `type="url"` input (`<label>` "Backend URL" + `autocomplete="off"`); `placeholder = connection.defaultApiBaseUrl`; value initialised from `connection.apiBaseUrl`; a hint "Used in Remote mode." Always editable. The input's `aria-describedby` references the hint id and the error id (R-M). `input` event updates the staged url and calls `recompute()`.
+- **Error region** — `[data-role="error"]` with **`aria-live="polite"`** (matching `oyl-auth`), empty unless validation fails.
+- **Apply & reload** — a `button.primary`; `(was: <SavedMode> · <savedUrl>)` caption below it. `recompute()` sets `submit.disabled = !changed()` where `changed() = stagedMode !== savedMode || normalizeBaseUrl(stagedUrl) !== savedUrl`, `savedUrl = normalizeBaseUrl(connection.apiBaseUrl)`, `savedMode = connection.mode`. Called on every mode-click, url `input`, and once initially (so type-then-revert re-disables — R-C).
   - **On click:** validate the staged url — if non-empty, `new URL(url)` in try/catch **and** require `protocol === 'http:' || protocol === 'https:'`; on failure set the error text ("Enter a valid http(s) URL.") and **do not** call `onApply`. On success (or empty url), call `this.connection.onApply(stagedMode, stagedUrl)`. (The component itself does not reload.)
+
+**R-K (no signal):** `connection` is a static prop set before append (like `oyl-auth`'s `auth`), so `render()` runs once with it present; staged mode/url live in render-scope closure vars updated by the event handlers + `recompute()`. No reactive `track()` is needed (there is no external signal to follow).
+
+**Styling (R-I/R-J):** `oyl-connection` defines its own `static styles = [sheet(...)]` copying the minimal `.seg`, `input`, `button.primary` + `button.primary:disabled`, and `[data-role="error"]` rules from `oyl-auth` (the per-component style convention; `.seg` is now triplicated across auth/log-form/connection — a future *optional* shared-`seg` extraction into `sheet.js` is noted but out of scope here).
 
 `defineConnection()` idempotent.
 
@@ -92,7 +97,9 @@ An `OylElement` with a single `connection` prop:
 
 - Add a `connection` prop (`@type {import('./oyl-connection.js').ConnectionConfig | null}`, default `null`).
 - In `render()`: `defineConnection()`; build a `Connection` `<h2>` + `<oyl-connection>` (`connEl.connection = this.connection`) and append it **between `actions` and the `accountLabel`** (i.e. `root.append(h2, grid, actions, connLabel, connEl, accountLabel, authEl)`).
-- **R-D gating:** if `this.connection?.mode === 'remote'`, set `disabled = true` on the four action buttons and append a captioned `<p id="local-tools-note">Local-data tools — unavailable in Remote mode.</p>` to the actions container, and set `actions.setAttribute('aria-describedby', 'local-tools-note')`. In local mode (or null connection) the buttons are enabled as today and no caption/aria is added. `_button` gains nothing — gating is applied after construction in `render()`.
+- **R-D gating:** if `this.connection?.mode === 'remote'`, set `disabled = true` on the four action buttons (select them via `actions.querySelectorAll('button')`) and append a captioned `<p id="local-tools-note">Local-data tools — unavailable in Remote mode.</p>` to the actions container, and set `actions.setAttribute('aria-describedby', 'local-tools-note')`. In local mode (or null connection) the buttons are enabled as today and no caption/aria is added. `_button` gains nothing — gating is applied after construction in `render()`.
+- **R-I:** add `button:disabled { opacity: .5; cursor: not-allowed; }` to the panel's `styles` sheet so the gated actions read as disabled.
+- Import `defineConnection` from `./oyl-connection.js` (as it already imports `defineAuth`).
 
 ### 4. `main.js` — wire it
 
@@ -121,7 +128,7 @@ panel.connection = {
   - `setApiBaseUrl(storage, '  ')` → key removed, `getApiBaseUrl` → `DEFAULT_API_BASE_URL`.
   - `normalizeBaseUrl('  http://x/api//  ')` → `'http://x/api'`; `normalizeBaseUrl('')` → `''`.
 - **`components/oyl-connection.test.js`** (new — assert via the component's own shadow root):
-  - renders the mode radiogroup with the saved mode checked + url input reflecting `connection.apiBaseUrl` + default as placeholder.
+  - renders the mode seg (`role="group"`) with the saved mode's button `aria-pressed="true"` + url input reflecting `connection.apiBaseUrl` + default as placeholder.
   - Apply **disabled** when nothing changed; **enabled** after clicking the other mode; **enabled** after editing the url; **disabled again** after editing the url back to the saved value (R-C type-then-revert).
   - clicking Apply with a valid changed url → `onApply` called once with `(stagedMode, stagedUrl)`.
   - invalid url (`'not a url'` and `'localhost:1340/api'`) → `[data-role=error]` shows a message and `onApply` is **not** called.
@@ -144,4 +151,4 @@ No changes to the stores, adapters, auth, or `apps/strapi-oyl`. Local mode behav
 
 ## Acceptance
 
-`pnpm vanilla test` + `pnpm vanilla typecheck` green. On `#/status`: a **Connection** section shows a `Local | Remote` radiogroup (saved mode checked) + a backend-URL field (default as placeholder) + an **Apply & reload** button that is disabled until the form differs from the saved values; applying persists the keys and reloads, after which the app boots in the chosen mode. In **remote** mode the four local-data action buttons are disabled with the "unavailable in Remote mode" caption; in **local** mode they work as before. URLs are normalized (no trailing-slash double-slash) and invalid URLs are rejected inline. Ready for SP4c (compose) + SP5 (sync).
+`pnpm vanilla test` + `pnpm vanilla typecheck` green. On `#/status`: a **Connection** section shows a `Local | Remote` seg (saved mode `aria-pressed`) + a backend-URL field (default as placeholder) + an **Apply & reload** button that is disabled until the form differs from the saved values; applying persists the keys and reloads, after which the app boots in the chosen mode. In **remote** mode the four local-data action buttons are disabled with the "unavailable in Remote mode" caption; in **local** mode they work as before. URLs are normalized (no trailing-slash double-slash) and invalid URLs are rejected inline. Ready for SP4c (compose) + SP5 (sync).
