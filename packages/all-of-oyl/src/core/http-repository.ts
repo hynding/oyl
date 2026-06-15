@@ -5,6 +5,27 @@ import type { PersistedMeta } from './persisted-meta.js'
 import type { Repository } from './repository.js'
 import type { Codec } from '../collections.js' // Codec is defined in src/collections.ts; type-only import → erased, no runtime cycle
 
+/** Minimal slice of the Fetch API needed by HttpClient; injected for testability. */
+export interface FetchResponse {
+  readonly status: number
+  readonly ok: boolean
+  json(): Promise<unknown>
+}
+
+/** Minimal fetch function signature; injected for testability and to avoid a DOM-lib dependency. */
+export type FetchFn = (url: string, init?: Record<string, unknown>) => Promise<FetchResponse>
+
+/** Minimal AbortSignal shape needed for timeout support. */
+export interface AbortSignalLike {
+  readonly aborted: boolean
+}
+
+/** Minimal AbortController shape needed for timeout support. */
+export interface AbortControllerLike {
+  readonly signal: AbortSignalLike
+  abort(): void
+}
+
 /** Wire shape for one stored record; `data` is the collection's opaque codec JSON. */
 export interface RecordEnvelope {
   id: string
@@ -18,7 +39,7 @@ export interface RecordEnvelope {
 /** Non-domain HTTP failures, discriminated so callers can react (auth → re-login, transport → retry). */
 export class HttpRepositoryError extends Error {
   readonly kind: 'auth' | 'transport' | 'server'
-  readonly status?: number
+  readonly status: number | undefined
   constructor(kind: 'auth' | 'transport' | 'server', message: string, status?: number) {
     super(message)
     this.name = 'HttpRepositoryError'
@@ -34,9 +55,16 @@ export interface HttpClient {
 
 export function createHttpClient(opts: {
   baseUrl: string
-  fetch: typeof globalThis.fetch
+  fetch: FetchFn
   getToken: () => Promise<string | undefined | null>
   timeoutMs?: number
+  /** Injectable AbortController factory; defaults to `() => new AbortController()` in runtimes that provide it. */
+  newAbortController?: () => AbortControllerLike
+  /** Injectable timer pair; defaults to the global `setTimeout`/`clearTimeout`. */
+  timer?: {
+    set(fn: () => void, ms: number): unknown
+    clear(id: unknown): void
+  }
 }): HttpClient {
   const root = `${opts.baseUrl.replace(/\/$/, '')}/v1`
   return {
@@ -44,20 +72,27 @@ export function createHttpClient(opts: {
       const token = await opts.getToken()
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (token) headers.Authorization = `Bearer ${token}` // R13
-      const ctrl = opts.timeoutMs ? new AbortController() : undefined // R14
-      const timer = ctrl ? setTimeout(() => ctrl.abort(), opts.timeoutMs) : undefined
-      let res: Response
+      const makeCtrl = opts.newAbortController
+      const timers = opts.timer
+      const ctrl = opts.timeoutMs !== undefined && makeCtrl !== undefined ? makeCtrl() : undefined // R14
+      let timerId: unknown
+      let clearTimer: ((id: unknown) => void) | undefined
+      if (ctrl !== undefined && timers !== undefined && opts.timeoutMs !== undefined) {
+        timerId = timers.set(() => ctrl.abort(), opts.timeoutMs)
+        clearTimer = (id) => timers.clear(id)
+      }
+      let res: FetchResponse
       try {
         res = await opts.fetch(`${root}${path}`, {
           method,
           headers,
           ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-          ...(ctrl ? { signal: ctrl.signal } : {}),
+          ...(ctrl !== undefined ? { signal: ctrl.signal } : {}),
         })
       } catch (err) {
         throw new HttpRepositoryError('transport', err instanceof Error ? err.message : String(err))
       } finally {
-        if (timer) clearTimeout(timer)
+        if (clearTimer !== undefined) clearTimer(timerId)
       }
       if (res.status === 204 || res.status === 404) return undefined
       if (res.ok) return res.json()
