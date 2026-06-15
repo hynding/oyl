@@ -10,6 +10,7 @@
     "react": "pnpm --filter @oyl/react-oyl",
     "storybook": "pnpm --filter @oyl/storybook-oyl",
     "strapi": "pnpm --filter @oyl/strapi-oyl",
+    "strapi-app": "pnpm --filter @oyl/strapi-oyl-app",
     "vanilla": "pnpm --filter @oyl/vanilla-oyl",
     "vanilla-legacy": "pnpm --filter @oyl/vanilla-oyl-legacy",
     "test": "pnpm --filter './packages/*' --filter './apps/*' --if-present test",
