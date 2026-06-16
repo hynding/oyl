@@ -57,32 +57,24 @@ if (engine) {
 `dataState.syncState` is now the **Signal** (was the raw observable — consumed by nothing before SP5d, so safe to change). Add `syncState` (the signal) + `resync` to the returned object (keep `startSync`/`syncFlush`). `refresh` is the existing function (in scope).
 
 ### 3. `apps/vanilla-oyl/src/components/oyl-sync-status.js` (new) — ambient chip
-An `OylElement` with a `syncState` prop (the Signal). `track()` reads the signal and renders a chip into the toolbar, or nothing when `null`/idle+synced:
+An `OylElement` with a `syncState` prop (the Signal); guard `if (!this.syncState) return` (R-8). `track()` reads the signal and renders a chip, or nothing:
 - `syncing` → "Syncing…" (accent dot)
 - `offline` || `!online` → `Offline` (+ ` · ${pending}` when `pending>0`) (amber dot)
 - `status==='error'` → "Sync error", `title=lastError` (danger dot)
 - `status==='idle' && pending>0` → `${pending} pending` (amber dot)
-- else (idle+synced, or null) → render nothing (`hidden`)
-The chip element carries an `aria-label` matching the text (R-4 — not a live region). `defineSyncStatus()` idempotent.
+- else (idle+synced, or null) → nothing
+**R-7 · take no layout when hidden:** toggle the host — `this.toggleAttribute('hidden', !visible)` with `:host([hidden]) { display: none }` in the sheet (an empty shadow root still occupies a flex slot). The chip carries an `aria-label` matching the text (R-4 — not a live region). `defineSyncStatus()` idempotent.
 
 ### 4. `apps/vanilla-oyl/src/components/oyl-status-panel.js` — Sync block + Resync
 Add a `sync` prop: `{ state: Signal<SyncState|null>, onResync: () => void } | null` (default null). In `render()`, when `this.sync?.state.get()` is non-null (remote), append a **Sync** section (after the Connection section) and a `track()` that reflects the signal:
-- "Last synced \<HH:MM\>" (from `lastSyncedAt`, absolute — R-1), or "—" if never.
+- "Last synced \<HH:MM\>" (from `lastSyncedAt`, absolute — R-1: `new Date(s.lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })`), or "—" if never. The block updates via a `track()` in `render()` (R-10 — render-once + a lifecycle effect; the existing `_paint` diagnostics path is untouched).
 - `N pending`, and `N reconciled this session` (from `conflicts`) when `>0`.
 - a **Resync now** `button` → `this.sync.onResync()`, **disabled when** `!s.online || s.status==='offline'` (R-3).
 Local mode (`sync` null or `state.get()` null) → no Sync section.
 
 ### 5. `apps/vanilla-oyl/src/main.js` — mount + wire
 - **Drop** the `.then(() => dataState.refresh())` after `startSync()` (the data.js effect now refreshes on the boot pull's `pulledAt`): `if (mode === 'remote') void dataState.startSync().catch(() => {})`.
-- **Mount the chip** (remote only) in the `toolbar` slot beside the theme toggle:
-  ```js
-  if (mode === 'remote') {
-    defineSyncStatus()
-    const chip = document.createElement('oyl-sync-status'); chip.slot = 'toolbar'
-    chip.syncState = dataState.syncState
-    shell.append(chip)   // wherever the theme toggle is appended
-  }
-  ```
+- **Mount the chip** (remote only) in the `toolbar` slot. Create it next to `toggle` (`chip.slot = 'toolbar'`, `chip.syncState = dataState.syncState`) and include it in the **existing single `shell.append(navEl, …, toggle, router)` call** (R-9 — match the file's append pattern; place the chip before `toggle` so it sits left of the theme toggle). In local mode, don't create/append the chip.
 - **Status route:** `panel.sync = mode === 'remote' ? { state: dataState.syncState, onResync: dataState.resync } : null`.
 
 ---
