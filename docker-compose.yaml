@@ -12,6 +12,53 @@ services:
     ports:
       - "3337:1337"
 
+  strapi-app:
+    image: oyl-app:dev
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    command: pnpm strapi-app develop
+    environment:
+      NODE_ENV: development
+      HOST: 0.0.0.0
+      PORT: 1340
+      DATABASE_CLIENT: postgres
+      DATABASE_HOST: postgres
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: oyl_app
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      APP_KEYS: "app-key-a,app-key-b"
+      API_TOKEN_SALT: "app-api-token-salt"
+      JWT_SECRET: "app-jwt-secret"
+      ADMIN_JWT_SECRET: "app-admin-jwt-secret"
+      TRANSFER_TOKEN_SALT: "app-transfer-token-salt"
+      ENCRYPTION_KEY: "appencryptionkey0123456789abcdef"
+      STRAPI_MCP_ENABLED: "false"
+    ports:
+      - "3340:1340"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://localhost:1340/_health"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 90s
+
+  vanilla:
+    image: oyl-app:dev
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    command: pnpm vanilla dev
+    ports:
+      - "8041:8041"
+    depends_on:
+      strapi-app:
+        condition: service_started
+
   next:
     image: node:22-alpine
     working_dir: /app
@@ -61,6 +108,7 @@ services:
       sh -c "
         echo '
           CREATE DATABASE oyl;
+          CREATE DATABASE oyl_app;
         ' > /docker-entrypoint-initdb.d/00-init.sql && docker-entrypoint.sh postgres
       "
     healthcheck:

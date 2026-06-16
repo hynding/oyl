@@ -30,7 +30,8 @@ OYL ("Organize Your Life") — a personal productivity stack covering daily acti
 | react | 5041 | 5173 |
 | storybook | 6041 | 6006 |
 | postgres | 5441 | 5432 |
-| vanilla (manual) | 8041 | — |
+| strapi-app | 3340 | 1340 |
+| vanilla | 8041 | 8041 — manual or compose |
 
 Native dev (`pnpm <pkg> dev` outside docker) uses each tool's default port (1337, 3000, 5173, 6006). The e2e harness uses native ports by default; override via `E2E_STRAPI_PORT` / `E2E_VITE_PORT`.
 
@@ -51,13 +52,21 @@ pnpm vanilla test        # Vitest (happy-dom) on the new app
 pnpm vanilla-legacy preview  # the old static testbed on 8041 (@oyl/vanilla-oyl-legacy)
 ```
 
-Docker alternative — bring up the whole stack:
+Docker alternative — bring up the legacy stack:
 
 ```bash
 docker compose up postgres strapi react -d
 ```
 
 The compose `react` service injects `VITE_STRAPI_API_BASE_URL=http://localhost:3337/api` so the browser hits the host-mapped Strapi port.
+
+New app stack (apps/strapi-oyl + apps/vanilla-oyl) — bring up explicitly (a bare `docker compose up` would also start the legacy services):
+
+```bash
+docker compose up -d --build postgres strapi-app vanilla
+```
+
+Then at `http://localhost:8041` go to **Status → Connection**, set the backend URL to `http://localhost:3340/api`, mode **Remote**, **Apply & reload**, and sign in (Account). `strapi-app` uses a separate Postgres database `oyl_app`; if your `database-data-oyl` volume predates this, run `docker compose down -v` once so the `CREATE DATABASE oyl_app` init runs. Don't run native `pnpm vanilla dev` and the composed `vanilla` together — both bind host `8041`.
 
 ## Tests and checks per package
 
