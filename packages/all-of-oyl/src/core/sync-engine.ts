@@ -69,7 +69,10 @@ export function createSyncEngine(deps: {
   let state: SyncState = { online: connectivity.isOnline(), pending: countPending(), status: 'idle', conflicts: 0, failed: countFailed() }
   const subs = new Set<(v: SyncState) => void>()
   function emit(patch: Partial<SyncState>): void {
-    state = { ...state, ...patch, pending: countPending(), failed: countFailed(), online: connectivity.isOnline() }
+    const failed = countFailed()
+    state = { ...state, ...patch, pending: countPending(), failed, online: connectivity.isOnline() }
+    // Don't strand a stale error once everything's recovered (retry/discard/re-edit all drive failed→0).
+    if (failed === 0) delete state.lastFailedError
     for (const cb of subs) cb(state)
   }
   const syncState: Observable<SyncState> = {
@@ -299,6 +302,7 @@ export function createSyncEngine(deps: {
   }
 
   async function retryFailed(): Promise<void> { outbox.clearFailed(); await flush() }
+  // Drops the failed ops only; the local cache copy stands (an existing edit yields to the server on the next pull; a new record lingers locally).
   function discardFailed(): void { outbox.discardFailed(); emit({}) }
 
   return { repositories, syncState, start, flush, pull, resync, retryFailed, discardFailed }

@@ -319,6 +319,7 @@ describe('createSyncEngine — poison quarantine', () => {
     remote.poison.delete(P.id)
     await engine.retryFailed()
     expect(engine.syncState.get().failed).toBe(0)
+    expect(engine.syncState.get().lastFailedError).toBeUndefined() // stale error cleared on recovery
     expect(await inner.get(P.id)).toBeTruthy()
   })
 
