@@ -16,6 +16,8 @@ export interface SyncState {
   pulledAt?: Date
   conflicts: number
   lastConflict?: { collection: string; id: string; at: Date }
+  failed: number
+  lastFailedError?: string
 }
 
 export interface Observable<T> {
@@ -42,6 +44,8 @@ export interface SyncEngine {
   flush(): Promise<void>
   pull(): Promise<void>
   resync(): Promise<void>
+  retryFailed(): Promise<void>
+  discardFailed(): void
 }
 
 export function createSyncEngine(deps: {
@@ -60,10 +64,12 @@ export function createSyncEngine(deps: {
   const policy = deps.conflictPolicy ?? 'client-wins'
   const MAX_CONFLICT_RETRIES = 3
 
-  let state: SyncState = { online: connectivity.isOnline(), pending: outbox.size(), status: 'idle', conflicts: 0 }
+  const countPending = () => outbox.list().filter((e) => !e.failedAt).length
+  const countFailed = () => outbox.list().filter((e) => e.failedAt).length
+  let state: SyncState = { online: connectivity.isOnline(), pending: countPending(), status: 'idle', conflicts: 0, failed: countFailed() }
   const subs = new Set<(v: SyncState) => void>()
   function emit(patch: Partial<SyncState>): void {
-    state = { ...state, ...patch, pending: outbox.size(), online: connectivity.isOnline() }
+    state = { ...state, ...patch, pending: countPending(), failed: countFailed(), online: connectivity.isOnline() }
     for (const cb of subs) cb(state)
   }
   const syncState: Observable<SyncState> = {
@@ -78,10 +84,14 @@ export function createSyncEngine(deps: {
   function isConflict(e: unknown): boolean {
     return e instanceof DomainError && e.code === 'REVISION_CONFLICT'
   }
-  function errKind(e: unknown): 'auth' | 'transport' | 'other' {
-    const x = e as { name?: string; kind?: string }
-    if (x?.name === 'HttpRepositoryError') return x.kind === 'auth' ? 'auth' : 'transport'
-    return 'other'
+  function classify(e: unknown): 'auth' | 'transport' | 'poison' {
+    const x = e as { name?: string; kind?: string; status?: number }
+    if (x?.name === 'HttpRepositoryError') {
+      if (x.kind === 'auth') return 'auth'
+      if (typeof x.status === 'number' && x.status >= 400 && x.status < 500) return 'poison'
+      return 'transport'
+    }
+    return 'poison'
   }
   function notFound(e: unknown): boolean {
     const x = e as { name?: string; status?: number }
@@ -156,7 +166,7 @@ export function createSyncEngine(deps: {
     if (!connectivity.isOnline()) { emit({ status: 'offline' }); return }
     emit({ status: 'syncing' })
     try {
-      let entries = outbox.list()
+      let entries = outbox.list().filter((e) => !e.failedAt)
       while (entries.length > 0) {
         for (const entry of entries) {
           const coll = collections[entry.collection]
@@ -184,14 +194,14 @@ export function createSyncEngine(deps: {
               outbox.removeIfSeq(entry.collection, id, entry.seq)
             }
           } catch (e) {
-            const kind = errKind(e)
+            const kind = classify(e)
             if (kind === 'auth') { emit({ status: 'error', lastError: message(e) }); return }
             if (kind === 'transport') { scheduleRetry(); emit({ status: 'offline' }); return }
-            emit({ status: 'error', lastError: message(e) }); return
+            outbox.markFailed(entry.collection, id, message(e)); emit({ lastFailedError: message(e) })
           }
           emit({})
         }
-        entries = outbox.list()
+        entries = outbox.list().filter((e) => !e.failedAt)
       }
       attempt = 0
       emit({ status: 'idle', lastSyncedAt: now() })
@@ -210,7 +220,7 @@ export function createSyncEngine(deps: {
       try {
         serverRecs = (await remote.list(since ? { includeDeleted: true, since } : { includeDeleted: true })) as Rec[]
       } catch (e) {
-        if (errKind(e) === 'transport') { emit({ status: 'offline' }); return }
+        if (classify(e) === 'transport') { emit({ status: 'offline' }); return }
         throw e
       }
       let max = since
@@ -288,5 +298,8 @@ export function createSyncEngine(deps: {
     }
   }
 
-  return { repositories, syncState, start, flush, pull, resync }
+  async function retryFailed(): Promise<void> { outbox.clearFailed(); await flush() }
+  function discardFailed(): void { outbox.discardFailed(); emit({}) }
+
+  return { repositories, syncState, start, flush, pull, resync, retryFailed, discardFailed }
 }
