@@ -57,22 +57,30 @@ too narrow, won't route arbitrary in-content deep-link anchors.
 
 ### 1. `src/state/route.js` (rewrite)
 
-- `parsePath(pathname)` — strip a leading `/`, split on `/`, return the first
-  segment or `'status'`. Replaces `parseHash`. Handles trailing slashes
-  (`/journal/` → `journal`) and root (`/` → `status`).
+- `parsePath(pathname)` — strip any `?query`/`#hash`, strip a leading `/`,
+  split on `/`, return the first segment or `'status'`. Replaces `parseHash`.
+  Handles trailing slashes (`/journal/` → `journal`), root (`/` → `status`),
+  and defensively a full path with a query (`/journal?seed` → `journal`). The
+  query strip is **F1**: the interceptor passes `pathname+search` to
+  `navigate`, so the signal derivation must not see the query.
 - `createRouteState(win)`:
   - `route` signal initialized from `parsePath(win.location.pathname)`.
   - `start()` — binds `popstate` (updates the signal from
     `win.location.pathname`); installs link interception (see §2); and
     normalizes the canonical home: if `win.location.pathname === '/'`,
-    `win.history.replaceState({}, '', '/status')` and set the signal to
-    `status`. Also sets `win.history.scrollRestoration = 'manual'` (heading
-    focus in `oyl-router` handles viewport movement; default restoration is
-    unreliable against swapped content).
+    `win.history.replaceState({}, '', '/status' + win.location.search)` and set
+    the signal to `status`. **Preserving `search` is F2** — `main.js` reads
+    `location.search` for `?seed` *after* `start()`, so the redirect must not
+    drop the query. Also sets `win.history.scrollRestoration = 'manual'`
+    (heading focus in `oyl-router` handles viewport movement; default
+    restoration is unreliable against swapped content).
   - `stop()` — unbinds `popstate` and the link interceptor (teardown for tests).
-  - `navigate(path)` — if `path` equals the current `pathname`, no-op (no
-    duplicate history entry); otherwise `win.history.pushState({}, '', path)`
-    then `route.set(parsePath(path))`.
+  - `navigate(path)` — parse `const url = new URL(path, win.location.origin)`.
+    If `url.pathname` equals the current `pathname`, no-op (no duplicate
+    history entry); otherwise `win.history.pushState({}, '',
+    url.pathname + url.search)` then `route.set(parsePath(url.pathname))`. (The
+    no-op guard compares `pathname` only — a query-only change would no-op;
+    acceptable, the app uses `?seed` only at boot.)
 
 ### 2. `src/state/link-interceptor.js` (new)
 
@@ -107,7 +115,11 @@ unchanged (still compares `dataset.route` to the active name). At `/status`
 ### 4. `src/components/oyl-router.js`
 
 Unchanged. Still consumes the string route-name signal; view-swap, View
-Transitions, `aria-live`, and heading focus all intact.
+Transitions, `aria-live`, and heading focus all intact. **F3:** unknown clean
+paths are now reachable (`/nonsense` → proxy serves `index.html` → `parsePath`
+→ `nonsense` → existing `_notFound` view). This is correct SPA behavior — a
+`200` + Not-found view, never a real HTTP 404. `_notFound` already builds DOM
+via `textContent` (the untrusted name), so no escaping change is needed.
 
 ### 5. `index.html`
 
@@ -136,6 +148,15 @@ The `--proxy …?` trick: an unresolved path (`/journal`) is proxied to
 `http://localhost:8041?/journal`, whose path is `/` (the rest is query string),
 serving `index.html`. Docker inherits this via `pnpm vanilla dev`.
 
+### 7. Docs
+
+Update CLAUDE.md's `#/status` reference (the Status-screen note) to `/status`;
+it is a living doc. Leave the historical foundation spec
+(`2026-06-12-vanilla-oyl-foundation-design.md`) as-is — the archive records
+what was true then; this spec supersedes it. Re-grep `apps/vanilla-oyl` for
+stray `#/` / `location.hash` at implementation time to catch anything the
+initial survey missed.
+
 ## Testing (TDD, happy-dom)
 
 - **`src/state/route.test.js`** — replace `parseHash` tests with `parsePath`:
@@ -155,6 +176,23 @@ serving `index.html`. Docker inherits this via `pnpm vanilla dev`.
   `/journal`, `#/planner` → `/planner`.
 - **`src/components/oyl-journal.test.js:47`** — update the test description
   string mentioning `#/finance` → `/finance` (cosmetic).
+- Add a `parsePath('/journal?seed')` → `journal` case (F1 regression) and a
+  `start()`-preserves-`?seed` case (F2 regression).
+
+### Test-infra de-risking (verified 2026-06-16)
+
+Probed empirically before planning:
+
+- **happy-dom (`^20`)** — `pushState` updates `location.pathname` and fires no
+  spurious `popstate`; `history.scrollRestoration` is settable;
+  `event.composedPath()` crosses a shadow boundary and includes the anchor;
+  `new URL(a.href, location.href).origin` matches. The test plan needs no
+  history/location stub.
+- **`http-server --proxy "http://localhost:8049?"`** — `/journal` and
+  `/journal/2026-06-16` both return `200 text/html` (index.html); real files
+  still serve. A missing asset (`/vendor/does-not-exist.js`) also returns `200`
+  + index.html — **the 404-masking caveat below is confirmed**, and absolute
+  asset paths are confirmed mandatory (the deep path *does* serve index.html).
 
 ## Out of scope (deferred)
 
@@ -178,4 +216,7 @@ serving `index.html`. Docker inherits this via `pnpm vanilla dev`.
 
 - `pnpm vanilla test` and `pnpm vanilla typecheck` green.
 - Manual: `/journal` deep-loads (hard refresh), nav clicks update the URL
-  without reload, browser back/forward work, `/` redirects to `/status`.
+  without reload, browser back/forward work, `/` redirects to `/status`,
+  `/?seed` still seeds (F2), an unknown path shows Not-found (F3).
+- CLAUDE.md `#/status` reference updated; no stray `#/` left in
+  `apps/vanilla-oyl`.
