@@ -9,7 +9,7 @@ import type { PersistedMeta } from './persisted-meta.js'
 export interface Repository<T extends { id: Id; meta?: PersistedMeta }> {
   /** undefined for missing AND soft-deleted records. */
   get(id: Id): Promise<T | undefined>
-  list(opts?: { includeDeleted?: boolean }): Promise<T[]>
+  list(opts?: { includeDeleted?: boolean; since?: string }): Promise<T[]>
   /** Stamps/refreshes meta (storage clock); returns the item. Stale revision → REVISION_CONFLICT. */
   save(item: T): Promise<T>
   /**

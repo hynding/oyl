@@ -65,4 +65,14 @@ describe('createHttpRepository — wire shape & auth', () => {
     await expect(repo.list()).rejects.toMatchObject({ kind: 'auth' })
     expect(onAuthError).toHaveBeenCalledTimes(1)
   })
+
+  it('list passes since + includeDeleted as query params', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ records: [] }), { status: 200 })) as any
+    await deps(fetch).list({ includeDeleted: true, since: '2026-06-15T12:00:00.000Z' })
+    expect(String(fetch.mock.calls[0][0])).toContain('includeDeleted=1')
+    expect(String(fetch.mock.calls[0][0])).toContain('since=2026-06-15T12%3A00%3A00.000Z')
+    const fetch2 = vi.fn(async () => new Response(JSON.stringify({ records: [] }), { status: 200 })) as any
+    await deps(fetch2).list()
+    expect(String(fetch2.mock.calls[0][0])).not.toContain('?')
+  })
 })

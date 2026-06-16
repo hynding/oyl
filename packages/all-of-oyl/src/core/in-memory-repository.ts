@@ -26,7 +26,7 @@ export class InMemoryRepository<T extends { id: Id; meta?: PersistedMeta }> impl
     return stored
   }
 
-  async list(opts?: { includeDeleted?: boolean }): Promise<T[]> {
+  async list(opts?: { includeDeleted?: boolean; since?: string }): Promise<T[]> {
     const all = [...this.records.values()]
     return opts?.includeDeleted ? all : all.filter((r) => !r.meta?.deletedAt)
   }

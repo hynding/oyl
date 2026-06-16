@@ -46,7 +46,7 @@ export class LocalStorageRepository<T extends { id: Id; meta?: PersistedMeta }> 
     return found
   }
 
-  async list(opts?: { includeDeleted?: boolean }): Promise<T[]> {
+  async list(opts?: { includeDeleted?: boolean; since?: string }): Promise<T[]> {
     const all = this.readAll()
     return opts?.includeDeleted ? all : all.filter((i) => !i.meta?.deletedAt)
   }
