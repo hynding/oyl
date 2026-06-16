@@ -30,7 +30,7 @@ describe('backup', () => {
     const dest = fakeStorage()
     await importData(dest, JSON.stringify(doc))
     const seed = makeSeed()
-    const repos = makeRepositories(dest)
+    const { repos } = makeRepositories(dest)
     expect((await repos.entries.list()).length).toBe(seed.entries.length)
     expect(dest.getItem(SCHEMA_VERSION_KEY)).not.toBeNull()
   })

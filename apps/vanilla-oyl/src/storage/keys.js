@@ -15,3 +15,10 @@ export function dataKey(collection) {
 export function isOylKey(key) {
   return key.startsWith(PREFIX)
 }
+
+export const CACHE_PREFIX = 'oyl/cache/'
+/** Full localStorage key for a collection's offline cache. @param {string} collection @returns {string} */
+export function cacheKey(collection) {
+  return `${CACHE_PREFIX}${collection}`
+}
+export const OUTBOX_KEY = 'oyl/outbox'

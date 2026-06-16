@@ -22,7 +22,7 @@ import { defaultTimezone } from '../storage/clock.js'
  * @param {{ client?: import('@oyl/all-of-oyl').HttpClient }} [opts]
  */
 export function createDataState(storage, themeState, opts = {}) {
-  const repos = makeRepositories(storage, opts.client ? { client: opts.client } : {})
+  const { repos } = makeRepositories(storage, opts.client ? { client: opts.client } : {})
   const journal = createJournalStore(repos.entries, defaultTimezone())
   const planner = createPlannerStore(repos.plans)
   const vault = createVaultStore(repos)

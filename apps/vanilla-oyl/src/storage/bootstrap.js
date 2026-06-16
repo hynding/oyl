@@ -1,5 +1,5 @@
-import { COLLECTIONS, LocalStorageRepository, createHttpRepository } from '@oyl/all-of-oyl'
-import { dataKey } from './keys.js'
+import { COLLECTIONS, LocalStorageRepository, createHttpRepository, createCacheStore, createOutbox, createSyncEngine, alwaysOnline } from '@oyl/all-of-oyl'
+import { dataKey, cacheKey, OUTBOX_KEY } from './keys.js'
 import { now } from './clock.js'
 
 /**
@@ -8,27 +8,38 @@ import { now } from './clock.js'
  */
 
 /**
- * Construct one repository per manifest collection. When `opts.client` is provided each
- * repo delegates to the HTTP API; otherwise falls back to localStorage.
+ * Build the repositories. Remote mode (`opts.client`) returns offline-first facades from a
+ * sync engine (+ the engine for start()/syncState); local mode returns plain localStorage repos.
  * @param {import('@oyl/all-of-oyl').StorageLike} storage
- * @param {{ client?: import('@oyl/all-of-oyl').HttpClient }} [opts]
- * @returns {Repositories}
+ * @param {{ client?: import('@oyl/all-of-oyl').HttpClient, connectivity?: import('@oyl/all-of-oyl').Connectivity }} [opts]
+ * @returns {{ repos: Repositories, engine?: import('@oyl/all-of-oyl').SyncEngine }}
  */
 export function makeRepositories(storage, opts = {}) {
+  if (opts.client) {
+    /** @type {Record<string, { cache: any, remote: any }>} */
+    const collections = {}
+    for (const name of /** @type {CollectionName[]} */ (Object.keys(COLLECTIONS))) {
+      const codec = /** @type {any} */ (COLLECTIONS[name])
+      collections[name] = {
+        cache: createCacheStore(storage, cacheKey(name), codec),
+        remote: createHttpRepository(opts.client, name, codec),
+      }
+    }
+    const outbox = createOutbox(storage, OUTBOX_KEY, now)
+    const timers = { set: (/** @type {() => void} */ fn, /** @type {number} */ ms) => setTimeout(fn, ms), clear: (/** @type {any} */ h) => clearTimeout(h) }
+    const engine = createSyncEngine({ collections, outbox, connectivity: opts.connectivity ?? alwaysOnline(), now, timers })
+    return { repos: /** @type {Repositories} */ (engine.repositories), engine }
+  }
   const repos = /** @type {Repositories} */ ({})
   for (const name of /** @type {CollectionName[]} */ (Object.keys(COLLECTIONS))) {
-    const codec = /** @type {any} */ (COLLECTIONS[name])
-    repos[name] = opts.client
-      ? /** @type {any} */ (createHttpRepository(opts.client, name, codec))
-      : new LocalStorageRepository(storage, dataKey(name), codec, now)
+    repos[name] = new LocalStorageRepository(storage, dataKey(name), /** @type {any} */ (COLLECTIONS[name]), now)
   }
-  return repos
+  return { repos }
 }
 
 /**
  * Live (non-deleted) record count per collection.
- * @param {Repositories} repos
- * @returns {Promise<Record<string, number>>}
+ * @param {Repositories} repos @returns {Promise<Record<string, number>>}
  */
 export async function collectionCounts(repos) {
   /** @type {Record<string, number>} */

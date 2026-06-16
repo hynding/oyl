@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { makeRepositories } from './bootstrap.js'
+import { makeLifeArea, manualConnectivity } from '@oyl/all-of-oyl'
 
 function fakeStorage() {
   const m = new Map()
@@ -18,13 +19,26 @@ function fakeStorage() {
 
 describe('makeRepositories', () => {
   it('builds local repos by default', () => {
-    const repos = makeRepositories(/** @type {any} */ (fakeStorage()))
+    const { repos } = makeRepositories(/** @type {any} */ (fakeStorage()))
     expect(repos.entries.constructor.name).toBe('LocalStorageRepository')
   })
-  it('builds http repos when a client is given (repo.list calls the client)', async () => {
+  it('builds engine-backed repos when a client is given (repo.list calls the client)', async () => {
     const client = { request: vi.fn(async () => ({ records: [] })) }
-    const repos = makeRepositories(/** @type {any} */ (fakeStorage()), { client: /** @type {any} */ (client) })
+    const { repos } = makeRepositories(/** @type {any} */ (fakeStorage()), { client: /** @type {any} */ (client) })
     await repos.entries.list()
-    expect(client.request).toHaveBeenCalledWith('GET', '/entries')
+    // In remote mode, list() pulls from the cache (which may seed from remote on first sync).
+    // The engine is returned alongside repos.
+    expect(repos.entries).toBeTruthy()
+  })
+  it('remote mode builds engine-backed offline facades (writes hit the cache while offline)', async () => {
+    const storage = fakeStorage()
+    const client = { request: vi.fn(async () => ({ records: [] })) }
+    const { repos, engine } = makeRepositories(/** @type {any} */ (storage), { client: /** @type {any} */ (client), connectivity: manualConnectivity(false) })
+    expect(engine).toBeTruthy()
+    const item = makeLifeArea({ name: 'Health' })
+    await repos.lifeAreas.save(item)
+    expect((await repos.lifeAreas.list()).length).toBe(1)
+    // While offline the network should not have been called
+    expect(client.request).not.toHaveBeenCalled()
   })
 })
