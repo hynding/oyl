@@ -145,3 +145,28 @@ describe('<oyl-status-panel> sync section', () => {
     el.remove()
   })
 })
+
+describe('<oyl-status-panel> migration button', () => {
+  const diag = { schema: { status: 'ok' }, counts: {}, theme: { theme: 'classic', mode: 'system' }, build: 'dev' }
+  it('shows Upload local data (N) when migration set; click calls onUpload + hides', () => {
+    let uploaded = false
+    const el = /** @type {any} */ (document.createElement('oyl-status-panel'))
+    el.migration = { count: 5, onUpload: () => { uploaded = true } }
+    el.diagnostics = diag
+    document.body.append(el)
+    const btn = /** @type {HTMLButtonElement} */ (el.shadowRoot.querySelector('button[data-act="upload-local"]'))
+    expect(btn).toBeTruthy()
+    expect(btn.textContent).toContain('5')
+    btn.click()
+    expect(uploaded).toBe(true)
+    expect(btn.hidden).toBe(true)
+    el.remove()
+  })
+  it('no button when migration is null or count 0', () => {
+    const el = /** @type {any} */ (document.createElement('oyl-status-panel'))
+    el.diagnostics = diag
+    document.body.append(el)
+    expect(el.shadowRoot.querySelector('button[data-act="upload-local"]')).toBeNull()
+    el.remove()
+  })
+})
