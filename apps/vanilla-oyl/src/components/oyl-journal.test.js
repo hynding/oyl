@@ -44,7 +44,7 @@ describe('<oyl-journal>', () => {
     el.remove()
   })
 
-  it('does not render transactions in the day view (they live on #/finance)', async () => {
+  it('does not render transactions in the day view (they live on /finance)', async () => {
     const store = createJournalStore(new InMemoryRepository(), TZ)
     await store.add(new Note({ occurredAt: new Date(), text: 'a note' }))
     await store.add(new Transaction({ occurredAt: new Date(), amount: Money.of(500, 'USD', 2), category: 'groceries', direction: 'expense' }))
