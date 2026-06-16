@@ -1,5 +1,5 @@
-import { COLLECTIONS, LocalStorageRepository, createHttpRepository, createCacheStore, createOutbox, createSyncEngine, alwaysOnline } from '@oyl/all-of-oyl'
-import { dataKey, cacheKey, OUTBOX_KEY } from './keys.js'
+import { COLLECTIONS, LocalStorageRepository, createHttpRepository, createCacheStore, createOutbox, createCursorStore, createSyncEngine, alwaysOnline } from '@oyl/all-of-oyl'
+import { dataKey, cacheKey, OUTBOX_KEY, CURSORS_KEY } from './keys.js'
 import { now } from './clock.js'
 
 /**
@@ -26,8 +26,9 @@ export function makeRepositories(storage, opts = {}) {
       }
     }
     const outbox = createOutbox(storage, OUTBOX_KEY, now)
+    const cursors = createCursorStore(storage, CURSORS_KEY)
     const timers = { set: (/** @type {() => void} */ fn, /** @type {number} */ ms) => setTimeout(fn, ms), clear: (/** @type {any} */ h) => clearTimeout(h) }
-    const engine = createSyncEngine({ collections, outbox, connectivity: opts.connectivity ?? alwaysOnline(), now, timers })
+    const engine = createSyncEngine({ collections, outbox, connectivity: opts.connectivity ?? alwaysOnline(), now, timers, cursors })
     return { repos: /** @type {Repositories} */ (engine.repositories), engine }
   }
   const repos = /** @type {Repositories} */ ({})

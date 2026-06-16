@@ -22,3 +22,4 @@ export function cacheKey(collection) {
   return `${CACHE_PREFIX}${collection}`
 }
 export const OUTBOX_KEY = 'oyl/outbox'
+export const CURSORS_KEY = 'oyl/sync-cursors'

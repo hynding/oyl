@@ -16,7 +16,7 @@ interface Codec<T> {
  */
 export interface CacheStore<T extends { id: Id; meta?: PersistedMeta }> {
   get(id: Id): Promise<T | undefined>
-  list(opts?: { includeDeleted?: boolean }): Promise<T[]>
+  list(opts?: { includeDeleted?: boolean; since?: string }): Promise<T[]>
   getRaw(id: Id): Promise<T | undefined>
   putRaw(item: T): Promise<void>
   removeRaw(id: Id): Promise<void>

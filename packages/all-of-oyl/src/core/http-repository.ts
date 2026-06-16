@@ -134,7 +134,10 @@ export function createHttpRepository<T extends { id: Id; meta?: PersistedMeta }>
       return env && !env.deletedAt ? revive(env) : undefined
     },
     async list(opts) {
-      const res = (await client.request('GET', `${base}${opts?.includeDeleted ? '?includeDeleted=1' : ''}`)) as { records: RecordEnvelope[] }
+      const params: string[] = []
+      if (opts?.includeDeleted) params.push('includeDeleted=1')
+      if (opts?.since) params.push(`since=${encodeURIComponent(opts.since)}`)
+      const res = (await client.request('GET', `${base}${params.length ? '?' + params.join('&') : ''}`)) as { records: RecordEnvelope[] }
       return res.records.map(revive)
     },
     async save(item) {
