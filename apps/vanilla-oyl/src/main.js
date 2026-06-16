@@ -26,6 +26,7 @@ import { createNoticeState } from './state/notice.js'
 import { defineNotice } from './components/oyl-notice.js'
 import { createHttpClient } from '@oyl/all-of-oyl'
 import { createBrowserConnectivity } from './storage/connectivity.js'
+import { debounce } from './lib/debounce.js'
 
 async function boot() {
   const storage = window.localStorage
@@ -48,7 +49,15 @@ async function boot() {
   const noticeState = createNoticeState()
   const mode = getStorageMode(storage)
   const client = mode === 'remote'
-    ? createHttpClient({ baseUrl: getApiBaseUrl(storage), fetch: window.fetch.bind(window), getToken: authState.getToken, onAuthError: () => authState.logout() })
+    ? createHttpClient({
+        baseUrl: getApiBaseUrl(storage),
+        fetch: window.fetch.bind(window),
+        getToken: authState.getToken,
+        onAuthError: () => authState.logout(),
+        timeoutMs: 15000,
+        newAbortController: () => new AbortController(),
+        timer: { set: (fn, ms) => setTimeout(fn, ms), clear: (/** @type {any} */ id) => clearTimeout(id) },
+      })
     : undefined
   const connectivity = mode === 'remote' ? createBrowserConnectivity(window) : undefined
   const dataState = createDataState(storage, themeState, client ? { client, ...(connectivity ? { connectivity } : {}) } : {})
@@ -87,11 +96,12 @@ async function boot() {
   })
 
   // Multi-tab coherence: react to writes from other tabs.
+  const debouncedRefresh = debounce(() => void dataState.refresh(), 150)
   window.addEventListener('storage', (e) => {
     if (!e.key || !isOylKey(e.key)) return
     if (e.key === SETTINGS_KEY) themeState.refresh()
     else if (e.key === AUTH_KEY) authState.refresh()
-    else void dataState.refresh()
+    else debouncedRefresh()
   })
 
   window.addEventListener('unhandledrejection', (e) => {

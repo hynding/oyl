@@ -23,6 +23,11 @@ export interface Observable<T> {
   subscribe(cb: (v: T) => void): () => void
 }
 
+export interface Lock {
+  /** Run fn while holding the named lock; serialize (queue) across concurrent holders. */
+  runExclusive(name: string, fn: () => Promise<void>): Promise<void>
+}
+
 interface Timers {
   set(fn: () => void, ms: number): unknown
   clear(handle: unknown): void
@@ -47,9 +52,10 @@ export function createSyncEngine(deps: {
   timers?: Timers
   backoff?: (attempt: number) => number
   conflictPolicy?: 'client-wins' | 'server-wins'
+  lock?: Lock
   cursors?: CursorStore
 }): SyncEngine {
-  const { collections, outbox, connectivity, now, timers, cursors } = deps
+  const { collections, outbox, connectivity, now, timers, cursors, lock } = deps
   const backoff = deps.backoff ?? ((a) => Math.min(30_000, 1_000 * 2 ** a))
   const policy = deps.conflictPolicy ?? 'client-wins'
   const MAX_CONFLICT_RETRIES = 3
@@ -142,11 +148,12 @@ export function createSyncEngine(deps: {
   function flush(): Promise<void> {
     if (currentFlush) return currentFlush
     if (!connectivity.isOnline()) { emit({ status: 'offline' }); return Promise.resolve() }
-    currentFlush = doFlush().finally(() => { currentFlush = undefined })
+    currentFlush = (lock ? lock.runExclusive('oyl-flush', doFlush) : doFlush()).finally(() => { currentFlush = undefined })
     return currentFlush
   }
 
   async function doFlush(): Promise<void> {
+    if (!connectivity.isOnline()) { emit({ status: 'offline' }); return }
     emit({ status: 'syncing' })
     try {
       let entries = outbox.list()

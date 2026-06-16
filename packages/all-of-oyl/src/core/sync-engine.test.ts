@@ -237,3 +237,42 @@ describe('createSyncEngine — pulledAt', () => {
     expect(engine.syncState.get().pulledAt).toBeInstanceOf(Date)
   })
 })
+
+/** A serializing in-process mutex — mirrors navigator.locks per-origin across "tabs". */
+function memLock() {
+  /** @type {Promise<any>} */
+  let chain = Promise.resolve()
+  /** @type {string[]} */
+  const calls: string[] = []
+  return { calls, runExclusive: (name: string, fn: () => Promise<void>) => { calls.push(name); const p = chain.then(() => fn()); chain = p.catch(() => {}); return p } }
+}
+/** Wrap a remote to count save() calls. */
+function counting(inner: any) {
+  let saves = 0
+  return { get: (id: any) => inner.get(id), list: (o: any) => inner.list(o), save: (x: any) => { saves++; return inner.save(x) }, delete: (id: any) => inner.delete(id), purge: (id: any) => inner.purge(id), saveMany: (i: any) => inner.saveMany(i), get saves() { return saves } }
+}
+
+describe('createSyncEngine — flush lock', () => {
+  it('runs flush through lock.runExclusive(oyl-flush) when a lock is given', async () => {
+    const storage = mem()
+    const lock = memLock()
+    const remote = new InMemoryRepository(now)
+    const engine = createSyncEngine({ collections: { lifeAreas: { cache: createCacheStore(storage, 'oyl/cache/lifeAreas', codec), remote } }, outbox: createOutbox(storage, 'oyl/outbox', now), connectivity: manualConnectivity(true), now, lock })
+    const a = area()
+    await engine.repositories.lifeAreas!.save(a)
+    await engine.flush()
+    expect(lock.calls).toContain('oyl-flush')
+    expect(await remote.get(a.id)).toBeTruthy()
+  })
+
+  it('serializes two engines on a shared outbox — each record pushed once (no double-flush)', async () => {
+    const storage = mem()
+    const lock = memLock()
+    const remote = counting(new InMemoryRepository(now))
+    const mk = () => createSyncEngine({ collections: { lifeAreas: { cache: createCacheStore(storage, 'oyl/cache/lifeAreas', codec), remote } }, outbox: createOutbox(storage, 'oyl/outbox', now), connectivity: manualConnectivity(true), now, lock })
+    const A = mk(); const B = mk()
+    await A.repositories.lifeAreas!.save(area()) // enqueues to the SHARED outbox (+ auto-triggers A.flush)
+    await Promise.all([A.flush(), B.flush()])
+    expect(remote.saves).toBe(1)
+  })
+})
