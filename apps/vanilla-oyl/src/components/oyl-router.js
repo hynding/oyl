@@ -42,12 +42,20 @@ export class OylRouter extends OylElement {
 
   /** @param {string} name @returns {Node} */
   _notFound(name) {
-    // Build via DOM APIs (not innerHTML): `name` derives from the URL path (untrusted).
+    // `name` derives from the URL path (untrusted) and may be percent-encoded;
+    // decode for a readable label, falling back to raw on malformed input.
+    let label = name
+    try {
+      label = decodeURIComponent(name)
+    } catch {
+      // malformed escape sequence — keep the raw segment
+    }
+    // Build via DOM APIs (not innerHTML): textContent keeps the (decoded) label inert.
     const d = document.createElement('div')
     const h1 = document.createElement('h1')
     h1.textContent = 'Not found'
     const p = document.createElement('p')
-    p.textContent = `No view for route “${name}”.`
+    p.textContent = `No view for route “${label}”.`
     d.append(h1, p)
     return d
   }

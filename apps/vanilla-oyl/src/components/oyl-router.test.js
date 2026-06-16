@@ -41,4 +41,27 @@ describe('<oyl-router>', () => {
     expect(root.textContent?.toLowerCase()).toContain('not found')
     el.remove()
   })
+
+  it('decodes the (percent-encoded) route name in the not-found message, inertly', async () => {
+    const route = signal('%3Cimg%3E') // encoded "<img>" — what parsePath returns for /<img>
+    const el = /** @type {import('./oyl-router.js').OylRouter} */ (document.createElement('oyl-router'))
+    el.routeSignal = route
+    el.routes = { status: () => document.createElement('div') }
+    document.body.append(el)
+    const root = /** @type {ShadowRoot} */ (el.shadowRoot)
+    expect(root.textContent).toContain('<img>') // decoded for display
+    expect(root.querySelector('img')).toBeNull() // but rendered as inert text, not an element
+    el.remove()
+  })
+
+  it('keeps a malformed-encoded route name verbatim (no throw)', async () => {
+    const route = signal('%') // decodeURIComponent('%') throws — must fall back to raw
+    const el = /** @type {import('./oyl-router.js').OylRouter} */ (document.createElement('oyl-router'))
+    el.routeSignal = route
+    el.routes = { status: () => document.createElement('div') }
+    document.body.append(el)
+    const root = /** @type {ShadowRoot} */ (el.shadowRoot)
+    expect(root.textContent).toContain('%')
+    el.remove()
+  })
 })
