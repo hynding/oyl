@@ -226,3 +226,14 @@ describe('createSyncEngine — delta pull', () => {
     expect(remote.sinceCalls[2]).toBeUndefined() // cursor cleared → full pull
   })
 })
+
+describe('createSyncEngine — pulledAt', () => {
+  it('pull() sets pulledAt; flush() does not', async () => {
+    const { repo, engine } = setup(true)
+    await repo.save(area())
+    await engine.flush()
+    expect(engine.syncState.get().pulledAt).toBeUndefined() // flush-only: no pulledAt
+    await engine.pull()
+    expect(engine.syncState.get().pulledAt).toBeInstanceOf(Date)
+  })
+})
