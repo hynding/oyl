@@ -78,9 +78,11 @@ too narrow, won't route arbitrary in-content deep-link anchors.
   - `navigate(path)` — parse `const url = new URL(path, win.location.origin)`.
     If `url.pathname` equals the current `pathname`, no-op (no duplicate
     history entry); otherwise `win.history.pushState({}, '',
-    url.pathname + url.search)` then `route.set(parsePath(url.pathname))`. (The
-    no-op guard compares `pathname` only — a query-only change would no-op;
-    acceptable, the app uses `?seed` only at boot.)
+    url.pathname + url.search)` then `route.set(parsePath(url.pathname))`.
+    (Implementation note: the merged code compares the full `pathname + search`
+    in the no-op guard, so a query-only change — e.g. `/journal` → `/journal?seed`
+    — still navigates. This supersedes the original `pathname`-only guard, which
+    would have failed the "preserves the query" test below.)
 
 ### 2. `src/state/link-interceptor.js` (new)
 

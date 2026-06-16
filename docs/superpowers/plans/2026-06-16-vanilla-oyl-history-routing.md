@@ -347,8 +347,12 @@ export function createRouteState(win = window) {
   /** @param {string} path  `pathname` + optional `?search` to navigate to */
   const navigate = (path) => {
     const url = new URL(path, win.location.origin)
-    if (url.pathname === win.location.pathname) return
-    win.history.pushState({}, '', url.pathname + url.search)
+    // Compare the full pathname+search so a query-only change (e.g. ?seed)
+    // still navigates — a pathname-only guard would no-op it and fail the
+    // "preserves the query" test.
+    const fullPath = url.pathname + url.search
+    if (fullPath === win.location.pathname + win.location.search) return
+    win.history.pushState({}, '', fullPath)
     route.set(parsePath(url.pathname))
   }
 

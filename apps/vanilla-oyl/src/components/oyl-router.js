@@ -42,7 +42,7 @@ export class OylRouter extends OylElement {
 
   /** @param {string} name @returns {Node} */
   _notFound(name) {
-    // Build via DOM APIs (not innerHTML): `name` derives from the URL hash (untrusted).
+    // Build via DOM APIs (not innerHTML): `name` derives from the URL path (untrusted).
     const d = document.createElement('div')
     const h1 = document.createElement('h1')
     h1.textContent = 'Not found'
