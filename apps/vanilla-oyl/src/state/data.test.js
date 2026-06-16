@@ -226,3 +226,19 @@ describe('createDataState sync surface', () => {
     expect(ds.syncState.get()).toBeNull()
   })
 })
+
+describe('createDataState migration surface', () => {
+  it('migrationOffer reflects local data; migrateLocal uploads + returns the count', async () => {
+    const { LifeArea, COLLECTIONS } = await import('@oyl/all-of-oyl')
+    const codec = /** @type {any} */ (COLLECTIONS.lifeAreas)
+    const storage = fakeStorage()
+    storage.setItem('oyl/data/lifeAreas', JSON.stringify([codec.toJSON(new LifeArea({ name: 'H', slug: 'h' }))]))
+    const client = { request: vi.fn(async () => ({ records: [] })) }
+    const themeState = createThemeState(storage)
+    const ds = createDataState(storage, themeState, { client: /** @type {any} */ (client), connectivity: manualConnectivity(true) })
+    expect(ds.migrationOffer()).toEqual({ count: 1 })
+    const n = await ds.migrateLocal()
+    expect(n).toBe(1)
+    expect(ds.migrationOffer()).toBeNull() // migrated → no longer offered
+  })
+})

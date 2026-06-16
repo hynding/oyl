@@ -3,6 +3,7 @@ import { signal } from '../lib/reactive/signal.js'
 import { effect } from '../lib/reactive/effect.js'
 import { makeRepositories, collectionCounts } from '../storage/bootstrap.js'
 import { readSchemaState } from '../storage/schema.js'
+import { shouldOfferMigration, countLocalRecords, migrateLocalToRemote } from '../storage/migrate.js'
 import { createJournalStore } from './journal-store.js'
 import { createPlannerStore } from './planner-store.js'
 import { createVaultStore } from './vault-store.js'
@@ -50,6 +51,10 @@ export function createDataState(storage, themeState, opts = {}) {
   function syncFlush() { if (engine) void engine.flush() }
   /** Clear cursors + full pull. @returns {Promise<void>} */
   function resync() { return engine ? engine.resync() : Promise.resolve() }
+  /** @returns {{ count: number } | null} */
+  function migrationOffer() { return shouldOfferMigration(storage) ? { count: countLocalRecords(storage) } : null }
+  /** Upload local data to remote + re-hydrate. @returns {Promise<number>} */
+  async function migrateLocal() { const n = await migrateLocalToRemote(storage, repos); await refresh(); return n }
   // Re-hydrate the stores when a pull/conflict changed the cache (remote only).
   if (engine) {
     let prevSync = syncState.get()
@@ -142,7 +147,7 @@ export function createDataState(storage, themeState, opts = {}) {
     return charge
   }
 
-  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, syncState, startSync, syncFlush, resync }
+  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, syncState, startSync, syncFlush, resync, migrationOffer, migrateLocal }
 }
 
 /**
