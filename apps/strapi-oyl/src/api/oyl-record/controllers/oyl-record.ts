@@ -16,6 +16,7 @@ export default factories.createCoreController(UID, ({ strapi }) => {
       const { collection } = ctx.params
       const where: Record<string, unknown> = { owner: { id: owner }, collection }
       if (ctx.query.includeDeleted !== '1') where.deletedAt = null
+      if (ctx.query.since) where.updatedAt = { $gte: new Date(String(ctx.query.since)) }
       const rows = (await query().findMany({ where })) as unknown as RecordRow[]
       ctx.body = { records: rows.map(toEnvelope) }
     },
@@ -41,10 +42,11 @@ export default factories.createCoreController(UID, ({ strapi }) => {
         ctx.body = { error: { code: 'REVISION_CONFLICT', message: `stale revision for ${collection}/${id}` } }
         return
       }
+      const now = new Date()
       const saved =
         decision.action === 'create'
-          ? await query().create({ data: { owner: owner, collection, recordId: id, data: data as any, revision: 1, deletedAt: null } })
-          : await query().update({ where: { id: existing!.id }, data: { data: data as any, revision: decision.revision, deletedAt: null } })
+          ? await query().create({ data: { owner: owner, collection, recordId: id, data: data as any, revision: 1, deletedAt: null, createdAt: now, updatedAt: now } })
+          : await query().update({ where: { id: existing!.id }, data: { data: data as any, revision: decision.revision, deletedAt: null, updatedAt: now } })
       ctx.body = toEnvelope(saved as unknown as RecordRow)
     },
 
@@ -57,7 +59,8 @@ export default factories.createCoreController(UID, ({ strapi }) => {
       if (ctx.query.purge === '1') {
         await query().delete({ where: { id: existing.id } })
       } else if (!existing.deletedAt) {
-        await query().update({ where: { id: existing.id }, data: { deletedAt: new Date(), revision: existing.revision + 1 } })
+        const now = new Date()
+        await query().update({ where: { id: existing.id }, data: { deletedAt: now, revision: existing.revision + 1, updatedAt: now } })
       }
       ctx.status = 204
     },
@@ -83,12 +86,13 @@ export default factories.createCoreController(UID, ({ strapi }) => {
       }
 
       // (2) apply all
+      const now = new Date()
       const records: ReturnType<typeof toEnvelope>[] = []
       for (const { item, existingId, revision } of plans) {
         const saved =
           existingId == null
-            ? await query().create({ data: { owner: owner, collection, recordId: item.id, data: item.data as any, revision: 1, deletedAt: null } })
-            : await query().update({ where: { id: existingId }, data: { data: item.data as any, revision, deletedAt: null } })
+            ? await query().create({ data: { owner: owner, collection, recordId: item.id, data: item.data as any, revision: 1, deletedAt: null, createdAt: now, updatedAt: now } })
+            : await query().update({ where: { id: existingId }, data: { data: item.data as any, revision, deletedAt: null, updatedAt: now } })
         records.push(toEnvelope(saved as unknown as RecordRow))
       }
       ctx.body = { records }
