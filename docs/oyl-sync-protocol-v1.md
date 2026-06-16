@@ -37,13 +37,18 @@ Base URL: `{baseUrl}/v1`. `{c}` = collection slug, `{id}` = record UUID.
 
 | Method | Path | Query | Request body | Success response |
 |---|---|---|---|---|
-| `GET` | `/v1/{c}` | `?includeDeleted=1` | — | `200 { "records": Envelope[] }` |
+| `GET` | `/v1/{c}` | `?since=<ISO8601>`, `?includeDeleted=1` | — | `200 { "records": Envelope[] }` |
 | `GET` | `/v1/{c}/{id}` | — | — | `200 Envelope` or `404` |
 | `PUT` | `/v1/{c}/{id}` | — | `{ "data": any, "revision": number \| null }` | `200 Envelope` |
 | `POST` | `/v1/{c}:batch` | — | `{ "items": [{ "id", "data", "revision" }] }` | `200 { "records": Envelope[] }` |
 | `DELETE` | `/v1/{c}/{id}` | `?purge=1` | — | `204` |
 
 **GET `/v1/{c}`** excludes records where `deletedAt != null` unless `?includeDeleted=1` is present.
+
+**`?since=<ISO8601>` — delta (incremental) fetch:** When present, the server returns only records where `updatedAt >= since`, i.e. records created, updated, or soft-deleted since that timestamp. Omitting `?since` returns the full list (backward-compatible). The server **guarantees `updatedAt` advances on every write** (create / update / soft-delete), making it a reliable cursor field.
+
+- Combine with `?includeDeleted=1` to receive tombstones in the delta, so deletions propagate to the client.
+- Clients keep a per-collection **high-water mark** — the maximum `updatedAt` seen across all received records — and pass it as `since` on the next pull. The `>=` boundary (not `>`) ensures a record whose `updatedAt` equals the cursor is never skipped; clients apply an idempotent merge so boundary duplicates are harmless.
 
 **PUT `/v1/{c}/{id}`** is an upsert (see Concurrency below).
 
