@@ -30,7 +30,7 @@ describe('seed', () => {
     const storage = fakeStorage()
     await loadDemoData(storage)
     expect(storage.getItem(SCHEMA_VERSION_KEY)).not.toBeNull()
-    const repos = makeRepositories(storage)
+    const { repos } = makeRepositories(storage)
     const seed = makeSeed()
     expect((await repos.entries.list()).length).toBe(seed.entries.length)
     expect((await repos.subscriptions.list()).length).toBe(seed.subscriptions.length)
