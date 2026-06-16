@@ -51,6 +51,10 @@ export function createDataState(storage, themeState, opts = {}) {
   function syncFlush() { if (engine) void engine.flush() }
   /** Clear cursors + full pull. @returns {Promise<void>} */
   function resync() { return engine ? engine.resync() : Promise.resolve() }
+  /** Un-quarantine failed outbox ops and re-flush. @returns {Promise<void>} */
+  function retryFailed() { return engine ? engine.retryFailed() : Promise.resolve() }
+  /** Permanently drop all failed outbox ops. */
+  function discardFailed() { if (engine) engine.discardFailed() }
   /** @returns {{ count: number } | null} */
   function migrationOffer() { return shouldOfferMigration(storage) ? { count: countLocalRecords(storage) } : null }
   /** Upload local data to remote + re-hydrate. @returns {Promise<number>} */
@@ -147,7 +151,7 @@ export function createDataState(storage, themeState, opts = {}) {
     return charge
   }
 
-  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, syncState, startSync, syncFlush, resync, migrationOffer, migrateLocal }
+  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, syncState, startSync, syncFlush, resync, retryFailed, discardFailed, migrationOffer, migrateLocal }
 }
 
 /**

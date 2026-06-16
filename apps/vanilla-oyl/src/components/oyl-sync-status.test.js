@@ -4,7 +4,7 @@ import { signal } from '../lib/reactive/signal.js'
 
 beforeAll(() => defineSyncStatus())
 /** @type {import('@oyl/all-of-oyl').SyncState} */
-const synced = { online: true, pending: 0, status: 'idle', conflicts: 0 }
+const synced = { online: true, pending: 0, status: 'idle', conflicts: 0, failed: 0 }
 /** @param {import('@oyl/all-of-oyl').SyncState | null} initial */
 function mount(initial) {
   const sig = signal(/** @type {any} */ (initial))
@@ -40,6 +40,19 @@ describe('<oyl-sync-status>', () => {
     sig.set({ ...synced, status: 'syncing' })
     await Promise.resolve()
     expect(el.hasAttribute('hidden')).toBe(false)
+    el.remove()
+  })
+  it('shows N failed (danger) even when idle', () => {
+    const { el } = mount({ online: true, pending: 0, status: 'idle', conflicts: 0, failed: 2 })
+    expect(el.hasAttribute('hidden')).toBe(false)
+    expect(el.shadowRoot.textContent).toContain('2 failed')
+    el.remove()
+  })
+
+  it('failed takes precedence over syncing', () => {
+    const { el } = mount({ ...synced, status: 'syncing', failed: 1 })
+    expect(el.hasAttribute('hidden')).toBe(false)
+    expect(el.shadowRoot.textContent).toContain('1 failed')
     el.remove()
   })
 })

@@ -146,6 +146,60 @@ describe('<oyl-status-panel> sync section', () => {
   })
 })
 
+describe('<oyl-status-panel> failed writes', () => {
+  const diag = { schema: { status: 'ok' }, counts: {}, theme: { theme: 'classic', mode: 'system' }, build: 'dev' }
+
+  it('shows Retry + Discard when failed>0; clicks call handlers', async () => {
+    let retried = false; let discarded = false
+    const el = /** @type {any} */ (document.createElement('oyl-status-panel'))
+    el.sync = {
+      state: signal({ online: true, pending: 0, status: 'idle', conflicts: 0, failed: 2, lastSyncedAt: new Date() }),
+      onResync: () => {},
+      onRetryFailed: () => { retried = true },
+      onDiscardFailed: () => { discarded = true },
+    }
+    el.diagnostics = diag
+    document.body.append(el)
+    await Promise.resolve()
+    const retry = /** @type {HTMLButtonElement} */ (el.shadowRoot.querySelector('button[data-act="retry-failed"]'))
+    const discard = /** @type {HTMLButtonElement} */ (el.shadowRoot.querySelector('button[data-act="discard-failed"]'))
+    expect(retry).toBeTruthy(); expect(discard).toBeTruthy()
+    expect(retry.hidden).toBe(false); expect(discard.hidden).toBe(false)
+    expect(el.shadowRoot.textContent).toContain("2 writes couldn't sync")
+    retry.click(); discard.click()
+    expect(retried).toBe(true); expect(discarded).toBe(true)
+    el.remove()
+  })
+
+  it('no Retry/Discard visible when failed is 0', async () => {
+    const el = /** @type {any} */ (document.createElement('oyl-status-panel'))
+    el.sync = {
+      state: signal({ online: true, pending: 0, status: 'idle', conflicts: 0, failed: 0, lastSyncedAt: new Date() }),
+      onResync: () => {},
+      onRetryFailed: () => {},
+      onDiscardFailed: () => {},
+    }
+    el.diagnostics = diag
+    document.body.append(el)
+    await Promise.resolve()
+    expect(el.shadowRoot.querySelector('button[data-act="retry-failed"]')?.hidden).toBe(true)
+    el.remove()
+  })
+
+  it('uses the singular form for one failed write', async () => {
+    const el = /** @type {any} */ (document.createElement('oyl-status-panel'))
+    el.sync = {
+      state: signal({ online: true, pending: 0, status: 'idle', conflicts: 0, failed: 1, lastSyncedAt: new Date() }),
+      onResync: () => {}, onRetryFailed: () => {}, onDiscardFailed: () => {},
+    }
+    el.diagnostics = diag
+    document.body.append(el)
+    await Promise.resolve()
+    expect(el.shadowRoot.textContent).toContain("1 write couldn't sync")
+    el.remove()
+  })
+})
+
 describe('<oyl-status-panel> migration button', () => {
   const diag = { schema: { status: 'ok' }, counts: {}, theme: { theme: 'classic', mode: 'system' }, build: 'dev' }
   it('shows Upload local data (N) when migration set; click calls onUpload + hides', () => {

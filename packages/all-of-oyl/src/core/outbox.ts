@@ -3,7 +3,7 @@ import type { Id } from './id.js'
 import type { StorageLike } from './local-storage-repository.js'
 
 export type OutboxOp = 'save' | 'delete' | 'purge'
-export interface OutboxEntry { seq: number; collection: string; op: OutboxOp; id: string; enqueuedAt: string }
+export interface OutboxEntry { seq: number; collection: string; op: OutboxOp; id: string; enqueuedAt: string; failedAt?: string; error?: string }
 
 export interface Outbox {
   /** Coalesces per (collection,id): replaces any prior entry; assigns a fresh monotonic seq. */
@@ -14,6 +14,12 @@ export interface Outbox {
   removeIfSeq(collection: string, id: Id, seq: number): void
   has(collection: string, id: Id): boolean
   size(): number
+  /** Quarantine the (collection,id) entry: stamp failedAt + error so flush skips it. No-op if absent. */
+  markFailed(collection: string, id: Id, error: string): void
+  /** Un-quarantine every entry (clear failedAt/error) — used by Retry. */
+  clearFailed(): void
+  /** Drop every quarantined entry — used by Discard. */
+  discardFailed(): void
 }
 
 export function createOutbox(storage: StorageLike, key: string, now: () => Date): Outbox {
@@ -52,6 +58,23 @@ export function createOutbox(storage: StorageLike, key: string, now: () => Date)
     },
     size() {
       return read().length
+    },
+    markFailed(collection, id, error) {
+      const sid = String(id)
+      const entries = read()
+      const e = entries.find((x) => x.collection === collection && x.id === sid)
+      if (e) { e.failedAt = now().toISOString(); e.error = error; write(entries) }
+    },
+    clearFailed() {
+      const entries = read()
+      let changed = false
+      for (const e of entries) if (e.failedAt) { delete e.failedAt; delete e.error; changed = true }
+      if (changed) write(entries)
+    },
+    discardFailed() {
+      const entries = read()
+      const next = entries.filter((e) => !e.failedAt)
+      if (next.length !== entries.length) write(next)
     },
   }
 }

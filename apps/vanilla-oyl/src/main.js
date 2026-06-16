@@ -154,7 +154,9 @@ async function boot() {
         defaultApiBaseUrl: DEFAULT_API_BASE_URL,
         onApply: (m, url) => { setStorageMode(storage, m); setApiBaseUrl(storage, url); location.reload() },
       }
-      panel.sync = mode === 'remote' ? { state: dataState.syncState, onResync: dataState.resync } : null
+      panel.sync = mode === 'remote'
+        ? { state: dataState.syncState, onResync: dataState.resync, onRetryFailed: () => void dataState.retryFailed(), onDiscardFailed: () => void dataState.discardFailed() }
+        : null
       panel.migration = mode === 'remote' && hasUnmigratedLocal(storage)
         ? { count: countLocalRecords(storage), onUpload: () => void dataState.migrateLocal() }
         : null

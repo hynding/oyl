@@ -48,6 +48,7 @@ export class OylSyncStatus extends OylElement {
  */
 function toChip(s) {
   if (!s) return null
+  if (s.failed > 0) return { tone: 'danger', text: `${s.failed} failed` }
   if (s.status === 'syncing') return { tone: 'accent', text: 'Syncing…' }
   if (s.status === 'error') return { tone: 'danger', text: 'Sync error', ...(s.lastError ? { title: s.lastError } : {}) }
   if (s.status === 'offline' || !s.online) return { tone: 'warn', text: s.pending > 0 ? `Offline · ${s.pending}` : 'Offline' }

@@ -9,6 +9,7 @@ import { COLLECTIONS } from '../collections.js'
 import type { StorageLike } from './local-storage-repository.js'
 import { DomainError } from './domain-error.js'
 import { createCursorStore } from './cursor-store.js'
+import { HttpRepositoryError } from './http-repository.js'
 
 function mem(): StorageLike { const store: Record<string, string> = {}; return { getItem: (k) => store[k] ?? null, setItem: (k, val) => { store[k] = val } } }
 const codec = COLLECTIONS.lifeAreas as any
@@ -274,5 +275,70 @@ describe('createSyncEngine — flush lock', () => {
     await A.repositories.lifeAreas!.save(area()) // enqueues to the SHARED outbox (+ auto-triggers A.flush)
     await Promise.all([A.flush(), B.flush()])
     expect(remote.saves).toBe(1)
+  })
+})
+
+/** A remote that throws a 413 for ids in `poison`, else delegates to `inner`. */
+function flakyRemote(inner: any) {
+  const poison = new Set<string>()
+  return {
+    poison,
+    get: (id: any) => inner.get(id), list: (o: any) => inner.list(o), delete: (id: any) => inner.delete(id), purge: (id: any) => inner.purge(id), saveMany: (i: any) => inner.saveMany(i),
+    save: async (x: any) => { if (poison.has(x.id)) throw new HttpRepositoryError('server', 'server error (413)', 413); return inner.save(x) },
+  }
+}
+
+describe('createSyncEngine — poison quarantine', () => {
+  function setupFlaky() {
+    const storage = mem()
+    const inner = new InMemoryRepository(now)
+    const remote = flakyRemote(inner)
+    const engine = createSyncEngine({ collections: { lifeAreas: { cache: createCacheStore(storage, 'oyl/cache/lifeAreas', codec), remote: remote as any } }, outbox: createOutbox(storage, 'oyl/outbox', now), connectivity: manualConnectivity(true), now })
+    return { engine, inner, remote, repo: engine.repositories.lifeAreas! }
+  }
+
+  it('quarantines a poison op + flushes the rest; failed=1, pending=0; terminates', async () => {
+    const { engine, inner, remote, repo } = setupFlaky()
+    const P = area('P', 'p'); const G = area('G', 'g')
+    remote.poison.add(P.id)
+    await repo.save(P); await repo.save(G)
+    await engine.flush()
+    expect(await inner.get(G.id)).toBeTruthy()
+    expect(await inner.get(P.id)).toBeUndefined()
+    expect(engine.syncState.get().failed).toBe(1)
+    expect(engine.syncState.get().pending).toBe(0)
+    expect(engine.syncState.get().lastFailedError).toContain('413')
+  })
+
+  it('retryFailed re-attempts (now succeeds) → failed=0, on remote', async () => {
+    const { engine, inner, remote, repo } = setupFlaky()
+    const P = area('P', 'p')
+    remote.poison.add(P.id)
+    await repo.save(P); await engine.flush()
+    expect(engine.syncState.get().failed).toBe(1)
+    remote.poison.delete(P.id)
+    await engine.retryFailed()
+    expect(engine.syncState.get().failed).toBe(0)
+    expect(engine.syncState.get().lastFailedError).toBeUndefined() // stale error cleared on recovery
+    expect(await inner.get(P.id)).toBeTruthy()
+  })
+
+  it('discardFailed drops the op (failed=0, never pushed)', async () => {
+    const { engine, inner, remote, repo } = setupFlaky()
+    const P = area('P', 'p')
+    remote.poison.add(P.id)
+    await repo.save(P); await engine.flush()
+    engine.discardFailed()
+    expect(engine.syncState.get().failed).toBe(0)
+    expect(await inner.get(P.id)).toBeUndefined()
+  })
+
+  it('a plain Error is quarantined (not infinite, not halting)', async () => {
+    const storage = mem(); const inner = new InMemoryRepository(now)
+    const remote: any = { get: (id: any) => inner.get(id), list: (o: any) => inner.list(o), delete: (id: any) => inner.delete(id), purge: (id: any) => inner.purge(id), saveMany: (i: any) => inner.saveMany(i), save: async () => { throw new Error('boom') } }
+    const engine = createSyncEngine({ collections: { lifeAreas: { cache: createCacheStore(storage, 'oyl/cache/lifeAreas', codec), remote } }, outbox: createOutbox(storage, 'oyl/outbox', now), connectivity: manualConnectivity(true), now })
+    await engine.repositories.lifeAreas!.save(area('X', 'x'))
+    await engine.flush()
+    expect(engine.syncState.get().failed).toBe(1)
   })
 })

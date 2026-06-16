@@ -41,7 +41,7 @@ export class OylStatusPanel extends OylElement {
     this.auth = null
     /** @type {import('./oyl-connection.js').ConnectionConfig | null} */
     this.connection = null
-    /** @type {{ state: import('../lib/reactive/signal.js').Signal<import('@oyl/all-of-oyl').SyncState | null>, onResync: () => void } | null} */
+    /** @type {{ state: import('../lib/reactive/signal.js').Signal<import('@oyl/all-of-oyl').SyncState | null>, onResync: () => void, onRetryFailed?: () => void, onDiscardFailed?: () => void } | null} */
     this.sync = null
     /** @type {{ count: number, onUpload: () => void } | null} */
     this.migration = null
@@ -114,6 +114,18 @@ export class OylStatusPanel extends OylElement {
       resyncBtn.textContent = 'Resync now'
       resyncBtn.dataset.act = 'resync'
       resyncBtn.addEventListener('click', () => this.sync?.onResync(), { signal: this.lifecycle })
+      // Failed-writes group: shown (not just disabled) only when there's something to act on.
+      // Retry stays enabled offline by design — it un-quarantines so the ops flush on reconnect,
+      // and the user sees feedback immediately (failed → pending).
+      const failedInfo = document.createElement('p')
+      const retryBtn = document.createElement('button')
+      retryBtn.textContent = 'Retry'
+      retryBtn.dataset.act = 'retry-failed'
+      retryBtn.addEventListener('click', () => this.sync?.onRetryFailed?.(), { signal: this.lifecycle })
+      const discardBtn = document.createElement('button')
+      discardBtn.textContent = 'Discard'
+      discardBtn.dataset.act = 'discard-failed'
+      discardBtn.addEventListener('click', () => this.sync?.onDiscardFailed?.(), { signal: this.lifecycle })
       this.track(() => {
         const s = this.sync ? this.sync.state.get() : null
         if (!s) { syncInfo.textContent = ''; return }
@@ -123,8 +135,13 @@ export class OylStatusPanel extends OylElement {
         if (s.conflicts > 0) parts.push(`${s.conflicts} reconciled this session`)
         syncInfo.textContent = parts.join(' · ')
         resyncBtn.disabled = !s.online || s.status === 'offline'
+        const hasFailed = s.failed > 0
+        failedInfo.textContent = hasFailed ? `${s.failed} write${s.failed === 1 ? '' : 's'} couldn't sync` : ''
+        failedInfo.hidden = !hasFailed
+        retryBtn.hidden = !hasFailed
+        discardBtn.hidden = !hasFailed
       })
-      syncNodes = [syncLabel, syncInfo, resyncBtn]
+      syncNodes = [syncLabel, syncInfo, resyncBtn, failedInfo, retryBtn, discardBtn]
     }
 
     /** @type {Node[]} */
