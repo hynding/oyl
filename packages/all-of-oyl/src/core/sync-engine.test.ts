@@ -7,6 +7,7 @@ import { InMemoryRepository } from './in-memory-repository.js'
 import { LifeArea } from './life-area.js'
 import { COLLECTIONS } from '../collections.js'
 import type { StorageLike } from './local-storage-repository.js'
+import { DomainError } from './domain-error.js'
 
 function mem(): StorageLike { const store: Record<string, string> = {}; return { getItem: (k) => store[k] ?? null, setItem: (k, val) => { store[k] = val } } }
 const codec = COLLECTIONS.lifeAreas as any
@@ -90,5 +91,91 @@ describe('createSyncEngine', () => {
     await engine.flush()
     expect(await remote.get(a.id)).toBeTruthy()
     expect(engine.syncState.get().pending).toBe(0)
+  })
+})
+
+/** Wraps a remote so every save throws REVISION_CONFLICT — a perpetually-racing writer. */
+function alwaysConflictRemote(inner: any) {
+  return {
+    get: (id: any) => inner.get(id),
+    list: (opts: any) => inner.list(opts),
+    save: async () => { throw new DomainError('REVISION_CONFLICT', 'forced') },
+    delete: (id: any) => inner.delete(id),
+    purge: (id: any) => inner.purge(id),
+    saveMany: (items: any) => inner.saveMany(items),
+  }
+}
+
+/** Build an engine with an explicit conflict policy (one 'lifeAreas' collection). */
+function setupPolicy(policy: 'client-wins' | 'server-wins', remoteOverride?: any) {
+  const storage = mem()
+  const cache = createCacheStore(storage, 'oyl/cache/lifeAreas', codec)
+  const remote = remoteOverride ?? new InMemoryRepository(now)
+  const outbox = createOutbox(storage, 'oyl/outbox', now)
+  const engine = createSyncEngine({ collections: { lifeAreas: { cache, remote } }, outbox, connectivity: manualConnectivity(true), now, conflictPolicy: policy })
+  return { engine, cache, remote, outbox, repo: engine.repositories.lifeAreas! }
+}
+
+describe('createSyncEngine — conflict policy', () => {
+  it('client-wins (default): conflict resolves with client data and records the conflict once', async () => {
+    const { repo, remote, engine, cache } = setup(true)
+    const a = area()
+    await repo.save(a); await engine.flush()
+    await remote.save((await remote.get(a.id))!) // another device bumps the server (rev 2)
+    await repo.save((await cache.get(a.id))!)     // local edit (cache base still rev 1)
+    await engine.flush()
+    expect(await remote.get(a.id)).toBeTruthy()    // live, client data won
+    expect(engine.syncState.get().conflicts).toBe(1)
+    expect(engine.syncState.get().lastConflict?.id).toBe(String(a.id))
+    expect(engine.syncState.get().status).toBe('idle')
+  })
+
+  it('client-wins over a server tombstone: resurrects with client data (fixes SP5a bug)', async () => {
+    const { repo, remote, engine, cache } = setup(true)
+    const a = area()
+    await repo.save(a); await engine.flush()
+    await remote.delete(a.id)                       // another device deleted it (tombstone, rev bumped)
+    await repo.save((await cache.get(a.id))!)       // still live locally -> edit
+    await engine.flush()
+    expect(await remote.get(a.id)).toBeTruthy()     // resurrected (live again) with client data
+    expect(engine.syncState.get().conflicts).toBe(1)
+  })
+
+  it('server-wins: adopts the server record, drops the op, records the conflict', async () => {
+    const { repo, remote, engine, cache, outbox } = setupPolicy('server-wins')
+    const a = area()
+    await repo.save(a); await engine.flush()
+    await remote.save((await remote.get(a.id))!)    // server rev 2 (the winner)
+    await repo.save((await cache.get(a.id))!)
+    await engine.flush()
+    expect((await cache.getRaw(a.id))?.meta?.revision).toBe((await remote.get(a.id))?.meta?.revision)
+    expect(outbox.size()).toBe(0)
+    expect(engine.syncState.get().conflicts).toBe(1)
+  })
+
+  it('server-wins over a server tombstone: the record is removed locally', async () => {
+    const { repo, remote, engine, cache } = setupPolicy('server-wins')
+    const a = area()
+    await repo.save(a); await engine.flush()
+    await remote.delete(a.id)
+    await repo.save((await cache.get(a.id))!)
+    await engine.flush()
+    expect(await cache.get(a.id)).toBeUndefined()   // server deletion won (tombstone adopted -> hidden)
+    expect(engine.syncState.get().conflicts).toBe(1)
+  })
+
+  it('bounded retry: a perpetual conflict leaves the op queued (not a hard error, not counted)', async () => {
+    const { repo, engine, outbox } = setupPolicy('client-wins', alwaysConflictRemote(new InMemoryRepository(now)))
+    await repo.save(area())
+    await engine.flush()
+    expect(outbox.size()).toBe(1)                   // op preserved for a later retry
+    expect(engine.syncState.get().status).not.toBe('error')
+    expect(engine.syncState.get().conflicts).toBe(0) // unresolved -> not counted
+  })
+
+  it('no conflict: conflicts stays 0', async () => {
+    const { repo, engine } = setup(true)
+    await repo.save(area()); await engine.flush()
+    expect(engine.syncState.get().conflicts).toBe(0)
   })
 })
