@@ -5,6 +5,7 @@ import type { Repository } from './repository.js'
 import type { CacheStore } from './cache-store.js'
 import type { Outbox } from './outbox.js'
 import type { Connectivity } from './connectivity.js'
+import type { CursorStore } from './cursor-store.js'
 
 export interface SyncState {
   online: boolean
@@ -34,6 +35,7 @@ export interface SyncEngine {
   start(): Promise<void>
   flush(): Promise<void>
   pull(): Promise<void>
+  resync(): Promise<void>
 }
 
 export function createSyncEngine(deps: {
@@ -44,8 +46,9 @@ export function createSyncEngine(deps: {
   timers?: Timers
   backoff?: (attempt: number) => number
   conflictPolicy?: 'client-wins' | 'server-wins'
+  cursors?: CursorStore
 }): SyncEngine {
-  const { collections, outbox, connectivity, now, timers } = deps
+  const { collections, outbox, connectivity, now, timers, cursors } = deps
   const backoff = deps.backoff ?? ((a) => Math.min(30_000, 1_000 * 2 ** a))
   const policy = deps.conflictPolicy ?? 'client-wins'
   const MAX_CONFLICT_RETRIES = 3
@@ -194,19 +197,28 @@ export function createSyncEngine(deps: {
     if (!connectivity.isOnline()) return
     for (const name of Object.keys(collections)) {
       const { cache, remote } = collections[name]!
+      const since = cursors?.get(name)
       let serverRecs: Rec[]
       try {
-        serverRecs = (await remote.list({ includeDeleted: true })) as Rec[]
+        serverRecs = (await remote.list(since ? { includeDeleted: true, since } : { includeDeleted: true })) as Rec[]
       } catch (e) {
         if (errKind(e) === 'transport') { emit({ status: 'offline' }); return }
         throw e
       }
+      let max = since
       for (const rec of serverRecs) {
-        if (outbox.has(name, rec.id)) continue
-        await cache.putRaw(rec)
+        if (!outbox.has(name, rec.id)) await cache.putRaw(rec)
+        const u = rec.meta?.updatedAt?.toISOString()
+        if (u && (!max || u >= max)) max = u
       }
+      if (cursors && max) cursors.set(name, max)
     }
     emit({ lastSyncedAt: now() })
+  }
+
+  async function resync(): Promise<void> {
+    cursors?.clear()
+    await pull()
   }
 
   function makeFacade(name: string, cache: CacheStore<any>): Repository<any> {
@@ -268,5 +280,5 @@ export function createSyncEngine(deps: {
     }
   }
 
-  return { repositories, syncState, start, flush, pull }
+  return { repositories, syncState, start, flush, pull, resync }
 }

@@ -8,6 +8,7 @@ import { LifeArea } from './life-area.js'
 import { COLLECTIONS } from '../collections.js'
 import type { StorageLike } from './local-storage-repository.js'
 import { DomainError } from './domain-error.js'
+import { createCursorStore } from './cursor-store.js'
 
 function mem(): StorageLike { const store: Record<string, string> = {}; return { getItem: (k) => store[k] ?? null, setItem: (k, val) => { store[k] = val } } }
 const codec = COLLECTIONS.lifeAreas as any
@@ -177,5 +178,51 @@ describe('createSyncEngine — conflict policy', () => {
     const { repo, engine } = setup(true)
     await repo.save(area()); await engine.flush()
     expect(engine.syncState.get().conflicts).toBe(0)
+  })
+})
+
+/** A remote that records the `since` it was called with and filters by it. */
+function recordingRemote(inner: any) {
+  const sinceCalls: (string | undefined)[] = []
+  return {
+    sinceCalls,
+    get: (id: any) => inner.get(id),
+    save: (item: any) => inner.save(item),
+    delete: (id: any) => inner.delete(id),
+    purge: (id: any) => inner.purge(id),
+    saveMany: (items: any) => inner.saveMany(items),
+    async list(opts: any) {
+      sinceCalls.push(opts?.since)
+      const all = (await inner.list({ includeDeleted: true })) as any[]
+      return opts?.since ? all.filter((r) => r.meta?.updatedAt?.toISOString() >= opts.since) : all
+    },
+  }
+}
+
+describe('createSyncEngine — delta pull', () => {
+  it('first pull full + sets cursor; later pulls send since=cursor; resync forces full', async () => {
+    let t = Date.parse('2026-06-15T12:00:00.000Z')
+    const clock = () => new Date(t)
+    const storage = mem()
+    const cache = createCacheStore(storage, 'oyl/cache/lifeAreas', codec)
+    const inner = new InMemoryRepository(clock)
+    const remote = recordingRemote(inner)
+    const outbox = createOutbox(storage, 'oyl/outbox', clock)
+    const cursors = createCursorStore(storage, 'oyl/sync-cursors')
+    const engine = createSyncEngine({ collections: { lifeAreas: { cache, remote } }, outbox, connectivity: manualConnectivity(true), now: clock, cursors })
+
+    await inner.save(area('A', 'a'))      // a "server" record at 12:00:00
+    await engine.pull()
+    expect(remote.sinceCalls[0]).toBeUndefined()
+    expect((await cache.list()).length).toBe(1)
+
+    t = Date.parse('2026-06-15T12:00:05.000Z')
+    await inner.save(area('B', 'b'))      // newer server record
+    await engine.pull()
+    expect(remote.sinceCalls[1]).toBe('2026-06-15T12:00:00.000Z') // since = cursor from pull 1
+    expect((await cache.list()).length).toBe(2)
+
+    await engine.resync()
+    expect(remote.sinceCalls[2]).toBeUndefined() // cursor cleared → full pull
   })
 })
