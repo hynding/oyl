@@ -22,7 +22,7 @@ A migration module + a one-time **confirm** prompt on first remote sign-in. "Mig
 
 ### Out of scope / documented limits
 
-Remote→local download. Deep merge with an account that already has overlapping ids (id collisions → the SP5b conflict policy; the common case is a fresh account → pure upload). SP5d2/SP5d3. R-1: keep-local ~doubles `localStorage` for the dataset (quota risk for large data — R-18a). R-2: migration is N per-record PUTs (the outbox flushes per-op, not batched) — one-time; progress is visible for free via the SP5d chip's "N pending" draining, and data appears instantly from cache.
+Remote→local download. Deep merge with an account that already has overlapping ids (id collisions → the SP5b conflict policy; the common case is a fresh account → pure upload). SP5d2/SP5d3. R-1: keep-local ~doubles `localStorage` for the dataset (quota risk for large data — R-18a). R-2: migration is N per-record PUTs (the outbox flushes per-op, not batched) — one-time; progress is visible for free via the SP5d chip's "N pending" draining, and data appears instantly from cache. R-9: a concurrent boot `pull()` won't clobber migrated records — they're pending in the outbox, which `pull()` skips; so there's no ordering constraint between migrate and the boot pull.
 
 ---
 
@@ -49,16 +49,23 @@ export function countLocalRecords(storage) {
   return n
 }
 
-/** Offer migration iff there's local data and it hasn't been migrated or declined. */
+/** Un-migrated local data exists (the standing capability — the manual button). */
+export function hasUnmigratedLocal(storage) {
+  return countLocalRecords(storage) > 0 && !storage.getItem(MIGRATED_KEY)
+}
+
+/** Offer the auto-prompt iff there's un-migrated local data AND it hasn't been declined (R-8). */
 export function shouldOfferMigration(storage) {
-  return countLocalRecords(storage) > 0 && !storage.getItem(MIGRATED_KEY) && !storage.getItem(MIGRATE_DECLINED_KEY)
+  return hasUnmigratedLocal(storage) && !storage.getItem(MIGRATE_DECLINED_KEY)
 }
 
 /**
- * Upload local-only data to remote via the engine facades. Validate-first (R-3): revive
- * every record before saving any. Sets MIGRATED_KEY on success. @returns {Promise<number>}
+ * Upload local-only data to remote via the engine facades. Idempotent (R-7): a no-op once
+ * MIGRATED_KEY is set. Validate-first (R-3): revive every record before saving any. Sets
+ * MIGRATED_KEY on success. @returns {Promise<number>}
  */
 export async function migrateLocalToRemote(storage, repos) {
+  if (storage.getItem(MIGRATED_KEY)) return 0 // R-7: already migrated — guard prompt/button/double-click
   /** @type {Array<{ name: string, item: any }>} */
   const revived = []
   for (const name of Object.keys(COLLECTIONS)) {
@@ -103,13 +110,13 @@ A `migration` prop `{ count: number, onUpload: () => void } | null` (default nul
   }
   ```
   Call it at boot (remote + signed-in) and from the sign-in effect (`if (signedIn && !wasSignedIn) { dataState.syncFlush(); maybeOfferMigration() }`).
-- **Status route:** `panel.migration = mode === 'remote' && shouldOfferMigration(storage) ? { count: countLocalRecords(storage), onUpload: () => void dataState.migrateLocal() } : null`.
+- **Status route:** `panel.migration = mode === 'remote' && hasUnmigratedLocal(storage) ? { count: countLocalRecords(storage), onUpload: () => void dataState.migrateLocal() } : null`. (R-8 — `hasUnmigratedLocal`, NOT `shouldOfferMigration`, so the button survives a "Not now".) Import `hasUnmigratedLocal`/`countLocalRecords`/`MIGRATE_DECLINED_KEY` in `main.js`.
 
 ---
 
 ## Testing (Vitest + happy-dom)
 
-- **`storage/migrate.test.js`** (new): `countLocalRecords` (sums `oyl/data/*`); `shouldOfferMigration` (true with local data + no flags; false when `MIGRATED_KEY`/`MIGRATE_DECLINED_KEY` set or empty); `migrateLocalToRemote` over **stub repos** (a `Record<name,{ save: spy }>`) seeded with real local data (write `dataKey(name)` with real domain `toJSON` shapes — reuse the seed/backup fixtures) → every record `save`d through the right collection's stub, `MIGRATED_KEY` set, count returned, and the local `oyl/data/*` is **left intact**; a malformed shape → `migrateLocalToRemote` throws and `MIGRATED_KEY` stays unset (R-3, nothing saved).
+- **`storage/migrate.test.js`** (new): `countLocalRecords` (sums `oyl/data/*`); `shouldOfferMigration` vs `hasUnmigratedLocal` — both true with local data + no flags; after `MIGRATE_DECLINED_KEY` is set, `shouldOfferMigration` is **false** but `hasUnmigratedLocal` is **true** (R-8); both false when `MIGRATED_KEY` set or no local data; `migrateLocalToRemote` over **stub repos** (a `Record<name,{ save: spy }>`) seeded with real local data (write `dataKey(name)` with real domain `toJSON` shapes — reuse the seed/backup fixtures) → every record `save`d through the right collection's stub, `MIGRATED_KEY` set, count returned, local `oyl/data/*` **left intact**; a **second** call returns 0 and `save` is not called again (R-7 idempotent); a malformed shape → throws and `MIGRATED_KEY` stays unset (R-3, nothing saved).
 - **`oyl-status-panel.test.js`** (extend): remote `migration` (count>0) → an "Upload local data" button (`data-act="upload-local"`); click → `onUpload` called; null/0 → no button.
 - (The `confirm` prompt + boot/sign-in wiring lives in `main.js` — covered by the real-Chrome pass.)
 
