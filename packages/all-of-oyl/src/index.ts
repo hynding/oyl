@@ -22,6 +22,7 @@ export { LocalStorageRepository, type StorageLike } from './core/local-storage-r
 export { createCacheStore, type CacheStore } from './core/cache-store.js'
 export { createOutbox, type Outbox, type OutboxEntry, type OutboxOp } from './core/outbox.js'
 export { type Connectivity, alwaysOnline, alwaysOffline, manualConnectivity } from './core/connectivity.js'
+export { createSyncEngine, type SyncEngine, type SyncState, type Observable } from './core/sync-engine.js'
 export { createHttpClient, createHttpRepository, HttpRepositoryError, type RecordEnvelope, type HttpClient } from './core/http-repository.js'
 export { User, type Units } from './user/user.js'
 export { fixtureId } from './fixtures/fixture-id.js'
