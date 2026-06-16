@@ -79,6 +79,7 @@ Add under `services:` (placed after the legacy `strapi` for readability):
 
 ```yaml
   strapi-app:
+    image: oyl-app:dev          # shared tag → Dockerfile.app builds once (R-10)
     build:
       context: .
       dockerfile: Dockerfile.app
@@ -87,8 +88,15 @@ Add under `services:` (placed after the legacy `strapi` for readability):
       NODE_ENV: development
       HOST: 0.0.0.0
       PORT: 1340
+      # R-12: discrete vars (NOT DATABASE_URL) — database.ts sets both connectionString
+      # AND host (default 'localhost'); an explicit host can override the URL's host in
+      # node-postgres, so the URL form risks dialing localhost. Discrete is unambiguous.
       DATABASE_CLIENT: postgres
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/oyl_app
+      DATABASE_HOST: postgres
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: oyl_app
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
       # Dummy dev secrets — fresh per `up`, no .env import (mirrors the verify stack).
       APP_KEYS: "app-key-a,app-key-b"
       API_TOKEN_SALT: "app-api-token-salt"
@@ -110,6 +118,7 @@ Add under `services:` (placed after the legacy `strapi` for readability):
       start_period: 90s
 
   vanilla:
+    image: oyl-app:dev          # same tag → reuses the strapi-app build (R-10)
     build:
       context: .
       dockerfile: Dockerfile.app
@@ -121,7 +130,7 @@ Add under `services:` (placed after the legacy `strapi` for readability):
         condition: service_started
 ```
 
-`environment` overrides the image/`.env`'s `DATABASE_CLIENT=sqlite` (compose env beats dotenv, which won't override an existing process var). `ENCRYPTION_KEY` is a 32-char value (AES-256). `STRAPI_MCP_ENABLED=false` disables the MCP plugin (default `true` in `config/server.ts`).
+`environment` overrides the image/`.env`'s `DATABASE_CLIENT=sqlite` (compose env beats dotenv, which won't override an existing process var). `ENCRYPTION_KEY` is a 32-char value (AES-256). `STRAPI_MCP_ENABLED=false` disables the MCP plugin (default `true` in `config/server.ts`). `pnpm@10.13.1` (the Dockerfile.app corepack pin) matches the root `packageManager`; `esbuild`/`better-sqlite3`/`sharp` are in the root `pnpm.onlyBuiltDependencies`, so their native builds run during `pnpm install` (hence the `apk` toolchain).
 
 Edit the existing `postgres` service's init command to create the second database:
 
@@ -146,7 +155,7 @@ Edit the existing `postgres` service's init command to create the second databas
   ```bash
   docker compose up -d --build postgres strapi-app vanilla
   ```
-  then in the browser at `http://localhost:8041` go to **Status → Connection**, set the backend URL to `http://localhost:3340/api`, mode **Remote**, **Apply & reload**, and sign in (Account). Note the `oyl_app` database + the **`docker compose down -v` caveat** (needed once if the `database-data-oyl` volume predates SP4c).
+  **Bring up the services explicitly** (R-11) — a bare `docker compose up` also starts the legacy `strapi`/`next`/`react`/`storybook` services. Then in the browser at `http://localhost:8041` go to **Status → Connection**, set the backend URL to `http://localhost:3340/api`, mode **Remote**, **Apply & reload**, and sign in (Account). Notes: the `oyl_app` database + the **`docker compose down -v` caveat** (needed once if the `database-data-oyl` volume predates SP4c); and **don't run native `pnpm vanilla dev` and the composed `vanilla` at the same time** — both bind host `8041` (R-13).
 
 ---
 
