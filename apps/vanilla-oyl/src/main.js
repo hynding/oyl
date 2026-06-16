@@ -23,6 +23,7 @@ import { defineFinance } from './components/oyl-finance.js'
 import { createNoticeState } from './state/notice.js'
 import { defineNotice } from './components/oyl-notice.js'
 import { createHttpClient } from '@oyl/all-of-oyl'
+import { createBrowserConnectivity } from './storage/connectivity.js'
 
 async function boot() {
   const storage = window.localStorage
@@ -47,7 +48,8 @@ async function boot() {
   const client = mode === 'remote'
     ? createHttpClient({ baseUrl: getApiBaseUrl(storage), fetch: window.fetch.bind(window), getToken: authState.getToken, onAuthError: () => authState.logout() })
     : undefined
-  const dataState = createDataState(storage, themeState, client ? { client } : {})
+  const connectivity = mode === 'remote' ? createBrowserConnectivity(window) : undefined
+  const dataState = createDataState(storage, themeState, client ? { client, ...(connectivity ? { connectivity } : {}) } : {})
 
   // Theme applied reactively (the inline head script already set the first paint).
   effect(() => applyTheme(document, themeState.settings.get()))
@@ -58,6 +60,17 @@ async function boot() {
     if (mode === 'remote') noticeState.show("Couldn't reach the backend — sign in (Status → Account) or reload to retry.")
     else throw err
   }
+
+  if (mode === 'remote') {
+    void dataState.startSync().then(() => dataState.refresh()).catch(() => {})
+  }
+
+  let wasSignedIn = !!authState.session.get()
+  effect(() => {
+    const signedIn = !!authState.session.get()
+    if (signedIn && !wasSignedIn) dataState.syncFlush()
+    wasSignedIn = signedIn
+  })
 
   // Multi-tab coherence: react to writes from other tabs.
   window.addEventListener('storage', (e) => {

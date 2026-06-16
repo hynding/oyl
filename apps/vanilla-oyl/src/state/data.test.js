@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Note, Measurement, Goal, DayKey, Task, periodWindowOf, Subscription, Cadence, Money, Account } from '@oyl/all-of-oyl'
+import { Note, Measurement, Goal, DayKey, Task, periodWindowOf, Subscription, Cadence, Money, Account, manualConnectivity } from '@oyl/all-of-oyl'
 import { createThemeState } from './theme.js'
 import { createDataState } from './data.js'
 import { defaultTimezone } from '../storage/clock.js'
@@ -135,9 +135,24 @@ describe('data state', () => {
   it('routes through an http client when one is provided', async () => {
     const client = { request: vi.fn(async () => ({ records: [] })) }
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage), { client: /** @type {any} */ (client) })
+    const ds = createDataState(storage, createThemeState(storage), { client: /** @type {any} */ (client), connectivity: manualConnectivity(true) })
     await ds.refresh()
+    await ds.startSync()
     expect(client.request).toHaveBeenCalled()
+  })
+
+  it('remote createDataState exposes syncState and startSync runs without throwing', async () => {
+    const client = { request: vi.fn(async () => ({ records: [] })) }
+    const storage = fakeStorage()
+    const ds = createDataState(storage, createThemeState(storage), { client: /** @type {any} */ (client), connectivity: manualConnectivity(true) })
+    expect(ds.syncState).toBeTruthy()
+    await ds.startSync()
+  })
+
+  it('local createDataState has a null syncState', () => {
+    const storage = fakeStorage()
+    const ds = createDataState(storage, createThemeState(storage), {})
+    expect(ds.syncState).toBeNull()
   })
 })
 

@@ -19,16 +19,23 @@ import { defaultTimezone } from '../storage/clock.js'
  * screen reads. refresh() re-reads everything (boot, seed, import, multi-tab).
  * @param {AppStorage & import('@oyl/all-of-oyl').StorageLike} storage
  * @param {ThemeState} themeState
- * @param {{ client?: import('@oyl/all-of-oyl').HttpClient }} [opts]
+ * @param {{ client?: import('@oyl/all-of-oyl').HttpClient, connectivity?: import('@oyl/all-of-oyl').Connectivity }} [opts]
  */
 export function createDataState(storage, themeState, opts = {}) {
-  const { repos } = makeRepositories(storage, opts.client ? { client: opts.client } : {})
+  const { repos, engine } = makeRepositories(storage, opts.client ? { client: opts.client, ...(opts.connectivity ? { connectivity: opts.connectivity } : {}) } : {})
   const journal = createJournalStore(repos.entries, defaultTimezone())
   const planner = createPlannerStore(repos.plans)
   const vault = createVaultStore(repos)
   const goals = createGoalsStore(repos.goals)
   const budgets = createBudgetsStore(repos.budgets)
   const accounts = createAccountsStore(repos.accounts)
+
+  const syncState = engine ? engine.syncState : null
+  /** Run the initial flush→pull (no-op in local mode). @returns {Promise<void>} */
+  async function startSync() { if (engine) await engine.start() }
+  /** Push the outbox now (e.g. after re-login). */
+  function syncFlush() { if (engine) void engine.flush() }
+
   /** @type {readonly import('@oyl/all-of-oyl').LifeArea[]} */
   let lifeAreas = []
   /** @type {readonly import('@oyl/all-of-oyl').Activity[]} */
@@ -111,7 +118,7 @@ export function createDataState(storage, themeState, opts = {}) {
     return charge
   }
 
-  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts }
+  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, syncState, startSync, syncFlush }
 }
 
 /**
