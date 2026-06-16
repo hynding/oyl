@@ -85,7 +85,7 @@ async function resolveConflict(coll, collection, id, localRec): Promise<boolean>
   return false                                               // exhausted — leave the op queued
 }
 ```
-(For client-wins over a **tombstone**, the re-push hits the controller's PUT-update path which sets `deletedAt: null` → the record is **resurrected** with the client's data — the correct meaning of "client wins". For a **purge**, the re-push is an unknown id → the server **re-creates** at revision 1.)
+(For client-wins over a **tombstone**, the re-push hits the controller's PUT-update path which sets `deletedAt: null` → the record is **resurrected** with the client's data — the correct meaning of "client wins". The `cur === undefined` (**hard-purged**) branch is only a rare 409-then-purged race: a plain edit-after-purge isn't a conflict at all, since the PUT hits an unknown id → *create*, no 409.)
 
 ### 3. Flush `save` branch (replace the SP5a conflict block, lines ~104–120)
 ```ts
@@ -121,8 +121,7 @@ The existing `InMemoryRepository` won't `409` on a matching revision, so use a *
 
 - **client-wins (default):** seed + flush; the stub bumps the server revision behind us; local edit + flush → server ends with **client data**, `syncState.conflicts === 1`, `lastConflict` set, outbox drained.
 - **client-wins over a server *tombstone* (R-4):** the other side deleted the record (so `remote.get` → undefined); local edit + flush → the record is **resurrected** with client data; `conflicts === 1`. (This is the SP5a bug that previously errored.)
-- **client-wins over a *purge*:** server hard-purged; flush → record **re-created** with client data.
-- **server-wins:** same conflict with `conflictPolicy: 'server-wins'` → cache ends with **server data** (or removed if purged/tombstoned), the op is dropped, `conflicts === 1`.
+- **server-wins:** same conflict with `conflictPolicy: 'server-wins'` → cache ends with **server data** (or removed if the server tombstoned/purged), the op is dropped, `conflicts === 1`.
 - **bounded retry (R-1):** a stub that `409`s on every re-push → after the bound the op **remains queued** and `status` is not a hard `error` (a retry is scheduled).
 - **no conflict:** a normal flush leaves `conflicts === 0`.
 - **counting (R-2):** a conflict resolved across a retry increments `conflicts` exactly once.
