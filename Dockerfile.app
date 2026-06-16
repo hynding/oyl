@@ -1,5 +1,5 @@
 # App-stack image — the new apps/ stack (apps/strapi-oyl backend + apps/vanilla-oyl).
-# Modeled on Dockerfile.verify: host architecture (native on Apple Silicon), build
+# Host architecture (native on Apple Silicon), build
 # tools for native deps, layer-cached manifest staging. Shared by the strapi-app and
 # vanilla compose services, which each override `command`.
 
@@ -16,12 +16,6 @@ RUN corepack enable && corepack prepare pnpm@10.13.1 --activate
 # install layer. `--frozen-lockfile` needs ALL members present (packages/* AND apps/*).
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY packages/all-of-oyl/package.json ./packages/all-of-oyl/
-COPY packages/e2e-oyl/package.json ./packages/e2e-oyl/
-COPY packages/next-oyl/package.json ./packages/next-oyl/
-COPY packages/react-oyl/package.json ./packages/react-oyl/
-COPY packages/storybook-oyl/package.json ./packages/storybook-oyl/
-COPY packages/strapi-oyl/package.json ./packages/strapi-oyl/
-COPY packages/vanilla-oyl/package.json ./packages/vanilla-oyl/
 COPY apps/strapi-oyl/package.json ./apps/strapi-oyl/
 COPY apps/vanilla-oyl/package.json ./apps/vanilla-oyl/
 

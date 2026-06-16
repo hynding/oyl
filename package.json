@@ -5,21 +5,11 @@
   "author": "Steve Hynding",
   "scripts": {
     "all-of": "pnpm --filter @oyl/all-of-oyl",
-    "e2e": "pnpm --filter @oyl/e2e-oyl",
-    "next": "pnpm --filter @oyl/next-oyl",
-    "react": "pnpm --filter @oyl/react-oyl",
-    "storybook": "pnpm --filter @oyl/storybook-oyl",
-    "strapi": "pnpm --filter @oyl/strapi-oyl",
     "strapi-app": "pnpm --filter @oyl/strapi-oyl-app",
     "vanilla": "pnpm --filter @oyl/vanilla-oyl",
-    "vanilla-legacy": "pnpm --filter @oyl/vanilla-oyl-legacy",
     "test": "pnpm --filter './packages/*' --filter './apps/*' --if-present test",
     "lint": "pnpm --filter './packages/*' --filter './apps/*' --if-present lint",
-    "typecheck": "pnpm --filter './packages/*' --filter './apps/*' --if-present typecheck",
-    "verify:up": "docker compose -f docker-compose.verify.yml --project-name oyl-verify up -d --build --wait",
-    "verify:seed": "E2E_STRAPI_PORT=13337 pnpm --filter @oyl/e2e-oyl seed",
-    "verify:down": "docker compose -f docker-compose.verify.yml --project-name oyl-verify down -v",
-    "verify": "pnpm verify:up && pnpm verify:seed"
+    "typecheck": "pnpm --filter './packages/*' --filter './apps/*' --if-present typecheck"
   },
   "dependencies": {
     "prettier": "^3.6.2"

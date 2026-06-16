@@ -1,1 +1,0 @@
-export type { TUserGoal } from "./user-goal-types";

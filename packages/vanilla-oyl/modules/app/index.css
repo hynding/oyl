@@ -1,6 +1,0 @@
-@import './globals.css';
-@import './themes/index.css';
-
-h1 {
-  color: var(--color-primary);
-}

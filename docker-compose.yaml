@@ -1,17 +1,4 @@
 services:
-  strapi:
-    image: node:22-alpine
-    working_dir: /app
-    volumes:
-      - ./:/app
-    command: sh -c "npm install -g pnpm && pnpm strapi build --debug && pnpm strapi dev"
-    env_file:
-      - .env
-    environment:
-      NODE_ENV: "development"
-    ports:
-      - "3337:1337"
-
   strapi-app:
     image: oyl-app:dev
     build:
@@ -59,41 +46,6 @@ services:
       strapi-app:
         condition: service_started
 
-  next:
-    image: node:22-alpine
-    working_dir: /app
-    volumes:
-      - ./:/app
-    command: sh -c "npm install -g pnpm && pnpm next dev"
-    env_file:
-      - .env
-    environment:
-      PG_CONNECTION: "postgres://postgres:postgres@postgres:5432/oyl"
-      NODE_ENV: "local"
-    ports:
-      - "3041:3000"
-
-  react:
-    image: node:22-alpine
-    working_dir: /app
-    volumes:
-      - ./:/app
-    command: sh -c "npm install -g pnpm && pnpm react dev"
-    environment:
-      - VITE_HOST=0.0.0.0
-      - VITE_STRAPI_API_BASE_URL=http://localhost:3337/api
-    ports:
-      - "5041:5173"
-
-  storybook:
-    image: node:22-alpine
-    working_dir: /app
-    volumes:
-      - ./:/app
-    command: sh -c "npm install -g pnpm && pnpm storybook storybook"
-    ports:
-      - "6041:6006"
-
   postgres:
     platform: linux/amd64
     image: postgis/postgis:16-3.5-alpine
@@ -107,7 +59,6 @@ services:
     command: >
       sh -c "
         echo '
-          CREATE DATABASE oyl;
           CREATE DATABASE oyl_app;
         ' > /docker-entrypoint-initdb.d/00-init.sql && docker-entrypoint.sh postgres
       "

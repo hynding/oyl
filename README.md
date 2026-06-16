@@ -2,34 +2,33 @@
 
 A personal productivity stack for tracking daily activities, goals, and nutrition. pnpm workspace monorepo.
 
-## Packages
+## Members
 
-- **`@oyl/all-of-oyl`** — shared TypeScript library (activity, calendar, goal, nutrition, user modules; Open Food Facts vendor).
-- **`@oyl/strapi-oyl`** — Strapi 5 CMS / API backend.
-- **`@oyl/react-oyl`** — Vite + React 19 web client (primary).
-- **`@oyl/next-oyl`** — Next.js 16 web client (secondary).
-- **`@oyl/storybook-oyl`** — Storybook for shared components.
-- **`@oyl/e2e-oyl`** — Playwright end-to-end tests. See [`packages/e2e-oyl/README.md`](packages/e2e-oyl/README.md).
-- **`@oyl/vanilla-oyl`** — vanilla JS testbed.
+- **`@oyl/all-of-oyl`** (`packages/all-of-oyl`) — shared zero-dependency TypeScript domain core (`src/`: journal, planner, vault, goals, insights, sharing, plus the offline-first sync engine). The single source of truth.
+- **`@oyl/vanilla-oyl`** (`apps/vanilla-oyl`) — flagship web app: zero runtime deps, vanilla JS + Web Components, local-first with an offline-first Remote mode.
+- **`@oyl/strapi-oyl-app`** (`apps/strapi-oyl`) — backend-agnostic Strapi 5 reference backend for the OYL sync protocol (`docs/oyl-sync-protocol-v1.md`).
+
+> The earlier React/Next/Storybook/Strapi/Playwright stack was removed on 2026-06-16 and is preserved on branch `legacy/2026-06-16`.
 
 ## Quick start
 
 ```bash
 pnpm install
 
-# Run the full stack in Docker
-docker compose up postgres strapi react -d
-#   strapi    http://localhost:3337
-#   react     http://localhost:5041
+# Run the full app stack in Docker (postgres + backend + app)
+docker compose up -d --build postgres strapi-app vanilla
+#   vanilla     http://localhost:8041
+#   strapi-app  http://localhost:3340
 
-# Or run individual services natively
-pnpm strapi develop   # http://localhost:1337
-pnpm react dev        # http://localhost:5173
-pnpm next dev         # http://localhost:3000
-pnpm storybook storybook
+# Or run individual pieces natively
+pnpm strapi-app develop   # backend, http://localhost:1340
+pnpm vanilla dev          # app, http://localhost:8041
+pnpm all-of test          # shared lib tests
 ```
 
-See [`CLAUDE.md`](CLAUDE.md) for the full port map, per-package test/lint/typecheck commands, and project conventions.
+In the app, go to **Status → Connection** to point at the backend (`http://localhost:3340/api` in Docker, `http://localhost:1340/api` native), switch to **Remote**, **Apply & reload**, then sign in under **Account**.
+
+See [`CLAUDE.md`](CLAUDE.md) for the full port map, per-package test/typecheck commands, and project conventions.
 
 ## License
 

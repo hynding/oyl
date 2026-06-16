@@ -1,1 +1,0 @@
-export type { TGoal, TGoalData } from "./goal-types";
