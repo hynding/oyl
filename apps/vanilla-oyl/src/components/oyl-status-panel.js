@@ -41,6 +41,8 @@ export class OylStatusPanel extends OylElement {
     this.auth = null
     /** @type {import('./oyl-connection.js').ConnectionConfig | null} */
     this.connection = null
+    /** @type {{ state: import('../lib/reactive/signal.js').Signal<import('@oyl/all-of-oyl').SyncState | null>, onResync: () => void } | null} */
+    this.sync = null
     /** @type {(() => void) | null} */
     this._paint = null
   }
@@ -100,11 +102,34 @@ export class OylStatusPanel extends OylElement {
     const connEl = /** @type {import('./oyl-connection.js').OylConnection} */ (document.createElement('oyl-connection'))
     connEl.connection = this.connection
 
+    /** @type {Node[]} */
+    let syncNodes = []
+    if (this.sync) {
+      const syncLabel = document.createElement('h2')
+      syncLabel.textContent = 'Sync'
+      const syncInfo = document.createElement('p')
+      const resyncBtn = document.createElement('button')
+      resyncBtn.textContent = 'Resync now'
+      resyncBtn.dataset.act = 'resync'
+      resyncBtn.addEventListener('click', () => this.sync?.onResync(), { signal: this.lifecycle })
+      this.track(() => {
+        const s = this.sync ? this.sync.state.get() : null
+        if (!s) { syncInfo.textContent = ''; return }
+        const when = s.lastSyncedAt ? new Date(s.lastSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'
+        const parts = [`Last synced ${when}`]
+        if (s.pending > 0) parts.push(`${s.pending} pending`)
+        if (s.conflicts > 0) parts.push(`${s.conflicts} reconciled this session`)
+        syncInfo.textContent = parts.join(' · ')
+        resyncBtn.disabled = !s.online || s.status === 'offline'
+      })
+      syncNodes = [syncLabel, syncInfo, resyncBtn]
+    }
+
     const accountLabel = document.createElement('h2')
     accountLabel.textContent = 'Account'
     const authEl = /** @type {import('./oyl-auth.js').OylAuth} */ (document.createElement('oyl-auth'))
     authEl.auth = this.auth
-    root.append(h2, grid, actions, connLabel, connEl, accountLabel, authEl)
+    root.append(h2, grid, actions, connLabel, connEl, ...syncNodes, accountLabel, authEl)
 
     this._paint = () => {
       const d = this._diagnostics
