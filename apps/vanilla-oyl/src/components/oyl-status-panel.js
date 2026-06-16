@@ -43,6 +43,8 @@ export class OylStatusPanel extends OylElement {
     this.connection = null
     /** @type {{ state: import('../lib/reactive/signal.js').Signal<import('@oyl/all-of-oyl').SyncState | null>, onResync: () => void } | null} */
     this.sync = null
+    /** @type {{ count: number, onUpload: () => void } | null} */
+    this.migration = null
     /** @type {(() => void) | null} */
     this._paint = null
   }
@@ -125,11 +127,21 @@ export class OylStatusPanel extends OylElement {
       syncNodes = [syncLabel, syncInfo, resyncBtn]
     }
 
+    /** @type {Node[]} */
+    let migrateNodes = []
+    if (this.migration && this.migration.count > 0) {
+      const upBtn = document.createElement('button')
+      upBtn.textContent = `Upload local data (${this.migration.count})`
+      upBtn.dataset.act = 'upload-local'
+      upBtn.addEventListener('click', () => { this.migration?.onUpload(); upBtn.hidden = true }, { signal: this.lifecycle })
+      migrateNodes = [upBtn]
+    }
+
     const accountLabel = document.createElement('h2')
     accountLabel.textContent = 'Account'
     const authEl = /** @type {import('./oyl-auth.js').OylAuth} */ (document.createElement('oyl-auth'))
     authEl.auth = this.auth
-    root.append(h2, grid, actions, connLabel, connEl, ...syncNodes, accountLabel, authEl)
+    root.append(h2, grid, actions, connLabel, connEl, ...syncNodes, ...migrateNodes, accountLabel, authEl)
 
     this._paint = () => {
       const d = this._diagnostics
