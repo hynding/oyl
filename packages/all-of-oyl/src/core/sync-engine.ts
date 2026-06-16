@@ -12,6 +12,8 @@ export interface SyncState {
   status: 'idle' | 'syncing' | 'offline' | 'error'
   lastError?: string
   lastSyncedAt?: Date
+  conflicts: number
+  lastConflict?: { collection: string; id: string; at: Date }
 }
 
 export interface Observable<T> {
@@ -41,11 +43,14 @@ export function createSyncEngine(deps: {
   now: () => Date
   timers?: Timers
   backoff?: (attempt: number) => number
+  conflictPolicy?: 'client-wins' | 'server-wins'
 }): SyncEngine {
   const { collections, outbox, connectivity, now, timers } = deps
   const backoff = deps.backoff ?? ((a) => Math.min(30_000, 1_000 * 2 ** a))
+  const policy = deps.conflictPolicy ?? 'client-wins'
+  const MAX_CONFLICT_RETRIES = 3
 
-  let state: SyncState = { online: connectivity.isOnline(), pending: outbox.size(), status: 'idle' }
+  let state: SyncState = { online: connectivity.isOnline(), pending: outbox.size(), status: 'idle', conflicts: 0 }
   const subs = new Set<(v: SyncState) => void>()
   function emit(patch: Partial<SyncState>): void {
     state = { ...state, ...patch, pending: outbox.size(), online: connectivity.isOnline() }
@@ -54,6 +59,10 @@ export function createSyncEngine(deps: {
   const syncState: Observable<SyncState> = {
     get: () => state,
     subscribe(cb) { subs.add(cb); return () => subs.delete(cb) },
+  }
+
+  function recordConflict(collection: string, id: Id): void {
+    emit({ conflicts: state.conflicts + 1, lastConflict: { collection, id: String(id), at: now() } })
   }
 
   function isConflict(e: unknown): boolean {
@@ -70,6 +79,51 @@ export function createSyncEngine(deps: {
   }
   function message(e: unknown): string {
     return e instanceof Error ? e.message : String(e)
+  }
+
+  async function advanceBaseRevision(cache: CacheStore<any>, id: Id, saved: Rec): Promise<void> {
+    const current = (await cache.getRaw(id)) as Rec | undefined
+    if (current?.meta && saved?.meta) {
+      current.meta = { ...current.meta, revision: saved.meta.revision }
+      await cache.putRaw(current)
+    }
+  }
+
+  /** Deleted-inclusive read: get hides tombstones, so fall back to list. undefined = hard-purged. */
+  async function currentServerRecord(remote: Repository<any>, id: Id): Promise<Rec | undefined> {
+    const got = (await remote.get(id)) as Rec | undefined
+    if (got) return got
+    const all = (await remote.list({ includeDeleted: true })) as Rec[]
+    return all.find((r) => r.id === id)
+  }
+
+  /** Apply the conflict policy to a flush save conflict. Returns true if resolved (op may be removed). */
+  async function resolveConflict(
+    coll: { cache: CacheStore<any>; remote: Repository<any> },
+    collection: string,
+    id: Id,
+    localRec: Rec,
+  ): Promise<boolean> {
+    for (let i = 0; i < MAX_CONFLICT_RETRIES; i++) {
+      const cur = await currentServerRecord(coll.remote, id)
+      if (policy === 'server-wins') {
+        if (cur) await coll.cache.putRaw(cur)
+        else await coll.cache.removeRaw(id)
+        recordConflict(collection, id)
+        return true
+      }
+      // client-wins: re-push local data over the current revision (cur undefined -> server re-creates)
+      if (cur?.meta && localRec.meta) localRec.meta = { ...localRec.meta, revision: cur.meta.revision }
+      try {
+        const saved = (await coll.remote.save(localRec)) as Rec
+        await advanceBaseRevision(coll.cache, id, saved)
+        recordConflict(collection, id)
+        return true
+      } catch (e) {
+        if (!isConflict(e)) throw e
+      }
+    }
+    return false
   }
 
   let currentFlush: Promise<void> | undefined = undefined
@@ -102,20 +156,13 @@ export function createSyncEngine(deps: {
             if (entry.op === 'save') {
               const rec = (await cache.getRaw(id)) as Rec | undefined
               if (!rec) { outbox.removeIfSeq(entry.collection, id, entry.seq); continue }
-              let saved: Rec
               try {
-                saved = await remote.save(rec)
+                const saved = (await remote.save(rec)) as Rec
+                await advanceBaseRevision(cache, id, saved)
               } catch (e) {
-                if (isConflict(e)) {
-                  const cur = (await remote.get(id)) as Rec | undefined
-                  if (cur?.meta && rec.meta) rec.meta = { ...rec.meta, revision: cur.meta.revision }
-                  saved = await remote.save(rec)
-                } else throw e
-              }
-              const current = (await cache.getRaw(id)) as Rec | undefined
-              if (current?.meta && saved?.meta) {
-                current.meta = { ...current.meta, revision: saved.meta.revision }
-                await cache.putRaw(current)
+                if (!isConflict(e)) throw e
+                const resolved = await resolveConflict(coll, entry.collection, id, rec)
+                if (!resolved) { scheduleRetry(); emit({ status: 'offline' }); return }
               }
               outbox.removeIfSeq(entry.collection, id, entry.seq)
             } else if (entry.op === 'delete') {
