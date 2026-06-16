@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeAll } from 'vitest'
 import { defineStatusPanel } from './oyl-status-panel.js'
+import { signal } from '../lib/reactive/signal.js'
 
 beforeAll(() => defineStatusPanel())
 
@@ -103,6 +104,44 @@ describe('<oyl-status-panel> connection section', () => {
     const note = root.querySelector('#local-tools-note')
     expect(note).toBeTruthy()
     expect(note?.textContent).toMatch(/remote mode/i)
+    el.remove()
+  })
+})
+
+describe('<oyl-status-panel> sync section', () => {
+  /** @type {any} */
+  const synced = { online: true, pending: 0, status: 'idle', conflicts: 0, lastSyncedAt: new Date() }
+  const diag = { schema: { status: 'ok' }, counts: {}, theme: { theme: 'classic', mode: 'system' }, build: 'dev' }
+
+  it('renders a Sync section + Resync button (remote); click calls onResync', async () => {
+    let resynced = false
+    const el = /** @type {any} */ (document.createElement('oyl-status-panel'))
+    el.sync = { state: signal(synced), onResync: () => { resynced = true } }
+    el.diagnostics = diag
+    document.body.append(el)
+    await Promise.resolve()
+    const btn = /** @type {HTMLButtonElement} */ (el.shadowRoot.querySelector('button[data-act="resync"]'))
+    expect(btn).toBeTruthy()
+    btn.click()
+    expect(resynced).toBe(true)
+    el.remove()
+  })
+
+  it('disables Resync when offline', async () => {
+    const el = /** @type {any} */ (document.createElement('oyl-status-panel'))
+    el.sync = { state: signal({ ...synced, online: false, status: 'offline' }), onResync: () => {} }
+    el.diagnostics = diag
+    document.body.append(el)
+    await Promise.resolve()
+    expect(/** @type {HTMLButtonElement} */ (el.shadowRoot.querySelector('button[data-act="resync"]')).disabled).toBe(true)
+    el.remove()
+  })
+
+  it('renders no Sync section in local mode (sync null)', () => {
+    const el = /** @type {any} */ (document.createElement('oyl-status-panel'))
+    el.diagnostics = diag
+    document.body.append(el)
+    expect(el.shadowRoot.querySelector('button[data-act="resync"]')).toBeNull()
     el.remove()
   })
 })

@@ -13,6 +13,7 @@ export interface SyncState {
   status: 'idle' | 'syncing' | 'offline' | 'error'
   lastError?: string
   lastSyncedAt?: Date
+  pulledAt?: Date
   conflicts: number
   lastConflict?: { collection: string; id: string; at: Date }
 }
@@ -213,7 +214,7 @@ export function createSyncEngine(deps: {
       }
       if (cursors && max) cursors.set(name, max)
     }
-    emit({ lastSyncedAt: now() })
+    emit({ lastSyncedAt: now(), pulledAt: now() })
   }
 
   async function resync(): Promise<void> {

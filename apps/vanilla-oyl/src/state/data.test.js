@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Note, Measurement, Goal, DayKey, Task, periodWindowOf, Subscription, Cadence, Money, Account, manualConnectivity } from '@oyl/all-of-oyl'
 import { createThemeState } from './theme.js'
-import { createDataState } from './data.js'
+import { createDataState, syncTriggersRefresh } from './data.js'
 import { defaultTimezone } from '../storage/clock.js'
 import { loadDemoData } from '../storage/seed.js'
 
@@ -141,18 +141,18 @@ describe('data state', () => {
     expect(client.request).toHaveBeenCalled()
   })
 
-  it('remote createDataState exposes syncState and startSync runs without throwing', async () => {
+  it('remote createDataState exposes syncState as a Signal and startSync runs without throwing', async () => {
     const client = { request: vi.fn(async () => ({ records: [] })) }
     const storage = fakeStorage()
     const ds = createDataState(storage, createThemeState(storage), { client: /** @type {any} */ (client), connectivity: manualConnectivity(true) })
-    expect(ds.syncState).toBeTruthy()
+    expect(typeof ds.syncState.get).toBe('function') // a Signal, not the raw observable
     await ds.startSync()
   })
 
-  it('local createDataState has a null syncState', () => {
+  it('local createDataState has a null syncState signal', () => {
     const storage = fakeStorage()
     const ds = createDataState(storage, createThemeState(storage), {})
-    expect(ds.syncState).toBeNull()
+    expect(ds.syncState.get()).toBeNull()
   })
 })
 
@@ -191,5 +191,38 @@ describe('renewSubscription (subscription→transaction seam)', () => {
 
     expect(charge).toBeUndefined()
     expect(ds.journal.transactionsIn(periodWindowOf('month', today))).toHaveLength(0)
+  })
+})
+
+describe('syncTriggersRefresh', () => {
+  const base = /** @type {import('@oyl/all-of-oyl').SyncState} */ ({ online: true, pending: 0, status: 'idle', conflicts: 0 })
+  it('true when pulledAt changed', () => {
+    expect(syncTriggersRefresh(base, { ...base, pulledAt: new Date() })).toBe(true)
+  })
+  it('true when conflicts changed', () => {
+    expect(syncTriggersRefresh(base, { ...base, conflicts: 1 })).toBe(true)
+  })
+  it('false for a status-only change', () => {
+    expect(syncTriggersRefresh(base, { ...base, status: 'syncing' })).toBe(false)
+  })
+  it('false when next is null', () => {
+    expect(syncTriggersRefresh(base, null)).toBe(false)
+  })
+})
+
+describe('createDataState sync surface', () => {
+  it('exposes syncState as a Signal and resync() resolves (remote)', async () => {
+    const client = { request: vi.fn(async () => ({ records: [] })) }
+    const storage = fakeStorage()
+    const themeState = createThemeState(storage)
+    const ds = createDataState(storage, themeState, { client: /** @type {any} */ (client), connectivity: manualConnectivity(true) })
+    expect(typeof ds.syncState.get).toBe('function') // a Signal, not the raw observable
+    await ds.resync()
+  })
+  it('local syncState signal holds null', () => {
+    const storage = fakeStorage()
+    const themeState = createThemeState(storage)
+    const ds = createDataState(storage, themeState, {})
+    expect(ds.syncState.get()).toBeNull()
   })
 })

@@ -20,6 +20,7 @@ import { defineVault } from './components/oyl-vault.js'
 import { defineGoals } from './components/oyl-goals.js'
 import { defineInsights } from './components/oyl-insights.js'
 import { defineFinance } from './components/oyl-finance.js'
+import { defineSyncStatus } from './components/oyl-sync-status.js'
 import { createNoticeState } from './state/notice.js'
 import { defineNotice } from './components/oyl-notice.js'
 import { createHttpClient } from '@oyl/all-of-oyl'
@@ -62,7 +63,7 @@ async function boot() {
   }
 
   if (mode === 'remote') {
-    void dataState.startSync().then(() => dataState.refresh()).catch(() => {})
+    void dataState.startSync().catch(() => {})
   }
 
   let wasSignedIn = !!authState.session.get()
@@ -105,6 +106,14 @@ async function boot() {
   navEl.slot = 'nav'
   navEl.routeSignal = routeState.route
 
+  let syncChip = null
+  if (mode === 'remote') {
+    defineSyncStatus()
+    syncChip = /** @type {import('./components/oyl-sync-status.js').OylSyncStatus} */ (document.createElement('oyl-sync-status'))
+    syncChip.slot = 'toolbar'
+    syncChip.syncState = dataState.syncState
+  }
+
   const toggle = /** @type {import('./components/oyl-theme-toggle.js').OylThemeToggle} */ (document.createElement('oyl-theme-toggle'))
   toggle.slot = 'toolbar'
   toggle.themeState = themeState
@@ -122,6 +131,7 @@ async function boot() {
         defaultApiBaseUrl: DEFAULT_API_BASE_URL,
         onApply: (m, url) => { setStorageMode(storage, m); setApiBaseUrl(storage, url); location.reload() },
       }
+      panel.sync = mode === 'remote' ? { state: dataState.syncState, onResync: dataState.resync } : null
       panel.actions = {
         onSeed: () => void seedWithConfirm(storage, dataState),
         onExport: () => download(exportData(storage)),
@@ -180,7 +190,7 @@ async function boot() {
     },
   }
 
-  shell.append(navEl, toggle, router)
+  shell.append(navEl, ...(syncChip ? [syncChip] : []), toggle, router)
   const root = document.getElementById('app')
   if (root) root.replaceChildren(shell)
   document.getElementById('boot-fallback')?.remove()

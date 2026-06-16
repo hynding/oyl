@@ -1,5 +1,6 @@
 import { review, Transaction } from '@oyl/all-of-oyl'
 import { signal } from '../lib/reactive/signal.js'
+import { effect } from '../lib/reactive/effect.js'
 import { makeRepositories, collectionCounts } from '../storage/bootstrap.js'
 import { readSchemaState } from '../storage/schema.js'
 import { createJournalStore } from './journal-store.js'
@@ -13,6 +14,16 @@ import { defaultTimezone } from '../storage/clock.js'
 /** @typedef {import('../storage/schema.js').SchemaState} SchemaState */
 /** @typedef {ReturnType<typeof import('./theme.js').createThemeState>} ThemeState */
 /** @typedef {{ getItem(k: string): string | null, setItem(k: string, v: string): void, key(i: number): string | null, length: number }} AppStorage */
+
+/**
+ * Re-hydrate when a pull or conflict changed the cache — NOT on every flush.
+ * @param {import('@oyl/all-of-oyl').SyncState | null} prev
+ * @param {import('@oyl/all-of-oyl').SyncState | null} next
+ * @returns {boolean}
+ */
+export function syncTriggersRefresh(prev, next) {
+  return !!next && (next.pulledAt !== prev?.pulledAt || next.conflicts !== prev?.conflicts)
+}
 
 /**
  * App data state: repositories over real storage + reactive diagnostics the Status
@@ -30,11 +41,24 @@ export function createDataState(storage, themeState, opts = {}) {
   const budgets = createBudgetsStore(repos.budgets)
   const accounts = createAccountsStore(repos.accounts)
 
-  const syncState = engine ? engine.syncState : null
+  /** @type {import('../lib/reactive/signal.js').Signal<import('@oyl/all-of-oyl').SyncState | null>} */
+  const syncState = signal(engine ? engine.syncState.get() : null)
+  engine?.syncState.subscribe((v) => syncState.set(v)) // app-lifetime bridge
   /** Run the initial flush→pull (no-op in local mode). @returns {Promise<void>} */
   async function startSync() { if (engine) await engine.start() }
   /** Push the outbox now (e.g. after re-login). */
   function syncFlush() { if (engine) void engine.flush() }
+  /** Clear cursors + full pull. @returns {Promise<void>} */
+  function resync() { return engine ? engine.resync() : Promise.resolve() }
+  // Re-hydrate the stores when a pull/conflict changed the cache (remote only).
+  if (engine) {
+    let prevSync = syncState.get()
+    effect(() => {
+      const s = syncState.get()
+      if (syncTriggersRefresh(prevSync, s)) { prevSync = s; void refresh() }
+      else prevSync = s
+    })
+  }
 
   /** @type {readonly import('@oyl/all-of-oyl').LifeArea[]} */
   let lifeAreas = []
@@ -118,7 +142,7 @@ export function createDataState(storage, themeState, opts = {}) {
     return charge
   }
 
-  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, syncState, startSync, syncFlush }
+  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, syncState, startSync, syncFlush, resync }
 }
 
 /**
