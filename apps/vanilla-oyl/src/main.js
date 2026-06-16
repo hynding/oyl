@@ -6,7 +6,8 @@ import { createDataState } from './state/data.js'
 import { createAuthState } from './state/auth.js'
 import { loadDemoData, isEmpty } from './storage/seed.js'
 import { exportData, importData } from './storage/backup.js'
-import { isOylKey, SETTINGS_KEY, AUTH_KEY } from './storage/keys.js'
+import { hasUnmigratedLocal, countLocalRecords } from './storage/migrate.js'
+import { isOylKey, SETTINGS_KEY, AUTH_KEY, MIGRATE_DECLINED_KEY } from './storage/keys.js'
 import { getApiBaseUrl, getStorageMode, setApiBaseUrl, setStorageMode, DEFAULT_API_BASE_URL } from './storage/config.js'
 import { defaultTimezone } from './storage/clock.js'
 import { defineShell } from './components/oyl-shell.js'
@@ -62,14 +63,26 @@ async function boot() {
     else throw err
   }
 
+  function maybeOfferMigration() {
+    if (mode !== 'remote' || !authState.session.get()) return
+    const offer = dataState.migrationOffer()
+    if (!offer) return
+    if (confirm(`You have ${offer.count} local item(s). Upload them to your account?`)) {
+      void dataState.migrateLocal().then((n) => noticeState.show(`Uploaded ${n} local item(s) to your account.`)).catch(() => {})
+    } else {
+      storage.setItem(MIGRATE_DECLINED_KEY, '1')
+    }
+  }
+
   if (mode === 'remote') {
     void dataState.startSync().catch(() => {})
+    maybeOfferMigration()
   }
 
   let wasSignedIn = !!authState.session.get()
   effect(() => {
     const signedIn = !!authState.session.get()
-    if (signedIn && !wasSignedIn) dataState.syncFlush()
+    if (signedIn && !wasSignedIn) { dataState.syncFlush(); maybeOfferMigration() }
     wasSignedIn = signedIn
   })
 
@@ -132,6 +145,9 @@ async function boot() {
         onApply: (m, url) => { setStorageMode(storage, m); setApiBaseUrl(storage, url); location.reload() },
       }
       panel.sync = mode === 'remote' ? { state: dataState.syncState, onResync: dataState.resync } : null
+      panel.migration = mode === 'remote' && hasUnmigratedLocal(storage)
+        ? { count: countLocalRecords(storage), onUpload: () => void dataState.migrateLocal() }
+        : null
       panel.actions = {
         onSeed: () => void seedWithConfirm(storage, dataState),
         onExport: () => download(exportData(storage)),
