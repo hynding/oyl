@@ -51,19 +51,19 @@ while (entries.length > 0) {
     const kind = classify(e)
     if (kind === 'auth') { emit({ status: 'error', lastError: message(e) }); return }
     if (kind === 'transport') { scheduleRetry(); emit({ status: 'offline' }); return }
-    outbox.markFailed(entry.collection, entry.id as unknown as Id, message(e)); emit({}); // poison → quarantine + CONTINUE
+    outbox.markFailed(entry.collection, entry.id as unknown as Id, message(e)); emit({ lastFailedError: message(e) }); // poison → quarantine + CONTINUE (R-8)
   }
   entries = outbox.list().filter((e) => !e.failedAt)
 }
 ```
-(The conflict-`resolveConflict`-exhausted path keeps its `scheduleRetry` + `return`.) **`pull`** swaps its `errKind(e) === 'transport'` check to `classify(e) === 'transport'`.
+**R-6:** `classify` runs in the **outer** per-entry catch only. The save branch's *inner* try/catch (conflict → `resolveConflict`, kept with its own `scheduleRetry`+`return`) and `delete`/`purge`'s 404-idempotent inner catch are unchanged — a poison `remote.save` is re-thrown by the inner `if (!isConflict(e)) throw e` and surfaces in the outer catch where `classify` decides. **`pull`** swaps its `errKind(e) === 'transport'` check to `classify(e) === 'transport'`.
 
 `emit` derives counts from the outbox:
 ```ts
 const entries = outbox.list()
 state = { ...state, ...patch, pending: entries.filter((e) => !e.failedAt).length, failed: entries.filter((e) => e.failedAt).length, online: connectivity.isOnline() }
 ```
-`SyncState` gains `failed: number` (+ `lastFailedError?: string`). `SyncEngine` gains `retryFailed(): Promise<void>` (`outbox.clearFailed()` → `flush()`) and `discardFailed(): void` (`outbox.discardFailed()` → `emit({})`).
+`SyncState` gains `failed: number` (+ `lastFailedError?: string`); **R-7: the initial `state` literal must seed `failed: 0`** (required field, like `conflicts: 0`). `SyncEngine` gains `retryFailed(): Promise<void>` (`outbox.clearFailed()` → `flush()`) and `discardFailed(): void` (`outbox.discardFailed()` → `emit({})`).
 
 ### 2. `@oyl/all-of-oyl/src/core/outbox.ts` — failed-tracking
 `OutboxEntry` gains `failedAt?: string; error?: string`. New methods:
