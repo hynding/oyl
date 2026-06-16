@@ -39,7 +39,7 @@ export class OylNav extends OylElement {
     nav.setAttribute('aria-label', 'Primary')
     const links = ITEMS.map(([route, label]) => {
       const a = document.createElement('a')
-      a.href = `#/${route}`
+      a.href = `/${route}`
       a.textContent = label
       a.dataset.route = route
       nav.append(a)

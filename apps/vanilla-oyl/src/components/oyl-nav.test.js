@@ -16,7 +16,7 @@ describe('<oyl-nav>', () => {
     const journalLink = /** @type {HTMLAnchorElement} */ (root.querySelector('a[data-route="journal"]'))
     expect(statusLink.getAttribute('aria-current')).toBe('page')
     expect(journalLink.hasAttribute('aria-current')).toBe(false)
-    expect(journalLink.getAttribute('href')).toBe('#/journal')
+    expect(journalLink.getAttribute('href')).toBe('/journal')
 
     route.set('journal')
     await Promise.resolve()
@@ -25,14 +25,14 @@ describe('<oyl-nav>', () => {
     el.remove()
   })
 
-  it('includes a Planner link to #/planner and marks it active', async () => {
+  it('includes a Planner link to /planner and marks it active', async () => {
     const route = signal('planner')
     const el = /** @type {import('./oyl-nav.js').OylNav} */ (document.createElement('oyl-nav'))
     el.routeSignal = route
     document.body.append(el)
     const root = /** @type {ShadowRoot} */ (el.shadowRoot)
     const link = /** @type {HTMLAnchorElement} */ (root.querySelector('a[data-route="planner"]'))
-    expect(link.getAttribute('href')).toBe('#/planner')
+    expect(link.getAttribute('href')).toBe('/planner')
     expect(link.getAttribute('aria-current')).toBe('page')
     el.remove()
   })
