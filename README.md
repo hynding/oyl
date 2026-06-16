@@ -28,7 +28,7 @@ pnpm all-of test          # shared lib tests
 
 In the app, go to **Status → Connection** to point at the backend (`http://localhost:3340/api` in Docker, `http://localhost:1340/api` native), switch to **Remote**, **Apply & reload**, then sign in under **Account**.
 
-See [`CLAUDE.md`](CLAUDE.md) for the full port map, per-package test/typecheck commands, and project conventions.
+See [`CLAUDE.md`](CLAUDE.md) for the full port map, per-package test/typecheck commands, and project conventions, and [`CONTRIBUTING.md`](CONTRIBUTING.md) for development practices (Definition of Done, testing, workflow, git).
 
 ## License
 

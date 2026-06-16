@@ -56,6 +56,14 @@ Then at `http://localhost:8041` go to **Status → Connection**, set the backend
 
 Root aggregates run scripts across `./packages/*` **and** `./apps/*` with `--if-present`: `pnpm test`, `pnpm lint`, `pnpm typecheck`. (These do not build `all-of-oyl/dist` first — `pnpm vanilla dev`/`build:lib` do.)
 
+## Development practices
+
+- **Definition of Done (every change):** the affected package's tests, typecheck, and — for `all-of-oyl` — `pnpm all-of build` (DOM-safety) are green. Never commit on red. Run the strict gate `pnpm all-of typecheck:src` when touching `src/`.
+- **TDD:** write the failing test first, then minimal code to pass, then commit. Tests assert observable behavior, not internals (e.g. assert via a component's own shadowRoot/props — see the shadow-DOM note in memory). Never weaken a type/lint rule or add throwaway markup just to make a test pass.
+- **Architecture:** shared logic lives only in `@oyl/all-of-oyl/src` (never duplicated in an app); register persistable types in `src/collections.ts`. Keep files small and single-responsibility. DOM/Web globals are injected via interfaces, never referenced directly in `src/`.
+- **Workflow for non-trivial work:** brainstorm → spec (`docs/superpowers/specs/`) → plan (`docs/superpowers/plans/`) → TDD implementation → review. Specs/plans are the archive of *why*, kept even after merge.
+- **Git:** branch off `master`; small, frequent, behavior-scoped commits with a clear prefix (`feat`/`fix`/`refactor`/`chore`/`docs`); end commit messages with the `Co-Authored-By: Claude …` trailer. Commit/push only when asked.
+
 ## Conventions and gotchas
 
 - `@oyl/all-of-oyl` is the workspace single source of truth: the bare specifier hits `src/index.ts`, `/testing` the conformance contract. Both apps depend on it via workspace protocol. Only `apps/vanilla-oyl` consumes the built `dist/` (browser ESM, via importmap + a vendored copy); `apps/strapi-oyl` and the typecheckers run against the TS source.
