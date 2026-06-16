@@ -23,3 +23,5 @@ export function cacheKey(collection) {
 }
 export const OUTBOX_KEY = 'oyl/outbox'
 export const CURSORS_KEY = 'oyl/sync-cursors'
+export const MIGRATED_KEY = 'oyl/migrated'
+export const MIGRATE_DECLINED_KEY = 'oyl/migrate-declined'
