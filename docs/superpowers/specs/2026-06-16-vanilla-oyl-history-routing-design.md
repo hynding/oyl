@@ -164,9 +164,8 @@ initial survey missed.
   `/journal/` → `journal` (trailing slash). Add: `navigate(path)` calls
   `pushState` and updates the signal; `navigate` to the current path no-ops;
   `popstate` makes the signal track `location.pathname`; `start()` normalizes
-  `/` → `/status` via `replaceState`. Use the injected `win` (happy-dom, or a
-  minimal history/location stub if happy-dom's `pushState`/`popstate` proves
-  insufficient).
+  `/` → `/status` via `replaceState`. Use the injected `win` (happy-dom —
+  confirmed sufficient, see Test-infra de-risking; no stub needed).
 - **`src/state/link-interceptor.test.js`** (new) — left-click on a `/journal`
   anchor → `navigate` called + default prevented; ignored (native, not
   prevented) for: modifier/middle click, `target="_blank"`, `download`,
