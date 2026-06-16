@@ -50,4 +50,21 @@ describe('createOutbox', () => {
     const e2 = o2.enqueue('plans', 'save', B)
     expect(e2.seq).toBeGreaterThan(e1.seq)
   })
+
+  it('markFailed / clearFailed / discardFailed', () => {
+    const o = createOutbox(storage, 'k', at)
+    o.enqueue('entries', 'save', A)
+    o.enqueue('plans', 'save', B)
+    o.markFailed('entries', A, 'boom')
+    const failed = o.list().find((e) => e.id === String(A))
+    expect(failed?.failedAt).toBeTruthy()
+    expect(failed?.error).toBe('boom')
+    expect(o.list().length).toBe(2) // failed entries still listed
+    o.clearFailed()
+    expect(o.list().find((e) => e.id === String(A))?.failedAt).toBeUndefined()
+    o.markFailed('entries', A, 'again')
+    o.discardFailed()
+    expect(o.list().length).toBe(1)
+    expect(o.list()[0]!.collection).toBe('plans')
+  })
 })
