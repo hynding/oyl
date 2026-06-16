@@ -6,8 +6,8 @@
   "description": "Zero-dependency vanilla JS implementation of OYL",
   "scripts": {
     "build:lib": "pnpm --filter @oyl/all-of-oyl build && node scripts/copy-lib.mjs",
-    "dev": "pnpm build:lib && http-server -c-1 -p 8041 .",
-    "dev:watch": "pnpm build:lib && http-server -c-1 -p 8041 .",
+    "dev": "pnpm build:lib && http-server -c-1 -p 8041 --proxy http://localhost:8041? .",
+    "dev:watch": "pnpm build:lib && http-server -c-1 -p 8041 --proxy http://localhost:8041? .",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
