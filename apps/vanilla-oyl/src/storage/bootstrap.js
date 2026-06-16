@@ -1,6 +1,7 @@
 import { COLLECTIONS, LocalStorageRepository, createHttpRepository, createCacheStore, createOutbox, createCursorStore, createSyncEngine, alwaysOnline } from '@oyl/all-of-oyl'
 import { dataKey, cacheKey, OUTBOX_KEY, CURSORS_KEY } from './keys.js'
 import { now } from './clock.js'
+import { createBrowserLock } from './lock.js'
 
 /**
  * @typedef {keyof typeof COLLECTIONS} CollectionName
@@ -27,8 +28,9 @@ export function makeRepositories(storage, opts = {}) {
     }
     const outbox = createOutbox(storage, OUTBOX_KEY, now)
     const cursors = createCursorStore(storage, CURSORS_KEY)
+    const lock = createBrowserLock(window)
     const timers = { set: (/** @type {() => void} */ fn, /** @type {number} */ ms) => setTimeout(fn, ms), clear: (/** @type {any} */ h) => clearTimeout(h) }
-    const engine = createSyncEngine({ collections, outbox, connectivity: opts.connectivity ?? alwaysOnline(), now, timers, cursors })
+    const engine = createSyncEngine({ collections, outbox, connectivity: opts.connectivity ?? alwaysOnline(), now, timers, cursors, lock })
     return { repos: /** @type {Repositories} */ (engine.repositories), engine }
   }
   const repos = /** @type {Repositories} */ ({})
