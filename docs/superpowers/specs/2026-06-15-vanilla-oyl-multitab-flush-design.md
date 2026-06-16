@@ -22,7 +22,15 @@ A `lock` seam on `createSyncEngine` that serializes `flush()` across tabs (a **q
 
 ### Out of scope
 
-Cross-tab `syncState` propagation (a background tab's chip lags — cosmetic; BroadcastChannel later). SP5d3 per-action retry. R-18 limits. (R-4: during a lock-wait the chip stays `idle` then flips to `syncing` — no "waiting" state; acceptable.)
+Cross-tab `syncState` propagation (a background tab's chip lags — cosmetic; BroadcastChannel later). SP5d3 per-action retry. R-18 limits.
+
+### Notes
+
+- **R-4:** during a lock-wait the chip stays `idle` then flips to `syncing` — no "waiting" state; acceptable.
+- **R-6:** a `lock.runExclusive` rejection is benign — `doFlush` catches its own errors; only `navigator.locks.request` itself rejecting (rare) propagates, the `.finally` clears `currentFlush`, and `startSync().catch` swallows it.
+- **R-7:** the timeout is **client-wide** (bounds get/list/save/delete/batch), not flush-specific — a general robustness win; 15 s is generous for the small per-record requests.
+- **R-8:** the debounce adds ~150 ms cross-tab view latency (the boot refresh stays immediate).
+- **Leadership = whoever holds the lock:** because the outbox is shared, the lock-holder drains *every* tab's queued ops (incl. an offline tab's pending writes); other tabs' flushes are no-ops over an already-drained queue. No permanent leader election needed.
 
 ---
 
