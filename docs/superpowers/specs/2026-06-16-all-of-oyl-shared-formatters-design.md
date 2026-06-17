@@ -66,8 +66,13 @@ guard stays trivially green.
     now exported so the app's `stalenessLabel`/`overdueBadge` reuse it.
 - `format/plan.ts`
   - `cadenceLabel(c: Cadence): string` — `"every week"`/`"every 2 weeks"`.
-  - `appointmentTime(appt: Appointment): string` — `"10:00 · 30m"` (uses
-    `formatClockTime`).
+  - `appointmentTime(appt: Appointment): string` — `"10:00 · 30m"`. **Keeps a
+    runtime** `import { formatClockTime } from './day.js'` (relative, guard-OK) —
+    do not make it type-only.
+
+When porting `formatDayHeading`, use the `DayKey` getters (`day.month`,
+`day.dayOfMonth`) rather than re-parsing `day.value.split('-')` as the app code
+did — `monthDayLabel` already uses the getters; keep it consistent. **(F4)**
 - `format/index.ts` — barrel re-exporting `money`, `day`, `plan`.
 
 ### Plumbing
@@ -104,10 +109,16 @@ import { Money } from '@oyl/all-of-oyl'
 export const usd = (n) => formatMoney(Money.fromMajor(n, 'USD'))
 ```
 
-Verified output parity: `money(42.5)`→`"$42.50"` == `usd(42.5)`; same for `0`,
-`1234`. `money()` is deleted; **exactly one money formatter (`formatMoney`)
-remains**, and insights' single-currency-USD assumption (already implicit in the
-hardcoded `$`) is now explicit at the presentation boundary.
+Output parity on representative values: `money(42.5)`→`"$42.50"` == `usd(42.5)`;
+same for `0`, `1234`. **Note (F1):** this is not byte-identical for every input —
+`money(n)` does `n.toFixed(2)` on the raw float, whereas `usd(n)` rounds to
+*minor units* via `Money.fromMajor`, so pathological fractional inputs (e.g.
+`42.005`) can differ by a cent. The minor-unit path is the *more correct* one,
+so this is a deliberate minor behavior improvement — the insights tests assert
+the new helper's own output, not equality with the old `money()`. `money()` is
+deleted; **exactly one money formatter (`formatMoney`) remains**, and insights'
+single-currency-USD assumption (already implicit in the hardcoded `$`) is now
+explicit at the presentation boundary.
 
 ### App end-state (what each `format.js` keeps)
 
@@ -132,6 +143,10 @@ hardcoded `$`) is now explicit at the presentation boundary.
   for the moved functions into framework-free core tests.
   - `formatClockTime` is ICU/locale-dependent: assert with the loose regex
     `/\d{1,2}:\d{2}/` (as the existing app test does) — never an exact string.
+  - `spanLabel` was previously the private `relativeSpan` (only tested
+    transitively); as new public API it gets its own direct test — boundaries at
+    `1`/`13`/`14`/`59`/`60` days (`"1 day"`/`"13 days"`/`"2 weeks"`/`"8 weeks"`/
+    `"2 months"`). **(F2)**
 - **App:** trim each `format.test.js` to what stays (`measurementUnit`,
   `overdueBadge`, `stalenessLabel`, `reviewGoalLabel`/`areaStatsLabel`); replace
   the `insights` `money()` tests with `usd()` tests.
@@ -149,5 +164,6 @@ hardcoded `$`) is now explicit at the presentation boundary.
 - `pnpm all-of test`, `pnpm all-of typecheck:src`, and `pnpm all-of build`
   (DOM-safety + no-bare-import guard) green.
 - `pnpm vanilla test` and `pnpm vanilla typecheck` green.
-- `grep -rn "function money\|\$\${" apps/vanilla-oyl/src` shows no second money
-  formatter; one `formatMoney` in core.
+- One money formatter total: `grep -rn "export function money\b" apps/vanilla-oyl/src`
+  returns nothing (the old `money()` is gone), and `formatMoney` is defined once,
+  in `packages/all-of-oyl/src/format/money.ts`.
