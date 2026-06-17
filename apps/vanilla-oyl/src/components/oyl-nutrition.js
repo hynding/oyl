@@ -1,10 +1,9 @@
 import { DayKey } from '@oyl/all-of-oyl'
-import { formatNutrients } from '@oyl/all-of-oyl/format'
+import { formatNutrients, relativeDayLabel, formatDayHeading, formatClockTime } from '@oyl/all-of-oyl/format'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { signal } from '../lib/reactive/signal.js'
 import { sheet } from './sheet.js'
 import { now } from '../storage/clock.js'
-import { relativeDayLabel, formatDayHeading, formatClockTime } from '@oyl/all-of-oyl/format'
 import { defineNutritionComposer } from './oyl-nutrition-composer.js'
 import { defineFoodForm } from './oyl-food-form.js'
 
@@ -20,7 +19,6 @@ const styles = sheet(`
   h2 { font-size: var(--step-2); font-weight: 640; }
   .rel { color: var(--color-muted); font-size: .85rem; }
   .totals { text-align: center; font-size: 1rem; margin: .4rem 0 1.4rem; color: var(--color-text); }
-  .totals .cal { font-size: var(--step-2); font-weight: 700; }
   oyl-nutrition-composer { display: block; margin-block-end: 1.4rem; }
   .section-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; font-weight: 700; color: var(--color-muted); margin: 1.6rem 0 .4rem; }
   ol { list-style: none; margin: 0; padding: 0; }
