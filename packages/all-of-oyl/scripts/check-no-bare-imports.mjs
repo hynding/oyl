@@ -1,5 +1,5 @@
 // Fails if any emitted dist/ file imports a bare specifier (anything not starting
-// with './' or '../'). The app's importmap has exactly one entry and relies on every
+// with './' or '../'). The app's importmap has two entries (root + /format) and relies on every
 // internal import being relative; a stray bare import (e.g. 'rrule') would break it.
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
