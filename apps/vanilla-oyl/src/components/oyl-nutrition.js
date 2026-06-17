@@ -73,7 +73,6 @@ export class OylNutrition extends OylElement {
     const composer = /** @type {import('./oyl-nutrition-composer.js').OylNutritionComposer} */ (document.createElement('oyl-nutrition-composer'))
     composer.store = this.store
     composer.foods = this.foods
-    composer.tz = this.tz
     composer.getDay = () => this._day.get()
     composer.onLogged = () => { live.textContent = 'Meal logged' }
 

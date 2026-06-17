@@ -15,7 +15,6 @@ function composer(store, foods) {
   const el = /** @type {any} */ (document.createElement('oyl-nutrition-composer'))
   el.store = store
   el.foods = foods
-  el.tz = TZ
   el.getDay = () => DayKey.from(new Date(), TZ)
   document.body.append(el)
   return el

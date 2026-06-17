@@ -41,8 +41,6 @@ export class OylNutritionComposer extends OylElement {
     this.foods = /** @type {FoodsStore} */ (/** @type {unknown} */ (undefined))
     /** @type {() => DayKey} */
     this.getDay = /** @type {() => DayKey} */ (/** @type {unknown} */ (undefined))
-    /** @type {string} */
-    this.tz = 'UTC'
     /** @type {() => void} */
     this.onLogged = () => {}
   }
