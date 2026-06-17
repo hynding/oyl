@@ -1,4 +1,4 @@
-import { DayKey } from '@oyl/all-of-oyl'
+import { DayKey, sumNutrients } from '@oyl/all-of-oyl'
 import { formatNutrients, relativeDayLabel, formatDayHeading, formatClockTime } from '@oyl/all-of-oyl/format'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { signal } from '../lib/reactive/signal.js'
@@ -9,6 +9,21 @@ import { defineFoodForm } from './oyl-food-form.js'
 
 /** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
 /** @typedef {ReturnType<typeof import('../state/foods-store.js').createFoodsStore>} FoodsStore */
+
+/**
+ * Row meta for a logged consumption: per-serving nutrients, plus a scaled
+ * calorie total when servings > 1 (omitted when the food has no calories).
+ * @param {import('@oyl/all-of-oyl').Consumption} c
+ * @returns {string}
+ */
+function consumptionMeta(c) {
+  const perServing = formatNutrients(c.nutrients)
+  const scaledCalories = sumNutrients([c]).calories
+  const total = c.servings > 1 && scaledCalories !== undefined
+    ? ` · ${Math.round(scaledCalories)} kcal total`
+    : ''
+  return `${perServing}${total} · ${formatClockTime(c.occurredAt)}`
+}
 
 const styles = sheet(`
   :host { display: block; }
@@ -121,7 +136,7 @@ export class OylNutrition extends OylElement {
         name.textContent = c.servings === 1 ? label : `${label} ×${c.servings}`
         const meta = document.createElement('span')
         meta.className = 'meta'
-        meta.textContent = `${formatNutrients(c.nutrients)} · ${formatClockTime(c.occurredAt)}`
+        meta.textContent = consumptionMeta(c)
         const del = document.createElement('button')
         del.className = 'del'
         del.type = 'button'
