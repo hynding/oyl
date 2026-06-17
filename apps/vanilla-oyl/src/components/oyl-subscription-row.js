@@ -1,8 +1,7 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 import { inlineConfirm } from './confirm.js'
-import { formatMoney, dueInLabel } from '../vault/format.js'
-import { cadenceLabel } from '../planner/format.js'
+import { formatMoney, dueInLabel, cadenceLabel } from '@oyl/all-of-oyl/format'
 
 /** @typedef {import('@oyl/all-of-oyl').Subscription} Subscription */
 /** @typedef {import('@oyl/all-of-oyl').DayKey} DayKey */

@@ -1,7 +1,8 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 import { inlineConfirm } from './confirm.js'
-import { stalenessLabel, monthDayLabel } from '../vault/format.js'
+import { monthDayLabel } from '@oyl/all-of-oyl/format'
+import { stalenessLabel } from '../vault/format.js'
 
 /** @typedef {import('@oyl/all-of-oyl').Contact} Contact */
 /** @typedef {import('@oyl/all-of-oyl').DayKey} DayKey */

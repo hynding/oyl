@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { money, reviewGoalLabel, areaStatsLabel } from './format.js'
+import { usd, reviewGoalLabel, areaStatsLabel } from './format.js'
 
-describe('money', () => {
-  it('formats major-unit numbers as currency', () => {
-    expect(money(42.5)).toBe('$42.50')
-    expect(money(0)).toBe('$0.00')
-    expect(money(1234)).toBe('$1234.00')
+describe('usd', () => {
+  it('formats a major-unit number as USD via the shared formatter', () => {
+    expect(usd(42.5)).toBe('$42.50')
+    expect(usd(0)).toBe('$0.00')
+    expect(usd(1234)).toBe('$1234.00')
   })
 })
 

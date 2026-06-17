@@ -2,7 +2,8 @@ import { Task, Appointment } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 import { inlineConfirm } from './confirm.js'
-import { cadenceLabel, appointmentTime, overdueBadge } from '../planner/format.js'
+import { cadenceLabel, appointmentTime } from '@oyl/all-of-oyl/format'
+import { overdueBadge } from '../planner/format.js'
 
 /** @typedef {import('@oyl/all-of-oyl').Plan} Plan */
 /** @typedef {import('@oyl/all-of-oyl').Id} Id */

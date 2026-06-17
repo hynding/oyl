@@ -1,4 +1,4 @@
-import { formatMoney } from '../vault/format.js'
+import { formatMoney } from '@oyl/all-of-oyl/format'
 
 /** @typedef {import('@oyl/all-of-oyl').GoalProgress} GoalProgress */
 /** @typedef {import('@oyl/all-of-oyl').Money} Money */

@@ -3,7 +3,7 @@ import { OylElement } from '../lib/reactive/oyl-element.js'
 import { signal } from '../lib/reactive/signal.js'
 import { sheet } from './sheet.js'
 import { now } from '../storage/clock.js'
-import { money, reviewGoalLabel, areaStatsLabel } from '../insights/format.js'
+import { usd, reviewGoalLabel, areaStatsLabel } from '../insights/format.js'
 
 /** @typedef {import('@oyl/all-of-oyl').Review} Review */
 /** @typedef {(range: import('@oyl/all-of-oyl').DayRange) => Review} ReviewOn */
@@ -94,7 +94,7 @@ export class OylInsights extends OylElement {
       const r = this.reviewOn(range)
 
       totals.replaceChildren(
-        this._stat('Spending', money(r.totals.spending), r.deltas.spending, true),
+        this._stat('Spending', usd(r.totals.spending), r.deltas.spending, true),
         this._stat('Active min', String(Math.round(r.totals.activityMinutes)), r.deltas.activityMinutes, false),
         this._stat('Calories', String(Math.round(r.totals.calories)), r.deltas.calories, false),
       )
@@ -110,7 +110,7 @@ export class OylInsights extends OylElement {
       goalsEmpty.textContent = goalsEmpty.hidden ? '' : 'No goals yet'
 
       spendList.replaceChildren()
-      for (const s of r.topSpending) spendList.append(this._row(s.category, money(s.total)))
+      for (const s of r.topSpending) spendList.append(this._row(s.category, usd(s.total)))
       spendEmpty.hidden = r.topSpending.length > 0
       spendEmpty.textContent = spendEmpty.hidden ? '' : 'Nothing this period'
 
@@ -194,7 +194,7 @@ export class OylInsights extends OylElement {
     if (delta !== 0) {
       const de = document.createElement('div')
       de.className = 'd'
-      const mag = isMoney ? money(Math.abs(delta)) : String(Math.round(Math.abs(delta)))
+      const mag = isMoney ? usd(Math.abs(delta)) : String(Math.round(Math.abs(delta)))
       de.textContent = `${delta > 0 ? '↑' : '↓'} ${mag}`
       wrap.append(de)
     }

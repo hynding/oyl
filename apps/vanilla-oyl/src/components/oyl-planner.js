@@ -3,7 +3,7 @@ import { OylElement } from '../lib/reactive/oyl-element.js'
 import { signal } from '../lib/reactive/signal.js'
 import { sheet } from './sheet.js'
 import { now } from '../storage/clock.js'
-import { relativeDayLabel, formatDayHeading } from '../journal/format.js'
+import { relativeDayLabel, formatDayHeading } from '@oyl/all-of-oyl/format'
 import { definePlanComposer } from './oyl-plan-composer.js'
 import { definePlanRow } from './oyl-plan-row.js'
 

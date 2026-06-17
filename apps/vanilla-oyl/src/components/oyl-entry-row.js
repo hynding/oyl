@@ -2,7 +2,8 @@ import { Note, Measurement } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 import { inlineConfirm } from './confirm.js'
-import { formatClockTime, measurementUnit } from '../journal/format.js'
+import { formatClockTime } from '@oyl/all-of-oyl/format'
+import { measurementUnit } from '../journal/format.js'
 
 /** @typedef {import('@oyl/all-of-oyl').Entry} Entry */
 /** @typedef {import('@oyl/all-of-oyl').Id} Id */

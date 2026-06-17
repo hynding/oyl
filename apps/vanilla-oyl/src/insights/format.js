@@ -1,10 +1,11 @@
+import { formatMoney } from '@oyl/all-of-oyl/format'
+import { Money } from '@oyl/all-of-oyl'
+
 /** @typedef {import('@oyl/all-of-oyl').GoalProgress} GoalProgress */
 /** @typedef {import('@oyl/all-of-oyl').AreaRollup} AreaRollup */
 
-/** "$42.50" (major-unit, single-currency). @param {number} n @returns {string} */
-export function money(n) {
-  return `$${n.toFixed(2)}`
-}
+/** Format a major-unit number as USD (insights spending is single-currency). @param {number} n @returns {string} */
+export const usd = (n) => formatMoney(Money.fromMajor(n, 'USD'))
 
 /** A goal's review label from its progress alone (GoalReview lacks direction/unit). @param {GoalProgress} p @returns {string} */
 export function reviewGoalLabel(p) {

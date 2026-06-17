@@ -3,7 +3,7 @@ import { OylElement } from '../lib/reactive/oyl-element.js'
 import { signal } from '../lib/reactive/signal.js'
 import { sheet } from './sheet.js'
 import { now } from '../storage/clock.js'
-import { relativeDayLabel, formatDayHeading } from '../journal/format.js'
+import { relativeDayLabel, formatDayHeading } from '@oyl/all-of-oyl/format'
 import { defineLogForm } from './oyl-log-form.js'
 import { defineEntryRow } from './oyl-entry-row.js'
 
