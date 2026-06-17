@@ -139,11 +139,7 @@ export class OylNutritionComposer extends OylElement {
       e.preventDefault()
       error.textContent = ''
       try {
-        // Parse the whenInput value as UTC (the date part is getDay().value which is a UTC date,
-        // the time part is the user's local time displayed in the field).
-        // Appending 'Z' ensures the stored instant is always on the correct UTC day.
-        const raw = whenInput.value
-        const occurredAt = raw ? new Date(raw + ':00Z') : now()
+        const occurredAt = new Date(whenInput.value)
         const s = Number(servings.value)
         let consumption
         if (modeAdhoc.input.checked) {
