@@ -60,16 +60,21 @@ editing logged consumptions or foods (add/remove only), search/barcode.
   - `dailyNutrients(day)` → `sumNutrients(this.consumptionsOn(day))`. Imports
     `sumNutrients`.
 - `state/data.js` — create `foods` from `repos.foods` and expose it on the data
-  state, passed to the screen (mirroring `accounts`).
+  state, passed to the screen (mirroring `accounts`). **(R7)** Three edit points,
+  exactly mirroring `accounts`: create the store (next to line 43
+  `createAccountsStore`), add `foods.hydrate()` to the boot `Promise.all`
+  (line 88), and add `foods` to the returned object (line 154).
 
 ### Components (3 new + 1 edit, mirroring Finance/Journal)
 
 - `components/oyl-nutrition.js` — the screen. Day nav (prev/next + "Today",
   copied from `oyl-journal`'s `_day` signal + `_go`/`_navButton`), a **daily
   totals** strip (`dailyNutrients(day)` via `formatNutrients`, calories
-  prominent), the day's **consumption list** (rendered inline; each row resolves
-  its food name from the catalog by `foodId`, falling back to `note`/nutrients
-  when the food was deleted or it's ad-hoc; delete via `store.remove`), and a
+  prominent; **R9:** an empty/zero state — "No meals logged" + zero totals —
+  when the day has no consumptions, mirroring the journal's empty state), the
+  day's **consumption list** (rendered inline; each row resolves its food name
+  from the catalog by `foodId`, falling back to `note`/nutrients when the food
+  was deleted or it's ad-hoc; delete via `store.remove`), and a
   **Foods catalog** section (the food form + the list of foods with their
   nutrients; remove via `foods.remove`). Props: `store` (journal), `foods`
   (foods-store), `tz`.
@@ -79,9 +84,13 @@ editing logged consumptions or foods (add/remove only), search/barcode.
   defaulting to the viewed day at current time via a `getDay` callback
   (**R2** — mirrors `oyl-log-form` so logging respects the viewed day). On
   submit: `new Consumption({ occurredAt, food: { id, nutrients } | nutrients,
-  servings, note? })` → `store.add`.
+  servings, note? })` → `store.add`. **(R6)** Carries an error element (like
+  `oyl-account-form`'s `[data-role="error"]`) and validates before constructing:
+  `servings > 0`, and in food-mode a food must be selected — surface a message
+  rather than letting the constructor throw.
 - `components/oyl-food-form.js` — add a `Food` (name + per-serving nutrient
-  number inputs) → `foods.add(new Food({ name, nutrients }))`.
+  number inputs) → `foods.add(new Food({ name, nutrients }))`. **(R6)** Validates
+  a non-empty name (the `Food` constructor throws on empty) and shows the error.
 - `components/oyl-journal.js:90` — **R3:** extend the day-list filter to
   `e.kind !== 'transaction' && e.kind !== 'consumption'`, so consumptions live
   only on Nutrition (mirroring how transactions moved to Finance). Empty-state
