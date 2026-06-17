@@ -26,7 +26,7 @@ export function formatClockTime(date: Date): string {
   return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(date)
 }
 
-/** Positive-day-count magnitude: "5 days" / "3 weeks" / "2 months". */
+/** Magnitude phrase for a positive day count (n >= 1; callers guard 0): "5 days" / "3 weeks" / "2 months". */
 export function spanLabel(n: number): string {
   if (n < 14) return `${n} day${n === 1 ? '' : 's'}`
   if (n < 60) return `${Math.round(n / 7)} weeks`
@@ -38,6 +38,8 @@ export function spanLabel(n: number): string {
  * past → "yesterday"/"5 days ago".
  */
 export function dueInLabel(due: DayKey, today: DayKey): string {
+  // DayKey.value is always a date-only "YYYY-MM-DD" string → Date.parse treats
+  // both as UTC midnight, so the day delta is stable regardless of locale/timezone.
   const days = Math.round((Date.parse(due.value) - Date.parse(today.value)) / 86400000)
   if (days === 0) return 'today'
   if (days === 1) return 'tomorrow'

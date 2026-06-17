@@ -1,6 +1,6 @@
 import type { Money } from '../core/money.js'
 
-const SYMBOLS: Record<string, string> = { USD: '$', EUR: '€', GBP: '£' }
+const SYMBOLS: Record<string, string | undefined> = { USD: '$', EUR: '€', GBP: '£' }
 
 /** "$649.00" for USD/EUR/GBP, else "<amount> <CUR>"; negatives as "-$200.00". */
 export function formatMoney(m: Money): string {
