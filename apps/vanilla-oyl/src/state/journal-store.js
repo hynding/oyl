@@ -1,10 +1,11 @@
-import { Journal, Transaction, Money, periodWindowOf } from '@oyl/all-of-oyl'
+import { Journal, Transaction } from '@oyl/all-of-oyl'
 import { signal } from '../lib/reactive/signal.js'
 
 /** @typedef {import('@oyl/all-of-oyl').Entry} Entry */
 /** @typedef {import('@oyl/all-of-oyl').Id} Id */
 /** @typedef {import('@oyl/all-of-oyl').DayKey} DayKey */
 /** @typedef {import('@oyl/all-of-oyl').DayRange} DayRange */
+/** @typedef {import('@oyl/all-of-oyl').Money} Money */
 /** @typedef {import('@oyl/all-of-oyl').Goal} Goal */
 /** @typedef {import('@oyl/all-of-oyl').GoalProgress} GoalProgress */
 /** @typedef {import('@oyl/all-of-oyl').Budget} Budget */
@@ -80,26 +81,13 @@ export function createJournalStore(entriesRepo, tz) {
     /** This-month expense total for `account` (Money in the account's currency; reactive). @param {Account} account @param {DayKey} day @returns {Money} */
     accountSpend(account, day) {
       revision.get()
-      const range = periodWindowOf('month', day)
-      return journal.entriesIn(range).reduce(
-        (sum, e) => (e instanceof Transaction && e.direction === 'expense' && e.accountId === account.id && e.amount.currency === account.currency ? sum.add(e.amount) : sum),
-        Money.fromMajor(0, account.currency),
-      )
+      return account.spentIn(journal, day)
     },
 
-    /** All-time balance for `account`: income minus expense over every recorded transaction (Money in the account's currency; reactive). No opening-balance field exists, so this is net-of-recorded. @param {Account} account @returns {Money} */
+    /** All-time balance for `account`: income minus expense over recorded transactions (Money in the account's currency; reactive). Net-of-recorded. @param {Account} account @returns {Money} */
     accountBalance(account) {
       revision.get()
-      const zero = Money.fromMajor(0, account.currency)
-      const span = journal.span()
-      if (!span) return zero
-      return journal.entriesIn(span).reduce(
-        (bal, e) =>
-          e instanceof Transaction && e.accountId === account.id && e.amount.currency === account.currency
-            ? (e.direction === 'income' ? bal.add(e.amount) : bal.subtract(e.amount))
-            : bal,
-        zero,
-      )
+      return account.balanceIn(journal)
     },
 
     /** Rebuild the aggregate from the repository. Boot/seed/import/multi-tab only. */

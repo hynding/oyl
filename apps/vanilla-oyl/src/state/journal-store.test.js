@@ -107,68 +107,23 @@ describe('createJournalStore', () => {
   })
 })
 
-describe('accountSpend', () => {
-  it('sums this-month expenses for the account, ignoring others and prior months', async () => {
-    const store = createJournalStore(new InMemoryRepository(), 'UTC')
+describe('accountSpend (delegates to Account.spentIn)', () => {
+  it('reflects store writes through the reactive wrapper', async () => {
+    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
     const checking = new Account({ name: 'Checking', currency: 'USD' })
-    const visa = new Account({ name: 'Visa', currency: 'USD' })
-    const today = DayKey.from(new Date(), 'UTC')
     const noon = () => { const d = new Date(); d.setHours(12, 0, 0, 0); return d }
-    const prior = () => { const d = new Date(Date.now() - 40 * 86400000); d.setHours(12, 0, 0, 0); return d }
-    /** @param {string} cat @param {number} minor @param {any} acc @param {Date} when */
-    const txa = (cat, minor, acc, when) => new Transaction({ occurredAt: when, amount: Money.of(minor, 'USD', 2), category: cat, direction: 'expense', accountId: acc.id })
-    await store.add(txa('groceries', 6500, checking, noon()))
-    await store.add(txa('dining', 1500, checking, noon()))
-    await store.add(txa('other', 9999, visa, noon()))
-    await store.add(txa('groceries', 5000, checking, prior()))
-
-    expect(store.accountSpend(checking, today).minor).toBe(8000)
-    expect(store.accountSpend(visa, today).minor).toBe(9999)
-  })
-
-  it('returns a typed zero in the account currency when there are no transactions', () => {
-    const store = createJournalStore(new InMemoryRepository(), 'UTC')
-    const z = store.accountSpend(new Account({ name: 'Savings', currency: 'EUR' }), DayKey.from(new Date(), 'UTC'))
-    expect(z.minor).toBe(0)
-    expect(z.currency).toBe('EUR')
+    await store.add(new Transaction({ occurredAt: noon(), amount: Money.of(6500, 'USD', 2), category: 'groceries', direction: 'expense', accountId: checking.id }))
+    expect(store.accountSpend(checking, DayKey.from(new Date(), 'UTC')).minor).toBe(6500)
   })
 })
 
-describe('accountBalance', () => {
-  const noon = () => { const d = new Date(); d.setHours(12, 0, 0, 0); return d }
-  /** @param {any} store @param {'income'|'expense'} dir @param {number} minor @param {any} acc @param {string} [cur] */
-  const post = (store, dir, minor, acc, cur = 'USD') => store.add(new Transaction({ occurredAt: noon(), amount: Money.of(minor, cur, 2), category: dir === 'income' ? 'salary' : 'groceries', direction: dir, accountId: acc.id }))
-
-  it('is income minus expense over all recorded transactions for the account', async () => {
+describe('accountBalance (delegates to Account.balanceIn)', () => {
+  it('reflects store writes through the reactive wrapper', async () => {
     const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
     const checking = new Account({ name: 'Checking', currency: 'USD' })
-    const visa = new Account({ name: 'Visa', currency: 'USD' })
-    await post(store, 'income', 200000, checking)
-    await post(store, 'expense', 50000, checking)
-    await post(store, 'expense', 9999, visa)
+    const noon = () => { const d = new Date(); d.setHours(12, 0, 0, 0); return d }
+    await store.add(new Transaction({ occurredAt: noon(), amount: Money.of(200000, 'USD', 2), category: 'salary', direction: 'income', accountId: checking.id }))
+    await store.add(new Transaction({ occurredAt: noon(), amount: Money.of(50000, 'USD', 2), category: 'groceries', direction: 'expense', accountId: checking.id }))
     expect(store.accountBalance(checking).minor).toBe(150000)
-  })
-
-  it('is negative when expenses exceed income', async () => {
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
-    const acc = new Account({ name: 'Cash', currency: 'USD' })
-    await post(store, 'expense', 5000, acc)
-    expect(store.accountBalance(acc).minor).toBe(-5000)
-  })
-
-  it('returns a typed zero for an account with no transactions', () => {
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
-    const z = store.accountBalance(new Account({ name: 'Savings', currency: 'EUR' }))
-    expect(z.minor).toBe(0)
-    expect(z.currency).toBe('EUR')
-  })
-
-  it('skips a transaction tagged to the account but in a different currency (no throw)', async () => {
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
-    const checking = new Account({ name: 'Checking', currency: 'USD' })
-    await post(store, 'income', 10000, checking, 'USD')
-    await post(store, 'income', 5000, checking, 'EUR')
-    expect(store.accountBalance(checking).minor).toBe(10000)
-    expect(store.accountBalance(checking).currency).toBe('USD')
   })
 })
