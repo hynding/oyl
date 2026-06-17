@@ -98,16 +98,30 @@ accountBalance(account)    { revision.get(); return account.balanceIn(journal) }
 The store's `accountSpend`/`accountBalance` JSDoc (`@param`/`@returns`) is kept,
 trimmed to the delegating one-liners.
 
+**Unchanged public API (A4):** the store methods keep their signatures
+(`accountBalance(account)` / `accountSpend(account, day)`) and `Money` return
+types — only the internals delegate. So **no component or other call site
+changes** (`oyl-finance.js:151-152` untouched). Blast radius: `account.ts` +
+`journal-store.js` + the two test files.
+
 ## Testing
 
-- **Core — new `packages/all-of-oyl/src/finance/account.test.ts`:** exhaustive
-  domain cases built against a plain `Journal` (no store): multi-account /
-  multi-currency filtering, income−expense netting, empty-journal → zero in the
-  account currency, currency-mismatch ignored. **Port the exact assertion
-  values from the current `journal-store.test.js` (R4)** — `accountSpend`:
-  `8000`, `9999`, and the EUR-account → `0`; `accountBalance`: `150000`,
-  `-5000`, `10000` (USD) — against the same transaction scenarios, so the move
-  is behavior-parity by construction.
+- **Core — extend the EXISTING `packages/all-of-oyl/src/finance/account.test.ts`
+  (A1 — the file already exists; add `describe('balanceIn')` / `describe('spentIn')`
+  blocks):** exhaustive domain cases built against a plain `Journal` (no store):
+  multi-account / multi-currency filtering, income−expense netting,
+  empty-journal → zero in the account currency, currency-mismatch ignored.
+  **Port the exact assertion values from the current `journal-store.test.js`
+  (R4)** — `spentIn`: `8000`, `9999`, and the EUR-account → `0`; `balanceIn`:
+  `150000`, `-5000`, `10000` (USD). The currency-skip case
+  (`10000 USD + 5000 EUR → 10000 USD`) ports directly and is the exact test that
+  validates the R1 guard.
+  - **Use fixed dates, not `new Date()` (A2):** the store fixtures are
+    clock-relative; core tests must be deterministic. Build against a
+    `Journal('UTC')` with a fixed `day` (e.g. `DayKey.of('2026-06-15')`) and
+    transactions whose `occurredAt` falls in June 2026 (current month) vs.
+    April 2026 (prior month), at noon to avoid tz day-bucketing edges. Amounts
+    port verbatim; only the date construction changes.
 - **App — `apps/vanilla-oyl/src/state/journal-store.test.js`:** trim the
   `accountBalance`/`accountSpend` blocks to one representative
   reactive-delegation case each (e.g. add a transaction via the store, assert
