@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryRepository, Note, Measurement, Goal, Transaction, Budget, Money, DayKey, DayRange, Account } from '@oyl/all-of-oyl'
+import { InMemoryRepository, Note, Consumption, Measurement, Goal, Transaction, Budget, Money, DayKey, DayRange, Account } from '@oyl/all-of-oyl'
 import { createJournalStore } from './journal-store.js'
 import { effect } from '../lib/reactive/effect.js'
 
@@ -125,5 +125,19 @@ describe('accountBalance (delegates to Account.balanceIn)', () => {
     await store.add(new Transaction({ occurredAt: noon(), amount: Money.of(200000, 'USD', 2), category: 'salary', direction: 'income', accountId: checking.id }))
     await store.add(new Transaction({ occurredAt: noon(), amount: Money.of(50000, 'USD', 2), category: 'groceries', direction: 'expense', accountId: checking.id }))
     expect(store.accountBalance(checking).minor).toBe(150000)
+  })
+})
+
+describe('consumptionsOn / dailyNutrients', () => {
+  it('lists the day consumptions and sums their nutrients, ignoring other kinds', async () => {
+    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
+    const iso = new Date().toISOString().split('T')[0] + 'T12:00:00Z'
+    const date = new Date(iso)
+    const today = DayKey.from(date, 'UTC')
+    await store.add(new Consumption({ occurredAt: date, nutrients: { calories: 150, protein: 5 }, servings: 2 }))
+    await store.add(new Consumption({ occurredAt: date, nutrients: { calories: 550 } }))
+    await store.add(new Note({ occurredAt: date, text: 'walk' }))
+    expect(store.consumptionsOn(today)).toHaveLength(2)
+    expect(store.dailyNutrients(today)).toEqual({ calories: 150 * 2 + 550, protein: 5 * 2 })
   })
 })

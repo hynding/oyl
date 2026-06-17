@@ -1,4 +1,4 @@
-import { Journal, Transaction } from '@oyl/all-of-oyl'
+import { Journal, Transaction, Consumption, sumNutrients } from '@oyl/all-of-oyl'
 import { signal } from '../lib/reactive/signal.js'
 
 /** @typedef {import('@oyl/all-of-oyl').Entry} Entry */
@@ -10,6 +10,7 @@ import { signal } from '../lib/reactive/signal.js'
 /** @typedef {import('@oyl/all-of-oyl').GoalProgress} GoalProgress */
 /** @typedef {import('@oyl/all-of-oyl').Budget} Budget */
 /** @typedef {import('@oyl/all-of-oyl').Account} Account */
+/** @typedef {import('@oyl/all-of-oyl').Nutrients} Nutrients */
 /** @typedef {import('@oyl/all-of-oyl').Repository<Entry>} EntriesRepo */
 
 /**
@@ -23,6 +24,9 @@ export function createJournalStore(entriesRepo, tz) {
   let journal = new Journal(tz)
   let n = 0
   const revision = signal(0)
+
+  /** @param {DayKey} day @returns {Consumption[]} */
+  const consumptionsOnDay = (day) => /** @type {Consumption[]} */ (journal.entriesOn(day).filter((e) => e instanceof Consumption))
 
   return {
     revision,
@@ -70,6 +74,18 @@ export function createJournalStore(entriesRepo, tz) {
     transactionsIn(range) {
       revision.get()
       return /** @type {Transaction[]} */ (journal.entriesIn(range).filter((e) => e instanceof Transaction))
+    },
+
+    /** The day's consumptions (auto-tracks revision). @param {DayKey} day @returns {readonly Consumption[]} */
+    consumptionsOn(day) {
+      revision.get()
+      return consumptionsOnDay(day)
+    },
+
+    /** Summed nutrient totals for the day's consumptions (reactive). @param {DayKey} day @returns {Nutrients} */
+    dailyNutrients(day) {
+      revision.get()
+      return sumNutrients(consumptionsOnDay(day))
     },
 
     /** Budget progress + spent (Money) for the month containing `day` (reactive). @param {Budget} budget @param {DayKey} day @returns {{ progress: GoalProgress, spent: Money }} */
