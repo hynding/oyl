@@ -6,6 +6,7 @@ import { sheet } from './sheet.js'
 const ITEMS = /** @type {ReadonlyArray<readonly [string, string]>} */ ([
   ['status', 'Status'],
   ['journal', 'Journal'],
+  ['nutrition', 'Nutrition'],
   ['planner', 'Planner'],
   ['vault', 'Vault'],
   ['goals', 'Goals'],

@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll } from 'vitest'
-import { InMemoryRepository, Note, Transaction, Money } from '@oyl/all-of-oyl'
+import { InMemoryRepository, Note, Transaction, Money, Consumption } from '@oyl/all-of-oyl'
 import { createJournalStore } from '../state/journal-store.js'
 import { defineJournal } from './oyl-journal.js'
 
@@ -51,6 +51,18 @@ describe('<oyl-journal>', () => {
     const el = screen(store)
     await Promise.resolve()
     expect(rows(el)).toHaveLength(1)        // only the note; transaction filtered out
+    el.remove()
+  })
+
+  it('does not render consumptions in the day view (they live on /nutrition)', async () => {
+    const store = createJournalStore(new InMemoryRepository(), TZ)
+    const el = screen(store)
+    await store.add(new Note({ occurredAt: new Date(), text: 'a note' }))
+    await store.add(new Consumption({ occurredAt: new Date(), nutrients: { calories: 150 }, note: 'Oatmeal' }))
+    await Promise.resolve()
+    expect(rows(el)).toHaveLength(1) // only the Note; the Consumption is excluded
+    const row = /** @type {any} */ (/** @type {ShadowRoot} */ (el.shadowRoot).querySelector('oyl-entry-row'))
+    expect(/** @type {ShadowRoot} */ (row.shadowRoot).textContent).toContain('a note')
     el.remove()
   })
 

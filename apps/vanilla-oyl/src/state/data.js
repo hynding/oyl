@@ -10,6 +10,7 @@ import { createVaultStore } from './vault-store.js'
 import { createGoalsStore } from './goals-store.js'
 import { createBudgetsStore } from './budgets-store.js'
 import { createAccountsStore } from './accounts-store.js'
+import { createFoodsStore } from './foods-store.js'
 import { defaultTimezone } from '../storage/clock.js'
 
 /** @typedef {import('../storage/schema.js').SchemaState} SchemaState */
@@ -41,6 +42,7 @@ export function createDataState(storage, themeState, opts = {}) {
   const goals = createGoalsStore(repos.goals)
   const budgets = createBudgetsStore(repos.budgets)
   const accounts = createAccountsStore(repos.accounts)
+  const foods = createFoodsStore(repos.foods)
 
   /** @type {import('../lib/reactive/signal.js').Signal<import('@oyl/all-of-oyl').SyncState | null>} */
   const syncState = signal(engine ? engine.syncState.get() : null)
@@ -85,15 +87,15 @@ export function createDataState(storage, themeState, opts = {}) {
   async function refresh() {
     schema.set(readSchemaState(storage))
     const tasks = [
-      journal.hydrate(), planner.hydrate(), vault.hydrate(), goals.hydrate(), budgets.hydrate(), accounts.hydrate(),
+      journal.hydrate(), planner.hydrate(), vault.hydrate(), goals.hydrate(), budgets.hydrate(), accounts.hydrate(), foods.hydrate(),
       repos.lifeAreas.list(), repos.activities.list(), repos.projects.list(), readStorageEstimate(), collectionCounts(repos),
     ]
     const results = await Promise.allSettled(tasks)
     const failure = results.find((r) => r.status === 'rejected')
     if (failure && failure.status === 'rejected') throw failure.reason
     const val = (/** @type {number} */ i) => /** @type {any} */ (results[i]).value
-    lifeAreas = val(6); activities = val(7); projects = val(8)
-    storageEstimate.set(val(9)); counts.set(val(10))
+    lifeAreas = val(7); activities = val(8); projects = val(9)
+    storageEstimate.set(val(10)); counts.set(val(11))
   }
 
   /** Compose the current diagnostics snapshot (reads signals — call inside an effect to stay live). */
@@ -151,7 +153,7 @@ export function createDataState(storage, themeState, opts = {}) {
     return charge
   }
 
-  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, syncState, startSync, syncFlush, resync, retryFailed, discardFailed, migrationOffer, migrateLocal }
+  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, foods, syncState, startSync, syncFlush, resync, retryFailed, discardFailed, migrationOffer, migrateLocal }
 }
 
 /**

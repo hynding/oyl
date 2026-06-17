@@ -21,6 +21,7 @@ import { defineVault } from './components/oyl-vault.js'
 import { defineGoals } from './components/oyl-goals.js'
 import { defineInsights } from './components/oyl-insights.js'
 import { defineFinance } from './components/oyl-finance.js'
+import { defineNutrition } from './components/oyl-nutrition.js'
 import { defineSyncStatus } from './components/oyl-sync-status.js'
 import { createNoticeState } from './state/notice.js'
 import { defineNotice } from './components/oyl-notice.js'
@@ -41,6 +42,7 @@ async function boot() {
   defineGoals()
   defineInsights()
   defineFinance()
+  defineNutrition()
   defineNotice()
 
   const themeState = createThemeState(storage)
@@ -213,6 +215,13 @@ async function boot() {
       view.store = dataState.journal
       view.budgets = dataState.budgets
       view.accounts = dataState.accounts
+      view.tz = defaultTimezone()
+      return view
+    },
+    nutrition: () => {
+      const view = /** @type {import('./components/oyl-nutrition.js').OylNutrition} */ (document.createElement('oyl-nutrition'))
+      view.store = dataState.journal
+      view.foods = dataState.foods
       view.tz = defaultTimezone()
       return view
     },
