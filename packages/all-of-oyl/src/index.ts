@@ -55,7 +55,7 @@ export {
   makeUser,
 } from './fixtures/builders.js'
 export { makeSeed, type Seed } from './fixtures/seed.js'
-export { COLLECTIONS, type CollectionName, type Codec } from './collections.js'
+export { COLLECTIONS, KINDS, kindOf, entitiesByKind, type CollectionName, type Codec, type EntityKind } from './collections.js'
 
 export { Activity } from './activity/activity.js'
 export { ActivitySession } from './activity/activity-session.js'
