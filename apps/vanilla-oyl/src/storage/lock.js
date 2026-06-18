@@ -1,7 +1,11 @@
 /**
+ * @typedef {{ runExclusive: (name: string, fn: () => Promise<void>) => Promise<void> }} Lock
+ */
+
+/**
  * Cross-tab serializing lock via the Web Locks API; degrades to a no-coordination
  * passthrough where unavailable. @param {Window} win
- * @returns {import('@oyl/all-of-oyl').Lock}
+ * @returns {Lock}
  */
 export function createBrowserLock(win) {
   const locks = win.navigator.locks

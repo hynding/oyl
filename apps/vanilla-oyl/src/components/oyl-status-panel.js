@@ -1,6 +1,7 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 import { defineConnection } from './oyl-connection.js'
+/** @typedef {import('./oyl-sync-status.js').SyncState} SyncState */
 
 /** @typedef {{ status: string, version?: number }} SchemaInfo */
 /** @typedef {{ theme: string, mode: string }} ThemeInfo */
@@ -38,7 +39,7 @@ export class OylStatusPanel extends OylElement {
     this.actions = {}
     /** @type {import('./oyl-connection.js').ConnectionConfig | null} */
     this.connection = null
-    /** @type {{ state: import('../lib/reactive/signal.js').Signal<import('@oyl/all-of-oyl').SyncState | null>, onResync: () => void, onRetryFailed?: () => void, onDiscardFailed?: () => void } | null} */
+    /** @type {{ state: import('../lib/reactive/signal.js').Signal<SyncState | null>, onResync: () => void, onRetryFailed?: () => void, onDiscardFailed?: () => void } | null} */
     this.sync = null
     /** @type {{ count: number, onUpload: () => void } | null} */
     this.migration = null
