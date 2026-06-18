@@ -55,3 +55,20 @@ export const COLLECTIONS = {
 } as const
 
 export type CollectionName = keyof typeof COLLECTIONS
+
+export type EntityKind = 'catalog' | 'personal' | 'system'
+
+/** Authoritative kind per collection — drives the data-access path. */
+export const KINDS: Record<CollectionName, EntityKind> = {
+  users: 'personal', lifeAreas: 'catalog', activities: 'catalog', consumables: 'catalog',
+  accounts: 'personal', entries: 'personal', goals: 'personal', budgets: 'personal',
+  plans: 'personal', projects: 'personal', dayPlans: 'personal', documents: 'personal',
+  possessions: 'personal', subscriptions: 'personal', contacts: 'personal', giftIdeas: 'personal',
+  connections: 'system', grants: 'system',
+}
+
+export function kindOf(name: CollectionName): EntityKind { return KINDS[name] }
+
+export function entitiesByKind(kind: EntityKind): CollectionName[] {
+  return (Object.keys(KINDS) as CollectionName[]).filter((n) => KINDS[n] === kind)
+}
