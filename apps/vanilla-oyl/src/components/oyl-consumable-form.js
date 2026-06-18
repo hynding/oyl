@@ -4,13 +4,14 @@ import { sheet } from './sheet.js'
 
 /** @typedef {ReturnType<typeof import('../state/consumables-store.js').createConsumablesStore>} ConsumablesStore */
 /** @typedef {import('@oyl/all-of-oyl').Nutrients} Nutrients */
+/** @typedef {import('@oyl/all-of-oyl').NutritionAmounts} NutritionAmounts */
 
-/** @type {ReadonlyArray<readonly [keyof Nutrients, string]>} */
+/** @type {ReadonlyArray<readonly [keyof NutritionAmounts, string]>} */
 const NUTRIENT_FIELDS = [
   ['calories', 'Calories'],
   ['protein', 'Protein (g)'],
-  ['carbs', 'Carbs (g)'],
-  ['fat', 'Fat (g)'],
+  ['totalCarbohydrate', 'Carbs (g)'],
+  ['totalFat', 'Fat (g)'],
   ['waterMl', 'Water (ml)'],
 ]
 
@@ -44,7 +45,7 @@ export class OylConsumableForm extends OylElement {
     name.placeholder = 'Consumable name'
     name.setAttribute('aria-label', 'Consumable name')
 
-    /** @type {Array<[keyof Nutrients, HTMLInputElement]>} */
+    /** @type {Array<[keyof NutritionAmounts, HTMLInputElement]>} */
     const inputs = []
     const fields = document.createElement('div')
     fields.className = 'nutrients'
@@ -75,7 +76,7 @@ export class OylConsumableForm extends OylElement {
       e.preventDefault()
       error.textContent = ''
       try {
-        /** @type {Nutrients} */
+        /** @type {NutritionAmounts} */
         const nutrients = {}
         for (const [key, input] of inputs) {
           const raw = input.value.trim()

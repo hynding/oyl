@@ -58,7 +58,7 @@ describe('NutritionFacts helpers', () => {
   it('rejects additional entry with unknown slug', () => {
     let code: unknown
     try { assertNutritionFacts({ additional: [{ slug: 'not-a-real-nutrient', amount: 1 }] }) } catch (e) { code = (e as DomainError).code }
-    expect(code).toBe('INVALID_QUANTITY')
+    expect(code).toBe('INVALID_SLUG')
   })
 
   it('rejects additional entry with negative amount', () => {

@@ -21,14 +21,14 @@ describe('<oyl-consumable-form>', () => {
     const el = form(store)
     q(el, 'input[name="name"]').value = 'Banana'
     q(el, 'input[name="calories"]').value = '105'
-    q(el, 'input[name="carbs"]').value = '27'
+    q(el, 'input[name="totalCarbohydrate"]').value = '27'
     q(el, 'form').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
     await settle()
     const consumables = store.all()
     expect(consumables).toHaveLength(1)
     const first = /** @type {NonNullable<typeof consumables[0]>} */ (consumables[0])
     expect(first.name).toBe('Banana')
-    expect(first.nutrients).toEqual({ calories: 105, carbs: 27 })
+    expect(first.nutrients).toEqual({ calories: 105, totalCarbohydrate: 27 })
     el.remove()
   })
 

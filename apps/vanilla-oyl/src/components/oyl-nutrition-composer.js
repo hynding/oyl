@@ -7,13 +7,14 @@ import { now } from '../storage/clock.js'
 /** @typedef {ReturnType<typeof import('../state/consumables-store.js').createConsumablesStore>} ConsumablesStore */
 /** @typedef {import('@oyl/all-of-oyl').DayKey} DayKey */
 /** @typedef {import('@oyl/all-of-oyl').Nutrients} Nutrients */
+/** @typedef {import('@oyl/all-of-oyl').NutritionAmounts} NutritionAmounts */
 
-/** @type {ReadonlyArray<readonly [keyof Nutrients, string]>} */
+/** @type {ReadonlyArray<readonly [keyof NutritionAmounts, string]>} */
 const NUTRIENT_FIELDS = [
   ['calories', 'Calories'],
   ['protein', 'Protein (g)'],
-  ['carbs', 'Carbs (g)'],
-  ['fat', 'Fat (g)'],
+  ['totalCarbohydrate', 'Carbs (g)'],
+  ['totalFat', 'Fat (g)'],
   ['waterMl', 'Water (ml)'],
 ]
 
@@ -78,7 +79,7 @@ export class OylNutritionComposer extends OylElement {
     noteInput.name = 'note'
     noteInput.placeholder = 'Meal name'
     noteInput.setAttribute('aria-label', 'Meal name')
-    /** @type {Array<[keyof Nutrients, HTMLInputElement]>} */
+    /** @type {Array<[keyof NutritionAmounts, HTMLInputElement]>} */
     const nutrientInputs = []
     const adhocFields = document.createElement('div')
     adhocFields.className = 'nutrients'
@@ -141,7 +142,7 @@ export class OylNutritionComposer extends OylElement {
         const s = Number(servings.value)
         let consumption
         if (modeAdhoc.input.checked) {
-          /** @type {Nutrients} */
+          /** @type {NutritionAmounts} */
           const nutrients = {}
           for (const [key, input] of nutrientInputs) {
             const rawVal = input.value.trim()

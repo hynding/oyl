@@ -92,7 +92,7 @@ export function assertNutritionFacts(f: NutritionFacts): NutritionFacts {
   if (f.additional !== undefined) {
     for (const entry of f.additional) {
       if (nutrientDef(entry.slug) === undefined) {
-        throw new DomainError('INVALID_QUANTITY', `additional nutrient slug "${entry.slug}" not found in registry`)
+        throw new DomainError('INVALID_SLUG', `additional nutrient slug "${entry.slug}" not found in registry`)
       }
       if (!Number.isFinite(entry.amount) || entry.amount < 0) {
         throw new DomainError('INVALID_QUANTITY', `additional nutrient "${entry.slug}" amount must be a non-negative finite number, got ${entry.amount}`)
