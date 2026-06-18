@@ -53,7 +53,7 @@ export default factories.createCoreController(UID, ({ strapi }) => {
         note?: string
       }
       const row = await query().update({
-        where: { id: Number(id) },
+        where: { id: Number(id), owner: { id: owner } },
         data: { recordId, text, tags: tags ?? null, occurredAt, note: note ?? null },
       })
       ctx.body = { data: row }
@@ -65,7 +65,7 @@ export default factories.createCoreController(UID, ({ strapi }) => {
       const { id } = ctx.params
       const existing = await query().findOne({ where: { id: Number(id), owner: { id: owner } } })
       if (!existing) return ctx.notFound()
-      await query().delete({ where: { id: Number(id) } })
+      await query().delete({ where: { id: Number(id), owner: { id: owner } } })
       ctx.status = 204
     },
   }

@@ -78,6 +78,28 @@ describe('note content-type — owner scoping (booted)', () => {
     expect(aGet.status).toBe(200)
   })
 
+  it('user B cannot update user A note', async () => {
+    const res = await createNote(jwtA, {
+      recordId: `note-upd-test-${Date.now()}`,
+      text: 'Note to protect from update',
+      occurredAt: new Date().toISOString(),
+    })
+    expect(res.status).toBe(201)
+    const { data } = (await res.json()) as { data: { id: number } }
+    const noteId = data.id
+
+    const bPut = await fetch(`${baseUrl}/notes/${noteId}`, {
+      method: 'PUT',
+      headers: h(jwtB),
+      body: JSON.stringify({ data: { text: 'tampered', occurredAt: new Date().toISOString() } }),
+    })
+    expect(bPut.status).toBe(404)
+
+    // Note should still be readable by A (unchanged)
+    const aGet = await fetch(`${baseUrl}/notes/${noteId}`, { headers: h(jwtA) })
+    expect(aGet.status).toBe(200)
+  })
+
   it('user B cannot delete user A note', async () => {
     const res = await createNote(jwtA, {
       recordId: `note-del-test-${Date.now()}`,

@@ -4,7 +4,7 @@
   "info": { "singularName": "note", "pluralName": "notes", "displayName": "Note" },
   "options": { "draftAndPublish": false },
   "attributes": {
-    "recordId": { "type": "string", "required": true },
+    "recordId": { "type": "string", "required": true, "unique": true },
     "text": { "type": "text", "required": true },
     "tags": { "type": "json" },
     "occurredAt": { "type": "datetime", "required": true },
