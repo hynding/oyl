@@ -72,4 +72,28 @@ describe('createRouteState', () => {
     expect(rs.route.get()).toBe('status')
     rs.stop()
   })
+
+  it('navigate(path, { replace: true }) uses replaceState and does not grow history', () => {
+    window.history.replaceState({}, '', '/journal')
+    const rs = createRouteState(window)
+    const lenBefore = window.history.length
+    const pushSpy = vi.spyOn(window.history, 'pushState')
+    const replaceSpy = vi.spyOn(window.history, 'replaceState')
+    rs.navigate('/login', { replace: true })
+    expect(window.location.pathname).toBe('/login')
+    expect(rs.route.get()).toBe('login')
+    expect(pushSpy).not.toHaveBeenCalled()
+    expect(replaceSpy).toHaveBeenCalled()
+    expect(window.history.length).toBe(lenBefore)
+    pushSpy.mockRestore(); replaceSpy.mockRestore()
+  })
+
+  it('navigate(path) default still uses pushState', () => {
+    window.history.replaceState({}, '', '/journal')
+    const rs = createRouteState(window)
+    const pushSpy = vi.spyOn(window.history, 'pushState')
+    rs.navigate('/vault')
+    expect(pushSpy).toHaveBeenCalled()
+    pushSpy.mockRestore()
+  })
 })

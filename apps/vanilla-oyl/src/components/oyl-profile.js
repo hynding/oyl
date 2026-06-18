@@ -3,12 +3,14 @@ import { sheet } from './sheet.js'
 import { defineProfileFields } from './oyl-profile-fields.js'
 import { defineConnection } from './oyl-connection.js'
 import { defineSyncStatus } from './oyl-sync-status.js'
+import { formatWeight, formatHeight, age } from '@oyl/all-of-oyl/format'
 
 const styles = sheet(`
   h2 { font-size: var(--step-2); margin-block: var(--space-6) var(--space-3); }
   h2:first-of-type { margin-block-start: 0; }
   .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-2); padding: var(--space-4); margin-block-end: var(--space-4); }
   .muted { color: var(--color-muted); }
+  .body-summary { font-size: var(--step--1); color: var(--color-muted); margin-block-start: var(--space-2); }
   a { color: var(--color-accent); }
   .row { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-block-end: var(--space-3); }
   button { font: inherit; background: var(--color-surface-2); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: .4rem .8rem; cursor: pointer; }
@@ -26,6 +28,7 @@ export class OylProfile extends OylElement {
     /** @type {import('./oyl-connection.js').ConnectionConfig | null} */ this.connection = null
     /** @type {{ state: import('../lib/reactive/signal.js').Signal<any>, onResync: () => void } | null} */ this.sync = null
     /** @type {{ mode: 'local'|'remote', canUploadLocal: boolean, onExport: () => void, onImport: () => void, onUploadLocal: () => void } | null} */ this.dataActions = null
+    /** @type {string} */ this.today = ''
   }
   render() {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
@@ -51,7 +54,20 @@ export class OylProfile extends OylElement {
     fields.showSave = true
     fields.onSave = (/** @type {any} */ patch) => this.onSaveProfile(patch)
 
-    root.append(h2, identity, fields)
+    const bodyParts = []
+    if (prof?.weightKg != null) bodyParts.push(formatWeight(prof.weightKg, prof.units ?? 'metric'))
+    if (prof?.heightCm != null) bodyParts.push(formatHeight(prof.heightCm, prof.units ?? 'metric'))
+    if (prof?.birthday && this.today) bodyParts.push(`${age(prof.birthday, this.today)} yrs`)
+
+    if (bodyParts.length > 0) {
+      const summary = document.createElement('div')
+      summary.dataset.role = 'body-summary'
+      summary.className = 'body-summary'
+      summary.textContent = bodyParts.join(' · ')
+      root.append(h2, identity, summary, fields)
+    } else {
+      root.append(h2, identity, fields)
+    }
 
     if (this.connection) {
       defineConnection()

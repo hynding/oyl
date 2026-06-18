@@ -22,14 +22,18 @@ export function createRouteState(win = window) {
   const route = signal(parsePath(win.location.pathname))
   const onPop = () => route.set(parsePath(win.location.pathname))
 
-  /** @param {string} path  `pathname` + optional `?search` to navigate to */
-  const navigate = (path) => {
+  /**
+   * @param {string} path  `pathname` + optional `?search` to navigate to
+   * @param {{ replace?: boolean }} [opts]  pass `replace: true` to use replaceState (no history growth)
+   */
+  const navigate = (path, { replace = false } = {}) => {
     const url = new URL(path, win.location.origin)
     // Reconstruct the full path with search parameters
     const fullPath = url.pathname + url.search
     // Only skip if both pathname and search are identical
     if (fullPath === win.location.pathname + win.location.search) return
-    win.history.pushState({}, '', fullPath)
+    if (replace) win.history.replaceState({}, '', fullPath)
+    else win.history.pushState({}, '', fullPath)
     route.set(parsePath(url.pathname))
   }
 

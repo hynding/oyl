@@ -79,4 +79,33 @@ describe('<oyl-profile>', () => {
     expect(root.querySelector('[data-act="upload-local"]')).toBeFalsy()
     el.remove()
   })
+
+  it('renders body-summary with formatted weight, height, and age', () => {
+    const prof = signal(new User({
+      displayName: 'Avery', timezone: 'UTC', defaultCurrency: 'USD',
+      weightKg: 72.5, heightCm: 178, units: 'metric', birthday: '1990-06-20',
+    }))
+    const el = /** @type {any} */ (document.createElement('oyl-profile'))
+    el.session = signal(null); el.profile = prof; el.onSaveProfile = () => {}; el.onLogout = () => {}
+    el.today = '2026-06-18'
+    document.body.append(el)
+    const root = el.shadowRoot
+    const summary = root.querySelector('[data-role="body-summary"]')
+    expect(summary).toBeTruthy()
+    expect(summary.textContent).toContain('72.5 kg')
+    expect(summary.textContent).toContain('178 cm')
+    expect(summary.textContent).toContain('35 yrs')
+    el.remove()
+  })
+
+  it('does not render body-summary when profile has no weight/height/birthday', () => {
+    const prof = signal(new User({ displayName: 'Avery', timezone: 'UTC', defaultCurrency: 'USD' }))
+    const el = /** @type {any} */ (document.createElement('oyl-profile'))
+    el.session = signal(null); el.profile = prof; el.onSaveProfile = () => {}; el.onLogout = () => {}
+    el.today = '2026-06-18'
+    document.body.append(el)
+    const root = el.shadowRoot
+    expect(root.querySelector('[data-role="body-summary"]')).toBeFalsy()
+    el.remove()
+  })
 })

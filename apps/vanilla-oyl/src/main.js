@@ -9,7 +9,7 @@ import { exportData, importData } from './storage/backup.js'
 import { hasUnmigratedLocal, countLocalRecords } from './storage/migrate.js'
 import { isOylKey, SETTINGS_KEY, AUTH_KEY, TZ_RELOADED_KEY } from './storage/keys.js'
 import { getApiBaseUrl, getStorageMode, setApiBaseUrl, setStorageMode, DEFAULT_API_BASE_URL } from './storage/config.js'
-import { defaultTimezone } from './storage/clock.js'
+import { defaultTimezone, now } from './storage/clock.js'
 import { defineShell } from './components/oyl-shell.js'
 import { defineThemeToggle } from './components/oyl-theme-toggle.js'
 import { defineRouter } from './components/oyl-router.js'
@@ -25,7 +25,7 @@ import { defineNutrition } from './components/oyl-nutrition.js'
 import { defineSyncStatus } from './components/oyl-sync-status.js'
 import { createNoticeState } from './state/notice.js'
 import { defineNotice } from './components/oyl-notice.js'
-import { createHttpClient } from '@oyl/all-of-oyl'
+import { createHttpClient, DayKey } from '@oyl/all-of-oyl'
 import { createBrowserConnectivity } from './storage/connectivity.js'
 import { debounce } from './lib/debounce.js'
 import { makeRepositories } from './storage/bootstrap.js'
@@ -83,7 +83,7 @@ async function boot() {
 
   // Force the login page in Remote mode with no session (before touching the network).
   if (shouldRedirectToLogin(mode, authState.session.get(), routeState.route.get())) {
-    routeState.navigate('/login')
+    routeState.navigate('/login', { replace: true })
   }
 
   const hasSession = !!authState.session.get()
@@ -91,7 +91,7 @@ async function boot() {
     try {
       await dataState.refresh()
     } catch (err) {
-      if (mode === 'remote') noticeState.show("Couldn't reach the backend — sign in (Status → Account) or reload to retry.")
+      if (mode === 'remote') noticeState.show("Couldn't reach the backend — sign in at /login or reload to retry.")
       else throw err
     }
   }
@@ -123,7 +123,7 @@ async function boot() {
     if (signedIn && !wasSignedIn) { dataState.syncFlush(); backupLocalNow() }
     wasSignedIn = signedIn
     if (shouldRedirectToLogin(mode, authState.session.get(), routeState.route.get())) {
-      routeState.navigate('/login')
+      routeState.navigate('/login', { replace: true })
     }
   })
 
@@ -274,6 +274,7 @@ async function boot() {
       const page = /** @type {import('./components/oyl-profile.js').OylProfile} */ (document.createElement('oyl-profile'))
       page.session = authState.session
       page.profile = profileStore.profile
+      page.today = DayKey.from(now(), tz).value
       page.onLogout = () => authState.logout()
       page.onSaveProfile = (patch) => {
         const tzChanged = 'timezone' in patch && patch.timezone !== tz
