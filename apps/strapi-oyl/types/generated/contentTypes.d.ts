@@ -440,6 +440,46 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   }
 }
 
+export interface ApiActivityActivity extends Struct.CollectionTypeSchema {
+  collectionName: "activities"
+  info: {
+    displayName: "Activity"
+    pluralName: "activities"
+    singularName: "activity"
+  }
+  options: {
+    draftAndPublish: false
+  }
+  attributes: {
+    areaId: Schema.Attribute.String
+    createdAt: Schema.Attribute.DateTime
+    createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    creator: Schema.Attribute.Relation<
+      "manyToOne",
+      "plugin::users-permissions.user"
+    >
+    defaultUnit: Schema.Attribute.String
+    locale: Schema.Attribute.String & Schema.Attribute.Private
+    localizations: Schema.Attribute.Relation<
+      "oneToMany",
+      "api::activity.activity"
+    > &
+      Schema.Attribute.Private
+    name: Schema.Attribute.String & Schema.Attribute.Required
+    publishedAt: Schema.Attribute.DateTime
+    recordId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique
+    slug: Schema.Attribute.String & Schema.Attribute.Required
+    updatedAt: Schema.Attribute.DateTime
+    updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    visibility: Schema.Attribute.Enumeration<["private", "public"]> &
+      Schema.Attribute.DefaultTo<"public">
+  }
+}
+
 export interface ApiNoteNote extends Struct.CollectionTypeSchema {
   collectionName: "notes"
   info: {
@@ -1022,6 +1062,7 @@ declare module "@strapi/strapi" {
       "admin::transfer-token": AdminTransferToken
       "admin::transfer-token-permission": AdminTransferTokenPermission
       "admin::user": AdminUser
+      "api::activity.activity": ApiActivityActivity
       "api::note.note": ApiNoteNote
       "api::oyl-record.oyl-record": ApiOylRecordOylRecord
       "plugin::content-releases.release": PluginContentReleasesRelease
