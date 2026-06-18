@@ -3,6 +3,7 @@ import { User } from './user/user.js'
 import { LifeArea } from './core/life-area.js'
 import { Activity } from './activity/activity.js'
 import { Consumable } from './nutrition/consumable.js'
+import { ConsumableProduct } from './nutrition/consumable-product.js'
 import { Account } from './finance/account.js'
 import { Goal } from './goal/goal.js'
 import { Budget } from './goal/budget.js'
@@ -38,6 +39,7 @@ export const COLLECTIONS = {
   lifeAreas: classCodec(LifeArea.fromJSON),
   activities: classCodec(Activity.fromJSON),
   consumables: classCodec(Consumable.fromJSON),
+  consumableProducts: classCodec(ConsumableProduct.fromJSON),
   accounts: classCodec(Account.fromJSON),
   entries: { toJSON: (e: { toJSON(): unknown }) => e.toJSON(), fromJSON: reviveEntry },
   goals: classCodec(Goal.fromJSON),
@@ -61,6 +63,7 @@ export type EntityKind = 'catalog' | 'personal' | 'system'
 /** Authoritative kind per collection — drives the data-access path. */
 export const KINDS: Record<CollectionName, EntityKind> = {
   users: 'personal', lifeAreas: 'catalog', activities: 'catalog', consumables: 'catalog',
+  consumableProducts: 'catalog',
   accounts: 'personal', entries: 'personal', goals: 'personal', budgets: 'personal',
   plans: 'personal', projects: 'personal', dayPlans: 'personal', documents: 'personal',
   possessions: 'personal', subscriptions: 'personal', contacts: 'personal', giftIdeas: 'personal',

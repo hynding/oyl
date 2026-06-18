@@ -31,6 +31,7 @@ export const PATH_BY_COLLECTION = {
   lifeAreas: 'life-areas',
   activities: 'activities',
   consumables: 'consumables',
+  consumableProducts: 'consumable-products',
   accounts: 'accounts',
   entries: 'notes',
   goals: 'goals',

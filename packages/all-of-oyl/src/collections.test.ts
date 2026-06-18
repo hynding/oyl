@@ -13,6 +13,7 @@ describe('entity kind', () => {
   it('classifies catalogs, personal records, and system links', () => {
     expect(kindOf('activities')).toBe('catalog')
     expect(kindOf('consumables')).toBe('catalog')
+    expect(kindOf('consumableProducts')).toBe('catalog')
     expect(kindOf('entries')).toBe('personal')
     expect(kindOf('accounts')).toBe('personal')
     expect(kindOf('connections')).toBe('system')

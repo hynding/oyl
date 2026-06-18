@@ -62,6 +62,7 @@ export { COLLECTIONS, KINDS, kindOf, entitiesByKind, type CollectionName, type C
 export { Activity } from './activity/activity.js'
 export { ActivitySession } from './activity/activity-session.js'
 export { Consumable } from './nutrition/consumable.js'
+export { ConsumableProduct, effectiveFacts, type NetWeight } from './nutrition/consumable-product.js'
 export {
   type ServingSize,
   type NutritionAmounts,

@@ -50,6 +50,7 @@ export type Seed = {
   lifeAreas: Record<string, unknown>[]
   activities: Record<string, unknown>[]
   consumables: Record<string, unknown>[]
+  consumableProducts: Record<string, unknown>[]
   accounts: Record<string, unknown>[]
   entries: Record<string, unknown>[]
   goals: Record<string, unknown>[]
@@ -227,6 +228,7 @@ export function makeSeed(): Seed {
     lifeAreas: areas.map((a) => a.toJSON()),
     activities: [run.toJSON(), meditate.toJSON()],
     consumables: [oatmeal.toJSON(), chickenBowl.toJSON()],
+    consumableProducts: [],
     accounts: [checking.toJSON()],
     entries: entries.map((e) => e.toJSON()),
     goals: [calorieGoal.toJSON(), runGoal.toJSON(), sleepGoal.toJSON(), weightGoal.toJSON()],

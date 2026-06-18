@@ -1,24 +1,53 @@
 import { DomainError } from '../core/domain-error.js'
 import { Id } from '../core/id.js'
 import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta.js'
-import { type Nutrients, assertNutrients, nutrientsFromJSON, nutrientsToJSON } from './nutrients.js'
+import { assertSlug } from '../core/slug.js'
+import { type NutritionFacts, assertNutritionFacts, nutritionFactsFromJSON, nutritionFactsToJSON } from './nutrients.js'
 
-/** A reusable consumable definition; nutrients are per serving. */
+/** A reusable consumable definition; facts are per serving. */
 export class Consumable {
   readonly id: Id
   readonly name: string
-  readonly nutrients: Nutrients
+  readonly slug?: string
+  /** Canonical per-serving nutrition facts. */
+  readonly facts: NutritionFacts
+  readonly ingredients?: readonly string[]
+  readonly allergens?: readonly string[]
   /** Repo-owned storage bookkeeping; outside the immutability rule. */
   meta?: PersistedMeta
   /** Tolerant reader: unknown JSON fields preserved through round-trips. Only ever spread into fresh object literals — never Object.assign or bracket-assign onto an existing object (prototype-pollution guard). */
   private readonly extra: Record<string, unknown>
 
-  constructor(props: { id?: Id; name: string; nutrients: Nutrients }, extra: Record<string, unknown> = {}) {
+  constructor(
+    props: (
+      | { facts: NutritionFacts; nutrients?: NutritionFacts }
+      | { nutrients: NutritionFacts; facts?: NutritionFacts }
+    ) & {
+      id?: Id
+      name: string
+      slug?: string
+      ingredients?: readonly string[]
+      allergens?: readonly string[]
+    },
+    extra: Record<string, unknown> = {},
+  ) {
     if (props.name.length === 0) throw new DomainError('INVALID_QUANTITY', 'name must be non-empty')
+    const factsInput = props.facts ?? props.nutrients
+    if (factsInput === undefined) throw new DomainError('MALFORMED_JSON', 'Consumable requires facts or nutrients')
     this.id = props.id ?? Id.create()
     this.name = props.name
-    this.nutrients = { ...assertNutrients(props.nutrients) }
+    if (props.slug !== undefined) this.slug = assertSlug(props.slug)
+    this.facts = { ...assertNutritionFacts(factsInput) }
+    if (props.ingredients !== undefined) this.ingredients = [...props.ingredients]
+    if (props.allergens !== undefined) this.allergens = [...props.allergens]
     this.extra = extra
+  }
+
+  /**
+   * @deprecated use facts
+   */
+  get nutrients(): NutritionFacts {
+    return this.facts
   }
 
   toJSON(): Record<string, unknown> {
@@ -26,7 +55,10 @@ export class Consumable {
       ...this.extra,
       id: this.id,
       name: this.name,
-      nutrients: nutrientsToJSON(this.nutrients),
+      ...(this.slug !== undefined ? { slug: this.slug } : {}),
+      facts: nutritionFactsToJSON(this.facts),
+      ...(this.ingredients !== undefined ? { ingredients: [...this.ingredients] } : {}),
+      ...(this.allergens !== undefined ? { allergens: [...this.allergens] } : {}),
       ...(this.meta ? { meta: metaToJSON(this.meta) } : {}),
     }
   }
@@ -35,8 +67,10 @@ export class Consumable {
     if (typeof shape !== 'object' || shape === null) {
       throw new DomainError('MALFORMED_JSON', 'not a Consumable shape')
     }
-    const { id, name, nutrients, meta, ...extra } = shape as Record<string, unknown>
-    if (typeof id !== 'string' || typeof name !== 'string' || nutrients === undefined) {
+    const { id, name, slug, facts, nutrients, ingredients, allergens, meta, ...extra } = shape as Record<string, unknown>
+    // tolerate legacy nutrients key
+    const factsRaw = facts ?? nutrients
+    if (typeof id !== 'string' || typeof name !== 'string' || factsRaw === undefined) {
       throw new DomainError('MALFORMED_JSON', 'not a Consumable shape')
     }
     let parsedId: Id
@@ -45,7 +79,29 @@ export class Consumable {
     } catch {
       throw new DomainError('MALFORMED_JSON', `Consumable has a malformed id: "${id}"`)
     }
-    const consumable = new Consumable({ id: parsedId, name, nutrients: nutrientsFromJSON(nutrients) }, extra)
+    const parsedIngredients =
+      ingredients !== undefined
+        ? Array.isArray(ingredients) && ingredients.every((v) => typeof v === 'string')
+          ? (ingredients as string[])
+          : (() => { throw new DomainError('MALFORMED_JSON', 'ingredients must be an array of strings') })()
+        : undefined
+    const parsedAllergens =
+      allergens !== undefined
+        ? Array.isArray(allergens) && allergens.every((v) => typeof v === 'string')
+          ? (allergens as string[])
+          : (() => { throw new DomainError('MALFORMED_JSON', 'allergens must be an array of strings') })()
+        : undefined
+    const consumable = new Consumable(
+      {
+        id: parsedId,
+        name,
+        ...(typeof slug === 'string' ? { slug } : {}),
+        facts: nutritionFactsFromJSON(factsRaw),
+        ...(parsedIngredients !== undefined ? { ingredients: parsedIngredients } : {}),
+        ...(parsedAllergens !== undefined ? { allergens: parsedAllergens } : {}),
+      },
+      extra,
+    )
     if (meta !== undefined) consumable.meta = metaFromJSON(meta)
     return consumable
   }
