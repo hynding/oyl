@@ -32,11 +32,13 @@ export function syncTriggersRefresh(prev, next) {
  * screen reads. refresh() re-reads everything (boot, seed, import, multi-tab).
  * @param {AppStorage & import('@oyl/all-of-oyl').StorageLike} storage
  * @param {ThemeState} themeState
- * @param {{ client?: import('@oyl/all-of-oyl').HttpClient, connectivity?: import('@oyl/all-of-oyl').Connectivity }} [opts]
+ * @param {{ client?: import('@oyl/all-of-oyl').HttpClient, connectivity?: import('@oyl/all-of-oyl').Connectivity, repos?: ReturnType<typeof makeRepositories>['repos'], engine?: ReturnType<typeof makeRepositories>['engine'], timezone?: string }} [opts]
  */
 export function createDataState(storage, themeState, opts = {}) {
-  const { repos, engine } = makeRepositories(storage, opts.client ? { client: opts.client, ...(opts.connectivity ? { connectivity: opts.connectivity } : {}) } : {})
-  const journal = createJournalStore(repos.entries, defaultTimezone())
+  const { repos, engine } = opts.repos
+    ? { repos: opts.repos, engine: opts.engine }
+    : makeRepositories(storage, opts.client ? { client: opts.client, ...(opts.connectivity ? { connectivity: opts.connectivity } : {}) } : {})
+  const journal = createJournalStore(repos.entries, opts.timezone ?? defaultTimezone())
   const planner = createPlannerStore(repos.plans)
   const vault = createVaultStore(repos)
   const goals = createGoalsStore(repos.goals)

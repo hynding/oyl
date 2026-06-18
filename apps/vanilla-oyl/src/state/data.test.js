@@ -242,3 +242,17 @@ describe('createDataState migration surface', () => {
     expect(ds.migrationOffer()).toBeNull() // migrated → no longer offered
   })
 })
+
+describe('createDataState injected repos + timezone', () => {
+  it('uses injected repos and the provided timezone for the journal store', async () => {
+    const storage = fakeStorage()
+    const { makeRepositories } = await import('../storage/bootstrap.js')
+    const { repos, engine } = makeRepositories(storage)
+    const ds = createDataState(storage, createThemeState(storage), { repos, engine, timezone: 'Asia/Tokyo' })
+    expect(ds.repos).toBe(repos)
+    // A note added at this instant lands on the Tokyo civil day.
+    await ds.journal.add(new Note({ text: 'hi', occurredAt: new Date('2026-06-17T16:00:00Z') }))
+    const tokyoDay = DayKey.from(new Date('2026-06-17T16:00:00Z'), 'Asia/Tokyo')
+    expect(ds.journal.entriesOn(tokyoDay).length).toBe(1)
+  })
+})
