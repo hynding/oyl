@@ -1,12 +1,12 @@
 import { signal } from '../lib/reactive/signal.js'
 
 /** @typedef {import('@oyl/all-of-oyl').Consumable} Consumable */
-/** @typedef {import('@oyl/all-of-oyl').Id} Id */
 /** @typedef {import('@oyl/all-of-oyl').Repository<Consumable>} ConsumablesRepo */
 
 /**
  * App-level reactive wrapper over the consumables Repository — the catalog of domain Consumables.
- * Add/remove are persist-first; consumables have no in-place mutation (no edit).
+ * Add is persist-first; catalog-item delete/update is a deferred backend capability
+ * (Sub-project B/D), so there is no remove() here yet.
  * @param {ConsumablesRepo} consumablesRepo
  */
 export function createConsumablesStore(consumablesRepo) {
@@ -29,12 +29,6 @@ export function createConsumablesStore(consumablesRepo) {
       consumables = [...consumables, saved]
       revision.set((n += 1))
       return saved
-    },
-    /** @param {Id} id */
-    async remove(id) {
-      await consumablesRepo.delete(id)
-      consumables = consumables.filter((x) => x.id !== id)
-      revision.set((n += 1))
     },
     /** @returns {readonly Consumable[]} */
     all() {

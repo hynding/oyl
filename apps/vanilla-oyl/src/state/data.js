@@ -1,9 +1,7 @@
 import { review, Transaction } from '@oyl/all-of-oyl'
 import { signal } from '../lib/reactive/signal.js'
-import { effect } from '../lib/reactive/effect.js'
 import { makeRepositories, collectionCounts } from '../storage/bootstrap.js'
 import { readSchemaState } from '../storage/schema.js'
-import { shouldOfferMigration, countLocalRecords, migrateLocalToRemote } from '../storage/migrate.js'
 import { createJournalStore } from './journal-store.js'
 import { createPlannerStore } from './planner-store.js'
 import { createVaultStore } from './vault-store.js'
@@ -18,26 +16,28 @@ import { defaultTimezone } from '../storage/clock.js'
 /** @typedef {{ getItem(k: string): string | null, setItem(k: string, v: string): void, key(i: number): string | null, length: number }} AppStorage */
 
 /**
- * Re-hydrate when a pull or conflict changed the cache — NOT on every flush.
- * @param {import('@oyl/all-of-oyl').SyncState | null} prev
- * @param {import('@oyl/all-of-oyl').SyncState | null} next
- * @returns {boolean}
- */
-export function syncTriggersRefresh(prev, next) {
-  return !!next && (next.pulledAt !== prev?.pulledAt || next.conflicts !== prev?.conflicts)
-}
-
-/**
- * App data state: repositories over real storage + reactive diagnostics the Status
- * screen reads. refresh() re-reads everything (boot, seed, import, multi-tab).
+ * App data state: online-first repositories over real storage + reactive diagnostics the
+ * Status screen reads. refresh() re-reads everything (boot, seed, multi-tab). The server is
+ * the source of truth; writes enqueue to the outbox and the app's flusher drains them.
  * @param {AppStorage & import('@oyl/all-of-oyl').StorageLike} storage
  * @param {ThemeState} themeState
- * @param {{ client?: import('@oyl/all-of-oyl').HttpClient, connectivity?: import('@oyl/all-of-oyl').Connectivity, repos?: ReturnType<typeof makeRepositories>['repos'], engine?: ReturnType<typeof makeRepositories>['engine'], timezone?: string }} [opts]
+ * @param {{
+ *   api?: import('@oyl/all-of-oyl').ApiClient,
+ *   connectivity?: import('@oyl/all-of-oyl').Connectivity,
+ *   repos?: ReturnType<typeof makeRepositories>['repos'],
+ *   outbox?: import('@oyl/all-of-oyl').WriteOutbox,
+ *   timezone?: string,
+ * }} [opts]
  */
 export function createDataState(storage, themeState, opts = {}) {
-  const { repos, engine } = opts.repos
-    ? { repos: opts.repos, engine: opts.engine }
-    : makeRepositories(storage, opts.client ? { client: opts.client, ...(opts.connectivity ? { connectivity: opts.connectivity } : {}) } : {})
+  const built = opts.repos
+    ? { repos: opts.repos, outbox: opts.outbox }
+    : makeRepositories(storage, {
+        ...(opts.api ? { api: opts.api } : {}),
+        ...(opts.connectivity ? { connectivity: opts.connectivity } : {}),
+      })
+  const { repos } = built
+  const outbox = opts.outbox ?? built.outbox
   const journal = createJournalStore(repos.entries, opts.timezone ?? defaultTimezone())
   const planner = createPlannerStore(repos.plans)
   const vault = createVaultStore(repos)
@@ -46,32 +46,15 @@ export function createDataState(storage, themeState, opts = {}) {
   const accounts = createAccountsStore(repos.accounts)
   const consumables = createConsumablesStore(repos.consumables)
 
-  /** @type {import('../lib/reactive/signal.js').Signal<import('@oyl/all-of-oyl').SyncState | null>} */
-  const syncState = signal(engine ? engine.syncState.get() : null)
-  engine?.syncState.subscribe((v) => syncState.set(v)) // app-lifetime bridge
-  /** Run the initial flush→pull (no-op in local mode). @returns {Promise<void>} */
-  async function startSync() { if (engine) await engine.start() }
-  /** Push the outbox now (e.g. after re-login). */
-  function syncFlush() { if (engine) void engine.flush() }
-  /** Clear cursors + full pull. @returns {Promise<void>} */
-  function resync() { return engine ? engine.resync() : Promise.resolve() }
-  /** Un-quarantine failed outbox ops and re-flush. @returns {Promise<void>} */
-  function retryFailed() { return engine ? engine.retryFailed() : Promise.resolve() }
-  /** Permanently drop all failed outbox ops. */
-  function discardFailed() { if (engine) engine.discardFailed() }
-  /** @returns {{ count: number } | null} */
-  function migrationOffer() { return shouldOfferMigration(storage) ? { count: countLocalRecords(storage) } : null }
-  /** Upload local data to remote + re-hydrate. @returns {Promise<number>} */
-  async function migrateLocal() { const n = await migrateLocalToRemote(storage, repos); await refresh(); return n }
-  // Re-hydrate the stores when a pull/conflict changed the cache (remote only).
-  if (engine) {
-    let prevSync = syncState.get()
-    effect(() => {
-      const s = syncState.get()
-      if (syncTriggersRefresh(prevSync, s)) { prevSync = s; void refresh() }
-      else prevSync = s
-    })
-  }
+  /**
+   * Cheap pending-writes indicator derived from the outbox. It is a snapshot read on
+   * refresh()/refreshPending() — not a live subscription — which is enough for the
+   * Status surface until the sync UI reshape (Sub-project D).
+   * @type {import('../lib/reactive/signal.js').Signal<number>}
+   */
+  const pending = signal(outbox ? outbox.size() : 0)
+  /** Re-read the outbox size into the pending signal. */
+  function refreshPending() { pending.set(outbox ? outbox.size() : 0) }
 
   /** @type {readonly import('@oyl/all-of-oyl').LifeArea[]} */
   let lifeAreas = []
@@ -98,6 +81,7 @@ export function createDataState(storage, themeState, opts = {}) {
     const val = (/** @type {number} */ i) => /** @type {any} */ (results[i]).value
     lifeAreas = val(7); activities = val(8); projects = val(9)
     storageEstimate.set(val(10)); counts.set(val(11))
+    refreshPending()
   }
 
   /** Compose the current diagnostics snapshot (reads signals — call inside an effect to stay live). */
@@ -155,7 +139,7 @@ export function createDataState(storage, themeState, opts = {}) {
     return charge
   }
 
-  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, consumables, syncState, startSync, syncFlush, resync, retryFailed, discardFailed, migrationOffer, migrateLocal }
+  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, consumables, pending, refreshPending }
 }
 
 /**

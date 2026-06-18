@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COLLECTIONS, type Codec, type CollectionName } from './collections.js'
+import { COLLECTIONS, kindOf, entitiesByKind, type Codec, type CollectionName } from './collections.js'
 import { makeSeed } from './index.js'
 
 // Tie fromJSON's output back to toJSON's input through one shared T, so the
@@ -8,6 +8,24 @@ import { makeSeed } from './index.js'
 function roundTrip<T>(codec: Codec<T>, shape: unknown): unknown {
   return codec.toJSON(codec.fromJSON(shape))
 }
+
+describe('entity kind', () => {
+  it('classifies catalogs, personal records, and system links', () => {
+    expect(kindOf('activities')).toBe('catalog')
+    expect(kindOf('consumables')).toBe('catalog')
+    expect(kindOf('entries')).toBe('personal')
+    expect(kindOf('accounts')).toBe('personal')
+    expect(kindOf('connections')).toBe('system')
+    expect(kindOf('grants')).toBe('system')
+  })
+  it('every collection has a kind', () => {
+    for (const name of Object.keys(COLLECTIONS)) expect(['catalog','personal','system']).toContain(kindOf(/** @type any */(name as CollectionName)))
+  })
+  it('entitiesByKind groups them', () => {
+    expect(entitiesByKind('catalog')).toContain('activities')
+    expect(entitiesByKind('personal')).not.toContain('activities')
+  })
+})
 
 describe('collections manifest', () => {
   const seed = makeSeed()

@@ -150,7 +150,9 @@ export class OylNutrition extends OylElement {
       empty.textContent = consumptions.length > 0 ? '' : `No meals logged for ${formatDayHeading(day)}. Log one above.`
     })
 
-    // Consumables catalog (reactive on the consumables store).
+    // Consumables catalog (reactive on the consumables store). No delete/edit affordance:
+    // catalog-item delete/update is a deferred backend capability (Sub-project B/D), so we
+    // don't render a button that the catalog read-adapter would silently no-op.
     this.track(() => {
       const consumables = this.consumables.all()
       consumableList.replaceChildren()
@@ -161,13 +163,7 @@ export class OylNutrition extends OylElement {
         const meta = document.createElement('span')
         meta.className = 'meta'
         meta.textContent = formatNutrients(f.nutrients)
-        const del = document.createElement('button')
-        del.className = 'del'
-        del.type = 'button'
-        del.textContent = 'Remove'
-        del.setAttribute('aria-label', `Remove ${f.name}`)
-        del.addEventListener('click', () => { void this.consumables.remove(f.id); live.textContent = 'Consumable removed' })
-        li.append(name, meta, del)
+        li.append(name, meta)
         consumableList.append(li)
       }
     })

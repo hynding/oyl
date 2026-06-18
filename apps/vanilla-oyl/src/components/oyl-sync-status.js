@@ -1,6 +1,10 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 
+/**
+ * @typedef {{ online: boolean, pending: number, status: 'idle' | 'syncing' | 'error' | 'offline', conflicts: number, failed: number, lastSyncedAt?: string | null, lastError?: string }} SyncState
+ */
+
 const styles = sheet(`
   :host { display: inline-flex; align-items: center; }
   :host([hidden]) { display: none; }
@@ -16,7 +20,7 @@ export class OylSyncStatus extends OylElement {
   static styles = [styles]
   constructor() {
     super()
-    /** @type {import('../lib/reactive/signal.js').Signal<import('@oyl/all-of-oyl').SyncState | null> | null} */
+    /** @type {import('../lib/reactive/signal.js').Signal<SyncState | null> | null} */
     this.syncState = null
   }
   render() {
@@ -43,7 +47,7 @@ export class OylSyncStatus extends OylElement {
 
 /**
  * Map a SyncState (or null) to a chip descriptor, or null when the chip should be hidden.
- * @param {import('@oyl/all-of-oyl').SyncState | null} s
+ * @param {SyncState | null} s
  * @returns {{ tone: string, text: string, title?: string } | null}
  */
 function toChip(s) {

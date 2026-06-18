@@ -4,16 +4,22 @@ import { defineRegister } from './oyl-register.js'
 beforeAll(() => defineRegister())
 
 describe('<oyl-register>', () => {
-  it('forwards register success with the collected profile patch (incl. timezone)', async () => {
-    const onAuthenticated = vi.fn(); const onSkip = vi.fn()
+  it('has no skip button (account-required)', async () => {
+    const el = /** @type {any} */ (document.createElement('oyl-register'))
+    el.auth = { login: vi.fn(), register: vi.fn().mockResolvedValue({}) }
+    document.body.append(el)
+    expect(el.shadowRoot.querySelector('[data-act="skip"]')).toBeNull()
+    el.remove()
+  })
+
+  it('renders the create-account heading and a login link, and forwards register success with profile patch', async () => {
+    const onAuthenticated = vi.fn()
     const auth = { login: vi.fn(), register: vi.fn().mockResolvedValue({}) }
     const el = /** @type {any} */ (document.createElement('oyl-register'))
-    el.auth = auth; el.onAuthenticated = onAuthenticated; el.onSkip = onSkip
+    el.auth = auth; el.onAuthenticated = onAuthenticated
     document.body.append(el)
     const root = el.shadowRoot
     expect(root.querySelector('a[href="/login"]')).toBeTruthy()
-    root.querySelector('[data-act="skip"]').click()
-    expect(onSkip).toHaveBeenCalled()
 
     const formEl = root.querySelector('oyl-auth-form')
     formEl.shadowRoot.querySelector('input[name="username"]').value = 'avery'

@@ -3,9 +3,9 @@ import { defineSyncStatus } from './oyl-sync-status.js'
 import { signal } from '../lib/reactive/signal.js'
 
 beforeAll(() => defineSyncStatus())
-/** @type {import('@oyl/all-of-oyl').SyncState} */
+/** @type {import('./oyl-sync-status.js').SyncState} */
 const synced = { online: true, pending: 0, status: 'idle', conflicts: 0, failed: 0 }
-/** @param {import('@oyl/all-of-oyl').SyncState | null} initial */
+/** @param {import('./oyl-sync-status.js').SyncState | null} initial */
 function mount(initial) {
   const sig = signal(/** @type {any} */ (initial))
   const el = /** @type {any} */ (document.createElement('oyl-sync-status'))

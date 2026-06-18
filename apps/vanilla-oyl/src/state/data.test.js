@@ -1,9 +1,35 @@
-import { describe, expect, it, vi } from 'vitest'
-import { Note, Measurement, Goal, DayKey, Task, periodWindowOf, Subscription, Cadence, Money, Account, manualConnectivity } from '@oyl/all-of-oyl'
+import { describe, expect, it } from 'vitest'
+import { Note, Measurement, Goal, DayKey, Task, periodWindowOf, Subscription, Cadence, Money, Account, manualConnectivity, COLLECTIONS, InMemoryRepository } from '@oyl/all-of-oyl'
 import { createThemeState } from './theme.js'
-import { createDataState, syncTriggersRefresh } from './data.js'
+import { createDataState } from './data.js'
 import { defaultTimezone } from '../storage/clock.js'
 import { loadDemoData } from '../storage/seed.js'
+
+/**
+ * A COLLECTIONS-keyed map of conformant in-memory repos — used to exercise store/round-trip
+ * logic without a server. The online-first server repos (noop api in tests) don't round-trip
+ * save→list locally; the store logic under test is Repository-shaped, so an InMemoryRepository
+ * is the right test double.
+ * @returns {any}
+ */
+function inMemoryRepos() {
+  /** @type {any} */
+  const repos = {}
+  for (const name of Object.keys(COLLECTIONS)) repos[name] = new InMemoryRepository()
+  return repos
+}
+
+/** Seed localStorage data keys into a COLLECTIONS-keyed in-memory repos map. @param {any} storage @returns {Promise<any>} */
+async function reposFromSeed(storage) {
+  const repos = inMemoryRepos()
+  for (const name of Object.keys(COLLECTIONS)) {
+    const raw = storage.getItem(`oyl/data/${name}`)
+    if (!raw) continue
+    const codec = /** @type {any} */ (COLLECTIONS[/** @type {keyof typeof COLLECTIONS} */ (name)])
+    for (const shape of JSON.parse(raw)) await repos[name].save(codec.fromJSON(shape))
+  }
+  return repos
+}
 
 /** @param {Record<string,string>} [seed] */
 function fakeStorage(seed = {}) {
@@ -34,7 +60,7 @@ describe('data state', () => {
 
   it('exposes a journal store hydrated from the entries repo on refresh', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage))
+    const ds = createDataState(storage, createThemeState(storage), { repos: inMemoryRepos() })
     const iso = '2026-06-10T16:00:00Z'
     await ds.repos.entries.save(new Note({ occurredAt: new Date(iso), text: 'hi' }))
     await ds.refresh()
@@ -44,7 +70,7 @@ describe('data state', () => {
 
   it('exposes a planner store hydrated from the plans repo on refresh', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage))
+    const ds = createDataState(storage, createThemeState(storage), { repos: inMemoryRepos() })
     const due = DayKey.of('2026-06-16')
     await ds.repos.plans.save(/** @type {any} */ (new Task({ title: 'plan it', due })))
     await ds.refresh()
@@ -89,7 +115,7 @@ describe('data state', () => {
 
   it('exposes an accounts store hydrated by refresh', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage))
+    const ds = createDataState(storage, createThemeState(storage), { repos: inMemoryRepos() })
     await ds.repos.accounts.save(new Account({ name: 'Checking', currency: 'USD' }))
     await ds.refresh()
     expect(ds.accounts.all().map((a) => a.name)).toContain('Checking')
@@ -97,7 +123,7 @@ describe('data state', () => {
 
   it('reviewOn composes a review for a period', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage))
+    const ds = createDataState(storage, createThemeState(storage), { repos: inMemoryRepos() })
     const iso = '2026-06-10T16:00:00Z'
     await ds.repos.goals.save(new Goal({ name: 'Sleep', metric: 'sleep.hours', target: 7, direction: 'atLeast', period: 'day' }))
     await ds.repos.entries.save(new Measurement({ occurredAt: new Date(iso), metric: 'sleep.hours', value: 7 }))
@@ -124,42 +150,45 @@ describe('data state', () => {
 
   it('reviewOn includes named life areas from the loaded catalogs', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage))
     await loadDemoData(storage)
+    const ds = createDataState(storage, createThemeState(storage), { repos: await reposFromSeed(storage) })
     await ds.refresh()
     const day = DayKey.from(new Date(), defaultTimezone())
     const r = ds.reviewOn(periodWindowOf('month', day))
     expect(r.areas.map((a) => a.name)).toContain('Health')
   })
 
-  it('routes through an http client when one is provided', async () => {
-    const client = { request: vi.fn(async () => ({ records: [] })) }
+  it('reads through the api client when one is provided', async () => {
+    let called = false
+    /** @type {any} */
+    const api = {
+      find: async () => { called = true; return { data: [], meta: {} } },
+      findOne: async () => undefined,
+      create: async (/** @type {any} */ _p, /** @type {any} */ d) => d,
+      update: async (/** @type {any} */ _p, /** @type {any} */ _i, /** @type {any} */ d) => d,
+      remove: async () => {},
+    }
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage), { client: /** @type {any} */ (client), connectivity: manualConnectivity(true) })
+    const ds = createDataState(storage, createThemeState(storage), { api, connectivity: manualConnectivity(true) })
     await ds.refresh()
-    await ds.startSync()
-    expect(client.request).toHaveBeenCalled()
+    expect(called).toBe(true) // the journal/catalog hydrate hit api.find
   })
 
-  it('remote createDataState exposes syncState as a Signal and startSync runs without throwing', async () => {
-    const client = { request: vi.fn(async () => ({ records: [] })) }
+  it('exposes a pending signal derived from the outbox (grows on save)', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage), { client: /** @type {any} */ (client), connectivity: manualConnectivity(true) })
-    expect(typeof ds.syncState.get).toBe('function') // a Signal, not the raw observable
-    await ds.startSync()
-  })
-
-  it('local createDataState has a null syncState signal', () => {
-    const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage), {})
-    expect(ds.syncState.get()).toBeNull()
+    // Offline so the enqueue is retained (online would flush-on-enqueue and drain it).
+    const ds = createDataState(storage, createThemeState(storage), { connectivity: manualConnectivity(false) })
+    expect(ds.pending.get()).toBe(0)
+    await ds.repos.entries.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' }))
+    ds.refreshPending()
+    expect(ds.pending.get()).toBe(1)
   })
 })
 
 describe('renewSubscription (subscription→transaction seam)', () => {
   it('posts the charge as an expense transaction in the current month', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage))
+    const ds = createDataState(storage, createThemeState(storage), { repos: inMemoryRepos() })
     const today = DayKey.from(new Date(), defaultTimezone())
     const sub = new Subscription({
       name: 'Netflix',
@@ -194,61 +223,12 @@ describe('renewSubscription (subscription→transaction seam)', () => {
   })
 })
 
-describe('syncTriggersRefresh', () => {
-  const base = /** @type {import('@oyl/all-of-oyl').SyncState} */ ({ online: true, pending: 0, status: 'idle', conflicts: 0 })
-  it('true when pulledAt changed', () => {
-    expect(syncTriggersRefresh(base, { ...base, pulledAt: new Date() })).toBe(true)
-  })
-  it('true when conflicts changed', () => {
-    expect(syncTriggersRefresh(base, { ...base, conflicts: 1 })).toBe(true)
-  })
-  it('false for a status-only change', () => {
-    expect(syncTriggersRefresh(base, { ...base, status: 'syncing' })).toBe(false)
-  })
-  it('false when next is null', () => {
-    expect(syncTriggersRefresh(base, null)).toBe(false)
-  })
-})
-
-describe('createDataState sync surface', () => {
-  it('exposes syncState as a Signal and resync() resolves (remote)', async () => {
-    const client = { request: vi.fn(async () => ({ records: [] })) }
-    const storage = fakeStorage()
-    const themeState = createThemeState(storage)
-    const ds = createDataState(storage, themeState, { client: /** @type {any} */ (client), connectivity: manualConnectivity(true) })
-    expect(typeof ds.syncState.get).toBe('function') // a Signal, not the raw observable
-    await ds.resync()
-  })
-  it('local syncState signal holds null', () => {
-    const storage = fakeStorage()
-    const themeState = createThemeState(storage)
-    const ds = createDataState(storage, themeState, {})
-    expect(ds.syncState.get()).toBeNull()
-  })
-})
-
-describe('createDataState migration surface', () => {
-  it('migrationOffer reflects local data; migrateLocal uploads + returns the count', async () => {
-    const { LifeArea, COLLECTIONS } = await import('@oyl/all-of-oyl')
-    const codec = /** @type {any} */ (COLLECTIONS.lifeAreas)
-    const storage = fakeStorage()
-    storage.setItem('oyl/data/lifeAreas', JSON.stringify([codec.toJSON(new LifeArea({ name: 'H', slug: 'h' }))]))
-    const client = { request: vi.fn(async () => ({ records: [] })) }
-    const themeState = createThemeState(storage)
-    const ds = createDataState(storage, themeState, { client: /** @type {any} */ (client), connectivity: manualConnectivity(true) })
-    expect(ds.migrationOffer()).toEqual({ count: 1 })
-    const n = await ds.migrateLocal()
-    expect(n).toBe(1)
-    expect(ds.migrationOffer()).toBeNull() // migrated → no longer offered
-  })
-})
-
 describe('createDataState injected repos + timezone', () => {
   it('uses injected repos and the provided timezone for the journal store', async () => {
     const storage = fakeStorage()
     const { makeRepositories } = await import('../storage/bootstrap.js')
-    const { repos, engine } = makeRepositories(storage)
-    const ds = createDataState(storage, createThemeState(storage), { repos, engine, timezone: 'Asia/Tokyo' })
+    const { repos, outbox } = makeRepositories(storage)
+    const ds = createDataState(storage, createThemeState(storage), { repos, outbox, timezone: 'Asia/Tokyo' })
     expect(ds.repos).toBe(repos)
     // A note added at this instant lands on the Tokyo civil day.
     await ds.journal.add(new Note({ text: 'hi', occurredAt: new Date('2026-06-17T16:00:00Z') }))

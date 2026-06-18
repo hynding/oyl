@@ -1,0 +1,15 @@
+{
+  "kind": "collectionType",
+  "collectionName": "activities",
+  "info": { "singularName": "activity", "pluralName": "activities", "displayName": "Activity" },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "recordId": { "type": "string", "required": true, "unique": true },
+    "name": { "type": "string", "required": true },
+    "slug": { "type": "string", "required": true },
+    "defaultUnit": { "type": "string" },
+    "areaId": { "type": "string" },
+    "creator": { "type": "relation", "relation": "manyToOne", "target": "plugin::users-permissions.user" },
+    "visibility": { "type": "enumeration", "enum": ["private", "public"], "default": "public" }
+  }
+}
