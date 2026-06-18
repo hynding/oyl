@@ -11,4 +11,7 @@ describe('percentDailyValue', () => {
   it('returns undefined for unknown nutrients', () => {
     expect(percentDailyValue('zzz', 1)).toBeUndefined()
   })
+  it('rounds non-integer percentages correctly', () => {
+    expect(percentDailyValue('total-fat', 10)).toBe(13)
+  })
 })
