@@ -28,6 +28,8 @@ export { createSyncEngine, type SyncEngine, type SyncState, type Observable, typ
 export { createHttpClient, createHttpRepository, HttpRepositoryError, type RecordEnvelope, type HttpClient } from './core/http-repository.js'
 export { createApiClient, type ApiClient } from './core/api-client.js'
 export { createReadCache, type ReadCache } from './core/read-cache.js'
+export { createServerPersonalRepository } from './core/server-personal-repository.js'
+export { createCatalogClient, type CatalogClient } from './core/catalog-client.js'
 export { User, type Units } from './user/user.js'
 export { fixtureId } from './fixtures/fixture-id.js'
 export { FIXTURE_TODAY, FIXTURE_TZ } from './fixtures/constants.js'
