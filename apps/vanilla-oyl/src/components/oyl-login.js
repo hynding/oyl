@@ -4,8 +4,7 @@ import { defineAuthForm } from './oyl-auth-form.js'
 
 const styles = sheet(`
   h2 { font-size: var(--step-2); margin-block-end: var(--space-4); }
-  .alt { margin-block-start: var(--space-4); display: flex; gap: var(--space-4); align-items: center; }
-  button.ghost { font: inherit; background: transparent; border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: .4rem .8rem; cursor: pointer; color: var(--color-text); }
+  .alt { margin-block-start: var(--space-4); }
   a { color: var(--color-accent); }
 `)
 
@@ -15,7 +14,6 @@ export class OylLogin extends OylElement {
     super()
     /** @type {any} */ this.auth = undefined
     /** @type {() => void} */ this.onAuthenticated = () => {}
-    /** @type {() => void} */ this.onSkip = () => {}
   }
   render() {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
@@ -24,10 +22,8 @@ export class OylLogin extends OylElement {
     const form = /** @type {any} */ (document.createElement('oyl-auth-form'))
     form.auth = this.auth; form.mode = 'login'; form.onSuccess = () => this.onAuthenticated()
     const alt = document.createElement('div'); alt.className = 'alt'
-    const skip = document.createElement('button'); skip.className = 'ghost'; skip.dataset.act = 'skip'; skip.textContent = 'Skip — use local data'
-    skip.addEventListener('click', () => this.onSkip(), { signal: this.lifecycle })
     const reg = document.createElement('a'); reg.href = '/register'; reg.textContent = 'Create an account'
-    alt.append(skip, reg)
+    alt.append(reg)
     root.append(h2, form, alt)
   }
 }

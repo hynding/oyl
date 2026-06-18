@@ -239,7 +239,6 @@ async function boot() {
       const page = /** @type {import('./components/oyl-login.js').OylLogin} */ (document.createElement('oyl-login'))
       page.auth = authState
       page.onAuthenticated = () => { setStorageMode(storage, 'remote'); location.assign('/status') }
-      page.onSkip = () => { setStorageMode(storage, 'local'); location.assign('/status') }
       return page
     },
     register: () => {
@@ -248,7 +247,6 @@ async function boot() {
       page.onAuthenticated = (patch) => {
         void profileStore.save(patch).finally(() => { setStorageMode(storage, 'remote'); location.assign('/status') })
       }
-      page.onSkip = () => { setStorageMode(storage, 'local'); location.assign('/status') }
       return page
     },
     profile: () => {
