@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { exportData, importData } from './backup.js'
 import { loadDemoData } from './seed.js'
-import { makeRepositories } from './bootstrap.js'
 import { makeSeed } from '@oyl/all-of-oyl'
-import { SCHEMA_VERSION_KEY } from './keys.js'
+import { SCHEMA_VERSION_KEY, dataKey } from './keys.js'
 
 /** @param {Record<string,string>} [seed] */
 function fakeStorage(seed = {}) {
@@ -30,8 +29,7 @@ describe('backup', () => {
     const dest = fakeStorage()
     await importData(dest, JSON.stringify(doc))
     const seed = makeSeed()
-    const { repos } = makeRepositories(dest)
-    expect((await repos.entries.list()).length).toBe(seed.entries.length)
+    expect(JSON.parse(/** @type {string} */ (dest.getItem(dataKey('entries')))).length).toBe(seed.entries.length)
     expect(dest.getItem(SCHEMA_VERSION_KEY)).not.toBeNull()
   })
 

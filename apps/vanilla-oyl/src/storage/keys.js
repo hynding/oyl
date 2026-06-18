@@ -21,9 +21,9 @@ export const CACHE_PREFIX = 'oyl/cache/'
 export function cacheKey(collection) {
   return `${CACHE_PREFIX}${collection}`
 }
-export const OUTBOX_KEY = 'oyl/outbox'
-export const CURSORS_KEY = 'oyl/sync-cursors'
-export const MIGRATED_KEY = 'oyl/migrated'
-export const MIGRATE_DECLINED_KEY = 'oyl/migrate-declined'
+/** Durable write-outbox key (online-first mutation queue). */
+export const OUTBOX_KEY = 'oyl/write-outbox'
+/** Single-key bounded read-cache prefix (online-first). */
+export const READ_CACHE_KEY = 'oyl/read-cache'
 export const PROFILE_ID_KEY = 'oyl/profile-id'
 export const TZ_RELOADED_KEY = 'oyl/tz-reloaded'

@@ -6,8 +6,7 @@ import { createDataState } from './state/data.js'
 import { createAuthState } from './state/auth.js'
 import { loadDemoData, isEmpty } from './storage/seed.js'
 import { exportData, importData } from './storage/backup.js'
-import { hasUnmigratedLocal, countLocalRecords } from './storage/migrate.js'
-import { isOylKey, SETTINGS_KEY, AUTH_KEY, TZ_RELOADED_KEY } from './storage/keys.js'
+import { isOylKey, SETTINGS_KEY, AUTH_KEY, TZ_RELOADED_KEY, OUTBOX_KEY } from './storage/keys.js'
 import { getApiBaseUrl, getStorageMode, setApiBaseUrl, setStorageMode, DEFAULT_API_BASE_URL } from './storage/config.js'
 import { defaultTimezone, now } from './storage/clock.js'
 import { defineShell } from './components/oyl-shell.js'
@@ -22,10 +21,9 @@ import { defineGoals } from './components/oyl-goals.js'
 import { defineInsights } from './components/oyl-insights.js'
 import { defineFinance } from './components/oyl-finance.js'
 import { defineNutrition } from './components/oyl-nutrition.js'
-import { defineSyncStatus } from './components/oyl-sync-status.js'
 import { createNoticeState } from './state/notice.js'
 import { defineNotice } from './components/oyl-notice.js'
-import { createHttpClient, DayKey } from '@oyl/all-of-oyl'
+import { createApiClient, DayKey } from '@oyl/all-of-oyl'
 import { createBrowserConnectivity } from './storage/connectivity.js'
 import { debounce } from './lib/debounce.js'
 import { makeRepositories } from './storage/bootstrap.js'
@@ -58,24 +56,23 @@ async function boot() {
   const authState = createAuthState(storage, { baseUrl: getApiBaseUrl(storage), fetch: window.fetch.bind(window) })
   const noticeState = createNoticeState()
   const mode = getStorageMode(storage)
-  const client = mode === 'remote'
-    ? createHttpClient({
-        baseUrl: getApiBaseUrl(storage),
-        fetch: window.fetch.bind(window),
-        getToken: authState.getToken,
-        onAuthError: () => authState.logout(),
-        timeoutMs: 15000,
-        newAbortController: () => new AbortController(),
-        timer: { set: (fn, ms) => setTimeout(fn, ms), clear: (/** @type {any} */ id) => clearTimeout(id) },
-      })
-    : undefined
-  const connectivity = mode === 'remote' ? createBrowserConnectivity(window) : undefined
-  const { repos, engine } = makeRepositories(storage, client ? { client, ...(connectivity ? { connectivity } : {}) } : {})
+
+  // Online-first, account-required: always build ONE api client + outbox + cache + repos
+  // and start the flusher. The server is the source of truth; writes enqueue to the outbox
+  // and flush when online (on the `online` event and after each enqueue).
+  const api = createApiClient({
+    baseUrl: getApiBaseUrl(storage),
+    fetch: window.fetch.bind(window),
+    getToken: authState.getToken,
+    onAuthError: () => authState.logout(),
+  })
+  const connectivity = createBrowserConnectivity(window)
+  const { repos, outbox, flush } = makeRepositories(storage, { api, connectivity })
   const profileStore = createProfileStore(repos, storage)
   await profileStore.load()
   const browserTz = defaultTimezone()
   const tz = resolveTimezone(profileStore.profile.get(), browserTz)
-  const dataState = createDataState(storage, themeState, { repos, engine, timezone: tz })
+  const dataState = createDataState(storage, themeState, { repos, outbox, timezone: tz })
 
   // Theme applied reactively (the inline head script already set the first paint).
   effect(() => applyTheme(document, themeState.settings.get()))
@@ -87,59 +84,52 @@ async function boot() {
   }
 
   const hasSession = !!authState.session.get()
-  if (mode !== 'remote' || hasSession) {
+  if (hasSession) {
     try {
       await dataState.refresh()
-    } catch (err) {
-      if (mode === 'remote') noticeState.show("Couldn't reach the backend — sign in at /login or reload to retry.")
-      else throw err
+      // New-device correction: if the pulled profile tz differs from what we built with, reload once.
+      await profileStore.load()
+      if (tzNeedsReload(tz, profileStore.profile.get(), browserTz) && !sessionStorage.getItem(TZ_RELOADED_KEY)) {
+        sessionStorage.setItem(TZ_RELOADED_KEY, '1')
+        location.reload()
+      }
+    } catch {
+      noticeState.show("Couldn't reach the backend — sign in at /login or reload to retry.")
     }
+    // Drain any writes queued offline / from a prior session.
+    void flush().then(() => dataState.refreshPending()).catch(() => {})
   }
 
-  /** Immediately back up any local-only data to the API (idempotent via MIGRATED_KEY). */
-  function backupLocalNow() {
-    if (mode === 'remote' && authState.session.get() && hasUnmigratedLocal(storage)) {
-      void dataState.migrateLocal().then((n) => { if (n > 0) noticeState.show(`Backed up ${n} local item(s) to your account.`) }).catch(() => {})
-    }
-  }
-
-  if (mode === 'remote' && hasSession) {
-    void dataState.startSync()
-      .then(async () => {
-        // New-device correction: if the pulled profile tz differs from what we built with, reload once.
-        await profileStore.load()
-        if (tzNeedsReload(tz, profileStore.profile.get(), browserTz) && !sessionStorage.getItem(TZ_RELOADED_KEY)) {
-          sessionStorage.setItem(TZ_RELOADED_KEY, '1')
-          location.reload()
-        }
-      })
-      .catch(() => {})
-    backupLocalNow()
-  }
+  // Flush the outbox whenever connectivity returns online, then refresh the pending indicator.
+  connectivity.subscribe((online) => {
+    if (online) void flush().then(() => dataState.refreshPending()).catch(() => {})
+  })
 
   let wasSignedIn = !!authState.session.get()
   effect(() => {
     const signedIn = !!authState.session.get()
-    if (signedIn && !wasSignedIn) { dataState.syncFlush(); backupLocalNow() }
+    if (signedIn && !wasSignedIn) { void flush().then(() => dataState.refreshPending()).catch(() => {}) }
     wasSignedIn = signedIn
     if (shouldRedirectToLogin(mode, authState.session.get(), routeState.route.get())) {
       routeState.navigate('/login', { replace: true })
     }
   })
 
-  // Multi-tab coherence: react to writes from other tabs.
+  // Multi-tab coherence: react to writes from other tabs. An outbox write in another tab
+  // also triggers a flush here (the originating tab flushes on its own online/sign-in path).
   const debouncedRefresh = debounce(() => void dataState.refresh(), 150)
   window.addEventListener('storage', (e) => {
     if (!e.key || !isOylKey(e.key)) return
     if (e.key === SETTINGS_KEY) themeState.refresh()
     else if (e.key === AUTH_KEY) authState.refresh()
+    else if (e.key === OUTBOX_KEY) void flush().then(() => dataState.refreshPending()).catch(() => {})
     else debouncedRefresh()
   })
 
   window.addEventListener('unhandledrejection', (e) => {
     const r = /** @type {any} */ (e).reason
     if (r && (r.name === 'HttpRepositoryError' || r.code === 'REVISION_CONFLICT')) {
-      noticeState.show('Sync failed — your last change may not be saved.')
+      noticeState.show('A change could not be saved to the server — it will retry.')
       e.preventDefault()
     }
   })
@@ -161,14 +151,6 @@ async function boot() {
   navEl.slot = 'nav'
   navEl.routeSignal = routeState.route
 
-  let syncChip = null
-  if (mode === 'remote') {
-    defineSyncStatus()
-    syncChip = /** @type {import('./components/oyl-sync-status.js').OylSyncStatus} */ (document.createElement('oyl-sync-status'))
-    syncChip.slot = 'toolbar'
-    syncChip.syncState = dataState.syncState
-  }
-
   const toggle = /** @type {import('./components/oyl-theme-toggle.js').OylThemeToggle} */ (document.createElement('oyl-theme-toggle'))
   toggle.slot = 'toolbar'
   toggle.themeState = themeState
@@ -185,12 +167,11 @@ async function boot() {
         defaultApiBaseUrl: DEFAULT_API_BASE_URL,
         onApply: (m, url) => { setStorageMode(storage, m); setApiBaseUrl(storage, url); location.reload() },
       }
-      panel.sync = mode === 'remote'
-        ? { state: dataState.syncState, onResync: dataState.resync, onRetryFailed: () => void dataState.retryFailed(), onDiscardFailed: () => void dataState.discardFailed() }
-        : null
-      panel.migration = mode === 'remote' && hasUnmigratedLocal(storage)
-        ? { count: countLocalRecords(storage), onUpload: () => void dataState.migrateLocal() }
-        : null
+      // Sync/migration sections are deferred to the connection-UI reshape (Sub-project D);
+      // pending writes are surfaced via dataState.pending. Migration is obsolete under
+      // account-required (no local-only data to upload).
+      panel.sync = null
+      panel.migration = null
       panel.actions = {
         onSeed: () => void seedWithConfirm(storage, dataState),
         onExport: () => download(exportData(storage)),
@@ -290,13 +271,15 @@ async function boot() {
         defaultApiBaseUrl: DEFAULT_API_BASE_URL,
         onApply: (m, url) => { setStorageMode(storage, m); setApiBaseUrl(storage, url); location.reload() },
       }
-      page.sync = mode === 'remote' ? { state: dataState.syncState, onResync: dataState.resync } : null
+      // Sync section is deferred to the connection-UI reshape (Sub-project D); upload-local
+      // is obsolete under account-required. Export stays for a manual backup.
+      page.sync = null
       page.dataActions = {
         mode,
-        canUploadLocal: mode === 'remote' && hasUnmigratedLocal(storage),
+        canUploadLocal: false,
         onExport: () => download(exportData(storage)),
         onImport: () => pickAndImport(storage, dataState),
-        onUploadLocal: () => void dataState.migrateLocal(),
+        onUploadLocal: () => {},
       }
       return page
     },
@@ -307,7 +290,7 @@ async function boot() {
   accountMenu.session = authState.session
   accountMenu.onLogout = () => authState.logout()
 
-  shell.append(navEl, ...(syncChip ? [syncChip] : []), toggle, accountMenu, router)
+  shell.append(navEl, toggle, accountMenu, router)
   const root = document.getElementById('app')
   if (root) root.replaceChildren(shell)
   document.getElementById('boot-fallback')?.remove()

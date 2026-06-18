@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { loadDemoData, isEmpty } from './seed.js'
-import { makeRepositories } from './bootstrap.js'
 import { makeSeed } from '@oyl/all-of-oyl'
-import { SCHEMA_VERSION_KEY } from './keys.js'
+import { SCHEMA_VERSION_KEY, dataKey } from './keys.js'
 
 /** @param {Record<string,string>} [seed] */
 function fakeStorage(seed = {}) {
@@ -30,9 +29,9 @@ describe('seed', () => {
     const storage = fakeStorage()
     await loadDemoData(storage)
     expect(storage.getItem(SCHEMA_VERSION_KEY)).not.toBeNull()
-    const { repos } = makeRepositories(storage)
+    // loadDemoData stamps each collection under its data key (the local dev-seed surface).
     const seed = makeSeed()
-    expect((await repos.entries.list()).length).toBe(seed.entries.length)
-    expect((await repos.subscriptions.list()).length).toBe(seed.subscriptions.length)
+    expect(JSON.parse(/** @type {string} */ (storage.getItem(dataKey('entries')))).length).toBe(seed.entries.length)
+    expect(JSON.parse(/** @type {string} */ (storage.getItem(dataKey('subscriptions')))).length).toBe(seed.subscriptions.length)
   })
 })
