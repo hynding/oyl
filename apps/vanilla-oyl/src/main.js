@@ -7,7 +7,7 @@ import { createAuthState } from './state/auth.js'
 import { loadDemoData, isEmpty } from './storage/seed.js'
 import { exportData, importData } from './storage/backup.js'
 import { hasUnmigratedLocal, countLocalRecords } from './storage/migrate.js'
-import { isOylKey, SETTINGS_KEY, AUTH_KEY, MIGRATE_DECLINED_KEY } from './storage/keys.js'
+import { isOylKey, SETTINGS_KEY, AUTH_KEY, TZ_RELOADED_KEY } from './storage/keys.js'
 import { getApiBaseUrl, getStorageMode, setApiBaseUrl, setStorageMode, DEFAULT_API_BASE_URL } from './storage/config.js'
 import { defaultTimezone } from './storage/clock.js'
 import { defineShell } from './components/oyl-shell.js'
@@ -28,6 +28,13 @@ import { defineNotice } from './components/oyl-notice.js'
 import { createHttpClient } from '@oyl/all-of-oyl'
 import { createBrowserConnectivity } from './storage/connectivity.js'
 import { debounce } from './lib/debounce.js'
+import { makeRepositories } from './storage/bootstrap.js'
+import { createProfileStore, resolveTimezone } from './state/profile-store.js'
+import { shouldRedirectToLogin, tzNeedsReload } from './state/auth-guard.js'
+import { defineLogin } from './components/oyl-login.js'
+import { defineRegister } from './components/oyl-register.js'
+import { defineProfile } from './components/oyl-profile.js'
+import { defineAccountMenu } from './components/oyl-account-menu.js'
 
 async function boot() {
   const storage = window.localStorage
@@ -44,6 +51,7 @@ async function boot() {
   defineFinance()
   defineNutrition()
   defineNotice()
+  defineLogin(); defineRegister(); defineProfile(); defineAccountMenu()
 
   const themeState = createThemeState(storage)
   const routeState = createRouteState(window)
@@ -62,39 +70,61 @@ async function boot() {
       })
     : undefined
   const connectivity = mode === 'remote' ? createBrowserConnectivity(window) : undefined
-  const dataState = createDataState(storage, themeState, client ? { client, ...(connectivity ? { connectivity } : {}) } : {})
+  const { repos, engine } = makeRepositories(storage, client ? { client, ...(connectivity ? { connectivity } : {}) } : {})
+  const profileStore = createProfileStore(repos, storage)
+  await profileStore.load()
+  const browserTz = defaultTimezone()
+  const tz = resolveTimezone(profileStore.profile.get(), browserTz)
+  const dataState = createDataState(storage, themeState, { repos, engine, timezone: tz })
 
   // Theme applied reactively (the inline head script already set the first paint).
   effect(() => applyTheme(document, themeState.settings.get()))
   routeState.start()
-  try {
-    await dataState.refresh()
-  } catch (err) {
-    if (mode === 'remote') noticeState.show("Couldn't reach the backend — sign in (Status → Account) or reload to retry.")
-    else throw err
+
+  // Force the login page in Remote mode with no session (before touching the network).
+  if (shouldRedirectToLogin(mode, authState.session.get(), routeState.route.get())) {
+    routeState.navigate('/login')
   }
 
-  function maybeOfferMigration() {
-    if (mode !== 'remote' || !authState.session.get()) return
-    const offer = dataState.migrationOffer()
-    if (!offer) return
-    if (confirm(`You have ${offer.count} local item(s). Upload them to your account?`)) {
-      void dataState.migrateLocal().then((n) => noticeState.show(`Uploaded ${n} local item(s) to your account.`)).catch(() => {})
-    } else {
-      storage.setItem(MIGRATE_DECLINED_KEY, '1')
+  const hasSession = !!authState.session.get()
+  if (mode !== 'remote' || hasSession) {
+    try {
+      await dataState.refresh()
+    } catch (err) {
+      if (mode === 'remote') noticeState.show("Couldn't reach the backend — sign in (Status → Account) or reload to retry.")
+      else throw err
     }
   }
 
-  if (mode === 'remote') {
-    void dataState.startSync().catch(() => {})
-    maybeOfferMigration()
+  /** Immediately back up any local-only data to the API (idempotent via MIGRATED_KEY). */
+  function backupLocalNow() {
+    if (mode === 'remote' && authState.session.get() && hasUnmigratedLocal(storage)) {
+      void dataState.migrateLocal().then((n) => { if (n > 0) noticeState.show(`Backed up ${n} local item(s) to your account.`) }).catch(() => {})
+    }
+  }
+
+  if (mode === 'remote' && hasSession) {
+    void dataState.startSync()
+      .then(async () => {
+        // New-device correction: if the pulled profile tz differs from what we built with, reload once.
+        await profileStore.load()
+        if (tzNeedsReload(tz, profileStore.profile.get(), browserTz) && !sessionStorage.getItem(TZ_RELOADED_KEY)) {
+          sessionStorage.setItem(TZ_RELOADED_KEY, '1')
+          location.reload()
+        }
+      })
+      .catch(() => {})
+    backupLocalNow()
   }
 
   let wasSignedIn = !!authState.session.get()
   effect(() => {
     const signedIn = !!authState.session.get()
-    if (signedIn && !wasSignedIn) { dataState.syncFlush(); maybeOfferMigration() }
+    if (signedIn && !wasSignedIn) { dataState.syncFlush(); backupLocalNow() }
     wasSignedIn = signedIn
+    if (shouldRedirectToLogin(mode, authState.session.get(), routeState.route.get())) {
+      routeState.navigate('/login')
+    }
   })
 
   // Multi-tab coherence: react to writes from other tabs.
@@ -180,33 +210,33 @@ async function boot() {
     journal: () => {
       const view = /** @type {import('./components/oyl-journal.js').OylJournal} */ (document.createElement('oyl-journal'))
       view.store = dataState.journal
-      view.tz = defaultTimezone()
+      view.tz = tz
       return view
     },
     planner: () => {
       const view = /** @type {import('./components/oyl-planner.js').OylPlanner} */ (document.createElement('oyl-planner'))
       view.store = dataState.planner
-      view.tz = defaultTimezone()
+      view.tz = tz
       return view
     },
     vault: () => {
       const view = /** @type {import('./components/oyl-vault.js').OylVault} */ (document.createElement('oyl-vault'))
       view.store = dataState.vault
       view.renew = dataState.renewSubscription
-      view.tz = defaultTimezone()
+      view.tz = tz
       return view
     },
     goals: () => {
       const view = /** @type {import('./components/oyl-goals.js').OylGoals} */ (document.createElement('oyl-goals'))
       view.store = dataState.goals
       view.journal = dataState.journal
-      view.tz = defaultTimezone()
+      view.tz = tz
       return view
     },
     insights: () => {
       const view = /** @type {import('./components/oyl-insights.js').OylInsights} */ (document.createElement('oyl-insights'))
       view.reviewOn = dataState.reviewOn
-      view.tz = defaultTimezone()
+      view.tz = tz
       return view
     },
     finance: () => {
@@ -214,19 +244,69 @@ async function boot() {
       view.store = dataState.journal
       view.budgets = dataState.budgets
       view.accounts = dataState.accounts
-      view.tz = defaultTimezone()
+      view.tz = tz
       return view
     },
     nutrition: () => {
       const view = /** @type {import('./components/oyl-nutrition.js').OylNutrition} */ (document.createElement('oyl-nutrition'))
       view.store = dataState.journal
       view.foods = dataState.foods
-      view.tz = defaultTimezone()
+      view.tz = tz
       return view
+    },
+    login: () => {
+      const page = /** @type {import('./components/oyl-login.js').OylLogin} */ (document.createElement('oyl-login'))
+      page.auth = authState
+      page.onAuthenticated = () => { setStorageMode(storage, 'remote'); location.assign('/status') }
+      page.onSkip = () => { setStorageMode(storage, 'local'); location.assign('/status') }
+      return page
+    },
+    register: () => {
+      const page = /** @type {import('./components/oyl-register.js').OylRegister} */ (document.createElement('oyl-register'))
+      page.auth = authState
+      page.onAuthenticated = (patch) => {
+        void profileStore.save(patch).finally(() => { setStorageMode(storage, 'remote'); location.assign('/status') })
+      }
+      page.onSkip = () => { setStorageMode(storage, 'local'); location.assign('/status') }
+      return page
+    },
+    profile: () => {
+      const page = /** @type {import('./components/oyl-profile.js').OylProfile} */ (document.createElement('oyl-profile'))
+      page.session = authState.session
+      page.profile = profileStore.profile
+      page.onLogout = () => authState.logout()
+      page.onSaveProfile = (patch) => {
+        const tzChanged = 'timezone' in patch && patch.timezone !== tz
+        const unitsChanged = 'units' in patch && patch.units !== profileStore.profile.get()?.units
+        void profileStore.save(patch).then(() => {
+          if (tzChanged || unitsChanged) location.assign('/profile')
+          else noticeState.show('Profile saved.')
+        })
+      }
+      page.connection = {
+        mode,
+        apiBaseUrl: getApiBaseUrl(storage),
+        defaultApiBaseUrl: DEFAULT_API_BASE_URL,
+        onApply: (m, url) => { setStorageMode(storage, m); setApiBaseUrl(storage, url); location.reload() },
+      }
+      page.sync = mode === 'remote' ? { state: dataState.syncState, onResync: dataState.resync } : null
+      page.dataActions = {
+        mode,
+        canUploadLocal: mode === 'remote' && hasUnmigratedLocal(storage),
+        onExport: () => download(exportData(storage)),
+        onImport: () => pickAndImport(storage, dataState),
+        onUploadLocal: () => void dataState.migrateLocal(),
+      }
+      return page
     },
   }
 
-  shell.append(navEl, ...(syncChip ? [syncChip] : []), toggle, router)
+  const accountMenu = /** @type {import('./components/oyl-account-menu.js').OylAccountMenu} */ (document.createElement('oyl-account-menu'))
+  accountMenu.slot = 'toolbar'
+  accountMenu.session = authState.session
+  accountMenu.onLogout = () => authState.logout()
+
+  shell.append(navEl, ...(syncChip ? [syncChip] : []), toggle, accountMenu, router)
   const root = document.getElementById('app')
   if (root) root.replaceChildren(shell)
   document.getElementById('boot-fallback')?.remove()
