@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-18
 **Status:** Approved (brainstorming)
-**Scope:** Foundation only — the client data layer, the backend storage pattern, the `@oyl/all-of-oyl` ↔ Strapi parity discipline, and the retirement of the offline-first stack — proven end-to-end on **one reference entity**. The concrete entity schema (B), the query/timeline/search API (C), the client feature/UI rework (D), and **private mode** (E) are separate sub-projects that build on this.
+**Scope:** Foundation only — the client data layer, the backend storage pattern, the entity-`kind` axis (catalog/personal/system), the `@oyl/all-of-oyl` ↔ Strapi parity discipline, and the retirement of the offline-first stack — proven end-to-end on **two reference entities, one per access path** (a personal entity and a catalog entity). The concrete entity schema (B), the query/timeline/search API (C), the client feature/UI rework (D), and **private mode** (E) are separate sub-projects that build on this.
 
 ## Why
 
@@ -18,10 +18,11 @@ The decision (brainstormed): pivot to **online-first with a durable write-outbox
 | Backend model | **Relational Strapi content-types**, one per entity, with relations + per-type `owner`. Drop the backend-agnostic contract and the generic `oyl-record` store. |
 | Read API | **Hybrid:** Strapi built-in CRUD/query for simple per-entity reads; custom controllers for cross-type composites (timeline, search) — composites specified in C. |
 | SSOT & parity | `@oyl/all-of-oyl` stays the canonical domain model; Strapi content-types are hand-authored to mirror it; a **parity test** fails on divergence. |
+| Entity kind | Every entity declares a first-class **`kind`: `catalog` \| `personal` \| `system`**; the data-access seam, owner-scoping, location-switchability, and caching all derive from it. New catalogs just declare `kind: 'catalog'`. |
 | Auth / access | **Account-required** for normal use; remove the auth "skip / use local data" path now. (Local-only returns under private mode, sub-project E.) |
-| Personal-data seam | Personal data flows through a **repository interface**; one impl now (server + outbox). `LocalStorageRepository` is **kept** (dormant) as the basis for E's local impl. |
+| Data-access seam | **Personal** data flows through a repository interface (server impl now; `LocalStorageRepository` kept dormant for E). **Catalog** data flows through a server-only read client (search/select) + user-contributed creates. |
 | Write / conflict | **Last-write-wins** by server timestamp; surface a quiet "changed elsewhere" notice on a stale write. No automatic field-merge. |
-| Reference entity | **Journal note** — taken fully through the new stack as the template B replicates. |
+| Reference entities | **Journal note** (personal + outbox) **and Activity** (catalog: server-only read, search/select, user-contributed create) — both templates B replicates. |
 
 ## Architecture
 
@@ -42,15 +43,28 @@ The decision (brainstormed): pivot to **online-first with a durable write-outbox
 ### A3. `@oyl/all-of-oyl` ↔ Strapi parity
 
 - `@oyl/all-of-oyl` remains **canonical**: the domain types, their validation, and business logic (`sumNutrients`, goal evaluation, formatters, etc.). The client and any computation use it.
-- `src/collections.ts` evolves from a collection→codec manifest into an **entity manifest**: for each persisted entity, a machine-readable **field schema** (field name → type/optionality) plus its codec. This is the single declaration both the client repository layer and the parity test consume.
+- `src/collections.ts` evolves from a collection→codec manifest into an **entity manifest**: for each persisted entity, a **`kind`** (`catalog` | `personal` | `system`), a machine-readable **field schema** (field name → type/optionality), and its codec. This is the single declaration the client data-access layer, the routing of each entity to the right access path, and the parity test all consume.
 - Strapi content-type `schema.json` files are **hand-authored** to mirror the manifest. A **parity test** (run in the lib and/or backend DoD) reads the Strapi `schema.json` files and asserts every manifest field is present with a compatible type, and vice-versa — failing the build on drift. (Codegen from the manifest is a deliberate non-goal for A; the parity test is the guardrail.)
 
-### A4. Personal-data repository seam
+### A4. Entity kinds & the data-access seam
 
-- All **personal** (user-owned) data is accessed through a **repository interface** (e.g. `PersonalRepository<T>` with `get`/`list`/`save`/`remove`), decoupling features from storage location.
-- A's only implementation is the **server-backed repo** (reads via the read client + cache; writes via the outbox). 
-- `LocalStorageRepository` is **retained** (kept compiling + tested) as the basis for E's local implementation, but is **not wired** into the running app in A. This preserves the seam so private mode (E) is a drop-in second impl, not a rewrite.
-- **Catalog** (shared, non-user-owned) data — Activity/Goal/Consumable definitions — is always read from the server (no local impl), even under future private mode; only user-owned records are location-switchable in E.
+Every entity declares a **`kind`** in the manifest, and that single classifier drives how it's stored, scoped, cached, and (in E) location-switched. This is what makes future catalogs drop in without architectural change — a new catalog declares `kind: 'catalog'` and inherits the catalog path.
+
+**`kind: 'personal'`** (user-owned records — entries, accounts, budgets, plans, vault, the user profile, and the future "User X" instances):
+- Accessed through a **repository interface** (`PersonalRepository<T>`: `get`/`list`/`save`/`remove`), decoupling features from storage location.
+- A's only impl is the **server-backed repo** (reads via the read client + cache; writes via the outbox). Owner-scoped server-side.
+- `LocalStorageRepository` is **retained** (kept compiling + tested) but **not wired** in A — the basis for E's local impl, so private mode is a drop-in second impl, not a rewrite. Only `personal` entities are location-switchable in E.
+
+**`kind: 'catalog'`** (shared, searchable, selectable, **user-contributable** definitions — `activities`, `consumables`, future Consumable Instance, and B's calls on `goals`/`lifeAreas`):
+- Accessed through a **server-only catalog read client** (search/select queries) — always from the server, never location-switched, even under private mode.
+- **User-contributed creates flow through the same outbox** (a create mutation) but with catalog semantics: not owner-private, and subject to **server-side dedup / visibility / curation** on flush. Each catalog content-type carries a **creator** ref + a **visibility** field; the *policy* (global vs private vs moderated, dedup rules) is a **Sub-project B decision** — A only reserves the fields so policy lands without a schema rework.
+- Catalogs are the **prime cache candidate** (read-mostly, shared, and must stay resolvable for private-mode references) — they may use a longer TTL than personal reads.
+
+**`kind: 'system'`** (sharing links — `connections`, `grants`): owner-scoped, server-only, no local impl.
+
+**Cross-cutting principle — snapshot catalog references.** A `personal` record that references a `catalog` item by id (e.g. `consumableId`, `activityId`) must **snapshot** the catalog fields it needs to display/compute (as `Consumption` already snapshots nutrients). This keeps personal records correct across catalog edits/deletion *and* renderable in private mode, where the catalog lives only on the server.
+
+**Latent catalogs (future-awareness).** Several reference values are inline strings today — finance `category`, activity units (`minutes`/`km`), nutrient metric keys. The relational direction may promote some to real catalogs (Category, Unit, …). The `kind`-driven manifest means each becomes a new `kind: 'catalog'` entry with no architectural change; A is explicitly designed to absorb them.
 
 ### A5. Access model
 
@@ -62,14 +76,21 @@ The decision (brainstormed): pivot to **online-first with a durable write-outbox
 - Outbox mutations are `{ op: 'create' | 'update' | 'delete', entity, id, payload, baseUpdatedAt }`, applied in enqueue order.
 - The **server is authoritative**; conflicts (a record changed on another device since `baseUpdatedAt`) resolve **last-write-wins** by server timestamp. On a detected stale write the client surfaces a quiet, non-blocking "this changed elsewhere" notice. No automatic per-field merge (single-user-across-devices makes true conflicts rare; LWW + notice is the pragmatic floor).
 
-### A7. Reference entity — Journal note
+### A7. Reference entities — Journal note (personal) + Activity (catalog)
 
-A proves the entire stack on the existing **Journal note** entity:
+A proves **both** access paths so each kind has a template B replicates:
+
+**Journal note** (`kind: 'personal'`):
 - Strapi `note` content-type (mirroring the `@oyl/all-of-oyl` Note shape) with `owner`, built-in CRUD, auth grant.
-- Client: read a day's notes via the read client (+ recent cache); create/edit/delete via the outbox (including the offline→reconnect→flush path).
-- The manifest entry + parity test for `note`.
+- Client: read a day's notes via the read client (+ recent cache); create/edit/delete via the outbox (incl. offline→reconnect→flush).
+- Manifest entry (`kind: 'personal'`) + parity test for `note`.
 
-This is the template B replicates across all entities. (Journal note is chosen as a small, self-contained, already-existing entity; the cross-type *timeline* composite is C, not A.)
+**Activity** (`kind: 'catalog'`):
+- Strapi `activity` content-type (mirroring `Activity`) with `creator` + `visibility` fields + auth grant; readable across users per the (B-decided, A-default) visibility, search/select by name.
+- Client: search/select via the catalog read client; **create a new Activity** via the outbox (catalog semantics — not owner-private), demonstrating "add new and use existing."
+- Manifest entry (`kind: 'catalog'`) + parity test for `activity`.
+
+These two are the templates for all personal and catalog entities in B. The cross-type *timeline* composite is C, not A; A's catalog proof is single-entity search/select + contribute.
 
 ## What retires
 
@@ -93,22 +114,23 @@ localStorage's role shrinks to: the outbox, the recent-reads cache, and session/
 
 - **Outbox:** enqueue persists across reload; flush on online; hold on offline then flush on reconnect; optimistic apply + rollback on server rejection; ordering preserved.
 - **Recent-reads cache:** hit/miss, TTL/LRU eviction, render-then-revalidate.
-- **Reference content-type (`note`):** CRUD is owner-scoped (a second user cannot read/write another's notes); auth grant present; behavior verified against a booted Strapi.
-- **Parity test:** manifest ↔ Strapi `schema.json` (passes when aligned; fails on an injected divergence).
-- **Manual acceptance:** sign in → log a Journal note **offline** → reconnect → the note is present server-side and visible on another session.
+- **Reference content-type `note` (personal):** CRUD is owner-scoped (a second user cannot read/write another's notes); auth grant present; behavior verified against a booted Strapi.
+- **Reference content-type `activity` (catalog):** search/select by name works; a user-contributed create succeeds and is then findable; the visibility default is enforced (a second user sees catalog items per the A-default policy, not owner-private). Verified against a booted Strapi.
+- **Parity test:** manifest (incl. each entity's `kind`) ↔ Strapi `schema.json` (passes when aligned; fails on an injected divergence).
+- **Manual acceptance:** sign in → log a Journal note **offline** → reconnect → the note is present server-side and visible on another session; search the Activity catalog, add a new Activity, and re-find it.
 
 ## Definition of Done
 
 - `@oyl/all-of-oyl`: tests + `typecheck:src` + `build` green (with the retired modules removed and the manifest/parity in place).
-- `apps/vanilla-oyl`: tests + `typecheck` + `build:lib` green; Journal note works end-to-end through the new client data layer; the "skip" path is gone.
-- `apps/strapi-oyl`: `tsc` + test suite green; the `note` content-type is owner-scoped; `oyl-record` removed.
-- Parity test green for the reference entity.
+- `apps/vanilla-oyl`: tests + `typecheck` + `build:lib` green; Journal note works end-to-end through the new client data layer (personal/outbox path) and the Activity catalog search/select/contribute works (catalog path); the "skip" path is gone.
+- `apps/strapi-oyl`: `tsc` + test suite green; the `note` (personal, owner-scoped) and `activity` (catalog, creator+visibility) content-types exist; `oyl-record` removed.
+- Parity test green for both reference entities (incl. their `kind`).
 - Manual acceptance (above) passes.
 
 ## Scope boundaries (what A is NOT)
 
-- **Not** the concrete entity schema beyond the one reference entity — Activity/Goal/Consumable catalogs, Consumable Instance, FDA nutrition facts, ingredients, and the User-owned instance records are **Sub-project B**.
-- **Not** the timeline/search/aggregation endpoints — **Sub-project C** (A only establishes the hybrid read pattern + builds the reference entity's built-in CRUD).
+- **Not** the concrete entity schema beyond the two reference entities — the full Goal/Consumable catalogs, Consumable Instance, FDA nutrition facts, ingredients, the catalog **visibility/curation/dedup policy**, and the User-owned instance records are **Sub-project B**. (A builds only `note` + `activity` and reserves the catalog `creator`/`visibility` fields.)
+- **Not** the timeline/search/aggregation endpoints — **Sub-project C** (A establishes the hybrid read pattern + builds each reference entity's reads: `note` built-in CRUD, `activity` single-entity search/select).
 - **Not** the full client feature/UI rework (search/select/timeline screens) — **Sub-project D**.
 - **Not** private mode — **Sub-project E** (A only preserves the seam).
 - **Data is discarded, not migrated** — the project is pre-adoption; the pivot assumes a clean reset of local + server data (consistent with prior refactors).
