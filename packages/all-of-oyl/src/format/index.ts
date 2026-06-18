@@ -3,3 +3,4 @@ export { relativeDayLabel, formatDayHeading, monthDayLabel, formatClockTime, spa
 export { cadenceLabel, appointmentTime } from './plan.js'
 export { formatNutrients } from './nutrition.js'
 export { formatWeight, formatHeight, age } from './body.js'
+export { percentDailyValue } from './daily-value.js'
