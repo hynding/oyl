@@ -148,8 +148,8 @@ export class ConsumableProduct {
 /**
  * Returns the effective per-serving NutritionFacts for a product:
  * the product's own facts override if present, else the parent consumable's,
- * else an empty object.
+ * else undefined.
  */
-export function effectiveFacts(product: ConsumableProduct, consumable: Consumable | undefined): NutritionFacts {
-  return product.facts ?? consumable?.facts ?? ({} as NutritionFacts)
+export function effectiveFacts(product: ConsumableProduct, consumable: Consumable | undefined): NutritionFacts | undefined {
+  return product.facts ?? consumable?.facts
 }

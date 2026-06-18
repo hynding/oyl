@@ -115,9 +115,9 @@ describe('effectiveFacts', () => {
     expect(result.protein).toBe(5)
   })
 
-  it('returns empty object when neither product nor consumable has facts', () => {
+  it('returns undefined when neither product nor consumable has facts', () => {
     const product = new ConsumableProduct({ consumableId, name: 'Brand Oats' })
     const result = effectiveFacts(product, undefined)
-    expect(result).toEqual({})
+    expect(result).toBeUndefined()
   })
 })
