@@ -102,9 +102,9 @@ export class OylNutrition extends OylElement {
     const consumableForm = /** @type {import('./oyl-consumable-form.js').OylConsumableForm} */ (document.createElement('oyl-consumable-form'))
     consumableForm.store = this.consumables
     consumableForm.onAdded = () => { live.textContent = 'Consumable added' }
-    const foodList = document.createElement('ol')
+    const consumableList = document.createElement('ol')
 
-    root.append(daynav, totals, live, composer, list, empty, catLabel, consumableForm, foodList)
+    root.append(daynav, totals, live, composer, list, empty, catLabel, consumableForm, consumableList)
 
     prev.addEventListener('click', () => this._go(-1, h2, live), { signal: this.lifecycle })
     next.addEventListener('click', () => this._go(1, h2, live), { signal: this.lifecycle })
@@ -153,7 +153,7 @@ export class OylNutrition extends OylElement {
     // Consumables catalog (reactive on the consumables store).
     this.track(() => {
       const consumables = this.consumables.all()
-      foodList.replaceChildren()
+      consumableList.replaceChildren()
       for (const f of consumables) {
         const li = document.createElement('li')
         const name = document.createElement('span')
@@ -168,7 +168,7 @@ export class OylNutrition extends OylElement {
         del.setAttribute('aria-label', `Remove ${f.name}`)
         del.addEventListener('click', () => { void this.consumables.remove(f.id); live.textContent = 'Consumable removed' })
         li.append(name, meta, del)
-        foodList.append(li)
+        consumableList.append(li)
       }
     })
   }
