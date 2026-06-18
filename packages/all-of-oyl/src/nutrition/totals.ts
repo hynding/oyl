@@ -1,5 +1,5 @@
 import type { Consumption } from './consumption.js'
-import { NUTRIENT_METRICS, type Nutrients } from './food.js'
+import { NUTRIENT_METRICS, type Nutrients } from './nutrients.js'
 
 /** Sum per-serving nutrients × servings across consumptions; omits fields none carry. */
 export function sumNutrients(consumptions: readonly Consumption[]): Nutrients {

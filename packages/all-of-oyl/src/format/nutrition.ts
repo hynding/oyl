@@ -1,4 +1,4 @@
-import type { Nutrients } from '../nutrition/food.js'
+import type { Nutrients } from '../nutrition/nutrients.js'
 
 /** Compact summary: "150 kcal · 5g P · 27g C · 3g F" (+ water), "" when empty. */
 export function formatNutrients(n: Nutrients): string {

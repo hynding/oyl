@@ -2,7 +2,7 @@ import { DomainError } from '../core/domain-error.js'
 import { Entry, entryBaseJSON, parseEntryBase } from '../core/entry.js'
 import { Id } from '../core/id.js'
 import { MetricKey } from '../core/metric-key.js'
-import { NUTRIENT_METRICS, type Nutrients, assertNutrients, nutrientsFromJSON, nutrientsToJSON } from './food.js'
+import { NUTRIENT_METRICS, type Nutrients, assertNutrients, nutrientsFromJSON, nutrientsToJSON } from './nutrients.js'
 
 /**
  * Something you ate or drank. Always STORES its per-serving nutrients — a
