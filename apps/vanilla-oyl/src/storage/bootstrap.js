@@ -47,6 +47,17 @@ export const PATH_BY_COLLECTION = {
   grants: 'grants',
 }
 
+/**
+ * Entry-derived personal collections whose backend rows lack a `kind` discriminant and
+ * are decoded by the heterogeneous reviver. The server-repo injects this `kind` after
+ * `strapiRowToShape` (recordId->id) so `reviveEntry` can dispatch. Today only `notes`
+ * have a backend; future Entry collections (measurements, …) slot in here.
+ * @type {Partial<Record<CollectionName, string>>}
+ */
+export const ROW_KIND_BY_COLLECTION = {
+  entries: 'note',
+}
+
 /** A UUID source for outbox mutation ids. @returns {string} */
 function newId() {
   const c = /** @type {{ randomUUID?: () => string } | undefined} */ (globalThis.crypto)
@@ -92,12 +103,14 @@ export function makeRepositories(storage, opts = {}) {
 
   const repos = /** @type {Repositories} */ ({})
   for (const name of entitiesByKind('personal')) {
+    const rowKind = ROW_KIND_BY_COLLECTION[name]
     repos[name] = createServerPersonalRepository({
       path: PATH_BY_COLLECTION[name],
       codec: /** @type {any} */ (COLLECTIONS[name]),
       api,
       outbox,
       cache,
+      ...(rowKind !== undefined ? { rowKind } : {}),
     })
   }
 

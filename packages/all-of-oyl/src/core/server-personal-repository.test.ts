@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { createServerPersonalRepository } from './server-personal-repository.js'
 import type { ApiClient } from './api-client.js'
 import type { WriteOutbox, Mutation } from './write-outbox.js'
@@ -6,6 +6,7 @@ import type { ReadCache } from './read-cache.js'
 import type { Codec } from '../collections.js'
 import type { Id } from './id.js'
 import type { PersistedMeta } from './persisted-meta.js'
+import { Note, reviveEntry } from '../index.js'
 
 // ── Simple domain type for tests ────────────────────────────────────────────
 
@@ -319,6 +320,59 @@ describe('createServerPersonalRepository', () => {
         entity: path,
         op: 'delete',
       })
+    })
+  })
+
+  // Regression: real Strapi rows (numeric id + recordId + no kind) must decode through
+  // the REAL reviveEntry/Note codec. The stand-in codecs above read {id,name} verbatim
+  // and so masked this — these fail (UNKNOWN_KIND / MALFORMED_JSON) without the adapter.
+  describe('decodes real Strapi-shaped rows via the real entries codec', () => {
+    const notesCodec = { fromJSON: reviveEntry, toJSON: (e: Note) => e.toJSON() } as unknown as Codec<Note>
+    // recordId is the domain id — a real UUID (Id.of requires UUID format).
+    const NOTE_ID = '00000000-0000-4000-8000-000000000100'
+    const strapiNoteRow = {
+      id: 7,
+      documentId: 'doc-x',
+      recordId: NOTE_ID,
+      text: 'hi',
+      tags: [] as string[],
+      occurredAt: '2026-06-18T00:00:00.000Z',
+      createdAt: '2026-06-18T00:00:00.000Z',
+      updatedAt: '2026-06-18T00:00:00.000Z',
+      publishedAt: '2026-06-18T00:00:00.000Z',
+      owner: { id: 1 },
+    }
+
+    it('list() returns a real Note whose id === recordId', async () => {
+      const repo = createServerPersonalRepository({
+        path: 'notes',
+        codec: notesCodec,
+        api: makeApi([strapiNoteRow]),
+        outbox: makeOutbox(),
+        cache: makeCache(),
+        rowKind: 'note',
+      })
+      const result = await repo.list()
+      expect(result).toHaveLength(1)
+      const note = result[0]
+      expect(note).toBeInstanceOf(Note)
+      expect(note?.id).toBe(NOTE_ID)
+      expect(note?.text).toBe('hi')
+    })
+
+    it('get() returns a real Note whose id === recordId', async () => {
+      const repo = createServerPersonalRepository({
+        path: 'notes',
+        codec: notesCodec,
+        api: makeApi([], strapiNoteRow),
+        outbox: makeOutbox(),
+        cache: makeCache(),
+        rowKind: 'note',
+      })
+      const note = await repo.get(NOTE_ID as Id)
+      expect(note).toBeInstanceOf(Note)
+      expect(note?.id).toBe(NOTE_ID)
+      expect(note?.text).toBe('hi')
     })
   })
 })

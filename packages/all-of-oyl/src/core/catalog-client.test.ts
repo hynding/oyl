@@ -4,6 +4,7 @@ import type { ApiClient } from './api-client.js'
 import type { WriteOutbox, Mutation } from './write-outbox.js'
 import type { Codec } from '../collections.js'
 import type { Id } from './id.js'
+import { Activity } from '../index.js'
 
 // ── Simple catalog domain type ───────────────────────────────────────────────
 
@@ -175,6 +176,54 @@ describe('createCatalogClient', () => {
       })
       client.create({ id: 'id-1' as Id, name: 'Apple' })
       expect(apiWritten).toBe(false)
+    })
+  })
+
+  // Regression: a real Strapi activity row (numeric id + recordId, no kind) must decode
+  // through the REAL Activity codec. Without strapiRowToShape, Activity.fromJSON throws
+  // MALFORMED_JSON on the numeric id; the stand-in foodCodec above masked it.
+  describe('decodes real Strapi-shaped rows via the real Activity codec', () => {
+    const activityCodec = { fromJSON: Activity.fromJSON, toJSON: (a: Activity) => a.toJSON() } as unknown as Codec<Activity>
+    // recordId is the domain id — a real UUID (Id.of requires UUID format).
+    const ACT_ID = '00000000-0000-4000-8000-000000000030'
+    const strapiActivityRow = {
+      id: 3,
+      documentId: 'doc-y',
+      recordId: ACT_ID,
+      name: 'Run',
+      slug: 'run',
+      createdAt: '2026-06-18T00:00:00.000Z',
+      updatedAt: '2026-06-18T00:00:00.000Z',
+      owner: { id: 1 },
+      creator: { id: 1 },
+    }
+
+    it('search() decodes a Strapi activity row to an Activity with id === recordId', async () => {
+      const client = createCatalogClient({
+        path: 'activities',
+        codec: activityCodec,
+        api: makeApi([strapiActivityRow]),
+        outbox: makeOutbox(),
+      })
+      const result = await client.search('run')
+      expect(result).toHaveLength(1)
+      const activity = result[0]
+      expect(activity).toBeInstanceOf(Activity)
+      expect(activity?.id).toBe(ACT_ID)
+      expect(activity?.name).toBe('Run')
+    })
+
+    it('get() decodes a Strapi activity row to an Activity with id === recordId', async () => {
+      const client = createCatalogClient({
+        path: 'activities',
+        codec: activityCodec,
+        api: makeApi([], strapiActivityRow),
+        outbox: makeOutbox(),
+      })
+      const activity = await client.get(ACT_ID as Id)
+      expect(activity).toBeInstanceOf(Activity)
+      expect(activity?.id).toBe(ACT_ID)
+      expect(activity?.name).toBe('Run')
     })
   })
 })
