@@ -4,7 +4,7 @@ import { sheet } from './sheet.js'
 import { now } from '../storage/clock.js'
 
 /** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
-/** @typedef {ReturnType<typeof import('../state/foods-store.js').createFoodsStore>} FoodsStore */
+/** @typedef {ReturnType<typeof import('../state/consumables-store.js').createConsumablesStore>} ConsumablesStore */
 /** @typedef {import('@oyl/all-of-oyl').DayKey} DayKey */
 /** @typedef {import('@oyl/all-of-oyl').Nutrients} Nutrients */
 
@@ -37,8 +37,8 @@ export class OylNutritionComposer extends OylElement {
     super()
     /** @type {JournalStore} */
     this.store = /** @type {JournalStore} */ (/** @type {unknown} */ (undefined))
-    /** @type {FoodsStore} */
-    this.foods = /** @type {FoodsStore} */ (/** @type {unknown} */ (undefined))
+    /** @type {ConsumablesStore} */
+    this.consumables = /** @type {ConsumablesStore} */ (/** @type {unknown} */ (undefined))
     /** @type {() => DayKey} */
     this.getDay = /** @type {() => DayKey} */ (/** @type {unknown} */ (undefined))
     /** @type {() => void} */
@@ -49,23 +49,23 @@ export class OylNutritionComposer extends OylElement {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
     const formEl = document.createElement('form')
 
-    const modeFood = this._radio('mode', 'food', 'From food', true)
+    const modeConsumable = this._radio('mode', 'consumable', 'From consumable', true)
     const modeAdhoc = this._radio('mode', 'adhoc', 'Ad-hoc', false)
     const modes = document.createElement('div')
     modes.className = 'modes'
-    modes.append(modeFood.label, modeAdhoc.label)
+    modes.append(modeConsumable.label, modeAdhoc.label)
 
     const select = document.createElement('select')
-    select.name = 'food'
-    select.setAttribute('aria-label', 'Food')
-    const foodGroup = document.createElement('div')
-    foodGroup.className = 'group'
-    foodGroup.append(select)
+    select.name = 'consumable'
+    select.setAttribute('aria-label', 'Consumable')
+    const consumableGroup = document.createElement('div')
+    consumableGroup.className = 'group'
+    consumableGroup.append(select)
     // Keep the option list in sync with the catalog.
     this.track(() => {
       const cur = select.value
       select.replaceChildren()
-      for (const f of this.foods.all()) {
+      for (const f of this.consumables.all()) {
         const o = document.createElement('option')
         o.value = f.id
         o.textContent = f.name
@@ -122,15 +122,15 @@ export class OylNutritionComposer extends OylElement {
     error.dataset.role = 'error'
     error.setAttribute('aria-live', 'polite')
 
-    formEl.append(modes, foodGroup, adhocGroup, servingsField, whenField, log, error)
+    formEl.append(modes, consumableGroup, adhocGroup, servingsField, whenField, log, error)
     root.append(formEl)
 
     const onMode = () => {
       const adhoc = modeAdhoc.input.checked
       adhocGroup.hidden = !adhoc
-      foodGroup.hidden = adhoc
+      consumableGroup.hidden = adhoc
     }
-    modeFood.input.addEventListener('change', onMode, { signal: this.lifecycle })
+    modeConsumable.input.addEventListener('change', onMode, { signal: this.lifecycle })
     modeAdhoc.input.addEventListener('change', onMode, { signal: this.lifecycle })
 
     formEl.addEventListener('submit', async (e) => {
@@ -150,9 +150,9 @@ export class OylNutritionComposer extends OylElement {
           const note = noteInput.value.trim()
           consumption = new Consumption({ occurredAt, nutrients, servings: s, ...(note !== '' ? { note } : {}) })
         } else {
-          const food = this.foods.all().find((f) => f.id === select.value)
-          if (!food) throw new Error('Pick a food to log')
-          consumption = new Consumption({ occurredAt, food: { id: food.id, nutrients: food.nutrients }, servings: s })
+          const consumable = this.consumables.all().find((f) => f.id === select.value)
+          if (!consumable) throw new Error('Pick a consumable to log')
+          consumption = new Consumption({ occurredAt, consumable: { id: consumable.id, nutrients: consumable.nutrients }, servings: s })
         }
         await this.store.add(consumption)
         this._syncWhen(whenInput)

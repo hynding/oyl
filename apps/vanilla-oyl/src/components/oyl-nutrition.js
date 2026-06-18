@@ -5,14 +5,14 @@ import { signal } from '../lib/reactive/signal.js'
 import { sheet } from './sheet.js'
 import { now } from '../storage/clock.js'
 import { defineNutritionComposer } from './oyl-nutrition-composer.js'
-import { defineFoodForm } from './oyl-food-form.js'
+import { defineConsumableForm } from './oyl-consumable-form.js'
 
 /** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
-/** @typedef {ReturnType<typeof import('../state/foods-store.js').createFoodsStore>} FoodsStore */
+/** @typedef {ReturnType<typeof import('../state/consumables-store.js').createConsumablesStore>} ConsumablesStore */
 
 /**
  * Row meta for a logged consumption: per-serving nutrients, plus a scaled
- * calorie total when servings > 1 (omitted when the food has no calories).
+ * calorie total when servings > 1 (omitted when the consumable has no calories).
  * @param {import('@oyl/all-of-oyl').Consumption} c
  * @returns {string}
  */
@@ -41,7 +41,7 @@ const styles = sheet(`
   .meta { color: var(--color-muted); font-size: .85rem; }
   button.del { font: inherit; color: var(--color-muted); border: 0; background: none; cursor: pointer; }
   .empty { color: var(--color-muted); padding: 1.5rem 0; text-align: center; }
-  oyl-food-form { display: block; margin-block-start: .4rem; }
+  oyl-consumable-form { display: block; margin-block-start: .4rem; }
   .sr-only { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 `)
 
@@ -52,8 +52,8 @@ export class OylNutrition extends OylElement {
     super()
     /** @type {JournalStore} */
     this.store = /** @type {JournalStore} */ (/** @type {unknown} */ (undefined))
-    /** @type {FoodsStore} */
-    this.foods = /** @type {FoodsStore} */ (/** @type {unknown} */ (undefined))
+    /** @type {ConsumablesStore} */
+    this.consumables = /** @type {ConsumablesStore} */ (/** @type {unknown} */ (undefined))
     /** @type {string} */
     this.tz = 'UTC'
     /** @type {import('../lib/reactive/signal.js').Signal<DayKey>} */
@@ -62,7 +62,7 @@ export class OylNutrition extends OylElement {
 
   render() {
     defineNutritionComposer()
-    defineFoodForm()
+    defineConsumableForm()
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
     this._day = signal(DayKey.from(now(), this.tz), (a, b) => a.equals(b))
 
@@ -87,7 +87,7 @@ export class OylNutrition extends OylElement {
 
     const composer = /** @type {import('./oyl-nutrition-composer.js').OylNutritionComposer} */ (document.createElement('oyl-nutrition-composer'))
     composer.store = this.store
-    composer.foods = this.foods
+    composer.consumables = this.consumables
     composer.getDay = () => this._day.get()
     composer.onLogged = () => { live.textContent = 'Meal logged' }
 
@@ -98,13 +98,13 @@ export class OylNutrition extends OylElement {
 
     const catLabel = document.createElement('div')
     catLabel.className = 'section-label'
-    catLabel.textContent = 'Foods'
-    const foodForm = /** @type {import('./oyl-food-form.js').OylFoodForm} */ (document.createElement('oyl-food-form'))
-    foodForm.store = this.foods
-    foodForm.onAdded = () => { live.textContent = 'Food added' }
+    catLabel.textContent = 'Consumables'
+    const consumableForm = /** @type {import('./oyl-consumable-form.js').OylConsumableForm} */ (document.createElement('oyl-consumable-form'))
+    consumableForm.store = this.consumables
+    consumableForm.onAdded = () => { live.textContent = 'Consumable added' }
     const foodList = document.createElement('ol')
 
-    root.append(daynav, totals, live, composer, list, empty, catLabel, foodForm, foodList)
+    root.append(daynav, totals, live, composer, list, empty, catLabel, consumableForm, foodList)
 
     prev.addEventListener('click', () => this._go(-1, h2, live), { signal: this.lifecycle })
     next.addEventListener('click', () => this._go(1, h2, live), { signal: this.lifecycle })
@@ -127,12 +127,12 @@ export class OylNutrition extends OylElement {
       totals.textContent = totalSummary === '' ? 'Nothing logged yet' : totalSummary
 
       const consumptions = [...this.store.consumptionsOn(day)].sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
-      const byId = new Map(this.foods.all().map((f) => [f.id, f.name]))
+      const byId = new Map(this.consumables.all().map((f) => [f.id, f.name]))
       list.replaceChildren()
       for (const c of consumptions) {
         const li = document.createElement('li')
         const name = document.createElement('span')
-        const label = (c.foodId !== undefined ? byId.get(c.foodId) : undefined) ?? c.note ?? 'Meal'
+        const label = (c.consumableId !== undefined ? byId.get(c.consumableId) : undefined) ?? c.note ?? 'Meal'
         name.textContent = c.servings === 1 ? label : `${label} ×${c.servings}`
         const meta = document.createElement('span')
         meta.className = 'meta'
@@ -150,11 +150,11 @@ export class OylNutrition extends OylElement {
       empty.textContent = consumptions.length > 0 ? '' : `No meals logged for ${formatDayHeading(day)}. Log one above.`
     })
 
-    // Foods catalog (reactive on the foods store).
+    // Consumables catalog (reactive on the consumables store).
     this.track(() => {
-      const foods = this.foods.all()
+      const consumables = this.consumables.all()
       foodList.replaceChildren()
-      for (const f of foods) {
+      for (const f of consumables) {
         const li = document.createElement('li')
         const name = document.createElement('span')
         name.textContent = f.name
@@ -166,7 +166,7 @@ export class OylNutrition extends OylElement {
         del.type = 'button'
         del.textContent = 'Remove'
         del.setAttribute('aria-label', `Remove ${f.name}`)
-        del.addEventListener('click', () => { void this.foods.remove(f.id); live.textContent = 'Food removed' })
+        del.addEventListener('click', () => { void this.consumables.remove(f.id); live.textContent = 'Consumable removed' })
         li.append(name, meta, del)
         foodList.append(li)
       }

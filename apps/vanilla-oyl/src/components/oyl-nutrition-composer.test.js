@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll } from 'vitest'
-import { InMemoryRepository, Food, DayKey } from '@oyl/all-of-oyl'
+import { InMemoryRepository, Consumable, DayKey } from '@oyl/all-of-oyl'
 import { createJournalStore } from '../state/journal-store.js'
-import { createFoodsStore } from '../state/foods-store.js'
+import { createConsumablesStore } from '../state/consumables-store.js'
 import { defineNutritionComposer } from './oyl-nutrition-composer.js'
 
 beforeAll(() => defineNutritionComposer())
@@ -10,24 +10,24 @@ const settle = () => new Promise((r) => setTimeout(r, 0))
 /** @param {any} el @param {string} sel */
 const q = (el, sel) => /** @type {any} */ (el.shadowRoot.querySelector(sel))
 
-/** @param {any} store @param {any} foods */
-function composer(store, foods) {
+/** @param {any} store @param {any} consumables */
+function composer(store, consumables) {
   const el = /** @type {any} */ (document.createElement('oyl-nutrition-composer'))
   el.store = store
-  el.foods = foods
+  el.consumables = consumables
   el.getDay = () => DayKey.from(new Date(), TZ)
   document.body.append(el)
   return el
 }
 
 describe('<oyl-nutrition-composer>', () => {
-  it('logs a consumption from the selected food with servings', async () => {
+  it('logs a consumption from the selected consumable with servings', async () => {
     const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
-    const foods = createFoodsStore(/** @type {any} */ (new InMemoryRepository()))
-    const oatmeal = await foods.add(new Food({ name: 'Oatmeal', nutrients: { calories: 150, protein: 5 } }))
-    const el = composer(store, foods)
+    const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
+    const oatmeal = await consumables.add(new Consumable({ name: 'Oatmeal', nutrients: { calories: 150, protein: 5 } }))
+    const el = composer(store, consumables)
     await settle()
-    q(el, 'select[name="food"]').value = oatmeal.id
+    q(el, 'select[name="consumable"]').value = oatmeal.id
     q(el, 'input[name="servings"]').value = '2'
     q(el, 'form').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
     await settle()
@@ -36,14 +36,14 @@ describe('<oyl-nutrition-composer>', () => {
     expect(logged).toHaveLength(1)
     const first = /** @type {NonNullable<typeof logged[0]>} */ (logged[0])
     expect(first.servings).toBe(2)
-    expect(first.foodId).toBe(oatmeal.id)
+    expect(first.consumableId).toBe(oatmeal.id)
     el.remove()
   })
 
   it('logs an ad-hoc consumption from entered nutrients', async () => {
     const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
-    const foods = createFoodsStore(/** @type {any} */ (new InMemoryRepository()))
-    const el = composer(store, foods)
+    const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
+    const el = composer(store, consumables)
     await settle()
     q(el, 'input[name="mode"][value="adhoc"]').checked = true
     q(el, 'input[name="mode"][value="adhoc"]').dispatchEvent(new Event('change', { bubbles: true }))
@@ -60,10 +60,10 @@ describe('<oyl-nutrition-composer>', () => {
     el.remove()
   })
 
-  it('shows an error when food-mode is submitted with no food selected', async () => {
+  it('shows an error when consumable-mode is submitted with no consumable selected', async () => {
     const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
-    const foods = createFoodsStore(/** @type {any} */ (new InMemoryRepository()))
-    const el = composer(store, foods)
+    const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
+    const el = composer(store, consumables)
     await settle()
     q(el, 'form').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
     await settle()

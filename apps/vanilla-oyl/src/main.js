@@ -250,7 +250,7 @@ async function boot() {
     nutrition: () => {
       const view = /** @type {import('./components/oyl-nutrition.js').OylNutrition} */ (document.createElement('oyl-nutrition'))
       view.store = dataState.journal
-      view.foods = dataState.foods
+      view.consumables = dataState.consumables
       view.tz = tz
       return view
     },

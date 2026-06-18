@@ -1,8 +1,8 @@
-import { Food } from '@oyl/all-of-oyl'
+import { Consumable } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 
-/** @typedef {ReturnType<typeof import('../state/foods-store.js').createFoodsStore>} FoodsStore */
+/** @typedef {ReturnType<typeof import('../state/consumables-store.js').createConsumablesStore>} ConsumablesStore */
 /** @typedef {import('@oyl/all-of-oyl').Nutrients} Nutrients */
 
 /** @type {ReadonlyArray<readonly [keyof Nutrients, string]>} */
@@ -24,13 +24,13 @@ const styles = sheet(`
   [data-role="error"]:not(:empty) { color: var(--color-danger); font-size: .85rem; }
 `)
 
-export class OylFoodForm extends OylElement {
+export class OylConsumableForm extends OylElement {
   static styles = [styles]
 
   constructor() {
     super()
-    /** @type {FoodsStore} */
-    this.store = /** @type {FoodsStore} */ (/** @type {unknown} */ (undefined))
+    /** @type {ConsumablesStore} */
+    this.store = /** @type {ConsumablesStore} */ (/** @type {unknown} */ (undefined))
     /** @type {() => void} */
     this.onAdded = () => {}
   }
@@ -41,8 +41,8 @@ export class OylFoodForm extends OylElement {
 
     const name = document.createElement('input')
     name.name = 'name'
-    name.placeholder = 'Food name'
-    name.setAttribute('aria-label', 'Food name')
+    name.placeholder = 'Consumable name'
+    name.setAttribute('aria-label', 'Consumable name')
 
     /** @type {Array<[keyof Nutrients, HTMLInputElement]>} */
     const inputs = []
@@ -63,7 +63,7 @@ export class OylFoodForm extends OylElement {
     const add = document.createElement('button')
     add.type = 'submit'
     add.className = 'primary'
-    add.textContent = 'Add food'
+    add.textContent = 'Add consumable'
     const error = document.createElement('div')
     error.dataset.role = 'error'
     error.setAttribute('aria-live', 'polite')
@@ -81,8 +81,8 @@ export class OylFoodForm extends OylElement {
           const raw = input.value.trim()
           if (raw !== '') nutrients[key] = Number(raw)
         }
-        const food = new Food({ name: name.value.trim(), nutrients })
-        await this.store.add(food)
+        const consumable = new Consumable({ name: name.value.trim(), nutrients })
+        await this.store.add(consumable)
         name.value = ''
         for (const [, input] of inputs) input.value = ''
         this.onAdded()
@@ -94,6 +94,6 @@ export class OylFoodForm extends OylElement {
 }
 
 /** Register the element (idempotent). */
-export function defineFoodForm() {
-  if (!customElements.get('oyl-food-form')) customElements.define('oyl-food-form', OylFoodForm)
+export function defineConsumableForm() {
+  if (!customElements.get('oyl-consumable-form')) customElements.define('oyl-consumable-form', OylConsumableForm)
 }

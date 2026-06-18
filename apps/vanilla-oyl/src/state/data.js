@@ -10,7 +10,7 @@ import { createVaultStore } from './vault-store.js'
 import { createGoalsStore } from './goals-store.js'
 import { createBudgetsStore } from './budgets-store.js'
 import { createAccountsStore } from './accounts-store.js'
-import { createFoodsStore } from './foods-store.js'
+import { createConsumablesStore } from './consumables-store.js'
 import { defaultTimezone } from '../storage/clock.js'
 
 /** @typedef {import('../storage/schema.js').SchemaState} SchemaState */
@@ -44,7 +44,7 @@ export function createDataState(storage, themeState, opts = {}) {
   const goals = createGoalsStore(repos.goals)
   const budgets = createBudgetsStore(repos.budgets)
   const accounts = createAccountsStore(repos.accounts)
-  const foods = createFoodsStore(repos.foods)
+  const consumables = createConsumablesStore(repos.consumables)
 
   /** @type {import('../lib/reactive/signal.js').Signal<import('@oyl/all-of-oyl').SyncState | null>} */
   const syncState = signal(engine ? engine.syncState.get() : null)
@@ -89,7 +89,7 @@ export function createDataState(storage, themeState, opts = {}) {
   async function refresh() {
     schema.set(readSchemaState(storage))
     const tasks = [
-      journal.hydrate(), planner.hydrate(), vault.hydrate(), goals.hydrate(), budgets.hydrate(), accounts.hydrate(), foods.hydrate(),
+      journal.hydrate(), planner.hydrate(), vault.hydrate(), goals.hydrate(), budgets.hydrate(), accounts.hydrate(), consumables.hydrate(),
       repos.lifeAreas.list(), repos.activities.list(), repos.projects.list(), readStorageEstimate(), collectionCounts(repos),
     ]
     const results = await Promise.allSettled(tasks)
@@ -155,7 +155,7 @@ export function createDataState(storage, themeState, opts = {}) {
     return charge
   }
 
-  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, foods, syncState, startSync, syncFlush, resync, retryFailed, discardFailed, migrationOffer, migrateLocal }
+  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, consumables, syncState, startSync, syncFlush, resync, retryFailed, discardFailed, migrationOffer, migrateLocal }
 }
 
 /**
