@@ -1,0 +1,14 @@
+{
+  "kind": "collectionType",
+  "collectionName": "notes",
+  "info": { "singularName": "note", "pluralName": "notes", "displayName": "Note" },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "recordId": { "type": "string", "required": true },
+    "text": { "type": "text", "required": true },
+    "tags": { "type": "json" },
+    "occurredAt": { "type": "datetime", "required": true },
+    "note": { "type": "string" },
+    "owner": { "type": "relation", "relation": "manyToOne", "target": "plugin::users-permissions.user" }
+  }
+}
