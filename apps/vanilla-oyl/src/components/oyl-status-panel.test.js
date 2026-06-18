@@ -50,16 +50,12 @@ describe('<oyl-status-panel>', () => {
 })
 
 describe('<oyl-status-panel> account section', () => {
-  it('renders an oyl-auth wired to the auth state', async () => {
-    const el = /** @type {any} */ (document.createElement('oyl-status-panel'))
-    const auth = { session: { get: () => null, set: () => {} }, logout: () => {} }
-    el.auth = auth
-    document.body.append(el)
-    await Promise.resolve()
-    const authEl = /** @type {any} */ (el.shadowRoot.querySelector('oyl-auth'))
-    expect(authEl).toBeTruthy()
-    expect(authEl.auth).toBe(auth)
-    el.remove()
+  it('no longer renders the auth form (moved to /login + /register)', () => {
+    const panel = /** @type {any} */ (document.createElement('oyl-status-panel'))
+    panel.connection = { mode: 'local', apiBaseUrl: '', defaultApiBaseUrl: '', onApply: () => {} }
+    document.body.append(panel)
+    expect(panel.shadowRoot.querySelector('oyl-auth')).toBeFalsy()
+    panel.remove()
   })
 })
 

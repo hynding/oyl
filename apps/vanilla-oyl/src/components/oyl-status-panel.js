@@ -1,6 +1,5 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
-import { defineAuth } from './oyl-auth.js'
 import { defineConnection } from './oyl-connection.js'
 
 /** @typedef {{ status: string, version?: number }} SchemaInfo */
@@ -37,8 +36,6 @@ export class OylStatusPanel extends OylElement {
     this._diagnostics = null
     /** @type {Actions} */
     this.actions = {}
-    /** @type {any} */
-    this.auth = null
     /** @type {import('./oyl-connection.js').ConnectionConfig | null} */
     this.connection = null
     /** @type {{ state: import('../lib/reactive/signal.js').Signal<import('@oyl/all-of-oyl').SyncState | null>, onResync: () => void, onRetryFailed?: () => void, onDiscardFailed?: () => void } | null} */
@@ -61,7 +58,6 @@ export class OylStatusPanel extends OylElement {
 
   render() {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
-    defineAuth()
     defineConnection()
 
     const h2 = document.createElement('h2')
@@ -154,11 +150,7 @@ export class OylStatusPanel extends OylElement {
       migrateNodes = [upBtn]
     }
 
-    const accountLabel = document.createElement('h2')
-    accountLabel.textContent = 'Account'
-    const authEl = /** @type {import('./oyl-auth.js').OylAuth} */ (document.createElement('oyl-auth'))
-    authEl.auth = this.auth
-    root.append(h2, grid, actions, connLabel, connEl, ...syncNodes, ...migrateNodes, accountLabel, authEl)
+    root.append(h2, grid, actions, connLabel, connEl, ...syncNodes, ...migrateNodes)
 
     this._paint = () => {
       const d = this._diagnostics

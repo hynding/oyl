@@ -149,7 +149,6 @@ async function boot() {
   router.routes = {
     status: () => {
       const panel = /** @type {import('./components/oyl-status-panel.js').OylStatusPanel} */ (document.createElement('oyl-status-panel'))
-      panel.auth = authState
       panel.connection = {
         mode,
         apiBaseUrl: getApiBaseUrl(storage),
