@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-18
 **Status:** Approved (brainstorming)
-**Scope:** Deepen the nutrition domain on the relational/online-first foundation from Sub-project A: a full FDA Nutrition Facts model (driven by a nutrient registry), a new `ConsumableProduct` (barcoded purchasable layer), and the `Consumption` linkage. One spec → plan → build cycle. Part of the larger Sub-project B (B2 Activity metrics, B3 catalog visibility/curation policy, B4 remaining relational entities are separate cycles).
+**Scope:** Deepen the nutrition domain on the relational/online-first foundation from Sub-project A: a full FDA Nutrition Facts model (driven by a nutrient registry), a new `ConsumableProduct` (barcoded purchasable layer), the `Consumption` linkage, **and the `entries`-split that gives consumptions a server home** (so meal-logging is end-to-end). One spec → plan → build cycle. Part of the larger Sub-project B (B2 Activity metrics, B3 catalog visibility/curation policy, B4 remaining relational entities are separate cycles).
 
 ## Background
 
@@ -22,6 +22,8 @@ The project is pre-adoption: local + server data is discarded on this change (no
 | UPC identity | A product **with a UPC is global/public and deduped by UPC** — a scan resolves to the one shared row; created public if missing. Products **without** a UPC follow normal creator-scoped catalog rules. |
 | Consumption linkage | Gains optional `consumableProductId` (provenance) alongside `consumableId`; snapshots the **full resolved** `NutritionFacts`; `servings` stays a fractional multiplier (enables amount-based logging); optional logged `amount`+unit for display. |
 | Ingredients | Ordered list of ingredient strings + optional `allergens` list. Structured sub-ingredients deferred (YAGNI). |
+| Entries split | Replace the single heterogeneous `entries` collection with **per-kind collections** (`notes`, `consumptions`, `transactions`, `measurements`, `activitySessions`) — each its own codec/kind/path/relational table. Stores read the kinds they need. |
+| Entry backends in B1 | Build **`note` (exists) + `consumption`** content-types; the other entry kinds get backends with their own features (empty stubs until then). |
 
 ## Architecture
 
@@ -70,17 +72,22 @@ New `nutrition/consumable-product.ts` (class + codec; manifest key `consumablePr
 - A shared Strapi **component** `nutrition-facts`: the mandatory nutrients as **columns** (queryable), a repeatable child component `additional-nutrient` `{ slug, amount }`, `servingSize`/`householdMeasure`, `ingredients`, `allergens`. Reused by both content-types below.
 - `consumable` content-type (catalog: `creator` + `visibility`, default `public`; owner/creator-scoped controller per A) using the `nutrition-facts` component.
 - `consumable-product` content-type (catalog): `upc` (**unique when present**), `brand`/`name`/`netWeight`/`servingsPerContainer`, a `manyToOne` relation to `consumable`, an optional `nutrition-facts` component (override). Controller enforces the **UPC-dedup rule**: an upsert/create with a `upc` resolves to the existing shared row (returns it) rather than duplicating; a UPC-bearing product is visible to all (public), independent of creator; non-UPC products use the creator/visibility gate. Creator is still stamped server-side (provenance) and never client-settable.
-- Manifest: add `consumableProducts` (kind `catalog`); reuse A's parity test (extend it to the new content-types/components: mandatory columns present, `consumable` relation on product, `creator`+`visibility`). `ROW_KIND_BY_COLLECTION` wiring as needed (catalog reads need no `kind` injection; verify the `entries`/`consumption` path still injects `'consumption'`-vs-`'note'` correctly — note that `consumption` is an Entry kind, so when a backend for it exists it injects `'consumption'`; B1 does not add a consumption backend, consumptions ride `entries`).
+- Manifest: add `consumableProducts` (kind `catalog`); reuse A's parity test (extend it to the new content-types/components: mandatory columns present, `consumable` relation on product, `creator`+`visibility`, and — per B1.9 — the `consumption` content-type's owner relation + facts component).
+- The `consumption` content-type is detailed in B1.9 (the `entries` split); it reuses the same `nutrition-facts` component for its resolved-facts snapshot.
 
 ### B1.8 — Snapshot principle
 
 `Consumption` stores the resolved `NutritionFacts` so logged meals are correct across catalog edits/deletion and renderable offline / in private mode (E). Unchanged from A; reinforced for the wider facts.
 
-### B1.9 — Known limitation: consumption persistence (the `entries` split)
+### B1.9 — The `entries` split (per-kind collections)
 
-B1 makes the **Consumable catalog** fully server-backed (search/select, FDA facts, products by UPC) and the **domain** `Consumption` model complete (provenance + resolved-facts snapshot). It does **not** give consumptions a server home. A built only a `note` content-type, and the heterogeneous `entries` collection (note / consumption / transaction / measurement / activity-session, revived by `kind`) routes entirely to `/api/notes` via `PATH_BY_COLLECTION` — so a consumption record cannot persist server-side yet.
+Consumptions need a server home, and A's heterogeneous `entries`→`/api/notes` routing can't give them one. B1 replaces the single `entries` collection with **first-class per-kind collections**, each its own codec, `kind`, manifest entry, path, and relational table.
 
-Making consumptions (and the other non-note entry kinds) persist requires **splitting the single `entries` collection into per-kind relational content-types** (`note`, `consumption`, …) and teaching the client data layer to route an entry *record* to the backend path for its `kind`. That is a cross-cutting backend/data-layer change affecting journal, finance, nutrition, and activity entries alike — **out of B1's scope, and the natural next piece** (a dedicated cycle, likely sequenced with B4 or as its own "B-entries-split"). Until then, B1's value is the catalog half: a real, searchable, FDA-grade consumable/product catalog plus a complete domain Consumption model ready to persist once the split lands.
+- **Manifest** (`collections.ts`): remove `entries`; add `notes`, `consumptions`, `transactions`, `measurements`, `activitySessions` (all `kind: 'personal'`). Each maps to a per-kind Strapi plural in `PATH_BY_COLLECTION` (`notes`, `consumptions`, …) and its `kind` discriminant in `ROW_KIND_BY_COLLECTION` (`notes→'note'`, `consumptions→'consumption'`, …).
+- **Codecs:** drop the heterogeneous `reviveEntry` dispatch in favor of per-collection codecs — `notes` → `Note.fromJSON`, `consumptions` → `Consumption.fromJSON`, etc. The `kind` field stays on the domain objects (Entry base) but no longer drives codec dispatch (the collection is the kind). `revivePlan` (plans) is untouched — only `entries` splits.
+- **Stores:** update entry-consuming stores to read their per-kind collection(s) instead of one `entries` repo + a client-side kind filter — nutrition reads `consumptions`, journal reads `notes` (and `measurements` where it shows them), finance reads `transactions`. Cross-kind "everything on a day" views (the journal day-list, the future timeline) read the relevant per-kind collections and merge client-side; the efficient single-call server timeline is Sub-project C.
+- **Bootstrap wiring:** build a real `createServerPersonalRepository` for collections that HAVE a backend (`notes`, `consumptions`); the entry kinds without one yet (`transactions`, `measurements`, `activitySessions`) get **empty stub repos** (as A did for system-kind) so their stores read empty and don't error — their real backends arrive with their features (B2/B4). This is not a regression: post-A those kinds already didn't persist.
+- **`consumption` backend:** a new owner-scoped `consumption` content-type (A's personal pattern) carrying the Consumption fields — `recordId`, `occurredAt`, `note`, `servings`, optional `consumableId`/`consumableProductId`, optional `loggedAmount`, and the **resolved `NutritionFacts` snapshot** (reuse the `nutrition-facts` component from B1.7) — owner relation, upsert-by-`recordId`, the parity test, and `ROW_KIND` `'consumption'`. With this, logging a meal flushes to `/api/consumptions` and reads back via the real codec end-to-end.
 
 ## Error handling
 
@@ -96,21 +103,22 @@ Making consumptions (and the other non-note entry kinds) persist requires **spli
 - **%DV formatter:** known values for representative nutrients; `undefined` for a no-DV nutrient.
 - **`Consumable`/`ConsumableProduct`:** construct/round-trip; effective-facts resolution (`product.facts ?? consumable.facts`).
 - **`Consumption`:** snapshots resolved facts; `consumableProductId` provenance; amount-based `servings` derivation.
-- **Backend (booted Strapi):** consumable + consumable-product CRUD; the `nutrition-facts` component persists mandatory columns + additional rows + ingredients/allergens; **UPC-dedup** — two users creating the same UPC resolve to ONE shared public row, both can read it; a non-UPC product stays creator-scoped; creator is server-stamped. Parity test green for the new content-types/components.
-- **End-to-end (the A-style seam check):** a fetched `consumable`/`consumable-product` row decodes through the REAL codec (recordId→id via `strapiRowToShape`).
+- **Backend (booted Strapi):** consumable + consumable-product CRUD; the `nutrition-facts` component persists mandatory columns + additional rows + ingredients/allergens; **UPC-dedup** — two users creating the same UPC resolve to ONE shared public row, both can read it; a non-UPC product stays creator-scoped; creator is server-stamped. The new owner-scoped **`consumption`** content-type: upsert-by-`recordId`, owner-isolated (a second user can't read/write it), persists the resolved-facts snapshot. Parity test green for the new content-types/components.
+- **Entries split:** the manifest exposes per-kind collections; bootstrap builds real repos for `notes`+`consumptions` and stub repos for the other entry kinds; each store reads its per-kind collection; a stub-kind read returns empty (no throw).
+- **End-to-end (the A-style seam check):** a fetched `consumable`/`consumable-product`/`consumption` row decodes through the REAL codec (recordId→id + `kind` injection via `strapiRowToShape`); **a logged meal flushes to `/api/consumptions` and reads back** (the full personal round-trip the catalog enables).
 
 ## Definition of Done
 
 - `@oyl/all-of-oyl`: tests + `typecheck:src` + `build` green (registry, `NutritionFacts`, `ConsumableProduct`, expanded `Consumption`/`sumNutrients`/`formatNutrients`, %DV formatter).
-- `apps/vanilla-oyl`: tests + `typecheck` + `build:lib` green (stores/components consuming the wider facts still pass; daily totals macro-focused).
-- `apps/strapi-oyl`: `tsc` + test suite green; `consumable`/`consumable-product` content-types + `nutrition-facts` component; UPC-dedup proven; parity test extended.
-- A booted end-to-end decode check confirms a real Strapi consumable/product row decodes via the real codec.
+- `apps/vanilla-oyl`: tests + `typecheck` + `build:lib` green (the `entries` split landed — per-kind collections, stores read their kind, stub kinds read empty; daily totals macro-focused).
+- `apps/strapi-oyl`: `tsc` + test suite green; `consumable`/`consumable-product`/`consumption` content-types + `nutrition-facts` component; UPC-dedup proven; consumption owner-isolation proven; parity test extended.
+- A booted end-to-end check confirms a real Strapi consumable/product/consumption row decodes via the real codec, and a logged meal round-trips to `/api/consumptions`.
 
 ## Scope boundaries (what B1 is NOT)
 
 - **Not** Activity catalog-defined metrics (B2).
 - **Not** the full catalog visibility/curation/dedup **policy** for non-UPC, user-authored catalog items (B3) — B1 implements UPC-dedup + the A-default `public`/creator behavior; the broader policy (moderation, merge, private-by-default, etc.) is B3.
 - **Not** the other relational entities — finance, goals, planner, vault (B4).
-- **Not** consumption server-persistence — see B1.9. The heterogeneous `entries` collection still routes to `/api/notes`; splitting `entries` into per-kind content-types (so consumptions/transactions/etc. persist) is a cross-cutting next piece, not B1.
+- **Not** the OTHER entry kinds' backends — the `entries` split (B1.9) is done and builds only `note`+`consumption`; `transaction`/`measurement`/`activity-session` content-types arrive with their own features (B2/B4) and read as empty stubs until then.
 - **Not** per-user Daily Values, structured sub-ingredients, or volume↔weight density conversion (noted future enhancements).
 - Data is discarded, not migrated (pre-adoption).
