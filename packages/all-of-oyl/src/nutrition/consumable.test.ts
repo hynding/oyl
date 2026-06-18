@@ -5,7 +5,7 @@ import { DomainError } from '../core/domain-error.js'
 
 describe('Consumable', () => {
   it('constructs with per-serving nutrients', () => {
-    const oatmeal = new Consumable({ name: 'Oatmeal', nutrients: { calories: 150, protein: 5, carbs: 27, fat: 3 } })
+    const oatmeal = new Consumable({ name: 'Oatmeal', nutrients: { calories: 150, protein: 5, totalCarbohydrate: 27, totalFat: 3 } })
     expect(oatmeal.name).toBe('Oatmeal')
     expect(oatmeal.nutrients.calories).toBe(150)
     expect(Id.of(oatmeal.id)).toBe(oatmeal.id)

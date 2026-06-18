@@ -22,14 +22,15 @@ describe('Consumption', () => {
     expect(meal.metrics().get(key('nutrition.calories'))).toBe(300)
     expect(meal.metrics().get(key('nutrition.protein'))).toBe(10)
     expect(meal.metrics().get(key('nutrition.water_ml'))).toBe(20)
-    expect(meal.metrics().has(key('nutrition.carbs'))).toBe(false)
+    expect(meal.metrics().has(key('nutrition.total_carbohydrate'))).toBe(false)
   })
 
   it('supports ad-hoc logging with no consumable (consumableId is provenance, not a requirement)', () => {
-    const restaurant = new Consumption({ occurredAt: when, nutrients: { calories: 850, fat: 40 } })
+    const restaurant = new Consumption({ occurredAt: when, nutrients: { calories: 850, totalFat: 40 } })
     expect(restaurant.consumableId).toBeUndefined()
     expect(restaurant.servings).toBe(1)
     expect(restaurant.metrics().get(key('nutrition.calories'))).toBe(850)
+    expect(restaurant.metrics().get(key('nutrition.total_fat'))).toBe(40)
   })
 
   it('explicit nutrients override the consumable snapshot', () => {

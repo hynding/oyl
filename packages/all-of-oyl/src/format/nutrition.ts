@@ -5,8 +5,8 @@ export function formatNutrients(n: Nutrients): string {
   const parts: string[] = []
   if (n.calories !== undefined) parts.push(`${Math.round(n.calories)} kcal`)
   if (n.protein !== undefined) parts.push(`${Math.round(n.protein)}g P`)
-  if (n.carbs !== undefined) parts.push(`${Math.round(n.carbs)}g C`)
-  if (n.fat !== undefined) parts.push(`${Math.round(n.fat)}g F`)
+  if (n.totalCarbohydrate !== undefined) parts.push(`${Math.round(n.totalCarbohydrate)}g C`)
+  if (n.totalFat !== undefined) parts.push(`${Math.round(n.totalFat)}g F`)
   if (n.waterMl !== undefined) parts.push(`${Math.round(n.waterMl)} ml`)
   return parts.join(' · ')
 }

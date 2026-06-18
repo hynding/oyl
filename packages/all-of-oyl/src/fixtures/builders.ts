@@ -72,7 +72,7 @@ export function makeConsumable(overrides: { id?: Id; name?: string; nutrients?: 
   return new Consumable({
     id: overrides.id ?? fixtureId(31),
     name: overrides.name ?? 'Oatmeal',
-    nutrients: overrides.nutrients ?? { calories: 150, protein: 5, carbs: 27, fat: 3 },
+    nutrients: overrides.nutrients ?? { calories: 150, protein: 5, totalCarbohydrate: 27, totalFat: 3 },
   })
 }
 

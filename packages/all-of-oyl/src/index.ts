@@ -62,7 +62,19 @@ export { COLLECTIONS, KINDS, kindOf, entitiesByKind, type CollectionName, type C
 export { Activity } from './activity/activity.js'
 export { ActivitySession } from './activity/activity-session.js'
 export { Consumable } from './nutrition/consumable.js'
-export { type Nutrients, NUTRIENT_METRICS, assertNutrients, nutrientsFromJSON, nutrientsToJSON } from './nutrition/nutrients.js'
+export {
+  type ServingSize,
+  type NutritionAmounts,
+  type NutritionFacts,
+  type Nutrients,
+  NUTRIENT_METRICS,
+  assertNutritionFacts,
+  nutritionFactsToJSON,
+  nutritionFactsFromJSON,
+  assertNutrients,
+  nutrientsFromJSON,
+  nutrientsToJSON,
+} from './nutrition/nutrients.js'
 export { Consumption } from './nutrition/consumption.js'
 export { sumNutrients } from './nutrition/totals.js'
 export { Account } from './finance/account.js'
