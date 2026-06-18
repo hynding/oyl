@@ -116,8 +116,3 @@ export async function boot(): Promise<{ baseUrl: string; stop: () => Promise<voi
   }
 }
 
-/** Clear all oyl-record rows between tests. */
-export async function truncateRecords(): Promise<void> {
-  if (!app) throw new Error('boot() must be called before truncateRecords()')
-  await app.db.query('api::oyl-record.oyl-record').deleteMany({ where: {} })
-}

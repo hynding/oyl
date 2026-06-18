@@ -1,7 +1,5 @@
 import type { Core } from '@strapi/strapi'
 
-const V1_ACTIONS = ['list', 'findOne', 'upsert', 'remove', 'batch'].map((a) => `api::oyl-record.oyl-record.${a}`)
-
 const NOTE_ACTIONS = ['find', 'findOne', 'create', 'update', 'delete'].map((a) => `api::note.note.${a}`)
 
 const ACTIVITY_ACTIONS = ['find', 'findOne', 'create', 'update', 'delete'].map((a) => `api::activity.activity.${a}`)
@@ -32,7 +30,6 @@ async function grantPublicAuth(strapi: Core.Strapi) {
 export default {
   register(_ctx: { strapi: Core.Strapi }) {},
   async bootstrap({ strapi }: { strapi: Core.Strapi }) {
-    await grantRoleActions(strapi, 'authenticated', V1_ACTIONS, '/v1')
     await grantPublicAuth(strapi)
     await grantRoleActions(strapi, 'authenticated', NOTE_ACTIONS, 'note')
     await grantRoleActions(strapi, 'authenticated', ACTIVITY_ACTIONS, 'activity')
