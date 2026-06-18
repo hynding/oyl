@@ -46,6 +46,8 @@ export class OylActivityPicker extends OylElement {
     this._results = []
     /** @type {string} */
     this._error = ''
+    /** @type {number} Monotonically increasing search ticket; guards against stale async results. */
+    this._searchTicket = 0
   }
 
   render() {
@@ -99,7 +101,10 @@ export class OylActivityPicker extends OylElement {
         renderResults()
         return
       }
-      this._results = await this.catalog.search(q)
+      const ticket = ++this._searchTicket
+      const results = await this.catalog.search(q)
+      if (ticket !== this._searchTicket) return
+      this._results = results
       renderResults()
     }, { signal: this.lifecycle })
 
@@ -136,11 +141,15 @@ export class OylActivityPicker extends OylElement {
         return
       }
       const activity = new Activity({ name, slug })
-      this.catalog.create(activity)
-      newNameInput.value = ''
-      // Surface the new activity immediately in search results.
-      this._results = [activity]
-      renderResults()
+      try {
+        this.catalog.create(activity)
+        newNameInput.value = ''
+        // Surface the new activity immediately in search results.
+        this._results = [activity]
+        renderResults()
+      } catch {
+        error.textContent = 'Failed to create activity'
+      }
     }, { signal: this.lifecycle })
 
     root.append(searchRow, resultsList, addRow, error)

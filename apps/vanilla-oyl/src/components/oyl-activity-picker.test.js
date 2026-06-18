@@ -151,4 +151,67 @@ describe('<oyl-activity-picker>', () => {
     expect(q(el, '[data-role="error"]').textContent).not.toBe('')
     el.remove()
   })
+
+  it('shows an error and does not call create when the name slugs to empty', async () => {
+    const catalog = fakeCatalog([])
+    const createSpy = vi.spyOn(catalog, 'create')
+    const el = picker(catalog)
+    await settle()
+
+    q(el, 'input[name="new-name"]').value = '!!!'
+    q(el, 'button[data-role="add"]').click()
+    await settle()
+
+    expect(createSpy).not.toHaveBeenCalled()
+    expect(q(el, '[data-role="error"]').textContent).not.toBe('')
+    el.remove()
+  })
+
+  it('renders results from the last search when queries arrive out of order', async () => {
+    // Simulate a slow first search and a fast second search so the first
+    // resolves AFTER the second. The component must show only the second result.
+    /** @type {((v: Activity[]) => void)[]} */
+    const resolvers = []
+    const slow = new Activity({ name: 'Slow', slug: 'slow' })
+    const fast = new Activity({ name: 'Fast', slug: 'fast' })
+
+    /** @type {import('@oyl/all-of-oyl').CatalogClient<Activity>} */
+    const catalog = {
+      search: () => new Promise((resolve) => { resolvers.push(resolve) }),
+      list: async () => [],
+      get: async () => undefined,
+      create: () => {},
+    }
+
+    const el = picker(catalog)
+    await settle()
+
+    const searchInput = q(el, 'input[name="search"]')
+
+    // First keypress — captures resolver[0]
+    searchInput.value = 'sl'
+    searchInput.dispatchEvent(new Event('input', { bubbles: true }))
+    await settle()
+
+    // Second keypress — captures resolver[1]
+    searchInput.value = 'fa'
+    searchInput.dispatchEvent(new Event('input', { bubbles: true }))
+    await settle()
+
+    // Resolve SECOND search first (fast)
+    const resolveFirst = /** @type {(v: Activity[]) => void} */ (resolvers[0])
+    const resolveSecond = /** @type {(v: Activity[]) => void} */ (resolvers[1])
+    resolveSecond([fast])
+    await settle()
+
+    // Resolve FIRST search after (stale)
+    resolveFirst([slow])
+    await settle()
+
+    // Only the second (fast) result should be rendered
+    const results = qq(el, '[data-role="result"]')
+    expect(results).toHaveLength(1)
+    expect(results[0].textContent).toContain('Fast')
+    el.remove()
+  })
 })
