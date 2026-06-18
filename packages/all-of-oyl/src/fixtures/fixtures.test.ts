@@ -10,7 +10,7 @@ import {
   makeConnection,
   makeConsumption,
   makeDayPlan,
-  makeFood,
+  makeConsumable,
   makeGoal,
   makeGrant,
   makeLifeArea,
@@ -99,7 +99,7 @@ describe('fixtures', () => {
 
   it('phase 2 builders produce valid objects with overridable fields', () => {
     expect(makeActivity().slug).toBe('run')
-    expect(makeFood().nutrients.calories).toBe(150)
+    expect(makeConsumable().nutrients.calories).toBe(150)
     expect(makeAccount().currency).toBe('USD')
     expect(makeActivitySession().slug).toBe('run')
     expect(makeConsumption().servings).toBe(1)
@@ -111,7 +111,7 @@ describe('fixtures', () => {
 
   it('seed contains the phase 2 catalogs and a six-week entry slice', () => {
     expect(seed.activities.length).toBeGreaterThanOrEqual(2)
-    expect(seed.foods.length).toBeGreaterThanOrEqual(2)
+    expect(seed.consumables.length).toBeGreaterThanOrEqual(2)
     expect(seed.accounts).toHaveLength(1)
     expect(seed.entries).toHaveLength(263) // deterministic: 42 days × pattern + showcase
   })
@@ -128,7 +128,7 @@ describe('fixtures', () => {
     const entries = seed.entries.map((shape) => reviveEntry(shape))
     const refund = entries.find((e) => e instanceof Transaction && e.amount.minor < 0)
     expect(refund).toBeDefined()
-    const adHoc = entries.find((e) => e instanceof Consumption && e.foodId === undefined)
+    const adHoc = entries.find((e) => e instanceof Consumption && e.consumableId === undefined)
     expect(adHoc).toBeDefined()
   })
 

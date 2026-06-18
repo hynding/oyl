@@ -14,7 +14,7 @@ import { DomainError } from '../core/domain-error.js'
 const day = (s: string) => DayKey.of(s)
 const range = (a: string, b: string) => DayRange.of(day(a), day(b))
 const NY = 'America/New_York'
-const foodId = Id.of('00000000-0000-4000-8000-000000000031')
+const consumableId = Id.of('00000000-0000-4000-8000-000000000031')
 
 describe('Planner', () => {
   it('strict adds, idempotent removes, lookup', () => {
@@ -109,7 +109,7 @@ describe('Planner', () => {
     const lateAppt = new Appointment({ title: 'Dentist', startsAt: new Date('2026-06-05T19:00:00Z'), tz: NY })
     const earlyAppt = new Appointment({ title: 'Standup', startsAt: new Date('2026-06-05T13:00:00Z'), tz: NY })
     const task = new Task({ title: 'File taxes', due: day('2026-06-05') })
-    const meal = new PlannedMeal({ title: 'Oatmeal', day: day('2026-06-05'), food: { id: foodId } })
+    const meal = new PlannedMeal({ title: 'Oatmeal', day: day('2026-06-05'), consumable: { id: consumableId } })
     const canceled = new Task({ title: 'Nope', due: day('2026-06-05') })
     canceled.cancel()
     for (const p of [lateAppt, task, meal, earlyAppt, canceled]) planner.add(p)
@@ -151,20 +151,20 @@ describe('Planner', () => {
     expect(planner.dayPlanFor(day('2026-06-05')).slots).toHaveLength(2) // storage untouched
   })
 
-  it('groceryList aggregates servings per food across open planned meals in range', () => {
+  it('groceryList aggregates servings per consumable across open planned meals in range', () => {
     const planner = new Planner()
-    const otherFood = Id.of('00000000-0000-4000-8000-000000000034')
-    planner.add(new PlannedMeal({ title: 'Oatmeal Mon', day: day('2026-06-01'), food: { id: foodId }, servings: 1.5 }))
-    planner.add(new PlannedMeal({ title: 'Oatmeal Tue', day: day('2026-06-02'), food: { id: foodId } }))
-    planner.add(new PlannedMeal({ title: 'Bowl Tue', day: day('2026-06-02'), food: { id: otherFood }, servings: 2 }))
-    planner.add(new PlannedMeal({ title: 'Next week', day: day('2026-06-09'), food: { id: foodId } }))
-    const eaten = new PlannedMeal({ title: 'Eaten', day: day('2026-06-01'), food: { id: foodId } })
+    const otherConsumable = Id.of('00000000-0000-4000-8000-000000000034')
+    planner.add(new PlannedMeal({ title: 'Oatmeal Mon', day: day('2026-06-01'), consumable: { id: consumableId }, servings: 1.5 }))
+    planner.add(new PlannedMeal({ title: 'Oatmeal Tue', day: day('2026-06-02'), consumable: { id: consumableId } }))
+    planner.add(new PlannedMeal({ title: 'Bowl Tue', day: day('2026-06-02'), consumable: { id: otherConsumable }, servings: 2 }))
+    planner.add(new PlannedMeal({ title: 'Next week', day: day('2026-06-09'), consumable: { id: consumableId } }))
+    const eaten = new PlannedMeal({ title: 'Eaten', day: day('2026-06-01'), consumable: { id: consumableId } })
     planner.add(eaten)
     planner.complete(eaten.id, day('2026-06-01'))
 
     const list = planner.groceryList(range('2026-06-01', '2026-06-07'))
-    expect(list.get(foodId)?.amount).toBe(2.5)
-    expect(list.get(foodId)?.unit).toBe('servings')
-    expect(list.get(otherFood)?.amount).toBe(2)
+    expect(list.get(consumableId)?.amount).toBe(2.5)
+    expect(list.get(consumableId)?.unit).toBe('servings')
+    expect(list.get(otherConsumable)?.amount).toBe(2)
   })
 })

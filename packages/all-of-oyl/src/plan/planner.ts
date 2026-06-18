@@ -132,14 +132,14 @@ export class Planner {
     return resolved
   }
 
-  /** Servings per food id across OPEN planned meals due in the range. */
+  /** Servings per consumable id across OPEN planned meals due in the range. */
   groceryList(range: DayRange): ReadonlyMap<Id, Quantity> {
     const list = new Map<Id, Quantity>()
     for (const plan of this.plans) {
       if (!(plan instanceof PlannedMeal) || plan.status !== 'open' || !range.contains(plan.day)) continue
-      const existing = list.get(plan.foodId)
+      const existing = list.get(plan.consumableId)
       const addition = Quantity.of(plan.servings, 'servings')
-      list.set(plan.foodId, existing === undefined ? addition : existing.add(addition))
+      list.set(plan.consumableId, existing === undefined ? addition : existing.add(addition))
     }
     return list
   }

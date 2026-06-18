@@ -12,7 +12,7 @@ import {
   makeConnection,
   makeConsumption,
   makeDayPlan,
-  makeFood,
+  makeConsumable,
   makeGoal,
   makeGrant,
   makeLifeArea,
@@ -49,7 +49,7 @@ export type Seed = {
   users: Record<string, unknown>[]
   lifeAreas: Record<string, unknown>[]
   activities: Record<string, unknown>[]
-  foods: Record<string, unknown>[]
+  consumables: Record<string, unknown>[]
   accounts: Record<string, unknown>[]
   entries: Record<string, unknown>[]
   goals: Record<string, unknown>[]
@@ -85,8 +85,8 @@ export function makeSeed(): Seed {
   // ── Catalogs (id block 30-99) ───────────────────────────────────────────────
   const run = makeActivity({ id: fixtureId(30), name: 'Run', slug: 'run', areaId: fixtureId(10) })
   const meditate = makeActivity({ id: fixtureId(33), name: 'Meditate', slug: 'meditate', defaultUnit: 'minutes', areaId: fixtureId(10) })
-  const oatmeal = makeFood({ id: fixtureId(31), name: 'Oatmeal', nutrients: { calories: 150, protein: 5, carbs: 27, fat: 3 } })
-  const chickenBowl = makeFood({ id: fixtureId(34), name: 'Chicken Bowl', nutrients: { calories: 550, protein: 42, carbs: 45, fat: 18 } })
+  const oatmeal = makeConsumable({ id: fixtureId(31), name: 'Oatmeal', nutrients: { calories: 150, protein: 5, carbs: 27, fat: 3 } })
+  const chickenBowl = makeConsumable({ id: fixtureId(34), name: 'Chicken Bowl', nutrients: { calories: 550, protein: 42, carbs: 45, fat: 18 } })
   const checking = makeAccount({ id: fixtureId(32), name: 'Checking', currency: 'USD' })
 
   // ── Entries (id block 100+); all instants are UTC, FIXTURE_TZ is UTC-4 in June ──
@@ -99,9 +99,9 @@ export function makeSeed(): Seed {
   let dayIndex = 0
   for (const day of DayRange.of(start, FIXTURE_TODAY)) {
     // breakfast every day; dinner most days
-    entries.push(makeConsumption({ id: eid(), occurredAt: at(day, 12), food: oatmeal }))
+    entries.push(makeConsumption({ id: eid(), occurredAt: at(day, 12), consumable: oatmeal }))
     if (dayIndex % 3 !== 2) {
-      entries.push(makeConsumption({ id: eid(), occurredAt: at(day, 23), food: chickenBowl }))
+      entries.push(makeConsumption({ id: eid(), occurredAt: at(day, 23), consumable: chickenBowl }))
     }
     // run every other day, meditate on the off days
     if (dayIndex % 2 === 0) {
@@ -226,7 +226,7 @@ export function makeSeed(): Seed {
     users: [avery.toJSON(), blake.toJSON()],
     lifeAreas: areas.map((a) => a.toJSON()),
     activities: [run.toJSON(), meditate.toJSON()],
-    foods: [oatmeal.toJSON(), chickenBowl.toJSON()],
+    consumables: [oatmeal.toJSON(), chickenBowl.toJSON()],
     accounts: [checking.toJSON()],
     entries: entries.map((e) => e.toJSON()),
     goals: [calorieGoal.toJSON(), runGoal.toJSON(), sleepGoal.toJSON(), weightGoal.toJSON()],

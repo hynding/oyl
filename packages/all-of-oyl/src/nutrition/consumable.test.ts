@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { Food } from './food.js'
+import { Consumable } from './consumable.js'
 import { Id } from '../core/id.js'
 import { DomainError } from '../core/domain-error.js'
 
-describe('Food', () => {
+describe('Consumable', () => {
   it('constructs with per-serving nutrients', () => {
-    const oatmeal = new Food({ name: 'Oatmeal', nutrients: { calories: 150, protein: 5, carbs: 27, fat: 3 } })
+    const oatmeal = new Consumable({ name: 'Oatmeal', nutrients: { calories: 150, protein: 5, carbs: 27, fat: 3 } })
     expect(oatmeal.name).toBe('Oatmeal')
     expect(oatmeal.nutrients.calories).toBe(150)
     expect(Id.of(oatmeal.id)).toBe(oatmeal.id)
@@ -15,7 +15,7 @@ describe('Food', () => {
     for (const nutrients of [{ calories: -1 }, { protein: NaN }, { waterMl: Infinity }]) {
       let caught: unknown
       try {
-        new Food({ name: 'Bad', nutrients })
+        new Consumable({ name: 'Bad', nutrients })
       } catch (e) {
         caught = e
       }
@@ -30,14 +30,14 @@ describe('Food', () => {
       nutrients: { calories: 150, protein: 5 },
       futureField: 'x',
     }
-    expect(Food.fromJSON(shape).toJSON()).toEqual(shape)
+    expect(Consumable.fromJSON(shape).toJSON()).toEqual(shape)
   })
 
   it('throws MALFORMED_JSON on bad shapes', () => {
     for (const shape of [null, { id: '00000000-0000-4000-8000-000000000031', name: 'Oatmeal' }, { id: '00000000-0000-4000-8000-000000000031', name: 'Oatmeal', nutrients: { calories: 'lots' } }]) {
       let caught: unknown
       try {
-        Food.fromJSON(shape)
+        Consumable.fromJSON(shape)
       } catch (e) {
         caught = e
       }

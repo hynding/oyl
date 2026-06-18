@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { Food } from './food.js'
+import { Consumable } from './consumable.js'
 import { Consumption } from './consumption.js'
 import { Id } from '../core/id.js'
 import { MetricKey } from '../core/metric-key.js'
 import { DomainError } from '../core/domain-error.js'
 
-const oatmeal = new Food({
+const oatmeal = new Consumable({
   id: Id.of('00000000-0000-4000-8000-000000000031'),
   name: 'Oatmeal',
   nutrients: { calories: 150, protein: 5, waterMl: 10 },
@@ -14,10 +14,10 @@ const when = new Date('2026-06-01T12:00:00Z')
 const key = (s: string) => MetricKey.of(s)
 
 describe('Consumption', () => {
-  it('snapshots food nutrients and emits × servings', () => {
-    const meal = new Consumption({ occurredAt: when, food: oatmeal, servings: 2 })
+  it('snapshots consumable nutrients and emits × servings', () => {
+    const meal = new Consumption({ occurredAt: when, consumable: oatmeal, servings: 2 })
     expect(meal.kind).toBe('consumption')
-    expect(meal.foodId).toBe(oatmeal.id)
+    expect(meal.consumableId).toBe(oatmeal.id)
     expect(meal.servings).toBe(2)
     expect(meal.metrics().get(key('nutrition.calories'))).toBe(300)
     expect(meal.metrics().get(key('nutrition.protein'))).toBe(10)
@@ -25,17 +25,17 @@ describe('Consumption', () => {
     expect(meal.metrics().has(key('nutrition.carbs'))).toBe(false)
   })
 
-  it('supports ad-hoc logging with no food (foodId is provenance, not a requirement)', () => {
+  it('supports ad-hoc logging with no consumable (consumableId is provenance, not a requirement)', () => {
     const restaurant = new Consumption({ occurredAt: when, nutrients: { calories: 850, fat: 40 } })
-    expect(restaurant.foodId).toBeUndefined()
+    expect(restaurant.consumableId).toBeUndefined()
     expect(restaurant.servings).toBe(1)
     expect(restaurant.metrics().get(key('nutrition.calories'))).toBe(850)
   })
 
-  it('explicit nutrients override the food snapshot', () => {
-    const tweaked = new Consumption({ occurredAt: when, food: oatmeal, nutrients: { calories: 100 } })
+  it('explicit nutrients override the consumable snapshot', () => {
+    const tweaked = new Consumption({ occurredAt: when, consumable: oatmeal, nutrients: { calories: 100 } })
     expect(tweaked.metrics().get(key('nutrition.calories'))).toBe(100)
-    expect(tweaked.foodId).toBe(oatmeal.id)
+    expect(tweaked.consumableId).toBe(oatmeal.id)
   })
 
   it('requires nutrients from somewhere, and a positive serving count', () => {
@@ -50,7 +50,7 @@ describe('Consumption', () => {
     for (const servings of [0, -1, NaN]) {
       let caught: unknown
       try {
-        new Consumption({ occurredAt: when, food: oatmeal, servings })
+        new Consumption({ occurredAt: when, consumable: oatmeal, servings })
       } catch (e) {
         caught = e
       }
@@ -62,25 +62,25 @@ describe('Consumption', () => {
     const meal = new Consumption({
       id: Id.of('00000000-0000-4000-8000-000000000101'),
       occurredAt: when,
-      food: oatmeal,
+      consumable: oatmeal,
       servings: 1.5,
     })
     const revived = Consumption.fromJSON({ ...meal.toJSON(), futureField: 2 })
-    expect(revived.foodId).toBe(oatmeal.id)
+    expect(revived.consumableId).toBe(oatmeal.id)
     expect(revived.servings).toBe(1.5)
     expect(revived.metrics().get(key('nutrition.calories'))).toBe(225)
     expect((revived.toJSON() as Record<string, unknown>)['futureField']).toBe(2)
 
     const adHoc = new Consumption({ occurredAt: when, nutrients: { calories: 850 } })
     const revivedAdHoc = Consumption.fromJSON(adHoc.toJSON())
-    expect(revivedAdHoc.foodId).toBeUndefined()
+    expect(revivedAdHoc.consumableId).toBeUndefined()
     expect(revivedAdHoc.metrics().get(key('nutrition.calories'))).toBe(850)
   })
 
-  it('rejects conflicting food provenance', () => {
+  it('rejects conflicting consumable provenance', () => {
     let caught: unknown
     try {
-      new Consumption({ occurredAt: when, food: oatmeal, foodId: Id.of('00000000-0000-4000-8000-000000000099') })
+      new Consumption({ occurredAt: when, consumable: oatmeal, consumableId: Id.of('00000000-0000-4000-8000-000000000099') })
     } catch (e) {
       caught = e
     }
@@ -91,7 +91,7 @@ describe('Consumption', () => {
     for (const shape of [
       { kind: 'consumption', id: '00000000-0000-4000-8000-000000000101', occurredAt: when.toISOString(), servings: 1 }, // no nutrients
       { kind: 'note', id: '00000000-0000-4000-8000-000000000101', occurredAt: when.toISOString(), servings: 1, nutrients: { calories: 1 } }, // wrong kind
-      { kind: 'consumption', id: '00000000-0000-4000-8000-000000000101', occurredAt: when.toISOString(), servings: 1, nutrients: { calories: 1 }, foodId: 'nope' }, // malformed foodId
+      { kind: 'consumption', id: '00000000-0000-4000-8000-000000000101', occurredAt: when.toISOString(), servings: 1, nutrients: { calories: 1 }, consumableId: 'nope' }, // malformed consumableId
     ]) {
       let caught: unknown
       try {

@@ -2,7 +2,7 @@ import { reviveEntry, revivePlan } from './index.js'
 import { User } from './user/user.js'
 import { LifeArea } from './core/life-area.js'
 import { Activity } from './activity/activity.js'
-import { Food } from './nutrition/food.js'
+import { Consumable } from './nutrition/consumable.js'
 import { Account } from './finance/account.js'
 import { Goal } from './goal/goal.js'
 import { Budget } from './goal/budget.js'
@@ -37,7 +37,7 @@ export const COLLECTIONS = {
   users: classCodec(User.fromJSON),
   lifeAreas: classCodec(LifeArea.fromJSON),
   activities: classCodec(Activity.fromJSON),
-  foods: classCodec(Food.fromJSON),
+  consumables: classCodec(Consumable.fromJSON),
   accounts: classCodec(Account.fromJSON),
   entries: { toJSON: (e: { toJSON(): unknown }) => e.toJSON(), fromJSON: reviveEntry },
   goals: classCodec(Goal.fromJSON),

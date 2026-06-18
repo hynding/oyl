@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { Consumption } from './consumption.js'
 import { sumNutrients } from './totals.js'
 
-const c = (nutrients: import('./food.js').Nutrients, servings = 1) =>
+const c = (nutrients: import('./nutrients.js').Nutrients, servings = 1) =>
   new Consumption({ occurredAt: new Date('2026-06-10T12:00:00Z'), nutrients, servings })
 
 describe('sumNutrients', () => {

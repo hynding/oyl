@@ -61,7 +61,7 @@ describe('revivePlan', () => {
   it('dispatches every plan kind to the right class', () => {
     const task = new Task({ title: 'File taxes' })
     const appt = new Appointment({ title: 'Dentist', startsAt: when, tz: 'America/New_York' })
-    const meal = new PlannedMeal({ title: 'Oatmeal', day: DayKey.of('2026-06-02'), foodId: Id.of('00000000-0000-4000-8000-000000000031') })
+    const meal = new PlannedMeal({ title: 'Oatmeal', day: DayKey.of('2026-06-02'), consumableId: Id.of('00000000-0000-4000-8000-000000000031') })
     expect(revivePlan(task.toJSON())).toBeInstanceOf(Task)
     expect(revivePlan(appt.toJSON())).toBeInstanceOf(Appointment)
     expect(revivePlan(meal.toJSON())).toBeInstanceOf(PlannedMeal)

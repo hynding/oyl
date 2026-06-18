@@ -38,7 +38,7 @@ export {
   makeConsumption,
   makeDayPlan,
   makeDocument,
-  makeFood,
+  makeConsumable,
   makeGoal,
   makeGrant,
   makeContact,
@@ -59,7 +59,7 @@ export { COLLECTIONS, type CollectionName, type Codec } from './collections.js'
 
 export { Activity } from './activity/activity.js'
 export { ActivitySession } from './activity/activity-session.js'
-export { Food } from './nutrition/food.js'
+export { Consumable } from './nutrition/consumable.js'
 export { type Nutrients, NUTRIENT_METRICS, assertNutrients, nutrientsFromJSON, nutrientsToJSON } from './nutrition/nutrients.js'
 export { Consumption } from './nutrition/consumption.js'
 export { sumNutrients } from './nutrition/totals.js'

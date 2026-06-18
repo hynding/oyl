@@ -14,7 +14,7 @@ import { Project } from '../plan/project.js'
 import { DayPlan, type DayPlanSlot } from '../plan/day-plan.js'
 import { Activity } from '../activity/activity.js'
 import { ActivitySession } from '../activity/activity-session.js'
-import { Food } from '../nutrition/food.js'
+import { Consumable } from '../nutrition/consumable.js'
 import type { Nutrients } from '../nutrition/nutrients.js'
 import { Consumption } from '../nutrition/consumption.js'
 import { Account } from '../finance/account.js'
@@ -68,8 +68,8 @@ export function makeActivity(overrides: { id?: Id; name?: string; slug?: string;
   })
 }
 
-export function makeFood(overrides: { id?: Id; name?: string; nutrients?: Nutrients } = {}): Food {
-  return new Food({
+export function makeConsumable(overrides: { id?: Id; name?: string; nutrients?: Nutrients } = {}): Consumable {
+  return new Consumable({
     id: overrides.id ?? fixtureId(31),
     name: overrides.name ?? 'Oatmeal',
     nutrients: overrides.nutrients ?? { calories: 150, protein: 5, carbs: 27, fat: 3 },
@@ -97,15 +97,15 @@ export function makeActivitySession(
 }
 
 export function makeConsumption(
-  overrides: { id?: Id; occurredAt?: Date; note?: string; food?: Food; nutrients?: Nutrients; servings?: number } = {},
+  overrides: { id?: Id; occurredAt?: Date; note?: string; consumable?: Consumable; nutrients?: Nutrients; servings?: number } = {},
 ): Consumption {
-  const food = overrides.food ?? (overrides.nutrients === undefined ? makeFood() : undefined)
+  const consumable = overrides.consumable ?? (overrides.nutrients === undefined ? makeConsumable() : undefined)
   return new Consumption({
     ...(overrides.id !== undefined ? { id: overrides.id } : {}),
     occurredAt: overrides.occurredAt ?? DEFAULT_AT,
     ...(overrides.note !== undefined ? { note: overrides.note } : {}),
     ...(overrides.nutrients !== undefined ? { nutrients: overrides.nutrients } : {}),
-    ...(food !== undefined ? { food } : {}),
+    ...(consumable !== undefined ? { consumable } : {}),
     ...(overrides.servings !== undefined ? { servings: overrides.servings } : {}),
   })
 }
@@ -217,13 +217,13 @@ export function makeAppointment(
 }
 
 export function makePlannedMeal(
-  overrides: { id?: Id; title?: string; day?: DayKey; foodId?: Id; servings?: number } = {},
+  overrides: { id?: Id; title?: string; day?: DayKey; consumableId?: Id; servings?: number } = {},
 ): PlannedMeal {
   return new PlannedMeal({
     id: overrides.id ?? fixtureId(1007),
     title: overrides.title ?? 'Oatmeal breakfast',
     day: overrides.day ?? FIXTURE_TODAY.addDays(1),
-    foodId: overrides.foodId ?? fixtureId(31),
+    consumableId: overrides.consumableId ?? fixtureId(31),
     ...(overrides.servings !== undefined ? { servings: overrides.servings } : {}),
   })
 }

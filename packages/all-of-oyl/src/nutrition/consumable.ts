@@ -3,8 +3,8 @@ import { Id } from '../core/id.js'
 import { type PersistedMeta, metaFromJSON, metaToJSON } from '../core/persisted-meta.js'
 import { type Nutrients, assertNutrients, nutrientsFromJSON, nutrientsToJSON } from './nutrients.js'
 
-/** A reusable food definition; nutrients are per serving. */
-export class Food {
+/** A reusable consumable definition; nutrients are per serving. */
+export class Consumable {
   readonly id: Id
   readonly name: string
   readonly nutrients: Nutrients
@@ -31,22 +31,22 @@ export class Food {
     }
   }
 
-  static fromJSON(shape: unknown): Food {
+  static fromJSON(shape: unknown): Consumable {
     if (typeof shape !== 'object' || shape === null) {
-      throw new DomainError('MALFORMED_JSON', 'not a Food shape')
+      throw new DomainError('MALFORMED_JSON', 'not a Consumable shape')
     }
     const { id, name, nutrients, meta, ...extra } = shape as Record<string, unknown>
     if (typeof id !== 'string' || typeof name !== 'string' || nutrients === undefined) {
-      throw new DomainError('MALFORMED_JSON', 'not a Food shape')
+      throw new DomainError('MALFORMED_JSON', 'not a Consumable shape')
     }
     let parsedId: Id
     try {
       parsedId = Id.of(id)
     } catch {
-      throw new DomainError('MALFORMED_JSON', `Food has a malformed id: "${id}"`)
+      throw new DomainError('MALFORMED_JSON', `Consumable has a malformed id: "${id}"`)
     }
-    const food = new Food({ id: parsedId, name, nutrients: nutrientsFromJSON(nutrients) }, extra)
-    if (meta !== undefined) food.meta = metaFromJSON(meta)
-    return food
+    const consumable = new Consumable({ id: parsedId, name, nutrients: nutrientsFromJSON(nutrients) }, extra)
+    if (meta !== undefined) consumable.meta = metaFromJSON(meta)
+    return consumable
   }
 }

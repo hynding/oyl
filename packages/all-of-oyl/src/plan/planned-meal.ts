@@ -5,13 +5,13 @@ import { Plan, parsePlanBase, planBaseJSON } from '../core/plan.js'
 
 /**
  * What you intend to eat on a day; fulfilled by a Consumption. References a
- * Food by id (a full Food works — structural). The grocery list aggregates
- * servings per food id across a range's planned meals.
+ * Consumable by id (a full Consumable works — structural). The grocery list aggregates
+ * servings per consumable id across a range's planned meals.
  */
 export class PlannedMeal extends Plan {
   /** Always equals `due` — a domain-named alias wired from one constructor source. */
   readonly day: DayKey
-  readonly foodId: Id
+  readonly consumableId: Id
   readonly servings: number
   /** Tolerant reader: unknown JSON fields preserved through round-trips. Only ever spread into fresh object literals — never Object.assign or bracket-assign onto an existing object (prototype-pollution guard). */
   private readonly extra: Record<string, unknown>
@@ -21,27 +21,27 @@ export class PlannedMeal extends Plan {
       id?: Id
       title: string
       day: DayKey
-      /** A full Food works; reviving passes the stored snapshot id. */
-      food?: { id: Id }
-      foodId?: Id
+      /** A full Consumable works; reviving passes the stored snapshot id. */
+      consumable?: { id: Id }
+      consumableId?: Id
       servings?: number
     },
     extra: Record<string, unknown> = {},
   ) {
-    const { day, food, foodId, servings = 1, ...base } = props
+    const { day, consumable, consumableId, servings = 1, ...base } = props
     super('planned-meal', { ...base, due: day })
-    if (food !== undefined && foodId !== undefined && food.id !== foodId) {
-      throw new DomainError('INVALID_ID', `conflicting food provenance: ${food.id} vs ${foodId}`)
+    if (consumable !== undefined && consumableId !== undefined && consumable.id !== consumableId) {
+      throw new DomainError('INVALID_ID', `conflicting consumable provenance: ${consumable.id} vs ${consumableId}`)
     }
-    const resolved = food?.id ?? foodId
+    const resolved = consumable?.id ?? consumableId
     if (resolved === undefined) {
-      throw new DomainError('INVALID_ID', 'a planned meal references a food')
+      throw new DomainError('INVALID_ID', 'a planned meal references a consumable')
     }
     if (!Number.isFinite(servings) || servings <= 0) {
       throw new DomainError('INVALID_QUANTITY', `servings must be a positive finite number, got ${servings}`)
     }
     this.day = day
-    this.foodId = resolved
+    this.consumableId = resolved
     this.servings = servings
     this.extra = extra
   }
@@ -50,25 +50,25 @@ export class PlannedMeal extends Plan {
     return {
       ...this.extra,
       ...planBaseJSON(this),
-      foodId: this.foodId,
+      consumableId: this.consumableId,
       servings: this.servings,
     }
   }
 
   static fromJSON(shape: unknown): PlannedMeal {
     const base = parsePlanBase(shape, 'planned-meal')
-    const { foodId, servings, ...extra } = base.rest
-    if (typeof foodId !== 'string' || typeof servings !== 'number' || base.due === undefined) {
+    const { consumableId, servings, ...extra } = base.rest
+    if (typeof consumableId !== 'string' || typeof servings !== 'number' || base.due === undefined) {
       throw new DomainError('MALFORMED_JSON', 'not a planned-meal shape')
     }
-    let parsedFoodId: Id
+    let parsedConsumableId: Id
     try {
-      parsedFoodId = Id.of(foodId)
+      parsedConsumableId = Id.of(consumableId)
     } catch {
-      throw new DomainError('MALFORMED_JSON', `planned-meal has a malformed foodId: "${foodId}"`)
+      throw new DomainError('MALFORMED_JSON', `planned-meal has a malformed consumableId: "${consumableId}"`)
     }
     const meal = new PlannedMeal(
-      { id: base.id, title: base.title, day: base.due, foodId: parsedFoodId, servings },
+      { id: base.id, title: base.title, day: base.due, consumableId: parsedConsumableId, servings },
       extra,
     )
     meal.adoptBase(base)
