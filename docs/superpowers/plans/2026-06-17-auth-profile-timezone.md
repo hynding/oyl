@@ -868,6 +868,27 @@ describe('<oyl-profile-fields>', () => {
     el.remove()
   })
 
+  it('captures a self-described gender via the Other free-text input', () => {
+    const el = mount({})
+    const root = el.shadowRoot
+    const select = root.querySelector('[name="gender"]')
+    select.value = '__other__'
+    select.dispatchEvent(new Event('change'))
+    const other = root.querySelector('[name="gender-other"]')
+    expect(other.hidden).toBe(false)
+    other.value = 'agender'
+    expect(el.getValues().gender).toBe('agender')
+    el.remove()
+  })
+
+  it('hydrates an unknown stored gender into the Other input', () => {
+    const el = mount({ gender: 'genderfluid' })
+    const root = el.shadowRoot
+    expect(root.querySelector('[name="gender"]').value).toBe('__other__')
+    expect(root.querySelector('[name="gender-other"]').value).toBe('genderfluid')
+    el.remove()
+  })
+
   it('renders a Save button that emits the patch when showSave', () => {
     const onSave = vi.fn()
     const el = mount({}, true, onSave)
@@ -963,7 +984,11 @@ export class OylProfileFields extends OylElement {
     const birthday = get('birthday'); if (birthday) patch.birthday = birthday
     const w = Number(get('weight')); if (get('weight') && Number.isFinite(w) && w > 0) patch.weightKg = units === 'imperial' ? round1(w * KG_PER_LB) : w
     const h = Number(get('height')); if (get('height') && Number.isFinite(h) && h > 0) patch.heightCm = units === 'imperial' ? round1(h * CM_PER_IN) : h
-    const gender = get('gender'); if (gender) patch.gender = gender
+    const genderSel = /** @type {HTMLSelectElement} */ (root.querySelector('[name="gender"]')).value
+    if (genderSel === '__other__') {
+      const t = /** @type {HTMLInputElement} */ (root.querySelector('[name="gender-other"]')).value.trim()
+      if (t) patch.gender = t
+    } else if (genderSel) { patch.gender = genderSel }
     const location = get('location'); if (location) patch.location = location
     return patch
   }
@@ -990,11 +1015,18 @@ export class OylProfileFields extends OylElement {
     const s = this._select('timezone', 'Timezone', zones.map((z) => [z, z]), zones.includes(val) ? val : zones[0])
     return s
   }
-  /** @param {string} val @returns {HTMLSelectElement} */
+  /** Gender = a select plus an "Other" self-describe text input revealed when "Other" is chosen. @param {string} val @returns {HTMLElement} */
   _genderControl(val) {
-    const opts = /** @type {Array<[string,string]>} */ ([['', '—'], ...GENDERS.map((g) => [g, g])])
-    const known = val === '' || GENDERS.includes(val)
-    return this._select('gender', 'Gender', known ? opts : [...opts, [val, val]], val)
+    const wrap = document.createElement('div')
+    wrap.style.display = 'grid'; wrap.style.gap = '.35rem'
+    const isOther = val !== '' && !GENDERS.includes(val)
+    const opts = /** @type {Array<[string,string]>} */ ([['', '—'], ...GENDERS.map((g) => [g, g]), ['__other__', 'Other']])
+    const select = this._select('gender', 'Gender', opts, isOther ? '__other__' : val)
+    const other = this._input('gender-other', 'text', 'Self-describe', isOther ? val : '')
+    other.hidden = !isOther
+    select.addEventListener('change', () => { other.hidden = select.value !== '__other__' }, { signal: this.lifecycle })
+    wrap.append(select, other)
+    return wrap
   }
 }
 
@@ -1006,8 +1038,6 @@ export function defineProfileFields() {
   if (!customElements.get('oyl-profile-fields')) customElements.define('oyl-profile-fields', OylProfileFields)
 }
 ```
-
-> The gender control here is a select; the spec's "Other free-text" affordance is satisfied minimally by preserving an unknown stored value as an extra option. If a free-text "Other" input is desired interactively, that is a follow-up — keep this task's scope to the tested behaviour.
 
 - [ ] **Step 4: Run the test, verify it passes**
 
@@ -1363,7 +1393,13 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 - Create: `apps/vanilla-oyl/src/components/oyl-profile.test.js`
 
 **Interfaces:**
-- Produces: `class OylProfile extends OylElement` + `defineProfile()`. Props: `session` (`Signal<AuthSession>`), `profile` (`Signal<User|null>`), `onSaveProfile: (patch) => void`, `onLogout: () => void`. Renders `<h2>Profile`; when signed in an identity block (`[data-role="identity"]` with username/email); when signed out a "Sign in to sync" CTA (`a[href="/login"]`) and no logout button. Always renders an `oyl-profile-fields` (`showSave=true`, hydrated from `profile.get()`, `onSave = onSaveProfile`). When signed in, a **Log out** button (`data-act="logout"`). Body summary (`formatWeight`/`formatHeight`/`age`) shown when the profile has those values.
+- Produces: `class OylProfile extends OylElement` + `defineProfile()`. Props:
+  - `session` (`Signal<AuthSession>`), `profile` (`Signal<User|null>`), `onSaveProfile: (patch) => void`, `onLogout: () => void`.
+  - `connection` (`ConnectionConfig | null` — passed straight to a reused `oyl-connection`).
+  - `sync` (`{ state: Signal<SyncState|null>, onResync: () => void } | null` — a reused `oyl-sync-status` chip + a `data-act="resync"` button; rendered only when non-null, i.e. Remote mode).
+  - `dataActions` (`{ mode: 'local'|'remote', canUploadLocal: boolean, onExport: () => void, onImport: () => void, onUploadLocal: () => void } | null`).
+- Renders `<h2>Profile`; when signed in an identity block (`[data-role="identity"]` with username/email); when signed out a "Sign in to sync" CTA (`a[href="/login"]`) and no logout button. Always renders an `oyl-profile-fields` (`showSave=true`, hydrated from `profile.get()`, `onSave = onSaveProfile`). When signed in, a **Log out** button (`data-act="logout"`).
+- Data-action rules (mirror Status): **Export** (`data-act="export"`) always; **Import** (`data-act="import"`) only when `mode === 'local'`; **Upload local data** (`data-act="upload-local"`) only when `canUploadLocal` (Remote + unmigrated local).
 
 - [ ] **Step 1: Write the failing test** — `oyl-profile.test.js`:
 
@@ -1412,6 +1448,37 @@ describe('<oyl-profile>', () => {
     expect(onSaveProfile).toHaveBeenCalledTimes(1)
     el.remove()
   })
+
+  it('renders connection + sync + remote data actions, wiring resync/export/upload', () => {
+    const onResync = vi.fn(); const onExport = vi.fn(); const onUploadLocal = vi.fn()
+    const profile = signal(new User({ displayName: 'A', timezone: 'UTC', defaultCurrency: 'USD' }))
+    const el = /** @type {any} */ (document.createElement('oyl-profile'))
+    el.session = signal({ token: 't', user: { id: 1, username: 'a', email: 'a@b.c' } })
+    el.profile = profile; el.onSaveProfile = () => {}; el.onLogout = () => {}
+    el.connection = { mode: 'remote', apiBaseUrl: 'http://x/api', defaultApiBaseUrl: 'http://x/api', onApply: () => {} }
+    el.sync = { state: signal(null), onResync }
+    el.dataActions = { mode: 'remote', canUploadLocal: true, onExport, onImport: () => {}, onUploadLocal }
+    document.body.append(el)
+    const root = el.shadowRoot
+    expect(root.querySelector('oyl-connection')).toBeTruthy()
+    expect(root.querySelector('oyl-sync-status')).toBeTruthy()
+    root.querySelector('[data-act="resync"]').click(); expect(onResync).toHaveBeenCalled()
+    root.querySelector('[data-act="export"]').click(); expect(onExport).toHaveBeenCalled()
+    root.querySelector('[data-act="upload-local"]').click(); expect(onUploadLocal).toHaveBeenCalled()
+    expect(root.querySelector('[data-act="import"]')).toBeFalsy() // import is local-only
+    el.remove()
+  })
+
+  it('shows Import (not Upload) in local mode', () => {
+    const el = /** @type {any} */ (document.createElement('oyl-profile'))
+    el.session = signal(null); el.profile = signal(null); el.onSaveProfile = () => {}; el.onLogout = () => {}
+    el.dataActions = { mode: 'local', canUploadLocal: false, onExport: () => {}, onImport: () => {}, onUploadLocal: () => {} }
+    document.body.append(el)
+    const root = el.shadowRoot
+    expect(root.querySelector('[data-act="import"]')).toBeTruthy()
+    expect(root.querySelector('[data-act="upload-local"]')).toBeFalsy()
+    el.remove()
+  })
 })
 ```
 
@@ -1426,13 +1493,18 @@ Expected: FAIL — module not found.
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 import { defineProfileFields } from './oyl-profile-fields.js'
+import { defineConnection } from './oyl-connection.js'
+import { defineSyncStatus } from './oyl-sync-status.js'
 
 const styles = sheet(`
-  h2 { font-size: var(--step-2); margin-block-end: var(--space-4); }
+  h2 { font-size: var(--step-2); margin-block: var(--space-6) var(--space-3); }
+  h2:first-of-type { margin-block-start: 0; }
   .card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-2); padding: var(--space-4); margin-block-end: var(--space-4); }
   .muted { color: var(--color-muted); }
   a { color: var(--color-accent); }
-  button.danger { margin-block-start: var(--space-4); font: inherit; background: transparent; color: var(--color-danger); border: 1px solid color-mix(in oklch, var(--color-danger) 40%, var(--color-border)); border-radius: var(--radius-1); padding: .4rem .8rem; cursor: pointer; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-block-end: var(--space-3); }
+  button { font: inherit; background: var(--color-surface-2); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: .4rem .8rem; cursor: pointer; }
+  button.danger { background: transparent; color: var(--color-danger); border-color: color-mix(in oklch, var(--color-danger) 40%, var(--color-border)); margin-block-start: var(--space-4); }
 `)
 
 export class OylProfile extends OylElement {
@@ -1443,6 +1515,9 @@ export class OylProfile extends OylElement {
     /** @type {import('../lib/reactive/signal.js').Signal<any>} */ this.profile = /** @type {any} */ (undefined)
     /** @type {(patch: Record<string, any>) => void} */ this.onSaveProfile = () => {}
     /** @type {() => void} */ this.onLogout = () => {}
+    /** @type {import('./oyl-connection.js').ConnectionConfig | null} */ this.connection = null
+    /** @type {{ state: import('../lib/reactive/signal.js').Signal<any>, onResync: () => void } | null} */ this.sync = null
+    /** @type {{ mode: 'local'|'remote', canUploadLocal: boolean, onExport: () => void, onImport: () => void, onUploadLocal: () => void } | null} */ this.dataActions = null
   }
   render() {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
@@ -1469,11 +1544,48 @@ export class OylProfile extends OylElement {
     fields.onSave = (/** @type {any} */ patch) => this.onSaveProfile(patch)
 
     root.append(h2, identity, fields)
+
+    if (this.connection) {
+      defineConnection()
+      const label = document.createElement('h2'); label.textContent = 'Connection'
+      const conn = /** @type {any} */ (document.createElement('oyl-connection'))
+      conn.connection = this.connection
+      root.append(label, conn)
+    }
+
+    if (this.sync) {
+      defineSyncStatus()
+      const label = document.createElement('h2'); label.textContent = 'Sync'
+      const rowEl = document.createElement('div'); rowEl.className = 'row'
+      const chip = /** @type {any} */ (document.createElement('oyl-sync-status'))
+      chip.syncState = this.sync.state
+      const resync = this._btn('Resync now', 'resync', () => this.sync?.onResync())
+      rowEl.append(chip, resync)
+      root.append(label, rowEl)
+    }
+
+    if (this.dataActions) {
+      const da = this.dataActions
+      const label = document.createElement('h2'); label.textContent = 'Data'
+      const rowEl = document.createElement('div'); rowEl.className = 'row'
+      rowEl.append(this._btn('Download backup', 'export', () => da.onExport()))
+      if (da.mode === 'local') rowEl.append(this._btn('Import backup', 'import', () => da.onImport()))
+      if (da.canUploadLocal) rowEl.append(this._btn('Upload local data', 'upload-local', () => da.onUploadLocal()))
+      root.append(label, rowEl)
+    }
+
     if (sess) {
       const logout = document.createElement('button'); logout.className = 'danger'; logout.dataset.act = 'logout'; logout.textContent = 'Log out'
       logout.addEventListener('click', () => this.onLogout(), { signal: this.lifecycle })
       root.append(logout)
     }
+  }
+
+  /** @param {string} text @param {string} act @param {() => void} onClick @returns {HTMLButtonElement} */
+  _btn(text, act, onClick) {
+    const b = document.createElement('button'); b.textContent = text; b.dataset.act = act
+    b.addEventListener('click', onClick, { signal: this.lifecycle })
+    return b
   }
 }
 
@@ -1493,7 +1605,7 @@ export function defineProfile() {
 }
 ```
 
-> Sync/connection summary and data-action buttons on `/profile` are deferred to the wiring task (14), where the same `dataState`/connection callbacks Status uses are in scope. This task delivers identity + fields + logout, which are independently testable.
+> Reuses `oyl-connection` and `oyl-sync-status` (existing components) rather than re-implementing them. The data-action callbacks are injected by `main.js` (Task 14), reusing the same `dataState`/download/import helpers Status uses — no business logic is duplicated here.
 
 - [ ] **Step 4: Run the test, verify it passes**
 
@@ -1712,6 +1824,20 @@ Delete the now-unused `maybeOfferMigration` function and its `MIGRATE_DECLINED_K
           else noticeState.show('Profile saved.')
         })
       }
+      page.connection = {
+        mode,
+        apiBaseUrl: getApiBaseUrl(storage),
+        defaultApiBaseUrl: DEFAULT_API_BASE_URL,
+        onApply: (m, url) => { setStorageMode(storage, m); setApiBaseUrl(storage, url); location.reload() },
+      }
+      page.sync = mode === 'remote' ? { state: dataState.syncState, onResync: dataState.resync } : null
+      page.dataActions = {
+        mode,
+        canUploadLocal: mode === 'remote' && hasUnmigratedLocal(storage),
+        onExport: () => download(exportData(storage)),
+        onImport: () => pickAndImport(storage, dataState),
+        onUploadLocal: () => void dataState.migrateLocal(),
+      }
       return page
     },
 ```
@@ -1766,4 +1892,4 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 ## Self-review notes (coverage map)
 
 - Spec B1 (User fields) → Task 1. B2 (formatters) → Task 2. B3 (tz seam: profile-store, resolveTimezone, DI, feed views, first-pull reload) → Tasks 3, 4, 14. B4 (auth flows) → Tasks 7, 9, 10, 14. B5 (guard) → Tasks 5, 14. B6/B6a (components + contracts) → Tasks 7–12. B7 (Status cleanup) → Task 13. B8 (immediate migration) → Task 14. B9 (backend public auth) → Task 6. Edge cases (no-session profile, mode-aware menu, skip, logout) → Tasks 11, 12, 14.
-- Deferred per spec: `/profile` sync-summary + data-action buttons are stubbed into Task 14's wiring scope (identity/fields/logout are tested in Task 12); a fully interactive gender "Other" text input is noted as follow-up.
+- Full spec coverage (no deferrals): `/profile` sync-summary + connection + mode-aware data actions are built and tested in Task 12 and wired in Task 14; the interactive gender "Other" free-text input is built and tested in Task 8.
