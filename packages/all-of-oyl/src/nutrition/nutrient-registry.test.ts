@@ -30,6 +30,13 @@ describe('nutrient registry', () => {
       expect(m).toContain(s)
   })
 
+  it('returns the mandatory set in FDA label-panel order (not alphabetical)', () => {
+    const m = mandatoryNutrients().map((n) => n.slug)
+    expect(m[0]).toBe('calories')
+    expect(m[1]).toBe('total-fat')
+    expect(m[m.length - 1]).toBe('potassium')
+  })
+
   it('looks up by slug and carries daily values for %DV nutrients', () => {
     expect(nutrientDef('zzz-unknown')).toBeUndefined()
     expect(nutrientDef('sodium')?.dailyValue).toBe(2300) // mg

@@ -37,6 +37,7 @@ export function nutrientDef(slug: string): NutrientDef | undefined {
   return NUTRIENTS.find((n) => n.slug === slug)
 }
 
+/** The FDA mandatory nutrients in label-panel declaration order (NOT alphabetical). */
 export function mandatoryNutrients(): readonly NutrientDef[] {
-  return NUTRIENTS.filter((n) => n.mandatory).sort((a, b) => a.label.localeCompare(b.label))
+  return NUTRIENTS.filter((n) => n.mandatory)
 }
