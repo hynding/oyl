@@ -19,11 +19,11 @@ export function createServerPersonalRepository<T extends { id: Id; meta?: Persis
   api: ApiClient
   outbox: WriteOutbox
   cache: ReadCache
-  now: () => Date
 }): Repository<T> {
   const { path, codec, api, outbox, cache } = deps
   const LIST_KEY = `${path}::list`
 
+  // Phase 1: list opts (includeDeleted/since) are not yet forwarded to the API — delta-pull comes later.
   async function list(_opts?: { includeDeleted?: boolean; since?: string }): Promise<T[]> {
     const { data } = await api.find(path)
     const decoded = data.map((row) => codec.fromJSON(row))
@@ -54,6 +54,7 @@ export function createServerPersonalRepository<T extends { id: Id; meta?: Persis
     outbox.enqueue({ entity: path, op: 'delete', payload: { id }, baseUpdatedAt: null })
   }
 
+  // Phase 1: purge enqueues a delete op; soft vs hard delete is not yet distinguished at the outbox/protocol level.
   async function purge(id: Id): Promise<void> {
     outbox.enqueue({ entity: path, op: 'delete', payload: { id }, baseUpdatedAt: null })
   }

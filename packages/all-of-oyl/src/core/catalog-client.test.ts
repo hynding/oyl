@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import { createCatalogClient } from './catalog-client.js'
 import type { ApiClient } from './api-client.js'
 import type { WriteOutbox, Mutation } from './write-outbox.js'
-import type { ReadCache } from './read-cache.js'
 import type { Codec } from '../collections.js'
 import type { Id } from './id.js'
 
@@ -65,16 +64,6 @@ function makeOutbox(): WriteOutbox & { mutations: Mutation[] } {
   }
 }
 
-// ── In-memory ReadCache ──────────────────────────────────────────────────────
-
-function makeCache(): ReadCache {
-  const store = new Map<string, unknown>()
-  return {
-    get: (key) => store.get(key),
-    set: (key, value) => { store.set(key, value) },
-  }
-}
-
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('createCatalogClient', () => {
@@ -87,7 +76,7 @@ describe('createCatalogClient', () => {
         { id: 'id-2', name: 'Run tracker' },
       ]
       const api = makeApi(rows)
-      const client = createCatalogClient({ path, codec: foodCodec, api, outbox: makeOutbox(), cache: makeCache() })
+      const client = createCatalogClient({ path, codec: foodCodec, api, outbox: makeOutbox() })
       const result = await client.search('run')
       expect(api.findCaptures[0]).toEqual({
         path,
@@ -103,7 +92,6 @@ describe('createCatalogClient', () => {
         codec: foodCodec,
         api: makeApi([]),
         outbox: makeOutbox(),
-        cache: makeCache(),
       })
       const result = await client.search('zzz')
       expect(result).toEqual([])
@@ -118,7 +106,6 @@ describe('createCatalogClient', () => {
         codec: foodCodec,
         api: makeApi(rows),
         outbox: makeOutbox(),
-        cache: makeCache(),
       })
       const result = await client.list()
       expect(result).toHaveLength(2)
@@ -134,7 +121,6 @@ describe('createCatalogClient', () => {
         codec: foodCodec,
         api: makeApi([], raw),
         outbox: makeOutbox(),
-        cache: makeCache(),
       })
       const result = await client.get('id-1' as Id)
       expect(result).toEqual({ id: 'id-1', name: 'Apple' })
@@ -146,7 +132,6 @@ describe('createCatalogClient', () => {
         codec: foodCodec,
         api: makeApi([], undefined),
         outbox: makeOutbox(),
-        cache: makeCache(),
       })
       const result = await client.get('missing' as Id)
       expect(result).toBeUndefined()
@@ -162,7 +147,6 @@ describe('createCatalogClient', () => {
         codec: foodCodec,
         api: makeApi(),
         outbox,
-        cache: makeCache(),
       })
       client.create(item)
       expect(outbox.mutations).toHaveLength(1)
@@ -188,7 +172,6 @@ describe('createCatalogClient', () => {
         codec: foodCodec,
         api,
         outbox: makeOutbox(),
-        cache: makeCache(),
       })
       client.create({ id: 'id-1' as Id, name: 'Apple' })
       expect(apiWritten).toBe(false)

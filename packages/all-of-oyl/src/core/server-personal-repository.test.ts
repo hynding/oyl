@@ -75,7 +75,6 @@ function makeCache(): ReadCache & { store: Map<string, unknown> } {
 
 describe('createServerPersonalRepository', () => {
   const path = 'widgets'
-  const now = () => new Date('2026-06-18T00:00:00Z')
 
   describe('list()', () => {
     it('returns codec-decoded rows from api.find', async () => {
@@ -89,7 +88,6 @@ describe('createServerPersonalRepository', () => {
         api: makeApi(rows),
         outbox: makeOutbox(),
         cache: makeCache(),
-        now,
       })
       const result = await repo.list()
       expect(result).toHaveLength(2)
@@ -106,7 +104,6 @@ describe('createServerPersonalRepository', () => {
         api: makeApi(rows),
         outbox: makeOutbox(),
         cache,
-        now,
       })
       await repo.list()
       expect(cache.store.size).toBeGreaterThan(0)
@@ -119,7 +116,6 @@ describe('createServerPersonalRepository', () => {
         api: makeApi([]),
         outbox: makeOutbox(),
         cache: makeCache(),
-        now,
       })
       const result = await repo.list()
       expect(result).toEqual([])
@@ -135,7 +131,6 @@ describe('createServerPersonalRepository', () => {
         api: makeApi([], raw),
         outbox: makeOutbox(),
         cache: makeCache(),
-        now,
       })
       const result = await repo.get('id-1' as Id)
       expect(result).toEqual({ id: 'id-1', name: 'Alpha' })
@@ -148,7 +143,6 @@ describe('createServerPersonalRepository', () => {
         api: makeApi([], undefined),
         outbox: makeOutbox(),
         cache: makeCache(),
-        now,
       })
       const result = await repo.get('missing' as Id)
       expect(result).toBeUndefined()
@@ -165,7 +159,6 @@ describe('createServerPersonalRepository', () => {
         api: makeApi(),
         outbox,
         cache: makeCache(),
-        now,
       })
       const returned = await repo.save(item)
       expect(returned).toBe(item)
@@ -194,7 +187,6 @@ describe('createServerPersonalRepository', () => {
         api,
         outbox,
         cache: makeCache(),
-        now,
       })
       await repo.save(item)
       expect(apiCalled).toBe(false)
@@ -218,7 +210,6 @@ describe('createServerPersonalRepository', () => {
         api: makeApi(),
         outbox,
         cache: makeCache(),
-        now,
       })
       await repo.save(item)
       expect(outbox.mutations[0]?.baseUpdatedAt).toBe(updatedAt.toISOString())
@@ -233,7 +224,6 @@ describe('createServerPersonalRepository', () => {
         api: makeApi(),
         outbox,
         cache: makeCache(),
-        now,
       })
       await repo.save(item)
       expect(outbox.mutations[0]?.baseUpdatedAt).toBeNull()
@@ -253,7 +243,6 @@ describe('createServerPersonalRepository', () => {
         api: makeApi(),
         outbox,
         cache: makeCache(),
-        now,
       })
       const returned = await repo.saveMany(items)
       expect(returned).toEqual(items)
@@ -269,7 +258,6 @@ describe('createServerPersonalRepository', () => {
         api: makeApi(),
         outbox: makeOutbox(),
         cache: makeCache(),
-        now,
       })
       const result = await repo.saveMany([])
       expect(result).toEqual([])
@@ -285,7 +273,6 @@ describe('createServerPersonalRepository', () => {
         api: makeApi(),
         outbox,
         cache: makeCache(),
-        now,
       })
       await repo.delete('id-1' as Id)
       expect(outbox.mutations).toHaveLength(1)
@@ -310,7 +297,6 @@ describe('createServerPersonalRepository', () => {
         api,
         outbox: makeOutbox(),
         cache: makeCache(),
-        now,
       })
       await repo.delete('id-1' as Id)
       expect(removeCalled).toBe(false)
@@ -326,7 +312,6 @@ describe('createServerPersonalRepository', () => {
         api: makeApi(),
         outbox,
         cache: makeCache(),
-        now,
       })
       await repo.purge('id-1' as Id)
       expect(outbox.mutations).toHaveLength(1)

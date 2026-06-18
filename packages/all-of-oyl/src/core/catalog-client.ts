@@ -2,7 +2,6 @@ import type { Id } from './id.js'
 import type { Codec } from '../collections.js'
 import type { ApiClient } from './api-client.js'
 import type { WriteOutbox } from './write-outbox.js'
-import type { ReadCache } from './read-cache.js'
 
 /**
  * Read-mostly client for catalog collections (shared reference data).
@@ -21,7 +20,7 @@ export interface CatalogClient<T> {
 /**
  * Creates a CatalogClient<T> backed by an ApiClient and WriteOutbox.
  *
- * - Reads: api → codec.fromJSON (results cached as needed by the ReadCache).
+ * - Reads: api → codec.fromJSON (no caching — see comment below).
  * - `create`: optimistic via WriteOutbox; the app's flusher pushes it later.
  */
 export function createCatalogClient<T extends { id: Id }>(deps: {
@@ -29,9 +28,9 @@ export function createCatalogClient<T extends { id: Id }>(deps: {
   codec: Codec<T>
   api: ApiClient
   outbox: WriteOutbox
-  cache: ReadCache
+  // catalog read-caching is deferred — doing it correctly needs cache invalidation on create()
 }): CatalogClient<T> {
-  const { path, codec, api, outbox, cache: _cache } = deps
+  const { path, codec, api, outbox } = deps
 
   async function search(q: string): Promise<T[]> {
     const { data } = await api.find(path, { 'filters[name][$containsi]': q })
