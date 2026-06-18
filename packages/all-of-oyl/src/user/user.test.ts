@@ -69,3 +69,34 @@ describe('User', () => {
     expect((caught as DomainError)?.code).toBe('MALFORMED_JSON')
   })
 })
+
+describe('User optional profile fields', () => {
+  it('round-trips birthday/weightKg/heightCm/gender/location', () => {
+    const u = new User({
+      displayName: 'Avery', timezone: 'America/New_York', defaultCurrency: 'USD', units: 'imperial',
+      birthday: '1990-06-20', weightKg: 72.5, heightCm: 178, gender: 'non-binary', location: 'Austin, TX',
+    })
+    const back = User.fromJSON(JSON.parse(JSON.stringify(u.toJSON())))
+    expect(back.birthday).toBe('1990-06-20')
+    expect(back.weightKg).toBe(72.5)
+    expect(back.heightCm).toBe(178)
+    expect(back.gender).toBe('non-binary')
+    expect(back.location).toBe('Austin, TX')
+  })
+
+  it('omits unset optional fields from JSON', () => {
+    const u = new User({ displayName: 'A', timezone: 'UTC', defaultCurrency: 'USD' })
+    expect('birthday' in u.toJSON()).toBe(false)
+    expect('weightKg' in u.toJSON()).toBe(false)
+  })
+
+  it('rejects a malformed birthday and non-positive measurements', () => {
+    const bad = (props: Record<string, unknown>) => {
+      try { new User({ displayName: 'A', timezone: 'UTC', defaultCurrency: 'USD', ...props } as never); return null }
+      catch (e) { return (e as DomainError).code }
+    }
+    expect(bad({ birthday: '06/20/1990' })).toBe('INVALID_QUANTITY')
+    expect(bad({ weightKg: 0 })).toBe('INVALID_QUANTITY')
+    expect(bad({ heightCm: -1 })).toBe('INVALID_QUANTITY')
+  })
+})
