@@ -142,9 +142,10 @@ export function createFlusher(outbox, api, connectivity) {
             const id = String(/** @type {{ id?: unknown }} */ (m.payload)?.id ?? '')
             await api.remove(m.entity, id)
           } else {
-            // Phase 3: saves are POSTed; create-vs-update reconciliation (recordId ↔
-            // server id) is deferred to the backend protocol work (Sub-projects B/D).
-            await api.create(m.entity, m.payload)
+            // Saves PUT to /<path>/<domainId> — the backend upserts by recordId (the
+            // domain id), so a create-then-edit round-trip reconciles to one row.
+            const id = String(/** @type {{ id?: unknown }} */ (m.payload)?.id ?? '')
+            await api.update(m.entity, id, m.payload)
           }
           outbox.ack(m.id)
         } catch {

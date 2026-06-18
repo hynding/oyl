@@ -56,14 +56,16 @@ describe('makeRepositories (online-first)', () => {
     expect(api.calls).toHaveLength(0) // writes never hit the network directly
   })
 
-  it('flush() drains the outbox via the api client when online, then acks', async () => {
+  it('flush() drains the outbox via api.update (PUT by domain id) when online, then acks', async () => {
     const storage = fakeStorage()
     const api = fakeApi()
     const { repos, flush } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(true) })
-    await repos.entries.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' }))
+    const note = new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' })
+    await repos.entries.save(note)
     await flush()
     expect(api.calls).toHaveLength(1)
-    expect(api.calls[0]).toMatchObject({ op: 'create', path: PATH_BY_COLLECTION.entries })
+    // save → PUT /<path>/<domainId> (upsert), NOT POST. The id is the domain id.
+    expect(api.calls[0]).toMatchObject({ op: 'update', path: PATH_BY_COLLECTION.entries, id: note.id })
     const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
     expect(outbox).toHaveLength(0) // acked
   })
@@ -83,9 +85,9 @@ describe('makeRepositories (online-first)', () => {
     const storage = fakeStorage()
     const api = fakeApi()
     let fail = true
-    api.create = vi.fn(async (path, data) => {
+    api.update = vi.fn(async (path, id, data) => {
       if (fail) throw new Error('boom')
-      api.calls.push({ op: 'create', path, data })
+      api.calls.push({ op: 'update', path, id, data })
       return data
     })
     const { repos, flush } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(true) })
