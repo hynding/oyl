@@ -17,6 +17,8 @@ export function createApiClient(opts: {
   getToken: () => Promise<string | null | undefined>
   onAuthError?: () => void
 }): ApiClient {
+  // `baseUrl` is the API root (e.g. https://host/api). Paths are appended directly;
+  // callers must NOT pre-include /api here — the configured base already carries it.
   const root = opts.baseUrl.replace(/\/$/, '')
 
   async function request(method: string, url: string, body?: unknown): Promise<unknown> {
@@ -47,7 +49,7 @@ export function createApiClient(opts: {
 
   return {
     async find(path, query) {
-      let url = `${root}/api/${path}`
+      let url = `${root}/${path}`
       if (query && Object.keys(query).length > 0) {
         const params = Object.entries(query)
           .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
@@ -60,7 +62,7 @@ export function createApiClient(opts: {
     },
 
     async findOne(path, id) {
-      const url = `${root}/api/${path}/${id}`
+      const url = `${root}/${path}/${id}`
       const result = await request('GET', url)
       if (result === undefined) return undefined
       const envelope = result as { data: unknown }
@@ -68,21 +70,21 @@ export function createApiClient(opts: {
     },
 
     async create(path, data) {
-      const url = `${root}/api/${path}`
+      const url = `${root}/${path}`
       const result = await request('POST', url, { data })
       const envelope = result as { data: unknown }
       return envelope.data
     },
 
     async update(path, id, data) {
-      const url = `${root}/api/${path}/${id}`
+      const url = `${root}/${path}/${id}`
       const result = await request('PUT', url, { data })
       const envelope = result as { data: unknown }
       return envelope.data
     },
 
     async remove(path, id) {
-      const url = `${root}/api/${path}/${id}`
+      const url = `${root}/${path}/${id}`
       await request('DELETE', url)
     },
   }

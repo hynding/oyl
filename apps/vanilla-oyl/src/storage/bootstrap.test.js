@@ -48,7 +48,8 @@ describe('makeRepositories (online-first)', () => {
   it('personal save enqueues to the outbox (no network)', async () => {
     const storage = fakeStorage()
     const api = fakeApi()
-    const { repos } = makeRepositories(/** @type {any} */ (storage), { api })
+    // Offline: the save path itself only enqueues; the flusher (not save) hits the network.
+    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
     await repos.entries.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' }))
     const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
     expect(outbox).toHaveLength(1)
@@ -68,6 +69,18 @@ describe('makeRepositories (online-first)', () => {
     expect(api.calls[0]).toMatchObject({ op: 'update', path: PATH_BY_COLLECTION.entries, id: note.id })
     const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
     expect(outbox).toHaveLength(0) // acked
+  })
+
+  it('a same-tab enqueue while online flushes promptly without an explicit flush() call', async () => {
+    const storage = fakeStorage()
+    const api = fakeApi()
+    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(true) })
+    const note = new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' })
+    await repos.entries.save(note) // enqueue → onEnqueue → flush (no external trigger)
+    await Promise.resolve() // let the fire-and-forget flush settle
+    expect(api.calls).toHaveLength(1)
+    expect(api.calls[0]).toMatchObject({ op: 'update', path: PATH_BY_COLLECTION.entries, id: note.id })
+    expect(JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))).toHaveLength(0) // acked
   })
 
   it('flush() is a no-op when offline (outbox retained)', async () => {

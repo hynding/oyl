@@ -21,6 +21,8 @@ export function createWriteOutbox(
   key: string,
   now: () => Date,
   newId: () => string,
+  /** Invoked after each enqueue (e.g. to trigger a same-tab flush). */
+  onEnqueue?: () => void,
 ): WriteOutbox {
   function read(): Mutation[] {
     const raw = storage.getItem(key)
@@ -43,6 +45,7 @@ export function createWriteOutbox(
       const mutation: Mutation = { id: newId(), enqueuedAt: now().toISOString(), ...m }
       entries.push(mutation)
       write(entries)
+      onEnqueue?.()
       return mutation
     },
     peekAll() {

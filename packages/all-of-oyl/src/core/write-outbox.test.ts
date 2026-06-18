@@ -16,4 +16,14 @@ describe('createWriteOutbox', () => {
     reloaded.ack(reloaded.peekAll()[0].id)
     expect(reloaded.peekAll().map((m) => (m.payload as any).id)).toEqual(['b'])
   })
+
+  it('invokes onEnqueue after each enqueue (same-tab flush trigger), once per enqueue', () => {
+    const s = mem(); let n = 0; const id = () => `m${++n}`
+    let calls = 0
+    const ob = createWriteOutbox(s, 'oyl/outbox', fixedNow, id, () => { calls += 1 })
+    ob.enqueue({ entity: 'note', op: 'save', payload: { id: 'a' }, baseUpdatedAt: null })
+    expect(calls).toBe(1)
+    ob.enqueue({ entity: 'note', op: 'save', payload: { id: 'b' }, baseUpdatedAt: null })
+    expect(calls).toBe(2)
+  })
 })

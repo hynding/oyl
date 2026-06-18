@@ -78,7 +78,12 @@ function newId() {
 export function makeRepositories(storage, opts = {}) {
   const api = opts.api ?? noopApi()
   const connectivity = opts.connectivity ?? alwaysOnline()
-  const outbox = createWriteOutbox(storage, OUTBOX_KEY, now, newId)
+  // Same-tab flush: the `storage` event doesn't fire in the writing tab, so wire the
+  // outbox's onEnqueue to the (late-bound, online-gated, re-entrancy-guarded) flusher.
+  // Any same-tab write thus flushes promptly without waiting for reload/online.
+  /** @type {() => Promise<void>} */
+  let flush = async () => {}
+  const outbox = createWriteOutbox(storage, OUTBOX_KEY, now, newId, () => { void flush().catch(() => {}) })
   const cache = createReadCache(storage, READ_CACHE_KEY, {
     maxEntries: READ_CACHE_MAX_ENTRIES,
     ttlMs: READ_CACHE_TTL_MS,
@@ -116,7 +121,7 @@ export function makeRepositories(storage, opts = {}) {
     repos[name] = emptyRepo()
   }
 
-  const flush = createFlusher(outbox, api, connectivity)
+  flush = createFlusher(outbox, api, connectivity)
   return { repos, catalogs, outbox, flush }
 }
 

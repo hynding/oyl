@@ -12,7 +12,9 @@ function makeFetch(status: number, body: unknown): () => Promise<FetchResponse> 
 }
 
 describe('createApiClient', () => {
-  const baseUrl = 'https://example.com'
+  // baseUrl is the API root (already carries /api). createApiClient appends only /<path>,
+  // so the composed URL has a SINGLE /api — guards against the double-/api regression.
+  const baseUrl = 'https://example.com/api'
   const getToken = () => Promise.resolve('tok-123')
 
   describe('find', () => {
@@ -31,6 +33,16 @@ describe('createApiClient', () => {
       await client.find('articles')
       expect(fetch).toHaveBeenCalledWith(
         'https://example.com/api/articles',
+        expect.objectContaining({ method: 'GET' }),
+      )
+    })
+
+    it('appends only /<path> to the API-root base (single /api, no double-/api)', async () => {
+      const fetch = makeFetch(200, { data: [], meta: {} })
+      const client = createApiClient({ baseUrl: 'http://localhost:1340/api', fetch, getToken })
+      await client.find('notes')
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:1340/api/notes',
         expect.objectContaining({ method: 'GET' }),
       )
     })
