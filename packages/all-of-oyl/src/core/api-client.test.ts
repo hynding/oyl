@@ -194,4 +194,42 @@ describe('createApiClient', () => {
       expect(headers.Authorization).toBeUndefined()
     })
   })
+
+  describe('Content-Type header', () => {
+    it('omits Content-Type on GET (no body)', async () => {
+      const fetch = makeFetch(200, { data: [], meta: {} })
+      const client = createApiClient({ baseUrl, fetch, getToken })
+      await client.find('articles')
+      const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, Record<string, unknown>]
+      const headers = init.headers as Record<string, string>
+      expect(headers['Content-Type']).toBeUndefined()
+    })
+
+    it('omits Content-Type on DELETE (no body)', async () => {
+      const fetch = makeFetch(200, {})
+      const client = createApiClient({ baseUrl, fetch, getToken })
+      await client.remove('articles', 'abc')
+      const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, Record<string, unknown>]
+      const headers = init.headers as Record<string, string>
+      expect(headers['Content-Type']).toBeUndefined()
+    })
+
+    it('sets Content-Type on POST (has body)', async () => {
+      const fetch = makeFetch(200, { data: {} })
+      const client = createApiClient({ baseUrl, fetch, getToken })
+      await client.create('articles', { title: 'x' })
+      const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, Record<string, unknown>]
+      const headers = init.headers as Record<string, string>
+      expect(headers['Content-Type']).toBe('application/json')
+    })
+
+    it('sets Content-Type on PUT (has body)', async () => {
+      const fetch = makeFetch(200, { data: {} })
+      const client = createApiClient({ baseUrl, fetch, getToken })
+      await client.update('articles', 'abc', { title: 'y' })
+      const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, Record<string, unknown>]
+      const headers = init.headers as Record<string, string>
+      expect(headers['Content-Type']).toBe('application/json')
+    })
+  })
 })

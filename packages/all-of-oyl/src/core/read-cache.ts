@@ -11,68 +11,68 @@ interface CacheEntry {
   expiresAt: number
 }
 
+/** Serialised shape: array of [cacheKey, entry] pairs, MRU last. */
+type CacheMap = Array<[string, CacheEntry]>
+
 /**
  * Creates a bounded LRU cache backed by `StorageLike`.
  *
- * - Each entry is stored at `${prefix}${key}` as JSON `{ value, expiresAt }`.
- * - Eviction order is tracked in-memory (insertion/access order → LRU = front).
- * - On `get`: expired entries are treated as missing (returns undefined).
- * - On `set`: if at capacity, the LRU entry is evicted before inserting the new one.
+ * ALL entries are stored under a **single** storage key (`${prefix}`) as a JSON
+ * array of `[cacheKey, { value, expiresAt }]` pairs ordered MRU-last.
+ * This keeps storage strictly bounded: one key, ≤ maxEntries live entries.
+ *
+ * - On `get`: missing or expired → undefined; live hit → promote to MRU, write back.
+ * - On `set`: upsert entry with `expiresAt = now() + ttlMs`; promote to MRU;
+ *   if size > maxEntries, drop the LRU (index 0) entry; write back.
  */
 export function createReadCache(
   storage: StorageLike,
   prefix: string,
   opts: { maxEntries: number; ttlMs: number; now: () => number },
 ): ReadCache {
-  // In-memory LRU order: index 0 = least-recently-used, last = most-recently-used.
-  // Populated lazily on first use — we don't enumerate storage keys up-front
-  // because StorageLike doesn't expose iteration.
-  const lruOrder: string[] = []
+  const storageKey = prefix
 
-  function storageKey(key: string): string {
-    return `${prefix}${key}`
-  }
-
-  function readEntry(key: string): CacheEntry | undefined {
-    const raw = storage.getItem(storageKey(key))
-    if (!raw) return undefined
+  function read(): CacheMap {
+    const raw = storage.getItem(storageKey)
+    if (!raw) return []
     try {
-      return JSON.parse(raw) as CacheEntry
+      return JSON.parse(raw) as CacheMap
     } catch {
-      return undefined
+      return []
     }
   }
 
-  function writeEntry(key: string, entry: CacheEntry): void {
-    storage.setItem(storageKey(key), JSON.stringify(entry))
-  }
-
-  function promote(key: string): void {
-    const idx = lruOrder.indexOf(key)
-    if (idx !== -1) lruOrder.splice(idx, 1)
-    lruOrder.push(key)
+  function write(map: CacheMap): void {
+    storage.setItem(storageKey, JSON.stringify(map))
   }
 
   return {
     get(key: string): unknown | undefined {
-      const entry = readEntry(key)
-      if (!entry) return undefined
+      const map = read()
+      const idx = map.findIndex(([k]) => k === key)
+      if (idx === -1) return undefined
+      const pair = map[idx]
+      if (!pair) return undefined
+      const entry = pair[1]
       if (opts.now() >= entry.expiresAt) return undefined
-      promote(key)
+      // Promote to MRU (move to end).
+      map.splice(idx, 1)
+      map.push([key, entry])
+      write(map)
       return entry.value
     },
 
     set(key: string, value: unknown): void {
-      const isNew = lruOrder.indexOf(key) === -1 && storage.getItem(storageKey(key)) === null
-      // Evict LRU if we're at capacity and this is a brand-new key.
-      if (isNew && lruOrder.length >= opts.maxEntries) {
-        const lruKey = lruOrder.shift()!
-        // We can't delete from StorageLike, so we write an already-expired entry.
-        writeEntry(lruKey, { value: null, expiresAt: 0 })
-      }
+      const map = read()
+      const idx = map.findIndex(([k]) => k === key)
+      if (idx !== -1) map.splice(idx, 1)
       const entry: CacheEntry = { value, expiresAt: opts.now() + opts.ttlMs }
-      writeEntry(key, entry)
-      promote(key)
+      map.push([key, entry])
+      // Evict LRU (index 0) entries until within capacity.
+      while (map.length > opts.maxEntries) {
+        map.shift()
+      }
+      write(map)
     },
   }
 }

@@ -138,4 +138,31 @@ describe('createReadCache', () => {
       expect(cache2.get('key1')).toEqual({ x: 42 })
     })
   })
+
+  describe('bounded storage', () => {
+    it('uses at most 1 storage key regardless of how many entries are inserted across instances', () => {
+      const storage = makeStorage()
+      const maxEntries = 3
+      const now = () => 1000
+      // First instance inserts more than maxEntries distinct keys.
+      const cache1 = createReadCache(storage, 'rc:', { maxEntries, ttlMs: 60_000, now })
+      cache1.set('a', 1)
+      cache1.set('b', 2)
+      cache1.set('c', 3)
+      cache1.set('d', 4) // evicts 'a'
+      // Second instance (cold-start) also inserts more keys.
+      const cache2 = createReadCache(storage, 'rc:', { maxEntries, ttlMs: 60_000, now })
+      cache2.set('e', 5) // evicts 'b'
+      cache2.set('f', 6) // evicts 'c'
+
+      // Total storage keys used by the cache must be exactly 1.
+      const oylKeys = Array.from(storage.store.keys()).filter((k) => k.startsWith('rc:'))
+      expect(oylKeys.length).toBe(1)
+
+      // And the persisted map must contain at most maxEntries live entries.
+      const raw = storage.store.get('rc:')!
+      const map = JSON.parse(raw) as Array<[string, unknown]>
+      expect(map.length).toBeLessThanOrEqual(maxEntries)
+    })
+  })
 })
