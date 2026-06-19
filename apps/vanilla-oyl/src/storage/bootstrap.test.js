@@ -69,6 +69,27 @@ describe('makeRepositories (online-first)', () => {
     expect(api.calls).toHaveLength(0)
   })
 
+  it('consumptions read path injects kind so a kind-less Strapi row decodes to a Consumption', async () => {
+    const api = fakeApi()
+    // A real Strapi relational row: numeric id + recordId (the domain id), NO `kind` discriminant.
+    // The per-kind codec is Consumption.fromJSON, whose parseEntryBase validates kind === 'consumption',
+    // so bootstrap must inject it via ROW_KIND_BY_COLLECTION.consumptions → strapiRowToShape(row, { kind }).
+    const row = {
+      id: 7,
+      recordId: '11111111-1111-4111-8111-111111111111',
+      occurredAt: '2026-06-10T16:00:00.000Z',
+      servings: 1,
+      nutrients: { calories: 150 },
+    }
+    api.find = async () => ({ data: [row], meta: {} })
+    const { repos } = makeRepositories(/** @type {any} */ (fakeStorage()), { api, connectivity: manualConnectivity(false) })
+    const list = await repos.consumptions.list()
+    expect(list).toHaveLength(1)
+    expect(list[0]).toBeInstanceOf(Consumption)
+    expect(list[0].id).toBe(row.recordId)
+    expect(list[0].nutrients.calories).toBe(150)
+  })
+
   it('stub repos (transactions, measurements, activitySessions) list resolves [] and save does not enqueue', async () => {
     const storage = fakeStorage()
     const { repos } = makeRepositories(/** @type {any} */ (storage), { api: fakeApi(), connectivity: manualConnectivity(false) })
