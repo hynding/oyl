@@ -3,21 +3,13 @@
  * Used by consumable, consumable-product, and consumption controllers.
  */
 
+import { coerceNumeric } from './coerce.js'
+
 /** Populate spec for strapi.documents() calls so facts (+ nested servingSize/additional) are returned. */
 export const FACTS_POPULATE = { facts: { populate: { servingSize: true, additional: true } } } as const
 
 /** Populate spec for strapi.documents() calls so nutrients (+ nested servingSize/additional) are returned. */
 export const NUTRIENTS_POPULATE = { nutrients: { populate: { servingSize: true, additional: true } } } as const
-
-/**
- * Coerce a value that might be a numeric string (Postgres returns decimal columns as strings)
- * to a JS number. Leaves genuine numbers as-is (including 0). Non-numeric strings pass through.
- */
-function coerceNumeric(v: unknown): unknown {
-  if (typeof v === 'number') return v
-  if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) return Number(v)
-  return v
-}
 
 /**
  * Strip null values from a facts/nutrients component object so domain decoders

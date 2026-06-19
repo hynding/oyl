@@ -1,0 +1,13 @@
+{
+  "collectionName": "components_finance_money",
+  "info": {
+    "displayName": "Money",
+    "description": "A monetary amount mirroring the domain Money: minor units (biginteger, overflow-safe, negatives allowed for refunds) + ISO currency + exponent."
+  },
+  "options": {},
+  "attributes": {
+    "minor": { "type": "biginteger" },
+    "currency": { "type": "string" },
+    "exponent": { "type": "integer" }
+  }
+}
