@@ -61,9 +61,10 @@ export function createJournalStore(reposByKind, tz) {
       const kind = kindById.get(id)
       if (kind === undefined) return // id unknown — already removed or never added; stay idempotent
       const repo = reposByKind[kind]
-      if (repo) await repo.delete(id)
-      journal.remove(id)
+      if (!repo) throw new Error(`no repo for entry kind: ${kind}`)
+      await repo.delete(id)
       kindById.delete(id)
+      journal.remove(id)
       revision.set((n += 1))
     },
 
