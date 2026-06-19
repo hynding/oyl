@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryRepository, Note, Consumption, Measurement, Goal, Transaction, Budget, Money, DayKey, DayRange, Account } from '@oyl/all-of-oyl'
+import { InMemoryRepository, Note, Consumption, Measurement, Goal, Transaction, Budget, Money, DayKey, DayRange, Account, ActivitySession, Quantity, Id } from '@oyl/all-of-oyl'
 import { createJournalStore } from './journal-store.js'
 import { effect } from '../lib/reactive/effect.js'
 
@@ -181,6 +181,17 @@ describe('createJournalStore', () => {
     expect(await consumptionRepo.list()).toHaveLength(0)
     expect(await transactionRepo.list()).toHaveLength(0)
     expect(await activitySessionRepo.list()).toHaveLength(0)
+  })
+
+  it('adding an ActivitySession saves to reposByKind[activity-session] and NOT to other repos', async () => {
+    const { reposByKind, noteRepo, consumptionRepo, transactionRepo, measurementRepo, activitySessionRepo } = makeReposByKind()
+    const store = createJournalStore(reposByKind, TZ)
+    await store.add(new ActivitySession({ occurredAt: new Date(ISO), activity: { id: Id.create(), slug: 'run' }, quantities: [Quantity.of(30, 'minutes')] }))
+    expect(await activitySessionRepo.list()).toHaveLength(1)
+    expect(await noteRepo.list()).toHaveLength(0)
+    expect(await consumptionRepo.list()).toHaveLength(0)
+    expect(await transactionRepo.list()).toHaveLength(0)
+    expect(await measurementRepo.list()).toHaveLength(0)
   })
 
   it('a negative-amount refund Transaction round-trips through the store and appears in transactionsIn', async () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { makeRepositories, createFlusher, PATH_BY_COLLECTION } from './bootstrap.js'
-import { Note, Consumption, Consumable, Transaction, Account, Budget, Money, Measurement, entitiesByKind, manualConnectivity } from '@oyl/all-of-oyl'
+import { Note, Consumption, Consumable, Transaction, Account, Budget, Money, Measurement, ActivitySession, Quantity, Id, entitiesByKind, manualConnectivity } from '@oyl/all-of-oyl'
 import { OUTBOX_KEY } from './keys.js'
 
 function fakeStorage() {
@@ -137,16 +137,45 @@ describe('makeRepositories (online-first)', () => {
     expect(api.calls).toHaveLength(0)
   })
 
-  it('stub repos (activitySessions) list resolves [] and save does not enqueue', async () => {
+  it('activitySessions read path injects kind so a kind-less Strapi row decodes to an ActivitySession', async () => {
+    const api = fakeApi()
+    // A real Strapi relational row: numeric id + recordId (the domain id), NO `kind` discriminant.
+    // The per-kind codec is ActivitySession.fromJSON, whose parseEntryBase validates kind === 'activity-session',
+    // so bootstrap must inject it via ROW_KIND_BY_COLLECTION.activitySessions → strapiRowToShape(row, { kind }).
+    // amounts are NUMBERS — Strapi float, no coercion needed.
+    const recordId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+    const activityId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'
+    const row = {
+      id: 7,
+      recordId,
+      occurredAt: '2026-06-10T16:00:00.000Z',
+      activityId,
+      slug: 'run',
+      quantities: [{ amount: 30, unit: 'minutes' }, { amount: 5, unit: 'km' }],
+    }
+    api.find = async () => ({ data: [row], meta: {} })
+    const { repos } = makeRepositories(/** @type {any} */ (fakeStorage()), { api, connectivity: manualConnectivity(false) })
+    const list = await repos.activitySessions.list()
+    expect(list).toHaveLength(1)
+    expect(list[0]).toBeInstanceOf(ActivitySession)
+    expect(list[0].id).toBe(recordId)
+    expect(list[0].slug).toBe('run')
+    expect(list[0].quantities).toHaveLength(2)
+    expect(list[0].quantities[0].amount).toBe(30)
+    expect(list[0].quantities[0].unit).toBe('minutes')
+    expect(list[0].quantities[1].amount).toBe(5)
+    expect(list[0].quantities[1].unit).toBe('km')
+  })
+
+  it('activitySessions save enqueues to the outbox (no network)', async () => {
     const storage = fakeStorage()
-    const { repos } = makeRepositories(/** @type {any} */ (storage), { api: fakeApi(), connectivity: manualConnectivity(false) })
-    expect(await repos.activitySessions.list()).toEqual([])
-    // emptyRepo save returns the item but does NOT enqueue to the outbox
-    const note = new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'stub test' })
-    const saved = await repos.activitySessions.save(/** @type {any} */ (note))
-    expect(saved).toBe(note)
-    const outbox = JSON.parse(storage.getItem(OUTBOX_KEY) ?? 'null')
-    expect(outbox).toBeNull() // no outbox entry written by stub repos
+    const api = fakeApi()
+    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    await repos.activitySessions.save(new ActivitySession({ occurredAt: new Date('2026-06-10T16:00:00Z'), activity: { id: Id.create(), slug: 'run' }, quantities: [Quantity.of(30, 'minutes')] }))
+    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    expect(outbox).toHaveLength(1)
+    expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.activitySessions, op: 'save' })
+    expect(api.calls).toHaveLength(0)
   })
 
   it('measurements read path injects kind so a kind-less Strapi row decodes to a Measurement', async () => {
