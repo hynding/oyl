@@ -6,12 +6,23 @@ import { defineNutrition } from './oyl-nutrition.js'
 
 beforeAll(() => defineNutrition())
 const settle = () => new Promise((r) => setTimeout(r, 0))
+
+/** @returns {import('../state/journal-store.js').ReposByKind} */
+function makeReposByKind() {
+  return {
+    'note': /** @type {any} */ (new InMemoryRepository()),
+    'consumption': /** @type {any} */ (new InMemoryRepository()),
+    'transaction': /** @type {any} */ (new InMemoryRepository()),
+    'measurement': /** @type {any} */ (new InMemoryRepository()),
+    'activity-session': /** @type {any} */ (new InMemoryRepository()),
+  }
+}
 /** @param {any} el @param {string} sel */
 const q = (el, sel) => /** @type {any} */ (el.shadowRoot.querySelector(sel))
 
 describe('<oyl-nutrition>', () => {
   it('shows the consumables catalog and the day\'s totals', async () => {
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
+    const store = createJournalStore(makeReposByKind(), 'UTC')
     const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
     await consumables.add(new Consumable({ name: 'Oatmeal', nutrients: { calories: 150 } }))
     const el = /** @type {any} */ (document.createElement('oyl-nutrition'))
@@ -29,7 +40,7 @@ describe('<oyl-nutrition>', () => {
   })
 
   it('renders an empty state when no meals are logged for the day', async () => {
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
+    const store = createJournalStore(makeReposByKind(), 'UTC')
     const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
     const el = /** @type {any} */ (document.createElement('oyl-nutrition'))
     el.store = store
@@ -45,7 +56,7 @@ describe('<oyl-nutrition>', () => {
   const firstMealRow = (el) => el.shadowRoot.querySelectorAll('ol')[0].querySelector('li')
 
   it('shows per-serving nutrients and a scaled calorie total for a multi-serving meal', async () => {
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
+    const store = createJournalStore(makeReposByKind(), 'UTC')
     const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
     const oatmeal = await consumables.add(new Consumable({ name: 'Oatmeal', nutrients: { calories: 150, protein: 5 } }))
     await store.add(new Consumption({ occurredAt: new Date(), consumable: { id: oatmeal.id, nutrients: oatmeal.nutrients }, servings: 2 }))
@@ -62,7 +73,7 @@ describe('<oyl-nutrition>', () => {
   })
 
   it('omits the total for a single-serving meal', async () => {
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
+    const store = createJournalStore(makeReposByKind(), 'UTC')
     const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
     await store.add(new Consumption({ occurredAt: new Date(), nutrients: { calories: 150 }, servings: 1 }))
     const el = /** @type {any} */ (document.createElement('oyl-nutrition'))
@@ -78,7 +89,7 @@ describe('<oyl-nutrition>', () => {
   })
 
   it('omits the total for a multi-serving meal with no calories', async () => {
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), 'UTC')
+    const store = createJournalStore(makeReposByKind(), 'UTC')
     const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
     await store.add(new Consumption({ occurredAt: new Date(), nutrients: { waterMl: 500 }, servings: 2 }))
     const el = /** @type {any} */ (document.createElement('oyl-nutrition'))

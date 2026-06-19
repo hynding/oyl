@@ -11,19 +11,22 @@ import { signal } from '../lib/reactive/signal.js'
 /** @typedef {import('@oyl/all-of-oyl').Budget} Budget */
 /** @typedef {import('@oyl/all-of-oyl').Account} Account */
 /** @typedef {import('@oyl/all-of-oyl').Nutrients} Nutrients */
-/** @typedef {import('@oyl/all-of-oyl').Repository<Entry>} EntriesRepo */
+/** @typedef {Record<string, import('@oyl/all-of-oyl').Repository<Entry>>} ReposByKind */
 
 /**
- * App-level reactive wrapper over the entries Repository + an in-memory domain Journal.
+ * App-level reactive wrapper over per-kind entry Repositories + an in-memory domain Journal.
  * Persist-first surgical writes; a `revision` signal makes reads reactive. The domain
  * Journal stays a plain aggregate. Full re-hydrate only on boot/seed/import/multi-tab.
- * @param {EntriesRepo} entriesRepo
+ * @param {ReposByKind} reposByKind  Object keyed by entry-kind string (e.g. 'note', 'consumption', …) to its Repository.
  * @param {string} tz  IANA timezone
  */
-export function createJournalStore(entriesRepo, tz) {
+export function createJournalStore(reposByKind, tz) {
   let journal = new Journal(tz)
   let n = 0
   const revision = signal(0)
+
+  /** Store-local index: entry id.value → entry.kind for routing remove() without changing the lib. */
+  const kindById = new Map()
 
   /** @param {DayKey} day @returns {Consumption[]} */
   const consumptionsOnDay = (day) => /** @type {Consumption[]} */ (journal.entriesOn(day).filter((e) => e instanceof Consumption))
@@ -32,23 +35,35 @@ export function createJournalStore(entriesRepo, tz) {
     revision,
 
     /**
-     * Persist a NEW entry, then reflect it in the aggregate. Expects a freshly-created
-     * entry (a new Id). Re-adding an entry already in the aggregate diverges repo and
-     * aggregate: the repo save succeeds but `journal.add` then throws DUPLICATE_ID — so
-     * don't feed back an entry obtained from `entriesOn`; create a new one.
+     * Persist a NEW entry to its kind-specific repo, then reflect it in the aggregate.
+     * Expects a freshly-created entry (a new Id). Re-adding an entry already in the
+     * aggregate diverges repo and aggregate: the repo save succeeds but `journal.add`
+     * then throws DUPLICATE_ID — so don't feed back an entry obtained from `entriesOn`;
+     * create a new one. Throws a clear error for unknown entry kinds before any mutation.
      * @param {Entry} entry @returns {Promise<Entry>}
      */
     async add(entry) {
-      const saved = await entriesRepo.save(entry)
+      const repo = reposByKind[entry.kind]
+      if (!repo) throw new Error(`unknown entry kind: ${entry.kind}`)
+      const saved = await repo.save(entry)
+      kindById.set(saved.id, saved.kind)
       journal.add(saved)
       revision.set((n += 1))
       return saved
     },
 
-    /** Soft-delete an entry and drop it from the aggregate (idempotent). @param {Id} id */
+    /**
+     * Soft-delete an entry and drop it from the aggregate (idempotent).
+     * Routes the delete to the kind-specific repo by looking up the id in the store-local index.
+     * @param {Id} id
+     */
     async remove(id) {
-      await entriesRepo.delete(id)
+      const kind = kindById.get(id)
+      if (kind === undefined) return // id unknown — already removed or never added; stay idempotent
+      const repo = reposByKind[kind]
+      if (repo) await repo.delete(id)
       journal.remove(id)
+      kindById.delete(id)
       revision.set((n += 1))
     },
 
@@ -106,11 +121,26 @@ export function createJournalStore(entriesRepo, tz) {
       return account.balanceIn(journal)
     },
 
-    /** Rebuild the aggregate from the repository. Boot/seed/import/multi-tab only. */
+    /**
+     * Rebuild the aggregate from all per-kind repos. Boot/seed/import/multi-tab only.
+     * Reads all repos in parallel, flattens the results into a fresh Journal, and rebuilds
+     * the kindById index.
+     */
     async hydrate() {
+      const repos = Object.values(reposByKind)
+      const results = await Promise.all(repos.map((r) => r.list()))
       const fresh = new Journal(tz)
-      for (const e of await entriesRepo.list()) fresh.add(e)
+      /** @type {Map<string, string>} */
+      const freshKindById = new Map()
+      for (const entries of results) {
+        for (const e of entries) {
+          fresh.add(e)
+          freshKindById.set(e.id, e.kind)
+        }
+      }
       journal = fresh
+      kindById.clear()
+      for (const [k, v] of freshKindById) kindById.set(k, v)
       revision.set((n += 1))
     },
   }

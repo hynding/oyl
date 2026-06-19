@@ -62,7 +62,7 @@ describe('data state', () => {
     const storage = fakeStorage()
     const ds = createDataState(storage, createThemeState(storage), { repos: inMemoryRepos() })
     const iso = '2026-06-10T16:00:00Z'
-    await ds.repos.entries.save(new Note({ occurredAt: new Date(iso), text: 'hi' }))
+    await ds.repos.notes.save(new Note({ occurredAt: new Date(iso), text: 'hi' }))
     await ds.refresh()
     const day = DayKey.from(new Date(iso), defaultTimezone())
     expect(ds.journal.entriesOn(day)).toHaveLength(1)
@@ -126,7 +126,7 @@ describe('data state', () => {
     const ds = createDataState(storage, createThemeState(storage), { repos: inMemoryRepos() })
     const iso = '2026-06-10T16:00:00Z'
     await ds.repos.goals.save(new Goal({ name: 'Sleep', metric: 'sleep.hours', target: 7, direction: 'atLeast', period: 'day' }))
-    await ds.repos.entries.save(new Measurement({ occurredAt: new Date(iso), metric: 'sleep.hours', value: 7 }))
+    await ds.repos.measurements.save(new Measurement({ occurredAt: new Date(iso), metric: 'sleep.hours', value: 7 }))
     await ds.refresh()
     const day = DayKey.from(new Date(iso), defaultTimezone())
     const r = ds.reviewOn(periodWindowOf('day', day))

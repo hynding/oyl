@@ -8,12 +8,22 @@ beforeAll(() => defineGoals())
 const TZ = 'UTC'
 const settle = () => new Promise((r) => setTimeout(r, 0))
 
+/** @returns {import('../state/journal-store.js').ReposByKind} */
+function makeReposByKind() {
+  return {
+    'note': /** @type {any} */ (new InMemoryRepository()),
+    'consumption': /** @type {any} */ (new InMemoryRepository()),
+    'transaction': /** @type {any} */ (new InMemoryRepository()),
+    'measurement': /** @type {any} */ (new InMemoryRepository()),
+    'activity-session': /** @type {any} */ (new InMemoryRepository()),
+  }
+}
+
 async function stores() {
   const goalsRepo = /** @type {any} */ (new InMemoryRepository())
-  const entriesRepo = /** @type {any} */ (new InMemoryRepository())
   await goalsRepo.save(new Goal({ name: 'Sleep enough', metric: 'sleep.hours', target: 7, direction: 'atLeast', period: 'day' }))
   const goals = createGoalsStore(goalsRepo)
-  const journal = createJournalStore(entriesRepo, TZ)
+  const journal = createJournalStore(makeReposByKind(), TZ)
   await goals.hydrate()
   await journal.hydrate()
   return { goals, journal }

@@ -6,6 +6,17 @@ import { defineJournal } from './oyl-journal.js'
 const TZ = 'America/New_York'
 beforeAll(() => defineJournal())
 
+/** @returns {import('../state/journal-store.js').ReposByKind} */
+function makeReposByKind() {
+  return {
+    'note': /** @type {any} */ (new InMemoryRepository()),
+    'consumption': /** @type {any} */ (new InMemoryRepository()),
+    'transaction': /** @type {any} */ (new InMemoryRepository()),
+    'measurement': /** @type {any} */ (new InMemoryRepository()),
+    'activity-session': /** @type {any} */ (new InMemoryRepository()),
+  }
+}
+
 /** @param {ReturnType<typeof createJournalStore>} store @param {string} [tz] */
 function screen(store, tz = TZ) {
   const el = /** @type {import('./oyl-journal.js').OylJournal} */ (document.createElement('oyl-journal'))
@@ -21,7 +32,7 @@ const txt = (el) => /** @type {ShadowRoot} */ (el.shadowRoot).textContent ?? ''
 
 describe('<oyl-journal>', () => {
   it('renders today’s entries and updates reactively when the store changes', async () => {
-    const store = createJournalStore(new InMemoryRepository(), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     const el = screen(store)
     expect(rows(el)).toHaveLength(0)
     expect(txt(el).toLowerCase()).toContain('nothing')
@@ -32,7 +43,7 @@ describe('<oyl-journal>', () => {
   })
 
   it('navigating to the previous day shows a different (empty) set', async () => {
-    const store = createJournalStore(new InMemoryRepository(), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     await store.add(new Note({ occurredAt: new Date(), text: 'today' }))
     const el = screen(store)
     await Promise.resolve()
@@ -45,7 +56,7 @@ describe('<oyl-journal>', () => {
   })
 
   it('does not render transactions in the day view (they live on /finance)', async () => {
-    const store = createJournalStore(new InMemoryRepository(), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     await store.add(new Note({ occurredAt: new Date(), text: 'a note' }))
     await store.add(new Transaction({ occurredAt: new Date(), amount: Money.of(500, 'USD', 2), category: 'groceries', direction: 'expense' }))
     const el = screen(store)
@@ -55,7 +66,7 @@ describe('<oyl-journal>', () => {
   })
 
   it('does not render consumptions in the day view (they live on /nutrition)', async () => {
-    const store = createJournalStore(new InMemoryRepository(), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     const el = screen(store)
     await store.add(new Note({ occurredAt: new Date(), text: 'a note' }))
     await store.add(new Consumption({ occurredAt: new Date(), nutrients: { calories: 150 }, note: 'Oatmeal' }))
@@ -67,7 +78,7 @@ describe('<oyl-journal>', () => {
   })
 
   it('deleting an entry removes its row', async () => {
-    const store = createJournalStore(new InMemoryRepository(), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     await store.add(new Note({ occurredAt: new Date(), text: 'bye' }))
     const el = screen(store)
     await Promise.resolve()

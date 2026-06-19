@@ -7,6 +7,17 @@ import { defineFinance } from './oyl-finance.js'
 
 beforeAll(() => defineFinance())
 const TZ = 'UTC'
+
+/** @returns {import('../state/journal-store.js').ReposByKind} */
+function makeReposByKind() {
+  return {
+    'note': /** @type {any} */ (new InMemoryRepository()),
+    'consumption': /** @type {any} */ (new InMemoryRepository()),
+    'transaction': /** @type {any} */ (new InMemoryRepository()),
+    'measurement': /** @type {any} */ (new InMemoryRepository()),
+    'activity-session': /** @type {any} */ (new InMemoryRepository()),
+  }
+}
 const settle = () => new Promise((r) => setTimeout(r, 0))
 /** @param {number} h @returns {Date} */
 const at = (h) => { const d = new Date(); d.setHours(h, 0, 0, 0); return d }
@@ -28,7 +39,7 @@ const root = (el) => /** @type {ShadowRoot} */ (el.shadowRoot)
 
 describe('<oyl-finance>', () => {
   it("lists this month's transactions newest-first", async () => {
-    const store = createJournalStore(new InMemoryRepository(), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     await store.add(tx('groceries', 6500, at(9)))
     await store.add(tx('dining', 3000, at(13)))
     const el = screen(store)
@@ -42,14 +53,14 @@ describe('<oyl-finance>', () => {
   })
 
   it('empty store shows the empty state', async () => {
-    const el = screen(createJournalStore(new InMemoryRepository(), TZ))
+    const el = screen(createJournalStore(makeReposByKind(), TZ))
     await Promise.resolve()
     expect(root(el).textContent).toContain('No transactions this month.')
     el.remove()
   })
 
   it('renders a Budgets section with per-budget progress', async () => {
-    const store = createJournalStore(new InMemoryRepository(), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     await store.add(tx('groceries', 6000, at(10)))          // $60 spent this month
     const budgets = createBudgetsStore(/** @type {any} */ (new InMemoryRepository()))
     await budgets.add(new Budget({ category: 'groceries', limit: Money.of(10000, 'USD', 2) })) // $100
@@ -63,7 +74,7 @@ describe('<oyl-finance>', () => {
   })
 
   it('shows a + sign on income ledger rows, not on expenses', async () => {
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     await store.add(new Transaction({ occurredAt: at(9), amount: Money.of(200000, 'USD', 2), category: 'salary', direction: 'income' }))
     await store.add(new Transaction({ occurredAt: at(10), amount: Money.of(3000, 'USD', 2), category: 'dining', direction: 'expense' }))
     const el = screen(store)
@@ -77,7 +88,7 @@ describe('<oyl-finance>', () => {
   })
 
   it('deleting a transaction removes it', async () => {
-    const store = createJournalStore(new InMemoryRepository(), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     await store.add(tx('groceries', 6500, at(10)))
     const el = screen(store)
     await Promise.resolve()
@@ -96,7 +107,7 @@ describe('<oyl-finance> accounts', () => {
   it('renders an account with its this-month spend, and deletes it', async () => {
     const accounts = createAccountsStore(new InMemoryRepository())
     const acc = await accounts.add(new Account({ name: 'Checking', currency: 'USD' }))
-    const store = createJournalStore(new InMemoryRepository(), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     await store.add(new Transaction({ occurredAt: at(10), amount: Money.of(6500, 'USD', 2), category: 'groceries', direction: 'expense', accountId: acc.id }))
     const el = screen(store, undefined, accounts)
     await Promise.resolve()
@@ -115,7 +126,7 @@ describe('<oyl-finance> accounts', () => {
 
   it('adds an account via the inline form', async () => {
     const accounts = createAccountsStore(new InMemoryRepository())
-    const store = createJournalStore(new InMemoryRepository(), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     const el = screen(store, undefined, accounts)
     await Promise.resolve()
     const fr = /** @type {any} */ (root(el).querySelector('oyl-account-form')).shadowRoot
@@ -127,7 +138,7 @@ describe('<oyl-finance> accounts', () => {
   })
 
   it('shows the empty state when there are no accounts', async () => {
-    const store = createJournalStore(new InMemoryRepository(), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     const el = screen(store)
     await Promise.resolve()
     expect(root(el).textContent).toContain('No accounts yet.')
@@ -137,7 +148,7 @@ describe('<oyl-finance> accounts', () => {
   it('shows the account name on a ledger row, and nothing for cash/unknown', async () => {
     const accounts = createAccountsStore(/** @type {any} */ (new InMemoryRepository()))
     const acc = await accounts.add(new Account({ name: 'Checking', currency: 'USD' }))
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     await store.add(new Transaction({ occurredAt: at(9), amount: Money.of(6500, 'USD', 2), category: 'groceries', direction: 'expense', account: { id: acc.id, currency: 'USD' } }))
     await store.add(new Transaction({ occurredAt: at(10), amount: Money.of(3000, 'USD', 2), category: 'dining', direction: 'expense' }))
     const el = screen(store, undefined, accounts)
@@ -153,7 +164,7 @@ describe('<oyl-finance> accounts', () => {
   it('shows the account balance (income minus expense) as the headline, with spend below', async () => {
     const accounts = createAccountsStore(/** @type {any} */ (new InMemoryRepository()))
     const acc = await accounts.add(new Account({ name: 'Checking', currency: 'USD' }))
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     await store.add(new Transaction({ occurredAt: at(9), amount: Money.of(200000, 'USD', 2), category: 'salary', direction: 'income', account: { id: acc.id, currency: 'USD' } }))
     await store.add(new Transaction({ occurredAt: at(10), amount: Money.of(50000, 'USD', 2), category: 'groceries', direction: 'expense', account: { id: acc.id, currency: 'USD' } }))
     const el = screen(store, undefined, accounts)
@@ -179,7 +190,7 @@ describe('<oyl-finance> ledger filter', () => {
   async function seeded() {
     const accounts = createAccountsStore(/** @type {any} */ (new InMemoryRepository()))
     const acc = await accounts.add(new Account({ name: 'Checking', currency: 'USD' }))
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     await store.add(new Transaction({ occurredAt: at(9), amount: Money.of(6500, 'USD', 2), category: 'groceries', direction: 'expense', account: { id: acc.id, currency: 'USD' } }))
     await store.add(new Transaction({ occurredAt: at(10), amount: Money.of(3000, 'USD', 2), category: 'dining', direction: 'expense' }))
     return { accounts, acc, store }
@@ -231,7 +242,7 @@ describe('<oyl-finance> ledger filter', () => {
   it('shows an empty message when the filter yields nothing', async () => {
     const accounts = createAccountsStore(/** @type {any} */ (new InMemoryRepository()))
     const acc = await accounts.add(new Account({ name: 'Visa', currency: 'USD' }))
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     await store.add(new Transaction({ occurredAt: at(9), amount: Money.of(6500, 'USD', 2), category: 'groceries', direction: 'expense' }))
     const el = screen(store, undefined, accounts)
     await Promise.resolve()
@@ -242,7 +253,7 @@ describe('<oyl-finance> ledger filter', () => {
   })
 
   it('hides the filter when there are no accounts (R-A)', async () => {
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     const noAccts = screen(store)
     await Promise.resolve()
     expect(/** @type {any} */ (root(noAccts).querySelector('select.ledger-filter')).hidden).toBe(true)

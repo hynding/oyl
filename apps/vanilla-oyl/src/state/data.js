@@ -38,7 +38,14 @@ export function createDataState(storage, themeState, opts = {}) {
       })
   const { repos } = built
   const outbox = opts.outbox ?? built.outbox
-  const journal = createJournalStore(repos.entries, opts.timezone ?? defaultTimezone())
+  const reposByKind = {
+    'note': repos.notes,
+    'consumption': repos.consumptions,
+    'transaction': repos.transactions,
+    'measurement': repos.measurements,
+    'activity-session': repos.activitySessions,
+  }
+  const journal = createJournalStore(reposByKind, opts.timezone ?? defaultTimezone())
   const planner = createPlannerStore(repos.plans)
   const vault = createVaultStore(repos)
   const goals = createGoalsStore(repos.goals)

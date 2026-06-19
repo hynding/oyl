@@ -6,6 +6,17 @@ import { defineNutritionComposer } from './oyl-nutrition-composer.js'
 
 beforeAll(() => defineNutritionComposer())
 const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+/** @returns {import('../state/journal-store.js').ReposByKind} */
+function makeReposByKind() {
+  return {
+    'note': /** @type {any} */ (new InMemoryRepository()),
+    'consumption': /** @type {any} */ (new InMemoryRepository()),
+    'transaction': /** @type {any} */ (new InMemoryRepository()),
+    'measurement': /** @type {any} */ (new InMemoryRepository()),
+    'activity-session': /** @type {any} */ (new InMemoryRepository()),
+  }
+}
 const settle = () => new Promise((r) => setTimeout(r, 0))
 /** @param {any} el @param {string} sel */
 const q = (el, sel) => /** @type {any} */ (el.shadowRoot.querySelector(sel))
@@ -22,7 +33,7 @@ function composer(store, consumables) {
 
 describe('<oyl-nutrition-composer>', () => {
   it('logs a consumption from the selected consumable with servings', async () => {
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
     const oatmeal = await consumables.add(new Consumable({ name: 'Oatmeal', nutrients: { calories: 150, protein: 5 } }))
     const el = composer(store, consumables)
@@ -41,7 +52,7 @@ describe('<oyl-nutrition-composer>', () => {
   })
 
   it('logs an ad-hoc consumption from entered nutrients', async () => {
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
     const el = composer(store, consumables)
     await settle()
@@ -61,7 +72,7 @@ describe('<oyl-nutrition-composer>', () => {
   })
 
   it('shows an error when consumable-mode is submitted with no consumable selected', async () => {
-    const store = createJournalStore(/** @type {any} */ (new InMemoryRepository()), TZ)
+    const store = createJournalStore(makeReposByKind(), TZ)
     const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
     const el = composer(store, consumables)
     await settle()
