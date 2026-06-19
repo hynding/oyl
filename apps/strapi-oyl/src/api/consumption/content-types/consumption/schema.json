@@ -1,0 +1,17 @@
+{
+  "kind": "collectionType",
+  "collectionName": "consumptions",
+  "info": { "singularName": "consumption", "pluralName": "consumptions", "displayName": "Consumption" },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "recordId": { "type": "string", "required": true, "unique": true },
+    "occurredAt": { "type": "datetime", "required": true },
+    "note": { "type": "string" },
+    "servings": { "type": "decimal" },
+    "consumableId": { "type": "string" },
+    "consumableProductId": { "type": "string" },
+    "loggedAmount": { "type": "json" },
+    "nutrients": { "type": "component", "repeatable": false, "component": "nutrition.nutrition-facts" },
+    "owner": { "type": "relation", "relation": "manyToOne", "target": "plugin::users-permissions.user" }
+  }
+}

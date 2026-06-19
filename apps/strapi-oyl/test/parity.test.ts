@@ -20,10 +20,78 @@ function attributes(schema: Record<string, unknown>): Record<string, unknown> {
   return schema['attributes'] as Record<string, unknown>
 }
 
+describe('parity: consumption schema ↔ manifest (personal kind)', () => {
+  it('kindOf("consumptions") is personal', () => {
+    expect(kindOf('consumptions')).toBe('personal')
+  })
+
+  const schema = loadSchema('consumption')
+  const attrs = attributes(schema)
+
+  it('consumption schema has recordId (required + unique string)', () => {
+    const f = attrs['recordId'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+    expect(f['required']).toBe(true)
+    expect(f['unique']).toBe(true)
+  })
+
+  it('consumption schema has occurredAt (datetime, required)', () => {
+    const f = attrs['occurredAt'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('datetime')
+    expect(f['required']).toBe(true)
+  })
+
+  it('consumption schema has servings (decimal)', () => {
+    const f = attrs['servings'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('decimal')
+  })
+
+  it('consumption schema has consumableId (string)', () => {
+    const f = attrs['consumableId'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+  })
+
+  it('consumption schema has consumableProductId (string)', () => {
+    const f = attrs['consumableProductId'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+  })
+
+  it('consumption schema has loggedAmount (json)', () => {
+    const f = attrs['loggedAmount'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('json')
+  })
+
+  it('consumption schema has nutrients component referencing nutrition.nutrition-facts', () => {
+    const f = attrs['nutrients'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('component')
+    expect(f['repeatable']).toBe(false)
+    expect(f['component']).toBe('nutrition.nutrition-facts')
+  })
+
+  it('consumption schema has owner manyToOne relation (personal shape)', () => {
+    const owner = attrs['owner'] as Record<string, unknown>
+    expect(owner).toBeDefined()
+    expect(owner['type']).toBe('relation')
+    expect(owner['relation']).toBe('manyToOne')
+    expect(owner['target']).toBe('plugin::users-permissions.user')
+  })
+
+  it('consumption schema does NOT have catalog fields (creator, visibility)', () => {
+    expect(attrs['creator']).toBeUndefined()
+    expect(attrs['visibility']).toBeUndefined()
+  })
+})
+
 describe('parity: note schema ↔ manifest (personal kind)', () => {
   it('kindOf per-kind entry collections is personal', () => {
     expect(kindOf('notes')).toBe('personal')
-    expect(kindOf('consumptions')).toBe('personal')
   })
 
   const schema = loadSchema('note')

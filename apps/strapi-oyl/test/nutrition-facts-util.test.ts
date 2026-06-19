@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeFacts, sanitizeProductRow } from '../src/utils/nutrition-facts'
+import { sanitizeFacts, sanitizeConsumptionRow, sanitizeProductRow } from '../src/utils/nutrition-facts'
 
 /**
  * Pure-function unit tests for sanitizeFacts — no Strapi boot required.
@@ -93,6 +93,49 @@ describe('sanitizeFacts', () => {
       const facts = result['facts'] as Record<string, unknown>
       expect(facts['calories']).toBe(350)
       expect('totalFat' in facts).toBe(false)
+    })
+  })
+
+  describe('sanitizeConsumptionRow', () => {
+    it('sanitizes the nutrients component (strips null, coerces amount strings)', () => {
+      const result = sanitizeConsumptionRow({
+        servings: 1,
+        nutrients: {
+          calories: '350',
+          protein: null,
+          servingSize: { amount: '100', unit: 'g' },
+          additional: [{ slug: 'vitamin-c', amount: '6' }],
+        },
+      })
+      const nutrients = result['nutrients'] as Record<string, unknown>
+      expect(nutrients['calories']).toBe(350)
+      expect(typeof nutrients['calories']).toBe('number')
+      expect('protein' in nutrients).toBe(false)
+      const ss = nutrients['servingSize'] as Record<string, unknown>
+      expect(ss['amount']).toBe(100)
+      expect(ss['unit']).toBe('g')
+      const additional = nutrients['additional'] as Array<Record<string, unknown>>
+      expect(additional[0]!['amount']).toBe(6)
+      expect(additional[0]!['slug']).toBe('vitamin-c')
+    })
+
+    it('coerces a string servings to a number', () => {
+      const result = sanitizeConsumptionRow({ servings: '2', nutrients: { calories: 100 } })
+      expect(result['servings']).toBe(2)
+      expect(typeof result['servings']).toBe('number')
+    })
+
+    it('preserves a fractional numeric servings (2.5 stays 2.5)', () => {
+      const result = sanitizeConsumptionRow({ servings: 2.5, nutrients: { calories: 100 } })
+      expect(result['servings']).toBe(2.5)
+    })
+
+    it('preserves absent servings without error; strips null servings (domain rejects null)', () => {
+      const noServings = sanitizeConsumptionRow({ nutrients: { calories: 100 } })
+      expect('servings' in noServings).toBe(false)
+      // null is stripped (Consumption.fromJSON rejects typeof null !== 'number'; strip = undefined)
+      const nullServings = sanitizeConsumptionRow({ servings: null, nutrients: { calories: 100 } })
+      expect('servings' in nullServings).toBe(false)
     })
   })
 

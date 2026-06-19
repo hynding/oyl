@@ -567,6 +567,47 @@ export interface ApiConsumableConsumable extends Struct.CollectionTypeSchema {
   }
 }
 
+export interface ApiConsumptionConsumption extends Struct.CollectionTypeSchema {
+  collectionName: "consumptions"
+  info: {
+    displayName: "Consumption"
+    pluralName: "consumptions"
+    singularName: "consumption"
+  }
+  options: {
+    draftAndPublish: false
+  }
+  attributes: {
+    consumableId: Schema.Attribute.String
+    consumableProductId: Schema.Attribute.String
+    createdAt: Schema.Attribute.DateTime
+    createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    locale: Schema.Attribute.String & Schema.Attribute.Private
+    localizations: Schema.Attribute.Relation<
+      "oneToMany",
+      "api::consumption.consumption"
+    > &
+      Schema.Attribute.Private
+    loggedAmount: Schema.Attribute.JSON
+    note: Schema.Attribute.String
+    nutrients: Schema.Attribute.Component<"nutrition.nutrition-facts", false>
+    occurredAt: Schema.Attribute.DateTime & Schema.Attribute.Required
+    owner: Schema.Attribute.Relation<
+      "manyToOne",
+      "plugin::users-permissions.user"
+    >
+    publishedAt: Schema.Attribute.DateTime
+    recordId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique
+    servings: Schema.Attribute.Decimal
+    updatedAt: Schema.Attribute.DateTime
+    updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+  }
+}
+
 export interface ApiNoteNote extends Struct.CollectionTypeSchema {
   collectionName: "notes"
   info: {
@@ -1154,6 +1195,7 @@ declare module "@strapi/strapi" {
       "api::activity.activity": ApiActivityActivity
       "api::consumable-product.consumable-product": ApiConsumableProductConsumableProduct
       "api::consumable.consumable": ApiConsumableConsumable
+      "api::consumption.consumption": ApiConsumptionConsumption
       "api::note.note": ApiNoteNote
       "api::oyl-record.oyl-record": ApiOylRecordOylRecord
       "plugin::content-releases.release": PluginContentReleasesRelease

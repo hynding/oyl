@@ -6,6 +6,9 @@
 /** Populate spec for strapi.documents() calls so facts (+ nested servingSize/additional) are returned. */
 export const FACTS_POPULATE = { facts: { populate: { servingSize: true, additional: true } } } as const
 
+/** Populate spec for strapi.documents() calls so nutrients (+ nested servingSize/additional) are returned. */
+export const NUTRIENTS_POPULATE = { nutrients: { populate: { servingSize: true, additional: true } } } as const
+
 /**
  * Coerce a value that might be a numeric string (Postgres returns decimal columns as strings)
  * to a JS number. Leaves genuine numbers as-is (including 0). Non-numeric strings pass through.
@@ -17,7 +20,7 @@ function coerceNumeric(v: unknown): unknown {
 }
 
 /**
- * Strip null values from a facts component object so domain decoders
+ * Strip null values from a facts/nutrients component object so domain decoders
  * (nutritionFactsFromJSON) receive `undefined` for absent fields rather than `null`.
  * Strapi stores unset decimal component columns as NULL and returns them.
  *
@@ -30,10 +33,14 @@ function coerceNumeric(v: unknown): unknown {
  *   - top-level amount fields (calories, totalFat, … waterMl)
  *   - servingSize.amount
  *   - each additional[].amount
+ *
+ * @param row - the Strapi row object
+ * @param field - which field holds the nutrition-facts component (default: 'facts')
  */
-export function sanitizeFacts(row: Record<string, unknown>): Record<string, unknown> {
-  if (row['facts'] == null) return row
-  const rawFacts = row['facts'] as Record<string, unknown>
+export function sanitizeFacts(row: Record<string, unknown>, field?: string): Record<string, unknown> {
+  const f = field ?? 'facts'
+  if (row[f] == null) return row
+  const rawFacts = row[f] as Record<string, unknown>
   const cleanFacts: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(rawFacts)) {
     if (v === null) continue
@@ -62,7 +69,7 @@ export function sanitizeFacts(row: Record<string, unknown>): Record<string, unkn
       cleanFacts[k] = coerceNumeric(v)
     }
   }
-  return { ...row, facts: cleanFacts }
+  return { ...row, [f]: cleanFacts }
 }
 
 /**
@@ -76,4 +83,27 @@ export function sanitizeProductRow(row: Record<string, unknown>): Record<string,
   const spc = r['servingsPerContainer']
   if (spc === undefined || spc === null) return r
   return { ...r, servingsPerContainer: coerceNumeric(spc) }
+}
+
+/**
+ * Sanitize a consumption row:
+ * 1. Strips top-level null scalars so domain decoders receive `undefined` for absent optional
+ *    fields (e.g. `note: null` → omitted). Domain codecs like `parseEntryBase` expect
+ *    `note === undefined || typeof note === 'string'` and throw on `null`.
+ * 2. Sanitizes the `nutrients` component (strips nulls, coerces amount decimal strings).
+ * 3. Coerces the top-level `servings` decimal string → number (Postgres can return it as
+ *    a string; `Consumption.fromJSON` throws `MALFORMED_JSON` on a non-number).
+ */
+export function sanitizeConsumptionRow(row: Record<string, unknown>): Record<string, unknown> {
+  // Strip top-level nulls (Strapi documents API returns null for all unset fields).
+  // Only strip for scalar fields; components/relations are handled separately.
+  const withoutTopLevelNulls: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(row)) {
+    if (v === null && k !== 'nutrients') continue
+    withoutTopLevelNulls[k] = v
+  }
+  const r = sanitizeFacts(withoutTopLevelNulls, 'nutrients')
+  const servings = r['servings']
+  if (servings === undefined || servings === null) return r
+  return { ...r, servings: coerceNumeric(servings) }
 }
