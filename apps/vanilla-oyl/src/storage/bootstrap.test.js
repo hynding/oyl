@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { makeRepositories, createFlusher, PATH_BY_COLLECTION } from './bootstrap.js'
-import { Note, Consumption, Consumable, entitiesByKind, manualConnectivity } from '@oyl/all-of-oyl'
+import { Note, Consumption, Consumable, Transaction, Account, Budget, Money, entitiesByKind, manualConnectivity } from '@oyl/all-of-oyl'
 import { OUTBOX_KEY } from './keys.js'
 
 function fakeStorage() {
@@ -90,15 +90,61 @@ describe('makeRepositories (online-first)', () => {
     expect(list[0].nutrients.calories).toBe(150)
   })
 
-  it('stub repos (transactions, measurements, activitySessions) list resolves [] and save does not enqueue', async () => {
+  it('transactions read path injects kind so a kind-less Strapi row decodes to a Transaction', async () => {
+    const api = fakeApi()
+    // A real Strapi relational row: numeric id + recordId (the domain id), NO `kind` discriminant.
+    // The per-kind codec is Transaction.fromJSON, whose parseEntryBase validates kind === 'transaction',
+    // so bootstrap must inject it via ROW_KIND_BY_COLLECTION.transactions → strapiRowToShape(row, { kind }).
+    // minor is ALREADY a number here — sanitizeMoney coercion runs server-side in the Strapi controller.
+    const recordId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const row = {
+      id: 7,
+      recordId,
+      occurredAt: '2026-06-10T16:00:00.000Z',
+      category: 'groceries',
+      direction: 'expense',
+      amount: { minor: 1500, currency: 'USD', exponent: 2 },
+      accountId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    }
+    api.find = async () => ({ data: [row], meta: {} })
+    const { repos } = makeRepositories(/** @type {any} */ (fakeStorage()), { api, connectivity: manualConnectivity(false) })
+    const list = await repos.transactions.list()
+    expect(list).toHaveLength(1)
+    expect(list[0]).toBeInstanceOf(Transaction)
+    expect(list[0].id).toBe(recordId)
+    expect(list[0].amount.minor).toBe(1500)
+  })
+
+  it('accounts save enqueues to the outbox (no network)', async () => {
+    const storage = fakeStorage()
+    const api = fakeApi()
+    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    await repos.accounts.save(new Account({ name: 'Checking', currency: 'USD' }))
+    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    expect(outbox).toHaveLength(1)
+    expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.accounts, op: 'save' })
+    expect(api.calls).toHaveLength(0)
+  })
+
+  it('budgets save enqueues to the outbox (no network)', async () => {
+    const storage = fakeStorage()
+    const api = fakeApi()
+    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    await repos.budgets.save(new Budget({ category: 'groceries', limit: Money.of(10000, 'USD', 2) }))
+    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    expect(outbox).toHaveLength(1)
+    expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.budgets, op: 'save' })
+    expect(api.calls).toHaveLength(0)
+  })
+
+  it('stub repos (measurements, activitySessions) list resolves [] and save does not enqueue', async () => {
     const storage = fakeStorage()
     const { repos } = makeRepositories(/** @type {any} */ (storage), { api: fakeApi(), connectivity: manualConnectivity(false) })
-    expect(await repos.transactions.list()).toEqual([])
     expect(await repos.measurements.list()).toEqual([])
     expect(await repos.activitySessions.list()).toEqual([])
     // emptyRepo save returns the item but does NOT enqueue to the outbox
     const note = new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'stub test' })
-    const saved = await repos.transactions.save(/** @type {any} */ (note))
+    const saved = await repos.measurements.save(/** @type {any} */ (note))
     expect(saved).toBe(note)
     const outbox = JSON.parse(storage.getItem(OUTBOX_KEY) ?? 'null')
     expect(outbox).toBeNull() // no outbox entry written by stub repos

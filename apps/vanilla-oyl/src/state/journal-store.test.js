@@ -161,6 +161,32 @@ describe('createJournalStore', () => {
     expect(store.consumptionsOn(dayOf())).toHaveLength(1)
   })
 
+  it('adding a Transaction saves to reposByKind.transaction and NOT to other repos', async () => {
+    const { reposByKind, noteRepo, consumptionRepo, transactionRepo, measurementRepo, activitySessionRepo } = makeReposByKind()
+    const store = createJournalStore(reposByKind, TZ)
+    await store.add(new Transaction({ occurredAt: new Date(ISO), amount: Money.of(6500, 'USD', 2), category: 'groceries', direction: 'expense' }))
+    expect(await transactionRepo.list()).toHaveLength(1)
+    expect(await noteRepo.list()).toHaveLength(0)
+    expect(await consumptionRepo.list()).toHaveLength(0)
+    expect(await measurementRepo.list()).toHaveLength(0)
+    expect(await activitySessionRepo.list()).toHaveLength(0)
+  })
+
+  it('a negative-amount refund Transaction round-trips through the store and appears in transactionsIn', async () => {
+    const { reposByKind, transactionRepo } = makeReposByKind()
+    const store = createJournalStore(reposByKind, TZ)
+    const refund = new Transaction({ occurredAt: new Date(ISO), amount: Money.usd(-1500), category: 'groceries', direction: 'expense' })
+    await store.add(refund)
+    const range = DayRange.of(dayOf(), dayOf())
+    const txs = store.transactionsIn(range)
+    expect(txs).toHaveLength(1)
+    expect(txs[0]?.amount.minor).toBe(-1500)
+    expect(txs[0]?.direction).toBe('expense')
+    const persisted = /** @type {Transaction[]} */ (await transactionRepo.list())
+    expect(persisted).toHaveLength(1)
+    expect(persisted[0]?.amount.minor).toBe(-1500)
+  })
+
   it('remove(id) of a consumption deletes from reposByKind.consumption and leaves others untouched', async () => {
     const { reposByKind, noteRepo, consumptionRepo } = makeReposByKind()
     const store = createJournalStore(reposByKind, TZ)
