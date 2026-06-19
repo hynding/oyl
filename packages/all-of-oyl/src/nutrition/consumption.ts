@@ -2,7 +2,7 @@ import { DomainError } from '../core/domain-error.js'
 import { Entry, entryBaseJSON, parseEntryBase } from '../core/entry.js'
 import { Id } from '../core/id.js'
 import { MetricKey } from '../core/metric-key.js'
-import { NUTRIENT_METRICS, type Nutrients, assertNutrients, nutrientsFromJSON, nutrientsToJSON } from './nutrients.js'
+import { NUTRIENT_METRICS, type NutritionFacts, assertNutritionFacts, nutritionFactsFromJSON, nutritionFactsToJSON } from './nutrients.js'
 
 /**
  * Something you ate or drank. Always STORES its per-serving nutrients — a
@@ -11,8 +11,10 @@ import { NUTRIENT_METRICS, type Nutrients, assertNutrients, nutrientsFromJSON, n
  */
 export class Consumption extends Entry {
   readonly consumableId?: Id
+  readonly consumableProductId?: Id
   readonly servings: number
-  readonly nutrients: Nutrients
+  readonly nutrients: NutritionFacts
+  readonly loggedAmount?: { amount: number; unit: string }
   /** Tolerant reader: unknown JSON fields preserved through round-trips. Only ever spread into fresh object literals — never Object.assign or bracket-assign onto an existing object (prototype-pollution guard). */
   private readonly extra: Record<string, unknown>
 
@@ -22,17 +24,21 @@ export class Consumption extends Entry {
       occurredAt: Date
       note?: string
       /** Catalog provenance + default nutrient source. */
-      consumable?: { id: Id; nutrients: Nutrients }
+      consumable?: { id: Id; nutrients: NutritionFacts }
       /** Bare provenance when reviving without the catalog at hand. */
       consumableId?: Id
+      /** Bare product provenance. */
+      consumableProductId?: Id
       /** Explicit per-serving nutrients (ad-hoc logging, or overrides the consumable's). */
-      nutrients?: Nutrients
+      nutrients?: NutritionFacts
       /** Defaults to 1. */
       servings?: number
+      /** The measured amount that was logged (e.g. 250 g). */
+      loggedAmount?: { amount: number; unit: string }
     },
     extra: Record<string, unknown> = {},
   ) {
-    const { consumable, consumableId, nutrients, servings = 1, ...base } = props
+    const { consumable, consumableId, consumableProductId, nutrients, servings = 1, loggedAmount, ...base } = props
     super('consumption', base)
     const resolved = nutrients ?? consumable?.nutrients
     if (resolved === undefined) {
@@ -46,8 +52,10 @@ export class Consumption extends Entry {
     }
     const provenance = consumable?.id ?? consumableId
     if (provenance !== undefined) this.consumableId = provenance
+    if (consumableProductId !== undefined) this.consumableProductId = consumableProductId
     this.servings = servings
-    this.nutrients = { ...assertNutrients(resolved) }
+    this.nutrients = { ...assertNutritionFacts(resolved) }
+    if (loggedAmount !== undefined) this.loggedAmount = { amount: loggedAmount.amount, unit: loggedAmount.unit }
     this.extra = extra
   }
 
@@ -65,16 +73,21 @@ export class Consumption extends Entry {
       ...this.extra,
       ...entryBaseJSON(this),
       ...(this.consumableId !== undefined ? { consumableId: this.consumableId } : {}),
+      ...(this.consumableProductId !== undefined ? { consumableProductId: this.consumableProductId } : {}),
       servings: this.servings,
-      nutrients: nutrientsToJSON(this.nutrients),
+      nutrients: nutritionFactsToJSON(this.nutrients),
+      ...(this.loggedAmount !== undefined ? { loggedAmount: { amount: this.loggedAmount.amount, unit: this.loggedAmount.unit } } : {}),
     }
   }
 
   static fromJSON(shape: unknown): Consumption {
     const base = parseEntryBase(shape, 'consumption')
-    const { consumableId, servings, nutrients, ...extra } = base.rest
+    const { consumableId, consumableProductId, servings, nutrients, loggedAmount, ...extra } = base.rest
     if (typeof servings !== 'number' || nutrients === undefined || (consumableId !== undefined && typeof consumableId !== 'string')) {
       throw new DomainError('MALFORMED_JSON', 'not a consumption shape')
+    }
+    if (consumableProductId !== undefined && typeof consumableProductId !== 'string') {
+      throw new DomainError('MALFORMED_JSON', 'consumableProductId must be a string')
     }
     let parsedConsumableId: Id | undefined
     try {
@@ -82,14 +95,33 @@ export class Consumption extends Entry {
     } catch {
       throw new DomainError('MALFORMED_JSON', `consumption has a malformed consumableId: "${consumableId}"`)
     }
+    let parsedConsumableProductId: Id | undefined
+    try {
+      parsedConsumableProductId = consumableProductId !== undefined ? Id.of(consumableProductId) : undefined
+    } catch {
+      throw new DomainError('MALFORMED_JSON', `consumption has a malformed consumableProductId: "${consumableProductId}"`)
+    }
+    let parsedLoggedAmount: { amount: number; unit: string } | undefined
+    if (loggedAmount !== undefined) {
+      if (typeof loggedAmount !== 'object' || loggedAmount === null) {
+        throw new DomainError('MALFORMED_JSON', 'loggedAmount must be an object')
+      }
+      const la = loggedAmount as Record<string, unknown>
+      if (typeof la['amount'] !== 'number' || typeof la['unit'] !== 'string') {
+        throw new DomainError('MALFORMED_JSON', 'loggedAmount must have numeric amount and string unit')
+      }
+      parsedLoggedAmount = { amount: la['amount'], unit: la['unit'] }
+    }
     const meal = new Consumption(
       {
         id: base.id,
         occurredAt: base.occurredAt,
         ...(base.note !== undefined ? { note: base.note } : {}),
         ...(parsedConsumableId !== undefined ? { consumableId: parsedConsumableId } : {}),
-        nutrients: nutrientsFromJSON(nutrients),
+        ...(parsedConsumableProductId !== undefined ? { consumableProductId: parsedConsumableProductId } : {}),
+        nutrients: nutritionFactsFromJSON(nutrients),
         servings,
+        ...(parsedLoggedAmount !== undefined ? { loggedAmount: parsedLoggedAmount } : {}),
       },
       extra,
     )

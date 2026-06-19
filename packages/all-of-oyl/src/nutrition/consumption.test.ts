@@ -103,4 +103,110 @@ describe('Consumption', () => {
       expect((caught as DomainError)?.code).toBe('MALFORMED_JSON')
     }
   })
+
+  it('round-trips consumableProductId and loggedAmount', () => {
+    const productId = Id.of('00000000-0000-4000-8000-000000000202')
+    const meal = new Consumption({
+      id: Id.of('00000000-0000-4000-8000-000000000201'),
+      occurredAt: when,
+      nutrients: { calories: 200, protein: 10, totalFat: 5, sodium: 150 },
+      servings: 2,
+      consumableProductId: productId,
+      loggedAmount: { amount: 250, unit: 'g' },
+    })
+    expect(meal.consumableProductId).toBe(productId)
+    expect(meal.loggedAmount).toEqual({ amount: 250, unit: 'g' })
+    // metrics: per-serving × servings
+    expect(meal.metrics().get(key('nutrition.calories'))).toBe(400)
+    expect(meal.metrics().get(key('nutrition.protein'))).toBe(20)
+
+    // round-trip
+    const revived = Consumption.fromJSON(meal.toJSON())
+    expect(revived.consumableProductId?.value).toBe(productId.value)
+    expect(revived.loggedAmount).toEqual({ amount: 250, unit: 'g' })
+    expect(revived.servings).toBe(2)
+    expect(revived.metrics().get(key('nutrition.calories'))).toBe(400)
+  })
+
+  it('accepts fractional servings with consumableProductId', () => {
+    const meal = new Consumption({
+      occurredAt: when,
+      nutrients: { protein: 20 },
+      servings: 1.5,
+      consumableProductId: Id.of('00000000-0000-4000-8000-000000000203'),
+    })
+    expect(meal.servings).toBe(1.5)
+    expect(meal.metrics().get(key('nutrition.protein'))).toBeCloseTo(30)
+  })
+
+  it('throws MALFORMED_JSON on malformed consumableProductId', () => {
+    for (const shape of [
+      // non-string consumableProductId
+      {
+        kind: 'consumption',
+        id: '00000000-0000-4000-8000-000000000201',
+        occurredAt: when.toISOString(),
+        servings: 1,
+        nutrients: { calories: 100 },
+        consumableProductId: 42,
+      },
+      // unparseable string consumableProductId
+      {
+        kind: 'consumption',
+        id: '00000000-0000-4000-8000-000000000201',
+        occurredAt: when.toISOString(),
+        servings: 1,
+        nutrients: { calories: 100 },
+        consumableProductId: 'not-a-uuid',
+      },
+    ]) {
+      let caught: unknown
+      try {
+        Consumption.fromJSON(shape)
+      } catch (e) {
+        caught = e
+      }
+      expect((caught as DomainError)?.code).toBe('MALFORMED_JSON')
+    }
+  })
+
+  it('throws MALFORMED_JSON on malformed loggedAmount', () => {
+    for (const shape of [
+      // amount is not a number
+      {
+        kind: 'consumption',
+        id: '00000000-0000-4000-8000-000000000201',
+        occurredAt: when.toISOString(),
+        servings: 1,
+        nutrients: { calories: 100 },
+        loggedAmount: { amount: 'x', unit: 'g' },
+      },
+      // unit is not a string
+      {
+        kind: 'consumption',
+        id: '00000000-0000-4000-8000-000000000201',
+        occurredAt: when.toISOString(),
+        servings: 1,
+        nutrients: { calories: 100 },
+        loggedAmount: { amount: 100, unit: 42 },
+      },
+      // not an object
+      {
+        kind: 'consumption',
+        id: '00000000-0000-4000-8000-000000000201',
+        occurredAt: when.toISOString(),
+        servings: 1,
+        nutrients: { calories: 100 },
+        loggedAmount: 'not-an-object',
+      },
+    ]) {
+      let caught: unknown
+      try {
+        Consumption.fromJSON(shape)
+      } catch (e) {
+        caught = e
+      }
+      expect((caught as DomainError)?.code).toBe('MALFORMED_JSON')
+    }
+  })
 })
