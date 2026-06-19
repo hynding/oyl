@@ -53,6 +53,11 @@ export type Seed = {
   consumableProducts: Record<string, unknown>[]
   accounts: Record<string, unknown>[]
   entries: Record<string, unknown>[]
+  notes: Record<string, unknown>[]
+  consumptions: Record<string, unknown>[]
+  transactions: Record<string, unknown>[]
+  measurements: Record<string, unknown>[]
+  activitySessions: Record<string, unknown>[]
   goals: Record<string, unknown>[]
   budgets: Record<string, unknown>[]
   plans: Record<string, unknown>[]
@@ -231,6 +236,11 @@ export function makeSeed(): Seed {
     consumableProducts: [],
     accounts: [checking.toJSON()],
     entries: entries.map((e) => e.toJSON()),
+    notes: [],
+    consumptions: [],
+    transactions: [],
+    measurements: [],
+    activitySessions: [],
     goals: [calorieGoal.toJSON(), runGoal.toJSON(), sleepGoal.toJSON(), weightGoal.toJSON()],
     budgets: [groceryBudget.toJSON()],
     plans: [wateredLate.toJSON(), wateringNext.toJSON(), taxes.toJSON(), projectDone.toJSON(), projectOpen.toJSON(), dentist.toJSON(), mealTomorrow.toJSON(), mealLater.toJSON()],

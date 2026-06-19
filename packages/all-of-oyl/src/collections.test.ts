@@ -19,6 +19,22 @@ describe('entity kind', () => {
     expect(kindOf('connections')).toBe('system')
     expect(kindOf('grants')).toBe('system')
   })
+  it('per-kind entry collections exist and are personal', () => {
+    expect(COLLECTIONS.notes).toBeDefined()
+    expect(kindOf('notes')).toBe('personal')
+    expect(COLLECTIONS.consumptions).toBeDefined()
+    expect(kindOf('consumptions')).toBe('personal')
+    expect(COLLECTIONS.transactions).toBeDefined()
+    expect(kindOf('transactions')).toBe('personal')
+    expect(COLLECTIONS.measurements).toBeDefined()
+    expect(kindOf('measurements')).toBe('personal')
+    expect(COLLECTIONS.activitySessions).toBeDefined()
+    expect(kindOf('activitySessions')).toBe('personal')
+  })
+  it('entries alias still exists as personal (deprecated, removed in Task 8)', () => {
+    expect(COLLECTIONS.entries).toBeDefined()
+    expect(kindOf('entries')).toBe('personal')
+  })
   it('every collection has a kind', () => {
     for (const name of Object.keys(COLLECTIONS)) expect(['catalog','personal','system']).toContain(kindOf(/** @type any */(name as CollectionName)))
   })

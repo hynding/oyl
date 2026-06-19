@@ -2,9 +2,14 @@ import { reviveEntry, revivePlan } from './index.js'
 import { User } from './user/user.js'
 import { LifeArea } from './core/life-area.js'
 import { Activity } from './activity/activity.js'
+import { ActivitySession } from './activity/activity-session.js'
 import { Consumable } from './nutrition/consumable.js'
 import { ConsumableProduct } from './nutrition/consumable-product.js'
+import { Consumption } from './nutrition/consumption.js'
 import { Account } from './finance/account.js'
+import { Transaction } from './finance/transaction.js'
+import { Note } from './track/note.js'
+import { Measurement } from './track/measurement.js'
 import { Goal } from './goal/goal.js'
 import { Budget } from './goal/budget.js'
 import { Project } from './plan/project.js'
@@ -42,6 +47,11 @@ export const COLLECTIONS = {
   consumableProducts: classCodec(ConsumableProduct.fromJSON),
   accounts: classCodec(Account.fromJSON),
   entries: { toJSON: (e: { toJSON(): unknown }) => e.toJSON(), fromJSON: reviveEntry },
+  notes: classCodec(Note.fromJSON),
+  consumptions: classCodec(Consumption.fromJSON),
+  transactions: classCodec(Transaction.fromJSON),
+  measurements: classCodec(Measurement.fromJSON),
+  activitySessions: classCodec(ActivitySession.fromJSON),
   goals: classCodec(Goal.fromJSON),
   budgets: classCodec(Budget.fromJSON),
   plans: { toJSON: (p: { toJSON(): unknown }) => p.toJSON(), fromJSON: revivePlan },
@@ -64,7 +74,10 @@ export type EntityKind = 'catalog' | 'personal' | 'system'
 export const KINDS: Record<CollectionName, EntityKind> = {
   users: 'personal', lifeAreas: 'catalog', activities: 'catalog', consumables: 'catalog',
   consumableProducts: 'catalog',
-  accounts: 'personal', entries: 'personal', goals: 'personal', budgets: 'personal',
+  accounts: 'personal', entries: 'personal',
+  notes: 'personal', consumptions: 'personal', transactions: 'personal',
+  measurements: 'personal', activitySessions: 'personal',
+  goals: 'personal', budgets: 'personal',
   plans: 'personal', projects: 'personal', dayPlans: 'personal', documents: 'personal',
   possessions: 'personal', subscriptions: 'personal', contacts: 'personal', giftIdeas: 'personal',
   connections: 'system', grants: 'system',
