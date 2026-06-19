@@ -1,0 +1,24 @@
+{
+  "kind": "collectionType",
+  "collectionName": "consumable_products",
+  "info": {
+    "singularName": "consumable-product",
+    "pluralName": "consumable-products",
+    "displayName": "Consumable Product"
+  },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "recordId": { "type": "string", "required": true, "unique": true },
+    "name": { "type": "string", "required": true },
+    "consumableId": { "type": "string" },
+    "upc": { "type": "string", "unique": true },
+    "brand": { "type": "string" },
+    "netWeight": { "type": "json" },
+    "servingsPerContainer": { "type": "decimal" },
+    "facts": { "type": "component", "repeatable": false, "component": "nutrition.nutrition-facts" },
+    "ingredients": { "type": "json" },
+    "allergens": { "type": "json" },
+    "creator": { "type": "relation", "relation": "manyToOne", "target": "plugin::users-permissions.user" },
+    "visibility": { "type": "enumeration", "enum": ["private", "public"], "default": "private" }
+  }
+}
