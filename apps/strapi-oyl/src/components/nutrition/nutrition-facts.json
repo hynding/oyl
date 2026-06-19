@@ -22,9 +22,7 @@
     "iron": { "type": "decimal" },
     "potassium": { "type": "decimal" },
     "waterMl": { "type": "decimal" },
-    "servingSizeAmount": { "type": "decimal" },
-    "servingSizeUnit": { "type": "string" },
-    "householdMeasure": { "type": "string" },
+    "servingSize": { "type": "component", "repeatable": false, "component": "nutrition.serving-size" },
     "ingredients": { "type": "json" },
     "allergens": { "type": "json" },
     "additional": { "type": "component", "repeatable": true, "component": "nutrition.additional-nutrient" }

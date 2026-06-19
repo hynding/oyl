@@ -1,0 +1,13 @@
+{
+  "collectionName": "components_nutrition_serving_sizes",
+  "info": {
+    "displayName": "Serving Size",
+    "description": "A serving size mirroring the domain ServingSize: amount + unit (+ optional household measure)."
+  },
+  "options": {},
+  "attributes": {
+    "amount": { "type": "decimal", "required": true },
+    "unit": { "type": "string", "required": true },
+    "household": { "type": "string" }
+  }
+}
