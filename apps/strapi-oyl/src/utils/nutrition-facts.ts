@@ -64,3 +64,16 @@ export function sanitizeFacts(row: Record<string, unknown>): Record<string, unkn
   }
   return { ...row, facts: cleanFacts }
 }
+
+/**
+ * Like `sanitizeFacts`, but for `consumable-product` rows: also coerces the top-level
+ * `servingsPerContainer` decimal (Postgres can return it as a string, and
+ * `ConsumableProduct.fromJSON` would drop a non-number). Leaves null/undefined as-is
+ * (the domain codec treats them as absent).
+ */
+export function sanitizeProductRow(row: Record<string, unknown>): Record<string, unknown> {
+  const r = sanitizeFacts(row)
+  const spc = r['servingsPerContainer']
+  if (spc === undefined || spc === null) return r
+  return { ...r, servingsPerContainer: coerceNumeric(spc) }
+}

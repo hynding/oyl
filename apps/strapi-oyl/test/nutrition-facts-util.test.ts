@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeFacts } from '../src/utils/nutrition-facts'
+import { sanitizeFacts, sanitizeProductRow } from '../src/utils/nutrition-facts'
 
 /**
  * Pure-function unit tests for sanitizeFacts — no Strapi boot required.
@@ -65,6 +65,35 @@ describe('sanitizeFacts', () => {
     const row = { name: 'foo', facts: null }
     const result = sanitizeFacts(row as Record<string, unknown>)
     expect(result).toEqual(row)
+  })
+
+  describe('sanitizeProductRow', () => {
+    it('coerces a top-level servingsPerContainer decimal string to a number', () => {
+      const result = sanitizeProductRow({ name: 'p', servingsPerContainer: '12' })
+      expect(result['servingsPerContainer']).toBe(12)
+      expect(typeof result['servingsPerContainer']).toBe('number')
+    })
+
+    it('preserves a numeric servingsPerContainer (including fractional)', () => {
+      const result = sanitizeProductRow({ servingsPerContainer: 2.5 })
+      expect(result['servingsPerContainer']).toBe(2.5)
+    })
+
+    it('leaves a null/absent servingsPerContainer alone', () => {
+      expect(sanitizeProductRow({ servingsPerContainer: null })['servingsPerContainer']).toBeNull()
+      expect('servingsPerContainer' in sanitizeProductRow({ name: 'p' })).toBe(false)
+    })
+
+    it('also sanitizes the facts component on a product row', () => {
+      const result = sanitizeProductRow({
+        servingsPerContainer: '3',
+        facts: { calories: '350', totalFat: null },
+      })
+      expect(result['servingsPerContainer']).toBe(3)
+      const facts = result['facts'] as Record<string, unknown>
+      expect(facts['calories']).toBe(350)
+      expect('totalFat' in facts).toBe(false)
+    })
   })
 
   it('handles a full mixed payload: strips nulls, coerces strings, preserves numbers and strings', () => {
