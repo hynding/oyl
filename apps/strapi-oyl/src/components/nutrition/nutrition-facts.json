@@ -1,0 +1,32 @@
+{
+  "collectionName": "components_nutrition_nutrition_facts",
+  "info": {
+    "displayName": "Nutrition Facts",
+    "description": "FDA nutrition facts: mandatory typed columns + extensible additional nutrients. ingredients/allergens are json string-lists for now (could become repeatable components later)."
+  },
+  "options": {},
+  "attributes": {
+    "calories": { "type": "decimal" },
+    "totalFat": { "type": "decimal" },
+    "saturatedFat": { "type": "decimal" },
+    "transFat": { "type": "decimal" },
+    "cholesterol": { "type": "decimal" },
+    "sodium": { "type": "decimal" },
+    "totalCarbohydrate": { "type": "decimal" },
+    "dietaryFiber": { "type": "decimal" },
+    "totalSugars": { "type": "decimal" },
+    "addedSugars": { "type": "decimal" },
+    "protein": { "type": "decimal" },
+    "vitaminD": { "type": "decimal" },
+    "calcium": { "type": "decimal" },
+    "iron": { "type": "decimal" },
+    "potassium": { "type": "decimal" },
+    "waterMl": { "type": "decimal" },
+    "servingSizeAmount": { "type": "decimal" },
+    "servingSizeUnit": { "type": "string" },
+    "householdMeasure": { "type": "string" },
+    "ingredients": { "type": "json" },
+    "allergens": { "type": "json" },
+    "additional": { "type": "component", "repeatable": true, "component": "nutrition.additional-nutrient" }
+  }
+}

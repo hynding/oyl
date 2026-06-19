@@ -1,0 +1,12 @@
+{
+  "collectionName": "components_nutrition_additional_nutrients",
+  "info": {
+    "displayName": "Additional Nutrient",
+    "description": "An extensible nutrient (registry slug + canonical-unit amount)."
+  },
+  "options": {},
+  "attributes": {
+    "slug": { "type": "string", "required": true },
+    "amount": { "type": "decimal", "required": true }
+  }
+}
