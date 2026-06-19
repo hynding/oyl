@@ -147,6 +147,90 @@ describe('consumable-product content-type — UPC dedup + catalog visibility (bo
     expect(aList.some((r: any) => r.recordId === recId)).toBe(true)
   })
 
+  // --- PUT path tests ---
+
+  it('PUT with a new upc creates a public row visible to others', async () => {
+    const upc = `put-new-upc-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const recIdA = crypto.randomUUID()
+
+    // A PUTs a product with a fresh UPC
+    const res = await putProduct(jwtA, recIdA, {
+      name: `PUT UPC Product ${upc}`,
+      consumableId: crypto.randomUUID(),
+      upc,
+    })
+    expect([200, 201]).toContain(res.status)
+    const body = (await res.json()) as { data: { recordId: string; upc: string } }
+    expect(body.data.recordId).toBe(recIdA)
+    expect(body.data.upc).toBe(upc)
+
+    // B should see it in the list (UPC products are public)
+    const bList = await listProducts(jwtB)
+    expect(bList.some((r: any) => r.upc === upc)).toBe(true)
+  })
+
+  it('PUT dedup convergence + non-mutation: B PUT same upc returns existing row, name unchanged', async () => {
+    const upc = `put-dedup-upc-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const recIdA = crypto.randomUUID()
+    const recIdB = crypto.randomUUID()
+
+    // A PUTs a product with this UPC first
+    const resA = await putProduct(jwtA, recIdA, {
+      name: 'Original',
+      consumableId: crypto.randomUUID(),
+      upc,
+    })
+    expect([200, 201]).toContain(resA.status)
+    const bodyA = (await resA.json()) as { data: { recordId: string; name: string } }
+    const originalRecordId = bodyA.data.recordId
+    expect(originalRecordId).toBe(recIdA)
+
+    // B PUTs a DIFFERENT recordId with the SAME upc but a different name
+    const resB = await putProduct(jwtB, recIdB, {
+      name: 'Changed',
+      consumableId: crypto.randomUUID(),
+      upc,
+    })
+    expect([200, 201]).toContain(resB.status)
+    const bodyB = (await resB.json()) as { data: { recordId: string; name: string } }
+    // (a) The response recordId equals A's original row, NOT B's
+    expect(bodyB.data.recordId).toBe(originalRecordId)
+    // (b) first-write-wins: name is still 'Original', not 'Changed'
+    expect(bodyB.data.name).toBe('Original')
+
+    // Exactly ONE row carries that upc (no duplicate)
+    const aList = await listProducts(jwtA)
+    const matches = aList.filter((r: any) => r.upc === upc)
+    expect(matches).toHaveLength(1)
+  })
+
+  it('PUT non-UPC cross-creator is refused (404); original row unchanged', async () => {
+    const recIdA = `put-private-${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+    // A creates a non-UPC (private) product
+    const resA = await createProduct(jwtA, {
+      recordId: recIdA,
+      name: 'A Private Product',
+      consumableId: crypto.randomUUID(),
+      // no upc — private
+    })
+    expect(resA.status).toBe(201)
+
+    // B PUTs A's recordId with no upc → must be refused with 404
+    const resB = await putProduct(jwtB, recIdA, {
+      name: 'B Hijack Attempt',
+      consumableId: crypto.randomUUID(),
+      // no upc
+    })
+    expect(resB.status).toBe(404)
+
+    // A's row is unchanged: A can still read it and the name is 'A Private Product'
+    const getRes = await getProduct(jwtA, recIdA)
+    expect(getRes.status).toBe(200)
+    const getBody = (await getRes.json()) as { data: { name: string } }
+    expect(getBody.data.name).toBe('A Private Product')
+  })
+
   it('facts override + netWeight + consumableId round-trip: ConsumableProduct.fromJSON decodes correctly', async () => {
     const recId = crypto.randomUUID()
     const consumableId = crypto.randomUUID()
