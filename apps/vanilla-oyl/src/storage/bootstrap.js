@@ -72,7 +72,7 @@ export const ROW_KIND_BY_COLLECTION = {
  * Others get `emptyRepo()` so their stores boot without hitting nonexistent endpoints.
  * @type {Set<CollectionName>}
  */
-const BACKED = new Set(/** @type {CollectionName[]} */ (['notes', 'consumptions', 'accounts', 'transactions', 'budgets']))
+const BACKED = new Set(/** @type {CollectionName[]} */ (['notes', 'consumptions', 'accounts', 'transactions', 'budgets', 'measurements']))
 
 /** A UUID source for outbox mutation ids. @returns {string} */
 function newId() {

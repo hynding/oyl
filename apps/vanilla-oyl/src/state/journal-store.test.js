@@ -172,6 +172,17 @@ describe('createJournalStore', () => {
     expect(await activitySessionRepo.list()).toHaveLength(0)
   })
 
+  it('adding a Measurement saves to reposByKind.measurement and NOT to other repos', async () => {
+    const { reposByKind, noteRepo, consumptionRepo, transactionRepo, measurementRepo, activitySessionRepo } = makeReposByKind()
+    const store = createJournalStore(reposByKind, TZ)
+    await store.add(new Measurement({ occurredAt: new Date(ISO), metric: 'body.weight_kg', value: 82.5 }))
+    expect(await measurementRepo.list()).toHaveLength(1)
+    expect(await noteRepo.list()).toHaveLength(0)
+    expect(await consumptionRepo.list()).toHaveLength(0)
+    expect(await transactionRepo.list()).toHaveLength(0)
+    expect(await activitySessionRepo.list()).toHaveLength(0)
+  })
+
   it('a negative-amount refund Transaction round-trips through the store and appears in transactionsIn', async () => {
     const { reposByKind, transactionRepo } = makeReposByKind()
     const store = createJournalStore(reposByKind, TZ)

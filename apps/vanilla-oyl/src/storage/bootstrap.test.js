@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { makeRepositories, createFlusher, PATH_BY_COLLECTION } from './bootstrap.js'
-import { Note, Consumption, Consumable, Transaction, Account, Budget, Money, entitiesByKind, manualConnectivity } from '@oyl/all-of-oyl'
+import { Note, Consumption, Consumable, Transaction, Account, Budget, Money, Measurement, entitiesByKind, manualConnectivity } from '@oyl/all-of-oyl'
 import { OUTBOX_KEY } from './keys.js'
 
 function fakeStorage() {
@@ -137,17 +137,51 @@ describe('makeRepositories (online-first)', () => {
     expect(api.calls).toHaveLength(0)
   })
 
-  it('stub repos (measurements, activitySessions) list resolves [] and save does not enqueue', async () => {
+  it('stub repos (activitySessions) list resolves [] and save does not enqueue', async () => {
     const storage = fakeStorage()
     const { repos } = makeRepositories(/** @type {any} */ (storage), { api: fakeApi(), connectivity: manualConnectivity(false) })
-    expect(await repos.measurements.list()).toEqual([])
     expect(await repos.activitySessions.list()).toEqual([])
     // emptyRepo save returns the item but does NOT enqueue to the outbox
     const note = new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'stub test' })
-    const saved = await repos.measurements.save(/** @type {any} */ (note))
+    const saved = await repos.activitySessions.save(/** @type {any} */ (note))
     expect(saved).toBe(note)
     const outbox = JSON.parse(storage.getItem(OUTBOX_KEY) ?? 'null')
     expect(outbox).toBeNull() // no outbox entry written by stub repos
+  })
+
+  it('measurements read path injects kind so a kind-less Strapi row decodes to a Measurement', async () => {
+    const api = fakeApi()
+    // A real Strapi relational row: numeric id + recordId (the domain id), NO `kind` discriminant.
+    // The per-kind codec is Measurement.fromJSON, whose parseEntryBase validates kind === 'measurement',
+    // so bootstrap must inject it via ROW_KIND_BY_COLLECTION.measurements → strapiRowToShape(row, { kind }).
+    // value is a number — Strapi float returns a number, no coercion needed.
+    const recordId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+    const row = {
+      id: 7,
+      recordId,
+      occurredAt: '2026-06-10T16:00:00.000Z',
+      metric: 'body.weight_kg',
+      value: 82.5,
+    }
+    api.find = async () => ({ data: [row], meta: {} })
+    const { repos } = makeRepositories(/** @type {any} */ (fakeStorage()), { api, connectivity: manualConnectivity(false) })
+    const list = await repos.measurements.list()
+    expect(list).toHaveLength(1)
+    expect(list[0]).toBeInstanceOf(Measurement)
+    expect(list[0].id).toBe(recordId)
+    expect(list[0].metric).toBe('body.weight_kg')
+    expect(list[0].value).toBe(82.5)
+  })
+
+  it('measurements save enqueues to the outbox (no network)', async () => {
+    const storage = fakeStorage()
+    const api = fakeApi()
+    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    await repos.measurements.save(new Measurement({ occurredAt: new Date('2026-06-10T16:00:00Z'), metric: 'body.weight_kg', value: 82.5 }))
+    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    expect(outbox).toHaveLength(1)
+    expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.measurements, op: 'save' })
+    expect(api.calls).toHaveLength(0)
   })
 
   it('flush() drains the outbox via api.update (PUT by domain id) when online, then acks', async () => {
