@@ -52,7 +52,6 @@ export type Seed = {
   consumables: Record<string, unknown>[]
   consumableProducts: Record<string, unknown>[]
   accounts: Record<string, unknown>[]
-  entries: Record<string, unknown>[]
   notes: Record<string, unknown>[]
   consumptions: Record<string, unknown>[]
   transactions: Record<string, unknown>[]
@@ -235,12 +234,11 @@ export function makeSeed(): Seed {
     consumables: [oatmeal.toJSON(), chickenBowl.toJSON()],
     consumableProducts: [],
     accounts: [checking.toJSON()],
-    entries: entries.map((e) => e.toJSON()),
-    notes: [],
-    consumptions: [],
-    transactions: [],
-    measurements: [],
-    activitySessions: [],
+    notes: entries.filter((e) => e.kind === 'note').map((e) => e.toJSON()),
+    consumptions: entries.filter((e) => e.kind === 'consumption').map((e) => e.toJSON()),
+    transactions: entries.filter((e) => e.kind === 'transaction').map((e) => e.toJSON()),
+    measurements: entries.filter((e) => e.kind === 'measurement').map((e) => e.toJSON()),
+    activitySessions: entries.filter((e) => e.kind === 'activity-session').map((e) => e.toJSON()),
     goals: [calorieGoal.toJSON(), runGoal.toJSON(), sleepGoal.toJSON(), weightGoal.toJSON()],
     budgets: [groceryBudget.toJSON()],
     plans: [wateredLate.toJSON(), wateringNext.toJSON(), taxes.toJSON(), projectDone.toJSON(), projectOpen.toJSON(), dentist.toJSON(), mealTomorrow.toJSON(), mealLater.toJSON()],

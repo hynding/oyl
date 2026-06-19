@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { makeRepositories, createFlusher, PATH_BY_COLLECTION } from './bootstrap.js'
-import { Note, entitiesByKind, manualConnectivity } from '@oyl/all-of-oyl'
+import { Note, Consumption, Consumable, entitiesByKind, manualConnectivity } from '@oyl/all-of-oyl'
 import { OUTBOX_KEY } from './keys.js'
 
 function fakeStorage() {
@@ -45,16 +45,42 @@ describe('makeRepositories (online-first)', () => {
     }
   })
 
-  it('personal save enqueues to the outbox (no network)', async () => {
+  it('notes save enqueues to the outbox (no network)', async () => {
     const storage = fakeStorage()
     const api = fakeApi()
     // Offline: the save path itself only enqueues; the flusher (not save) hits the network.
     const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
-    await repos.entries.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' }))
+    await repos.notes.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' }))
     const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
     expect(outbox).toHaveLength(1)
-    expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.entries, op: 'save' })
+    expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.notes, op: 'save' })
     expect(api.calls).toHaveLength(0) // writes never hit the network directly
+  })
+
+  it('consumptions save enqueues to the outbox (no network)', async () => {
+    const storage = fakeStorage()
+    const api = fakeApi()
+    const consumable = new Consumable({ name: 'Oats', nutrients: { calories: 150, protein: 5, totalCarbohydrate: 27, totalFat: 3 } })
+    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    await repos.consumptions.save(new Consumption({ occurredAt: new Date('2026-06-10T16:00:00Z'), consumable }))
+    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    expect(outbox).toHaveLength(1)
+    expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.consumptions, op: 'save' })
+    expect(api.calls).toHaveLength(0)
+  })
+
+  it('stub repos (transactions, measurements, activitySessions) list resolves [] and save does not enqueue', async () => {
+    const storage = fakeStorage()
+    const { repos } = makeRepositories(/** @type {any} */ (storage), { api: fakeApi(), connectivity: manualConnectivity(false) })
+    expect(await repos.transactions.list()).toEqual([])
+    expect(await repos.measurements.list()).toEqual([])
+    expect(await repos.activitySessions.list()).toEqual([])
+    // emptyRepo save returns the item but does NOT enqueue to the outbox
+    const note = new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'stub test' })
+    const saved = await repos.transactions.save(/** @type {any} */ (note))
+    expect(saved).toBe(note)
+    const outbox = JSON.parse(storage.getItem(OUTBOX_KEY) ?? 'null')
+    expect(outbox).toBeNull() // no outbox entry written by stub repos
   })
 
   it('flush() drains the outbox via api.update (PUT by domain id) when online, then acks', async () => {
@@ -62,11 +88,11 @@ describe('makeRepositories (online-first)', () => {
     const api = fakeApi()
     const { repos, flush } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(true) })
     const note = new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' })
-    await repos.entries.save(note)
+    await repos.notes.save(note)
     await flush()
     expect(api.calls).toHaveLength(1)
     // save → PUT /<path>/<domainId> (upsert), NOT POST. The id is the domain id.
-    expect(api.calls[0]).toMatchObject({ op: 'update', path: PATH_BY_COLLECTION.entries, id: note.id })
+    expect(api.calls[0]).toMatchObject({ op: 'update', path: PATH_BY_COLLECTION.notes, id: note.id })
     const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
     expect(outbox).toHaveLength(0) // acked
   })
@@ -76,10 +102,10 @@ describe('makeRepositories (online-first)', () => {
     const api = fakeApi()
     const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(true) })
     const note = new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' })
-    await repos.entries.save(note) // enqueue → onEnqueue → flush (no external trigger)
+    await repos.notes.save(note) // enqueue → onEnqueue → flush (no external trigger)
     await Promise.resolve() // let the fire-and-forget flush settle
     expect(api.calls).toHaveLength(1)
-    expect(api.calls[0]).toMatchObject({ op: 'update', path: PATH_BY_COLLECTION.entries, id: note.id })
+    expect(api.calls[0]).toMatchObject({ op: 'update', path: PATH_BY_COLLECTION.notes, id: note.id })
     expect(JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))).toHaveLength(0) // acked
   })
 
@@ -87,7 +113,7 @@ describe('makeRepositories (online-first)', () => {
     const storage = fakeStorage()
     const api = fakeApi()
     const { repos, flush } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
-    await repos.entries.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' }))
+    await repos.notes.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' }))
     await flush()
     expect(api.calls).toHaveLength(0)
     const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
@@ -104,7 +130,7 @@ describe('makeRepositories (online-first)', () => {
       return data
     })
     const { repos, flush } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(true) })
-    await repos.entries.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'a' }))
+    await repos.notes.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'a' }))
     await flush()
     expect(JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))).toHaveLength(1) // retained
     fail = false

@@ -21,9 +21,8 @@ const READ_CACHE_MAX_ENTRIES = 64
 const READ_CACHE_TTL_MS = 5 * 60_000
 
 /**
- * Manifest collection → Strapi REST plural path. Phase 2 ships `entries`→`notes`
- * and `activities`→`activities`; the rest are best-guess plurals, unused until each
- * gains a backend content-type (Sub-project B). The flusher routes by this map.
+ * Manifest collection → Strapi REST plural path. The flusher routes by this map.
+ * Keys mirror COLLECTIONS exactly (exhaustive Record<CollectionName, string>).
  * @type {Record<CollectionName, string>}
  */
 export const PATH_BY_COLLECTION = {
@@ -33,7 +32,6 @@ export const PATH_BY_COLLECTION = {
   consumables: 'consumables',
   consumableProducts: 'consumable-products',
   accounts: 'accounts',
-  entries: 'notes',
   notes: 'notes',
   consumptions: 'consumptions',
   transactions: 'transactions',
@@ -54,15 +52,27 @@ export const PATH_BY_COLLECTION = {
 }
 
 /**
- * Entry-derived personal collections whose backend rows lack a `kind` discriminant and
- * are decoded by the heterogeneous reviver. The server-repo injects this `kind` after
- * `strapiRowToShape` (recordId->id) so `reviveEntry` can dispatch. Today only `notes`
- * have a backend; future Entry collections (measurements, …) slot in here.
+ * Entry-derived personal collections whose Strapi rows lack a `kind` field.
+ * `strapiRowToShape(row, { kind: rowKind })` injects it so per-kind `Class.fromJSON`
+ * can parse the shape (each calls `parseEntryBase(shape, expectedKind)` which requires
+ * the `kind` field). Documentation / forward-compat only — only BACKED collections are
+ * wired to a real server repo in this phase.
  * @type {Partial<Record<CollectionName, string>>}
  */
 export const ROW_KIND_BY_COLLECTION = {
-  entries: 'note',
+  notes: 'note',
+  consumptions: 'consumption',
+  transactions: 'transaction',
+  measurements: 'measurement',
+  activitySessions: 'activity-session',
 }
+
+/**
+ * Collections that have a live Strapi backend in this phase.
+ * Others get `emptyRepo()` so their stores boot without hitting nonexistent endpoints.
+ * @type {Set<CollectionName>}
+ */
+const BACKED = new Set(/** @type {CollectionName[]} */ (['notes', 'consumptions']))
 
 /** A UUID source for outbox mutation ids. @returns {string} */
 function newId() {
@@ -109,15 +119,19 @@ export function makeRepositories(storage, opts = {}) {
 
   const repos = /** @type {Repositories} */ ({})
   for (const name of entitiesByKind('personal')) {
-    const rowKind = ROW_KIND_BY_COLLECTION[name]
-    repos[name] = createServerPersonalRepository({
-      path: PATH_BY_COLLECTION[name],
-      codec: /** @type {any} */ (COLLECTIONS[name]),
-      api,
-      outbox,
-      cache,
-      ...(rowKind !== undefined ? { rowKind } : {}),
-    })
+    if (BACKED.has(name)) {
+      const rowKind = ROW_KIND_BY_COLLECTION[name]
+      repos[name] = createServerPersonalRepository({
+        path: PATH_BY_COLLECTION[name],
+        codec: /** @type {any} */ (COLLECTIONS[name]),
+        api,
+        outbox,
+        cache,
+        ...(rowKind !== undefined ? { rowKind } : {}),
+      })
+    } else {
+      repos[name] = emptyRepo()
+    }
   }
 
   const catalogs = /** @type {Catalogs} */ ({})

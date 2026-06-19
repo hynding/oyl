@@ -21,8 +21,9 @@ function attributes(schema: Record<string, unknown>): Record<string, unknown> {
 }
 
 describe('parity: note schema ↔ manifest (personal kind)', () => {
-  it('kindOf("entries") is personal', () => {
-    expect(kindOf('entries')).toBe('personal')
+  it('kindOf per-kind entry collections is personal', () => {
+    expect(kindOf('notes')).toBe('personal')
+    expect(kindOf('consumptions')).toBe('personal')
   })
 
   const schema = loadSchema('note')

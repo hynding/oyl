@@ -179,7 +179,7 @@ describe('data state', () => {
     // Offline so the enqueue is retained (online would flush-on-enqueue and drain it).
     const ds = createDataState(storage, createThemeState(storage), { connectivity: manualConnectivity(false) })
     expect(ds.pending.get()).toBe(0)
-    await ds.repos.entries.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' }))
+    await ds.repos.notes.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' }))
     ds.refreshPending()
     expect(ds.pending.get()).toBe(1)
   })

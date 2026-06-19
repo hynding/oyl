@@ -31,7 +31,7 @@ describe('seed', () => {
     expect(storage.getItem(SCHEMA_VERSION_KEY)).not.toBeNull()
     // loadDemoData stamps each collection under its data key (the local dev-seed surface).
     const seed = makeSeed()
-    expect(JSON.parse(/** @type {string} */ (storage.getItem(dataKey('entries')))).length).toBe(seed.entries.length)
+    expect(JSON.parse(/** @type {string} */ (storage.getItem(dataKey('notes')))).length).toBe(seed.notes.length)
     expect(JSON.parse(/** @type {string} */ (storage.getItem(dataKey('subscriptions')))).length).toBe(seed.subscriptions.length)
   })
 })

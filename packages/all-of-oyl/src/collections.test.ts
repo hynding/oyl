@@ -14,7 +14,7 @@ describe('entity kind', () => {
     expect(kindOf('activities')).toBe('catalog')
     expect(kindOf('consumables')).toBe('catalog')
     expect(kindOf('consumableProducts')).toBe('catalog')
-    expect(kindOf('entries')).toBe('personal')
+    expect(kindOf('notes')).toBe('personal')
     expect(kindOf('accounts')).toBe('personal')
     expect(kindOf('connections')).toBe('system')
     expect(kindOf('grants')).toBe('system')
@@ -31,9 +31,9 @@ describe('entity kind', () => {
     expect(COLLECTIONS.activitySessions).toBeDefined()
     expect(kindOf('activitySessions')).toBe('personal')
   })
-  it('entries alias still exists as personal (deprecated, removed in Task 8)', () => {
-    expect(COLLECTIONS.entries).toBeDefined()
-    expect(kindOf('entries')).toBe('personal')
+  it('entries alias is gone — per-kind collections cover all entry types', () => {
+    // @ts-expect-error — 'entries' is no longer a CollectionName
+    expect(COLLECTIONS['entries']).toBeUndefined()
   })
   it('every collection has a kind', () => {
     for (const name of Object.keys(COLLECTIONS)) expect(['catalog','personal','system']).toContain(kindOf(/** @type any */(name as CollectionName)))

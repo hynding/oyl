@@ -29,13 +29,13 @@ describe('backup', () => {
     const dest = fakeStorage()
     await importData(dest, JSON.stringify(doc))
     const seed = makeSeed()
-    expect(JSON.parse(/** @type {string} */ (dest.getItem(dataKey('entries')))).length).toBe(seed.entries.length)
+    expect(JSON.parse(/** @type {string} */ (dest.getItem(dataKey('notes')))).length).toBe(seed.notes.length)
     expect(dest.getItem(SCHEMA_VERSION_KEY)).not.toBeNull()
   })
 
   it('rejects a corrupt payload before writing anything', async () => {
     const dest = fakeStorage()
-    const corrupt = JSON.stringify({ schemaVersion: 1, exportedAt: 'x', collections: { entries: [{ kind: 'not-a-real-kind' }] } })
+    const corrupt = JSON.stringify({ schemaVersion: 1, exportedAt: 'x', collections: { notes: [{ kind: 'not-a-note-kind' }] } })
     await expect(importData(dest, corrupt)).rejects.toThrow()
     expect(dest.getItem(SCHEMA_VERSION_KEY)).toBeNull()
   })

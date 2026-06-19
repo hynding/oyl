@@ -1,4 +1,4 @@
-import { reviveEntry, revivePlan } from './index.js'
+import { revivePlan } from './index.js'
 import { User } from './user/user.js'
 import { LifeArea } from './core/life-area.js'
 import { Activity } from './activity/activity.js'
@@ -46,7 +46,6 @@ export const COLLECTIONS = {
   consumables: classCodec(Consumable.fromJSON),
   consumableProducts: classCodec(ConsumableProduct.fromJSON),
   accounts: classCodec(Account.fromJSON),
-  entries: { toJSON: (e: { toJSON(): unknown }) => e.toJSON(), fromJSON: reviveEntry },
   notes: classCodec(Note.fromJSON),
   consumptions: classCodec(Consumption.fromJSON),
   transactions: classCodec(Transaction.fromJSON),
@@ -74,7 +73,7 @@ export type EntityKind = 'catalog' | 'personal' | 'system'
 export const KINDS: Record<CollectionName, EntityKind> = {
   users: 'personal', lifeAreas: 'catalog', activities: 'catalog', consumables: 'catalog',
   consumableProducts: 'catalog',
-  accounts: 'personal', entries: 'personal',
+  accounts: 'personal',
   notes: 'personal', consumptions: 'personal', transactions: 'personal',
   measurements: 'personal', activitySessions: 'personal',
   goals: 'personal', budgets: 'personal',

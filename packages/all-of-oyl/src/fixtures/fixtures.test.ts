@@ -56,6 +56,7 @@ import { Connection } from '../share/connection.js'
 import { Grant } from '../share/grant.js'
 
 const seed = makeSeed()
+const allEntryShapes = [...seed.notes, ...seed.consumptions, ...seed.transactions, ...seed.measurements, ...seed.activitySessions]
 
 describe('fixtures', () => {
   it('fixtureId yields valid, stable, distinct ids', () => {
@@ -113,19 +114,19 @@ describe('fixtures', () => {
     expect(seed.activities.length).toBeGreaterThanOrEqual(2)
     expect(seed.consumables.length).toBeGreaterThanOrEqual(2)
     expect(seed.accounts).toHaveLength(1)
-    expect(seed.entries).toHaveLength(263) // deterministic: 42 days × pattern + showcase
+    expect(allEntryShapes).toHaveLength(263) // deterministic: 42 days × pattern + showcase
   })
 
   it('every seed entry revives through reviveEntry and re-serializes identically', () => {
-    const entries = seed.entries.map((shape) => reviveEntry(shape))
-    expect(entries).toHaveLength(seed.entries.length)
+    const entries = allEntryShapes.map((shape) => reviveEntry(shape))
+    expect(entries).toHaveLength(allEntryShapes.length)
     for (const entry of entries) {
       expect(reviveEntry(entry.toJSON()).toJSON()).toEqual(entry.toJSON())
     }
   })
 
   it('seed showcases the spec semantics: a refund and an ad-hoc meal', () => {
-    const entries = seed.entries.map((shape) => reviveEntry(shape))
+    const entries = allEntryShapes.map((shape) => reviveEntry(shape))
     const refund = entries.find((e) => e instanceof Transaction && e.amount.minor < 0)
     expect(refund).toBeDefined()
     const adHoc = entries.find((e) => e instanceof Consumption && e.consumableId === undefined)
@@ -133,7 +134,7 @@ describe('fixtures', () => {
   })
 
   it('seed straddles the DST transition', () => {
-    const entries = seed.entries.map((shape) => reviveEntry(shape))
+    const entries = allEntryShapes.map((shape) => reviveEntry(shape))
     const journal = new Journal(FIXTURE_TZ)
     for (const e of entries) journal.add(e)
     const dstWeekend = DayRange.of(DayKey.of('2026-03-07'), DayKey.of('2026-03-09'))
@@ -142,7 +143,7 @@ describe('fixtures', () => {
 
   it('a Journal hydrated from seed answers real questions', () => {
     const journal = new Journal(FIXTURE_TZ)
-    for (const shape of seed.entries) journal.add(reviveEntry(shape))
+    for (const shape of allEntryShapes) journal.add(reviveEntry(shape))
     const lastWeek = DayRange.of(FIXTURE_TODAY.addDays(-6), FIXTURE_TODAY)
     expect(journal.totalOf(MetricKey.of('nutrition.calories'), lastWeek)).toBeGreaterThan(0)
     expect(journal.totalOf(MetricKey.of('activity.run.minutes'), lastWeek)).toBeGreaterThan(0)
@@ -164,7 +165,7 @@ describe('fixtures', () => {
 
     // hydrate the journal once
     const journal = new Journal(FIXTURE_TZ)
-    for (const shape of seed.entries) journal.add(reviveEntry(shape))
+    for (const shape of allEntryShapes) journal.add(reviveEntry(shape))
 
     // the calorie goal is judged on FIXTURE_TODAY
     const calories = goals.find((g) => g.metric === 'nutrition.calories')!
@@ -309,7 +310,7 @@ describe('fixtures', () => {
 
   it('insights answer real questions over the seeded life', () => {
     const journal = new Journal(FIXTURE_TZ)
-    for (const shape of seed.entries) journal.add(reviveEntry(shape))
+    for (const shape of allEntryShapes) journal.add(reviveEntry(shape))
     const planner = new Planner()
     for (const shape of seed.plans) planner.add(revivePlan(shape))
     const goals = seed.goals.map((shape) => Goal.fromJSON(shape))
@@ -358,7 +359,7 @@ describe('fixtures', () => {
 
   it('Blake sees exactly what Avery granted — and the revoked grant yields nothing', () => {
     const journal = new Journal(FIXTURE_TZ)
-    for (const shape of seed.entries) journal.add(reviveEntry(shape))
+    for (const shape of allEntryShapes) journal.add(reviveEntry(shape))
     const planner = new Planner()
     for (const shape of seed.plans) planner.add(revivePlan(shape))
     planner.setDayPlan(DayPlan.fromJSON(seed.dayPlans[0]))
