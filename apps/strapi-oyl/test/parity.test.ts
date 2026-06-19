@@ -377,6 +377,62 @@ describe('parity: consumable-product schema ↔ manifest (catalog kind)', () => 
   })
 })
 
+describe('parity: budget schema ↔ manifest (personal kind)', () => {
+  it('kindOf("budgets") is personal', () => {
+    expect(kindOf('budgets')).toBe('personal')
+  })
+
+  const schema = loadSchema('budget')
+  const attrs = attributes(schema)
+
+  it('budget schema has recordId (required + unique string)', () => {
+    const f = attrs['recordId'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+    expect(f['required']).toBe(true)
+    expect(f['unique']).toBe(true)
+  })
+
+  it('budget schema has name (optional string — NOT required)', () => {
+    const f = attrs['name'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+    expect(f['required']).toBeFalsy()
+  })
+
+  it('budget schema has category (string)', () => {
+    const f = attrs['category'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+  })
+
+  it('budget schema has limit component referencing finance.money', () => {
+    const f = attrs['limit'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('component')
+    expect(f['repeatable']).toBe(false)
+    expect(f['component']).toBe('finance.money')
+  })
+
+  it('budget schema has owner manyToOne relation (personal shape)', () => {
+    const owner = attrs['owner'] as Record<string, unknown>
+    expect(owner).toBeDefined()
+    expect(owner['type']).toBe('relation')
+    expect(owner['relation']).toBe('manyToOne')
+    expect(owner['target']).toBe('plugin::users-permissions.user')
+  })
+
+  it('budget schema does NOT have catalog fields (creator, visibility)', () => {
+    expect(attrs['creator']).toBeUndefined()
+    expect(attrs['visibility']).toBeUndefined()
+  })
+
+  it('budget schema does NOT have kind or occurredAt columns', () => {
+    expect(attrs['kind']).toBeUndefined()
+    expect(attrs['occurredAt']).toBeUndefined()
+  })
+})
+
 describe('parity: transaction schema ↔ manifest (personal kind)', () => {
   it('kindOf("transactions") is personal', () => {
     expect(kindOf('transactions')).toBe('personal')

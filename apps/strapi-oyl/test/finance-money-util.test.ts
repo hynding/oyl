@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { coerceNumeric } from '../src/utils/coerce'
-import { sanitizeMoney, AMOUNT_POPULATE, LIMIT_POPULATE } from '../src/utils/finance-money'
+import { sanitizeMoney, sanitizeMoneyRow, AMOUNT_POPULATE, LIMIT_POPULATE } from '../src/utils/finance-money'
 
 /**
  * Pure-function unit tests for coerceNumeric (shared util) and finance-money helpers.
@@ -78,6 +78,48 @@ describe('sanitizeMoney', () => {
     const row = { amount: { minor: '500', currency: 'EUR', exponent: 2 }, other: 'untouched' }
     const result = sanitizeMoney(row, 'amount')
     expect(result['other']).toBe('untouched')
+  })
+})
+
+describe('sanitizeMoneyRow', () => {
+  it('sanitizeMoneyRow(row, "amount") strips top-level nulls except amount and coerces minor', () => {
+    const row: Record<string, unknown> = {
+      recordId: 'abc',
+      note: null,
+      amount: { minor: '1500', currency: 'USD', exponent: 2 },
+    }
+    const result = sanitizeMoneyRow(row, 'amount')
+    expect(result['note']).toBeUndefined()
+    expect(result['recordId']).toBe('abc')
+    const money = result['amount'] as Record<string, unknown>
+    expect(money['minor']).toBe(1500)
+    expect(typeof money['minor']).toBe('number')
+  })
+
+  it('sanitizeMoneyRow(row, "limit") strips null name, coerces limit.minor, preserves category and limit.currency', () => {
+    const row: Record<string, unknown> = {
+      recordId: 'xyz',
+      name: null,
+      category: 'groceries',
+      limit: { minor: '100000', currency: 'USD', exponent: 2 },
+    }
+    const result = sanitizeMoneyRow(row, 'limit')
+    expect(result['name']).toBeUndefined()
+    expect(result['category']).toBe('groceries')
+    expect(result['recordId']).toBe('xyz')
+    const money = result['limit'] as Record<string, unknown>
+    expect(money['minor']).toBe(100000)
+    expect(typeof money['minor']).toBe('number')
+    expect(money['currency']).toBe('USD')
+    expect(money['exponent']).toBe(2)
+  })
+
+  it('sanitizeMoneyRow preserves the money field itself even when null', () => {
+    const row: Record<string, unknown> = { name: null, limit: null }
+    const result = sanitizeMoneyRow(row, 'limit')
+    expect(result['name']).toBeUndefined()
+    // limit is null — sanitizeMoney returns row unchanged (null component is ok)
+    expect(result['limit']).toBeNull()
   })
 })
 

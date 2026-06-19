@@ -516,6 +516,43 @@ export interface ApiActivityActivity extends Struct.CollectionTypeSchema {
   }
 }
 
+export interface ApiBudgetBudget extends Struct.CollectionTypeSchema {
+  collectionName: "budgets"
+  info: {
+    displayName: "Budget"
+    pluralName: "budgets"
+    singularName: "budget"
+  }
+  options: {
+    draftAndPublish: false
+  }
+  attributes: {
+    category: Schema.Attribute.String
+    createdAt: Schema.Attribute.DateTime
+    createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    limit: Schema.Attribute.Component<"finance.money", false>
+    locale: Schema.Attribute.String & Schema.Attribute.Private
+    localizations: Schema.Attribute.Relation<
+      "oneToMany",
+      "api::budget.budget"
+    > &
+      Schema.Attribute.Private
+    name: Schema.Attribute.String
+    owner: Schema.Attribute.Relation<
+      "manyToOne",
+      "plugin::users-permissions.user"
+    >
+    publishedAt: Schema.Attribute.DateTime
+    recordId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique
+    updatedAt: Schema.Attribute.DateTime
+    updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+  }
+}
+
 export interface ApiConsumableProductConsumableProduct
   extends Struct.CollectionTypeSchema {
   collectionName: "consumable_products"
@@ -1270,6 +1307,7 @@ declare module "@strapi/strapi" {
       "admin::user": AdminUser
       "api::account.account": ApiAccountAccount
       "api::activity.activity": ApiActivityActivity
+      "api::budget.budget": ApiBudgetBudget
       "api::consumable-product.consumable-product": ApiConsumableProductConsumableProduct
       "api::consumable.consumable": ApiConsumableConsumable
       "api::consumption.consumption": ApiConsumptionConsumption

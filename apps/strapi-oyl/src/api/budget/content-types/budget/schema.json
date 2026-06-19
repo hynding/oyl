@@ -1,0 +1,35 @@
+{
+  "kind": "collectionType",
+  "collectionName": "budgets",
+  "info": {
+    "singularName": "budget",
+    "pluralName": "budgets",
+    "displayName": "Budget"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "recordId": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "limit": {
+      "type": "component",
+      "repeatable": false,
+      "component": "finance.money"
+    },
+    "owner": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    }
+  }
+}
