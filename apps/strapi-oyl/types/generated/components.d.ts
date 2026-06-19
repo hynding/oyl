@@ -15,12 +15,15 @@ export interface NutritionAdditionalNutrient extends Struct.ComponentSchema {
 export interface NutritionNutritionFacts extends Struct.ComponentSchema {
   collectionName: "components_nutrition_nutrition_facts"
   info: {
-    description: "FDA nutrition facts mirroring the domain NutritionFacts: typed amount columns + nested servingSize + extensible additional nutrients."
+    description: "FDA nutrition facts mirroring the domain NutritionFacts: typed amount columns + nested servingSize + extensible additional nutrients. (ingredients/allergens live on consumable/consumable-product, not here \u2014 Consumption has facts but no ingredients.)"
     displayName: "Nutrition Facts"
   }
   attributes: {
     addedSugars: Schema.Attribute.Decimal
-    additional: Schema.Attribute.Component<"nutrition.additional-nutrient", true>
+    additional: Schema.Attribute.Component<
+      "nutrition.additional-nutrient",
+      true
+    >
     calcium: Schema.Attribute.Decimal
     calories: Schema.Attribute.Decimal
     cholesterol: Schema.Attribute.Decimal

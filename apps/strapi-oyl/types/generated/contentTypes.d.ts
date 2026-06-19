@@ -480,6 +480,52 @@ export interface ApiActivityActivity extends Struct.CollectionTypeSchema {
   }
 }
 
+export interface ApiConsumableProductConsumableProduct
+  extends Struct.CollectionTypeSchema {
+  collectionName: "consumable_products"
+  info: {
+    displayName: "Consumable Product"
+    pluralName: "consumable-products"
+    singularName: "consumable-product"
+  }
+  options: {
+    draftAndPublish: false
+  }
+  attributes: {
+    allergens: Schema.Attribute.JSON
+    brand: Schema.Attribute.String
+    consumableId: Schema.Attribute.String
+    createdAt: Schema.Attribute.DateTime
+    createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    creator: Schema.Attribute.Relation<
+      "manyToOne",
+      "plugin::users-permissions.user"
+    >
+    facts: Schema.Attribute.Component<"nutrition.nutrition-facts", false>
+    ingredients: Schema.Attribute.JSON
+    locale: Schema.Attribute.String & Schema.Attribute.Private
+    localizations: Schema.Attribute.Relation<
+      "oneToMany",
+      "api::consumable-product.consumable-product"
+    > &
+      Schema.Attribute.Private
+    name: Schema.Attribute.String & Schema.Attribute.Required
+    netWeight: Schema.Attribute.JSON
+    publishedAt: Schema.Attribute.DateTime
+    recordId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique
+    servingsPerContainer: Schema.Attribute.Decimal
+    upc: Schema.Attribute.String & Schema.Attribute.Unique
+    updatedAt: Schema.Attribute.DateTime
+    updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    visibility: Schema.Attribute.Enumeration<["private", "public"]> &
+      Schema.Attribute.DefaultTo<"private">
+  }
+}
+
 export interface ApiConsumableConsumable extends Struct.CollectionTypeSchema {
   collectionName: "consumables"
   info: {
@@ -545,7 +591,9 @@ export interface ApiNoteNote extends Struct.CollectionTypeSchema {
       "plugin::users-permissions.user"
     >
     publishedAt: Schema.Attribute.DateTime
-    recordId: Schema.Attribute.String & Schema.Attribute.Required
+    recordId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique
     tags: Schema.Attribute.JSON
     text: Schema.Attribute.Text & Schema.Attribute.Required
     updatedAt: Schema.Attribute.DateTime
@@ -1104,6 +1152,7 @@ declare module "@strapi/strapi" {
       "admin::transfer-token-permission": AdminTransferTokenPermission
       "admin::user": AdminUser
       "api::activity.activity": ApiActivityActivity
+      "api::consumable-product.consumable-product": ApiConsumableProductConsumableProduct
       "api::consumable.consumable": ApiConsumableConsumable
       "api::note.note": ApiNoteNote
       "api::oyl-record.oyl-record": ApiOylRecordOylRecord
