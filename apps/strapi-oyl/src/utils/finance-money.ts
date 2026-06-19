@@ -31,3 +31,23 @@ export function sanitizeMoney(row: Record<string, unknown>, field: string): Reco
   const money = value as Record<string, unknown>
   return { ...row, [field]: { ...money, minor: coerceNumeric(money['minor']) } }
 }
+
+/**
+ * Sanitize a transaction row:
+ * 1. Strips top-level null scalars so domain decoders receive `undefined` for absent
+ *    optional fields (e.g. `note: null` → omitted). `parseEntryBase` throws on
+ *    `note === null` because `typeof null !== 'string'`.
+ * 2. Sanitizes the `amount` component via `sanitizeMoney` (coerces `minor` biginteger
+ *    string → number).
+ *
+ * The `amount` component itself is never null-stripped (it's kept as-is if absent/null
+ * so that `sanitizeMoney` can handle it).
+ */
+export function sanitizeTransactionRow(row: Record<string, unknown>): Record<string, unknown> {
+  const withoutTopLevelNulls: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(row)) {
+    if (v === null && k !== 'amount') continue
+    withoutTopLevelNulls[k] = v
+  }
+  return sanitizeMoney(withoutTopLevelNulls, 'amount')
+}

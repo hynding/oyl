@@ -717,6 +717,46 @@ export interface ApiOylRecordOylRecord extends Struct.CollectionTypeSchema {
   }
 }
 
+export interface ApiTransactionTransaction extends Struct.CollectionTypeSchema {
+  collectionName: "transactions"
+  info: {
+    displayName: "Transaction"
+    pluralName: "transactions"
+    singularName: "transaction"
+  }
+  options: {
+    draftAndPublish: false
+  }
+  attributes: {
+    accountId: Schema.Attribute.String
+    amount: Schema.Attribute.Component<"finance.money", false>
+    category: Schema.Attribute.String
+    createdAt: Schema.Attribute.DateTime
+    createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    direction: Schema.Attribute.Enumeration<["expense", "income"]>
+    locale: Schema.Attribute.String & Schema.Attribute.Private
+    localizations: Schema.Attribute.Relation<
+      "oneToMany",
+      "api::transaction.transaction"
+    > &
+      Schema.Attribute.Private
+    note: Schema.Attribute.String
+    occurredAt: Schema.Attribute.DateTime & Schema.Attribute.Required
+    owner: Schema.Attribute.Relation<
+      "manyToOne",
+      "plugin::users-permissions.user"
+    >
+    publishedAt: Schema.Attribute.DateTime
+    recordId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique
+    updatedAt: Schema.Attribute.DateTime
+    updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+  }
+}
+
 export interface PluginContentReleasesRelease
   extends Struct.CollectionTypeSchema {
   collectionName: "strapi_releases"
@@ -1235,6 +1275,7 @@ declare module "@strapi/strapi" {
       "api::consumption.consumption": ApiConsumptionConsumption
       "api::note.note": ApiNoteNote
       "api::oyl-record.oyl-record": ApiOylRecordOylRecord
+      "api::transaction.transaction": ApiTransactionTransaction
       "plugin::content-releases.release": PluginContentReleasesRelease
       "plugin::content-releases.release-action": PluginContentReleasesReleaseAction
       "plugin::i18n.locale": PluginI18NLocale

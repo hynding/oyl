@@ -376,3 +376,73 @@ describe('parity: consumable-product schema ↔ manifest (catalog kind)', () => 
     expect(attrs['owner']).toBeUndefined()
   })
 })
+
+describe('parity: transaction schema ↔ manifest (personal kind)', () => {
+  it('kindOf("transactions") is personal', () => {
+    expect(kindOf('transactions')).toBe('personal')
+  })
+
+  const schema = loadSchema('transaction')
+  const attrs = attributes(schema)
+
+  it('transaction schema has recordId (required + unique string)', () => {
+    const f = attrs['recordId'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+    expect(f['required']).toBe(true)
+    expect(f['unique']).toBe(true)
+  })
+
+  it('transaction schema has occurredAt (datetime, required)', () => {
+    const f = attrs['occurredAt'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('datetime')
+    expect(f['required']).toBe(true)
+  })
+
+  it('transaction schema has amount component referencing finance.money', () => {
+    const f = attrs['amount'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('component')
+    expect(f['repeatable']).toBe(false)
+    expect(f['component']).toBe('finance.money')
+  })
+
+  it('transaction schema has category (string)', () => {
+    const f = attrs['category'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+  })
+
+  it('transaction schema has direction enum (expense | income)', () => {
+    const f = attrs['direction'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('enumeration')
+    const enumValues = f['enum'] as string[]
+    expect(enumValues).toContain('expense')
+    expect(enumValues).toContain('income')
+  })
+
+  it('transaction schema has accountId (string)', () => {
+    const f = attrs['accountId'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+  })
+
+  it('transaction schema has owner manyToOne relation (personal shape)', () => {
+    const owner = attrs['owner'] as Record<string, unknown>
+    expect(owner).toBeDefined()
+    expect(owner['type']).toBe('relation')
+    expect(owner['relation']).toBe('manyToOne')
+    expect(owner['target']).toBe('plugin::users-permissions.user')
+  })
+
+  it('transaction schema does NOT have catalog fields (creator, visibility)', () => {
+    expect(attrs['creator']).toBeUndefined()
+    expect(attrs['visibility']).toBeUndefined()
+  })
+
+  it('transaction schema does NOT have a kind column', () => {
+    expect(attrs['kind']).toBeUndefined()
+  })
+})
