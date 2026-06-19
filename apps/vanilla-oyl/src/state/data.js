@@ -9,6 +9,7 @@ import { createGoalsStore } from './goals-store.js'
 import { createBudgetsStore } from './budgets-store.js'
 import { createAccountsStore } from './accounts-store.js'
 import { createConsumablesStore } from './consumables-store.js'
+import { createConsumableProductsStore } from './consumable-products-store.js'
 import { defaultTimezone } from '../storage/clock.js'
 
 /** @typedef {import('../storage/schema.js').SchemaState} SchemaState */
@@ -52,6 +53,7 @@ export function createDataState(storage, themeState, opts = {}) {
   const budgets = createBudgetsStore(repos.budgets)
   const accounts = createAccountsStore(repos.accounts)
   const consumables = createConsumablesStore(repos.consumables)
+  const consumableProducts = createConsumableProductsStore(repos.consumableProducts)
 
   /**
    * Cheap pending-writes indicator derived from the outbox. It is a snapshot read on
@@ -79,15 +81,15 @@ export function createDataState(storage, themeState, opts = {}) {
   async function refresh() {
     schema.set(readSchemaState(storage))
     const tasks = [
-      journal.hydrate(), planner.hydrate(), vault.hydrate(), goals.hydrate(), budgets.hydrate(), accounts.hydrate(), consumables.hydrate(),
+      journal.hydrate(), planner.hydrate(), vault.hydrate(), goals.hydrate(), budgets.hydrate(), accounts.hydrate(), consumables.hydrate(), consumableProducts.hydrate(),
       repos.lifeAreas.list(), repos.activities.list(), repos.projects.list(), readStorageEstimate(), collectionCounts(repos),
     ]
     const results = await Promise.allSettled(tasks)
     const failure = results.find((r) => r.status === 'rejected')
     if (failure && failure.status === 'rejected') throw failure.reason
     const val = (/** @type {number} */ i) => /** @type {any} */ (results[i]).value
-    lifeAreas = val(7); activities = val(8); projects = val(9)
-    storageEstimate.set(val(10)); counts.set(val(11))
+    lifeAreas = val(8); activities = val(9); projects = val(10)
+    storageEstimate.set(val(11)); counts.set(val(12))
     refreshPending()
   }
 
@@ -146,7 +148,7 @@ export function createDataState(storage, themeState, opts = {}) {
     return charge
   }
 
-  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, consumables, pending, refreshPending }
+  return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, consumables, consumableProducts, pending, refreshPending }
 }
 
 /**

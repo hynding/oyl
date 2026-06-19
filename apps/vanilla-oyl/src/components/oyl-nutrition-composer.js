@@ -1,10 +1,11 @@
-import { Consumption } from '@oyl/all-of-oyl'
+import { Consumption, effectiveFacts } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 import { now } from '../storage/clock.js'
 
 /** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
 /** @typedef {ReturnType<typeof import('../state/consumables-store.js').createConsumablesStore>} ConsumablesStore */
+/** @typedef {ReturnType<typeof import('../state/consumable-products-store.js').createConsumableProductsStore>} ConsumableProductsStore */
 /** @typedef {import('@oyl/all-of-oyl').DayKey} DayKey */
 /** @typedef {import('@oyl/all-of-oyl').Nutrients} Nutrients */
 /** @typedef {import('@oyl/all-of-oyl').NutritionAmounts} NutritionAmounts */
@@ -40,6 +41,8 @@ export class OylNutritionComposer extends OylElement {
     this.store = /** @type {JournalStore} */ (/** @type {unknown} */ (undefined))
     /** @type {ConsumablesStore} */
     this.consumables = /** @type {ConsumablesStore} */ (/** @type {unknown} */ (undefined))
+    /** @type {ConsumableProductsStore | undefined} */
+    this.consumableProducts = undefined
     /** @type {() => DayKey} */
     this.getDay = /** @type {() => DayKey} */ (/** @type {unknown} */ (undefined))
     /** @type {() => void} */
@@ -59,10 +62,17 @@ export class OylNutritionComposer extends OylElement {
     const select = document.createElement('select')
     select.name = 'consumable'
     select.setAttribute('aria-label', 'Consumable')
+
+    // Optional product select — only shown when consumableProducts store is provided.
+    const productSelect = document.createElement('select')
+    productSelect.name = 'consumableProduct'
+    productSelect.setAttribute('aria-label', 'Product (optional)')
+
     const consumableGroup = document.createElement('div')
     consumableGroup.className = 'group'
     consumableGroup.append(select)
-    // Keep the option list in sync with the catalog.
+
+    // Keep the consumable option list in sync with the catalog.
     this.track(() => {
       const cur = select.value
       select.replaceChildren()
@@ -73,6 +83,52 @@ export class OylNutritionComposer extends OylElement {
         select.append(o)
       }
       select.value = cur
+    })
+
+    // Product select: sync with consumableProducts store (filtered to selected consumable).
+    // Only render the product select when the store is provided.
+    const productGroup = document.createElement('div')
+    productGroup.className = 'group'
+    productGroup.hidden = true
+
+    const syncProducts = () => {
+      if (!this.consumableProducts) {
+        productGroup.hidden = true
+        return
+      }
+      const products = this.consumableProducts.all().filter((p) => p.consumableId === select.value)
+      if (products.length === 0) {
+        productGroup.hidden = true
+        return
+      }
+      const curProd = productSelect.value
+      productSelect.replaceChildren()
+      // Empty option — "no specific product"
+      const none = document.createElement('option')
+      none.value = ''
+      none.textContent = '— no specific product —'
+      productSelect.append(none)
+      for (const p of products) {
+        const o = document.createElement('option')
+        o.value = p.id
+        o.textContent = p.name
+        productSelect.append(o)
+      }
+      productSelect.value = curProd
+      productGroup.hidden = false
+    }
+
+    productGroup.append(this._field('Product (optional)', productSelect))
+    consumableGroup.append(productGroup)
+
+    // Re-sync products when the consumable selection changes.
+    select.addEventListener('change', syncProducts, { signal: this.lifecycle })
+
+    // Re-sync products when the store updates.
+    this.track(() => {
+      // Touch revision to make this reactive to product store changes.
+      if (this.consumableProducts) this.consumableProducts.all()
+      syncProducts()
     })
 
     const noteInput = document.createElement('input')
@@ -153,7 +209,27 @@ export class OylNutritionComposer extends OylElement {
         } else {
           const consumable = this.consumables.all().find((f) => f.id === select.value)
           if (!consumable) throw new Error('Pick a consumable to log')
-          consumption = new Consumption({ occurredAt, consumable: { id: consumable.id, nutrients: consumable.nutrients }, servings: s })
+
+          // Check if a specific product is selected.
+          const selectedProductId = productSelect.value
+          const product = this.consumableProducts && selectedProductId
+            ? this.consumableProducts.all().find((p) => p.id === selectedProductId)
+            : undefined
+
+          if (product) {
+            // Product path: use effectiveFacts (product override wins, else consumable's facts).
+            const resolvedFacts = effectiveFacts(product, consumable) ?? consumable.nutrients
+            consumption = new Consumption({
+              occurredAt,
+              nutrients: resolvedFacts,
+              servings: s,
+              consumableId: consumable.id,
+              consumableProductId: product.id,
+            })
+          } else {
+            // Standard consumable-snapshot path.
+            consumption = new Consumption({ occurredAt, consumable: { id: consumable.id, nutrients: consumable.nutrients }, servings: s })
+          }
         }
         await this.store.add(consumption)
         this._syncWhen(whenInput)

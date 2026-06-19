@@ -9,6 +9,7 @@ import { defineConsumableForm } from './oyl-consumable-form.js'
 
 /** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
 /** @typedef {ReturnType<typeof import('../state/consumables-store.js').createConsumablesStore>} ConsumablesStore */
+/** @typedef {ReturnType<typeof import('../state/consumable-products-store.js').createConsumableProductsStore>} ConsumableProductsStore */
 
 /**
  * Row meta for a logged consumption: per-serving nutrients, plus a scaled
@@ -54,6 +55,8 @@ export class OylNutrition extends OylElement {
     this.store = /** @type {JournalStore} */ (/** @type {unknown} */ (undefined))
     /** @type {ConsumablesStore} */
     this.consumables = /** @type {ConsumablesStore} */ (/** @type {unknown} */ (undefined))
+    /** @type {ConsumableProductsStore | undefined} */
+    this.consumableProducts = undefined
     /** @type {string} */
     this.tz = 'UTC'
     /** @type {import('../lib/reactive/signal.js').Signal<DayKey>} */
@@ -88,6 +91,7 @@ export class OylNutrition extends OylElement {
     const composer = /** @type {import('./oyl-nutrition-composer.js').OylNutritionComposer} */ (document.createElement('oyl-nutrition-composer'))
     composer.store = this.store
     composer.consumables = this.consumables
+    if (this.consumableProducts !== undefined) composer.consumableProducts = this.consumableProducts
     composer.getDay = () => this._day.get()
     composer.onLogged = () => { live.textContent = 'Meal logged' }
 
