@@ -486,6 +486,67 @@ describe('parity: measurement schema ↔ manifest (personal kind)', () => {
   })
 })
 
+describe('parity: activity-session schema ↔ manifest (personal kind)', () => {
+  it('kindOf("activitySessions") is personal', () => {
+    expect(kindOf('activitySessions')).toBe('personal')
+  })
+
+  const schema = loadSchema('activity-session')
+  const attrs = attributes(schema)
+
+  it('activity-session schema has recordId (required + unique string)', () => {
+    const f = attrs['recordId'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+    expect(f['required']).toBe(true)
+    expect(f['unique']).toBe(true)
+  })
+
+  it('activity-session schema has occurredAt (datetime, required)', () => {
+    const f = attrs['occurredAt'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('datetime')
+    expect(f['required']).toBe(true)
+  })
+
+  it('activity-session schema has activityId (string)', () => {
+    const f = attrs['activityId'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+  })
+
+  it('activity-session schema has slug (string)', () => {
+    const f = attrs['slug'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+  })
+
+  it('activity-session schema has quantities component referencing activity.quantity (repeatable)', () => {
+    const f = attrs['quantities'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('component')
+    expect(f['repeatable']).toBe(true)
+    expect(f['component']).toBe('activity.quantity')
+  })
+
+  it('activity-session schema has owner manyToOne relation (personal shape)', () => {
+    const owner = attrs['owner'] as Record<string, unknown>
+    expect(owner).toBeDefined()
+    expect(owner['type']).toBe('relation')
+    expect(owner['relation']).toBe('manyToOne')
+    expect(owner['target']).toBe('plugin::users-permissions.user')
+  })
+
+  it('activity-session schema does NOT have catalog fields (creator, visibility)', () => {
+    expect(attrs['creator']).toBeUndefined()
+    expect(attrs['visibility']).toBeUndefined()
+  })
+
+  it('activity-session schema does NOT have a kind column', () => {
+    expect(attrs['kind']).toBeUndefined()
+  })
+})
+
 describe('parity: transaction schema ↔ manifest (personal kind)', () => {
   it('kindOf("transactions") is personal', () => {
     expect(kindOf('transactions')).toBe('personal')

@@ -476,6 +476,46 @@ export interface ApiAccountAccount extends Struct.CollectionTypeSchema {
   }
 }
 
+export interface ApiActivitySessionActivitySession
+  extends Struct.CollectionTypeSchema {
+  collectionName: "activity_sessions"
+  info: {
+    displayName: "Activity Session"
+    pluralName: "activity-sessions"
+    singularName: "activity-session"
+  }
+  options: {
+    draftAndPublish: false
+  }
+  attributes: {
+    activityId: Schema.Attribute.String
+    createdAt: Schema.Attribute.DateTime
+    createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    locale: Schema.Attribute.String & Schema.Attribute.Private
+    localizations: Schema.Attribute.Relation<
+      "oneToMany",
+      "api::activity-session.activity-session"
+    > &
+      Schema.Attribute.Private
+    note: Schema.Attribute.String
+    occurredAt: Schema.Attribute.DateTime & Schema.Attribute.Required
+    owner: Schema.Attribute.Relation<
+      "manyToOne",
+      "plugin::users-permissions.user"
+    >
+    publishedAt: Schema.Attribute.DateTime
+    quantities: Schema.Attribute.Component<"activity.quantity", true>
+    recordId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique
+    slug: Schema.Attribute.String
+    updatedAt: Schema.Attribute.DateTime
+    updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+  }
+}
+
 export interface ApiActivityActivity extends Struct.CollectionTypeSchema {
   collectionName: "activities"
   info: {
@@ -1344,6 +1384,7 @@ declare module "@strapi/strapi" {
       "admin::transfer-token-permission": AdminTransferTokenPermission
       "admin::user": AdminUser
       "api::account.account": ApiAccountAccount
+      "api::activity-session.activity-session": ApiActivitySessionActivitySession
       "api::activity.activity": ApiActivityActivity
       "api::budget.budget": ApiBudgetBudget
       "api::consumable-product.consumable-product": ApiConsumableProductConsumableProduct

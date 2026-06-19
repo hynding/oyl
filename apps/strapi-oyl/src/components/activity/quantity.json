@@ -1,0 +1,12 @@
+{
+  "collectionName": "components_activity_quantities",
+  "info": {
+    "displayName": "Quantity",
+    "description": "An activity quantity mirroring the domain Quantity: amount + unit."
+  },
+  "options": {},
+  "attributes": {
+    "amount": { "type": "float" },
+    "unit": { "type": "string" }
+  }
+}

@@ -1,5 +1,17 @@
 import type { Schema, Struct } from "@strapi/strapi"
 
+export interface ActivityQuantity extends Struct.ComponentSchema {
+  collectionName: "components_activity_quantities"
+  info: {
+    description: "An activity quantity mirroring the domain Quantity: amount + unit."
+    displayName: "Quantity"
+  }
+  attributes: {
+    amount: Schema.Attribute.Float
+    unit: Schema.Attribute.String
+  }
+}
+
 export interface FinanceMoney extends Struct.ComponentSchema {
   collectionName: "components_finance_money"
   info: {
@@ -72,6 +84,7 @@ export interface NutritionServingSize extends Struct.ComponentSchema {
 declare module "@strapi/strapi" {
   export module Public {
     export interface ComponentSchemas {
+      "activity.quantity": ActivityQuantity
       "finance.money": FinanceMoney
       "nutrition.additional-nutrient": NutritionAdditionalNutrient
       "nutrition.nutrition-facts": NutritionNutritionFacts

@@ -1,0 +1,19 @@
+{
+  "kind": "collectionType",
+  "collectionName": "activity_sessions",
+  "info": {
+    "singularName": "activity-session",
+    "pluralName": "activity-sessions",
+    "displayName": "Activity Session"
+  },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "recordId": { "type": "string", "required": true, "unique": true },
+    "occurredAt": { "type": "datetime", "required": true },
+    "note": { "type": "string" },
+    "activityId": { "type": "string" },
+    "slug": { "type": "string" },
+    "quantities": { "type": "component", "repeatable": true, "component": "activity.quantity" },
+    "owner": { "type": "relation", "relation": "manyToOne", "target": "plugin::users-permissions.user" }
+  }
+}
