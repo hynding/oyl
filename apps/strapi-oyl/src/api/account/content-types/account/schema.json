@@ -1,0 +1,12 @@
+{
+  "kind": "collectionType",
+  "collectionName": "accounts",
+  "info": { "singularName": "account", "pluralName": "accounts", "displayName": "Account" },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "recordId": { "type": "string", "required": true, "unique": true },
+    "name": { "type": "string", "required": true },
+    "currency": { "type": "string" },
+    "owner": { "type": "relation", "relation": "manyToOne", "target": "plugin::users-permissions.user" }
+  }
+}

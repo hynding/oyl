@@ -135,6 +135,44 @@ describe('parity: note schema ↔ manifest (personal kind)', () => {
   })
 })
 
+describe('parity: account schema ↔ manifest (personal kind)', () => {
+  it('kindOf("accounts") is personal', () => {
+    expect(kindOf('accounts')).toBe('personal')
+  })
+
+  const schema = loadSchema('account')
+  const attrs = attributes(schema)
+
+  it('account schema has recordId (required + unique string)', () => {
+    const f = attrs['recordId'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+    expect(f['required']).toBe(true)
+    expect(f['unique']).toBe(true)
+  })
+
+  it('account schema has name attribute', () => {
+    expect(attrs['name']).toBeDefined()
+  })
+
+  it('account schema has currency attribute', () => {
+    expect(attrs['currency']).toBeDefined()
+  })
+
+  it('account schema has owner manyToOne relation (personal shape)', () => {
+    const owner = attrs['owner'] as Record<string, unknown>
+    expect(owner).toBeDefined()
+    expect(owner['type']).toBe('relation')
+    expect(owner['relation']).toBe('manyToOne')
+    expect(owner['target']).toBe('plugin::users-permissions.user')
+  })
+
+  it('account schema does NOT have catalog fields (creator, visibility)', () => {
+    expect(attrs['creator']).toBeUndefined()
+    expect(attrs['visibility']).toBeUndefined()
+  })
+})
+
 describe('parity: activity schema ↔ manifest (catalog kind)', () => {
   it('kindOf("activities") is catalog', () => {
     expect(kindOf('activities')).toBe('catalog')

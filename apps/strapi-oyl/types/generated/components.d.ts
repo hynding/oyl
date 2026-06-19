@@ -1,5 +1,18 @@
 import type { Schema, Struct } from "@strapi/strapi"
 
+export interface FinanceMoney extends Struct.ComponentSchema {
+  collectionName: "components_finance_money"
+  info: {
+    description: "A monetary amount mirroring the domain Money: minor units (biginteger, overflow-safe, negatives allowed for refunds) + ISO currency + exponent."
+    displayName: "Money"
+  }
+  attributes: {
+    currency: Schema.Attribute.String
+    exponent: Schema.Attribute.Integer
+    minor: Schema.Attribute.BigInteger
+  }
+}
+
 export interface NutritionAdditionalNutrient extends Struct.ComponentSchema {
   collectionName: "components_nutrition_additional_nutrients"
   info: {
@@ -59,6 +72,7 @@ export interface NutritionServingSize extends Struct.ComponentSchema {
 declare module "@strapi/strapi" {
   export module Public {
     export interface ComponentSchemas {
+      "finance.money": FinanceMoney
       "nutrition.additional-nutrient": NutritionAdditionalNutrient
       "nutrition.nutrition-facts": NutritionNutritionFacts
       "nutrition.serving-size": NutritionServingSize
