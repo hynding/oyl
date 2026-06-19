@@ -480,6 +480,47 @@ export interface ApiActivityActivity extends Struct.CollectionTypeSchema {
   }
 }
 
+export interface ApiConsumableConsumable extends Struct.CollectionTypeSchema {
+  collectionName: "consumables"
+  info: {
+    displayName: "Consumable"
+    pluralName: "consumables"
+    singularName: "consumable"
+  }
+  options: {
+    draftAndPublish: false
+  }
+  attributes: {
+    allergens: Schema.Attribute.JSON
+    createdAt: Schema.Attribute.DateTime
+    createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    creator: Schema.Attribute.Relation<
+      "manyToOne",
+      "plugin::users-permissions.user"
+    >
+    facts: Schema.Attribute.Component<"nutrition.nutrition-facts", false>
+    ingredients: Schema.Attribute.JSON
+    locale: Schema.Attribute.String & Schema.Attribute.Private
+    localizations: Schema.Attribute.Relation<
+      "oneToMany",
+      "api::consumable.consumable"
+    > &
+      Schema.Attribute.Private
+    name: Schema.Attribute.String & Schema.Attribute.Required
+    publishedAt: Schema.Attribute.DateTime
+    recordId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique
+    slug: Schema.Attribute.String & Schema.Attribute.Required
+    updatedAt: Schema.Attribute.DateTime
+    updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    visibility: Schema.Attribute.Enumeration<["private", "public"]> &
+      Schema.Attribute.DefaultTo<"public">
+  }
+}
+
 export interface ApiNoteNote extends Struct.CollectionTypeSchema {
   collectionName: "notes"
   info: {
@@ -1063,6 +1104,7 @@ declare module "@strapi/strapi" {
       "admin::transfer-token-permission": AdminTransferTokenPermission
       "admin::user": AdminUser
       "api::activity.activity": ApiActivityActivity
+      "api::consumable.consumable": ApiConsumableConsumable
       "api::note.note": ApiNoteNote
       "api::oyl-record.oyl-record": ApiOylRecordOylRecord
       "plugin::content-releases.release": PluginContentReleasesRelease

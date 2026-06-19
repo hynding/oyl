@@ -119,3 +119,70 @@ describe('parity: activity schema ↔ manifest (catalog kind)', () => {
     expect(attrs['owner']).toBeUndefined()
   })
 })
+
+describe('parity: consumable schema ↔ manifest (catalog kind)', () => {
+  it('kindOf("consumables") is catalog', () => {
+    expect(kindOf('consumables')).toBe('catalog')
+  })
+
+  const schema = loadSchema('consumable')
+  const attrs = attributes(schema)
+
+  it('consumable schema has recordId (required + unique string)', () => {
+    const f = attrs['recordId'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+    expect(f['required']).toBe(true)
+    expect(f['unique']).toBe(true)
+  })
+
+  it('consumable schema has name attribute', () => {
+    expect(attrs['name']).toBeDefined()
+  })
+
+  it('consumable schema has slug attribute', () => {
+    expect(attrs['slug']).toBeDefined()
+  })
+
+  it('consumable schema has a facts component attribute referencing nutrition.nutrition-facts', () => {
+    const facts = attrs['facts'] as Record<string, unknown>
+    expect(facts).toBeDefined()
+    expect(facts['type']).toBe('component')
+    expect(facts['repeatable']).toBe(false)
+    expect(facts['component']).toBe('nutrition.nutrition-facts')
+  })
+
+  it('consumable schema has top-level ingredients (json)', () => {
+    const ingredients = attrs['ingredients'] as Record<string, unknown>
+    expect(ingredients).toBeDefined()
+    expect(ingredients['type']).toBe('json')
+  })
+
+  it('consumable schema has top-level allergens (json)', () => {
+    const allergens = attrs['allergens'] as Record<string, unknown>
+    expect(allergens).toBeDefined()
+    expect(allergens['type']).toBe('json')
+  })
+
+  it('consumable schema has creator relation (catalog shape)', () => {
+    const creator = attrs['creator'] as Record<string, unknown>
+    expect(creator).toBeDefined()
+    expect(creator['type']).toBe('relation')
+    expect(creator['relation']).toBe('manyToOne')
+    expect(creator['target']).toBe('plugin::users-permissions.user')
+  })
+
+  it('consumable schema has visibility enum (catalog shape)', () => {
+    const vis = attrs['visibility'] as Record<string, unknown>
+    expect(vis).toBeDefined()
+    expect(vis['type']).toBe('enumeration')
+    expect(Array.isArray(vis['enum'])).toBe(true)
+    const enumValues = vis['enum'] as string[]
+    expect(enumValues).toContain('private')
+    expect(enumValues).toContain('public')
+  })
+
+  it('consumable schema does NOT have personal-only field (owner)', () => {
+    expect(attrs['owner']).toBeUndefined()
+  })
+})

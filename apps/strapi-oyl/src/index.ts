@@ -4,6 +4,8 @@ const NOTE_ACTIONS = ['find', 'findOne', 'create', 'update', 'delete'].map((a) =
 
 const ACTIVITY_ACTIONS = ['find', 'findOne', 'create', 'update', 'delete'].map((a) => `api::activity.activity.${a}`)
 
+const CONSUMABLE_ACTIONS = ['find', 'findOne', 'create', 'update', 'delete'].map((a) => `api::consumable.consumable.${a}`)
+
 async function grantRoleActions(strapi: Core.Strapi, roleType: string, actions: string[], label: string) {
   const role = (await strapi.db.query('plugin::users-permissions.role').findOne({ where: { type: roleType } })) as { id: number } | null
   if (!role) { strapi.log.warn(`[oyl] ${roleType} role not found; skipping ${label} permission grant`); return }
@@ -33,5 +35,6 @@ export default {
     await grantPublicAuth(strapi)
     await grantRoleActions(strapi, 'authenticated', NOTE_ACTIONS, 'note')
     await grantRoleActions(strapi, 'authenticated', ACTIVITY_ACTIONS, 'activity')
+    await grantRoleActions(strapi, 'authenticated', CONSUMABLE_ACTIONS, 'consumable')
   },
 }
