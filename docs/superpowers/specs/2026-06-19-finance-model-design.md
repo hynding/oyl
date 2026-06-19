@@ -57,7 +57,15 @@ Reused by `Transaction.amount` and `Budget.limit`.
 - `sanitizeMoney(row, field)` → coerce `row[field].minor` from string→number (Strapi `biginteger`
   returns a **string**; `Money.fromJSON` requires `typeof minor === 'number'` and throws `MALFORMED_JSON`
   otherwise). Leave `currency` (string) and `exponent` (number) as-is. Strip a `null` component (absent).
-  Reuse the `coerceNumeric` approach from the nutrition util (extract a tiny shared coercion if convenient).
+  Reuse the `coerceNumeric` logic from the nutrition util — **extract a shared `coerceNumeric` into a
+  common module** (e.g. `src/utils/coerce.ts`) that both `nutrition-facts.ts` and `finance-money.ts`
+  import, rather than duplicating it.
+- **Consistency rule (load-bearing):** `sanitizeMoney` MUST be applied on **every** read path that returns
+  a money-bearing row — `find` (map), `findOne`, AND the `create`/`update` response bodies. Unlike B1's
+  decimal coercion (a Postgres-only path SQLite never exercised), `biginteger` returns a **string on BOTH
+  SQLite and Postgres**, so a missing `sanitizeMoney` breaks `Money.fromJSON` immediately — which means the
+  booted Money round-trip test (decoding through the real codec) genuinely covers the coercion end-to-end.
+  This is a strength: the coercion cannot silently rot.
 
 ### F.2 — `account` content-type (owner-scoped, no component)
 
@@ -76,8 +84,9 @@ Reused by `Transaction.amount` and `Budget.limit`.
   `["expense","income"]`), `accountId`(string — plain domain id, like `areaId`/`consumableId`, NOT a
   relation), `owner`(relation). No `kind` column (injected on read). No positivity constraint on amount.
 - controller: owner-scoped (note gate) + `documents()`/component handling (consumable template):
-  `find`/`findOne` populate `AMOUNT_POPULATE` and return `sanitizeMoney(row,'amount')`; `create`/`update`
-  store `amount` verbatim (component), upsert-by-recordId owner-scoped. UID `as const`.
+  every read path (`find`/`findOne` AND `create`/`update` returns) populates `AMOUNT_POPULATE` and returns
+  `sanitizeMoney(row,'amount')`; `create`/`update` store `amount` verbatim (component), upsert-by-recordId
+  owner-scoped. `direction` is always client-supplied (no schema default needed). UID `as const`.
 - routes + grant. `ROW_KIND_BY_COLLECTION.transactions = 'transaction'` already wired → bootstrap injects
   `kind` so `Transaction.fromJSON`'s `parseEntryBase(shape,'transaction')` validates.
 
@@ -100,6 +109,10 @@ Reused by `Transaction.amount` and `Budget.limit`.
 - Strengthen vanilla tests (fakes): logging a `Transaction` enqueues to `reposByKind['transaction']`
   specifically (not other kinds); `accounts`/`budgets` persist + round-trip; `transactionsIn`/budget
   aggregation reflect logged transactions; Money round-trips (incl. a negative-amount refund).
+- **Bootstrap read-decode test** (parallels B1's consumption decode test): a kind-less Strapi transaction
+  row with a `biginteger`-**string** `amount.minor` decodes via `repos.transactions.list()` to a real
+  `Transaction` with the correct numeric `Money` — proving `ROW_KIND='transaction'` injection AND
+  `sanitizeMoney` coercion through the real BACKED repo end-to-end.
 - Each content-type gets a booted owner-scoping test (owner-isolated, A-sees/B-doesn't, cross-owner
   PUT/DELETE 404, upsert-by-recordId, 401 unauth) + a `Money` round-trip decode
   (`Account.fromJSON`/`Transaction.fromJSON`/`Budget.fromJSON` via `strapiRowToShape`), and a parity
