@@ -28,7 +28,7 @@ describe('<oyl-consumable-form>', () => {
     expect(consumables).toHaveLength(1)
     const first = /** @type {NonNullable<typeof consumables[0]>} */ (consumables[0])
     expect(first.name).toBe('Banana')
-    expect(first.nutrients).toEqual({ calories: 105, totalCarbohydrate: 27 })
+    expect(first.facts).toEqual({ calories: 105, totalCarbohydrate: 27 })
     el.remove()
   })
 

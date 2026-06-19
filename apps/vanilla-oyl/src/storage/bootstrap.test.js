@@ -60,9 +60,9 @@ describe('makeRepositories (online-first)', () => {
   it('consumptions save enqueues to the outbox (no network)', async () => {
     const storage = fakeStorage()
     const api = fakeApi()
-    const consumable = new Consumable({ name: 'Oats', nutrients: { calories: 150, protein: 5, totalCarbohydrate: 27, totalFat: 3 } })
+    const consumable = new Consumable({ name: 'Oats', facts: { calories: 150, protein: 5, totalCarbohydrate: 27, totalFat: 3 } })
     const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
-    await repos.consumptions.save(new Consumption({ occurredAt: new Date('2026-06-10T16:00:00Z'), consumable }))
+    await repos.consumptions.save(new Consumption({ occurredAt: new Date('2026-06-10T16:00:00Z'), consumable: { id: consumable.id, nutrients: consumable.facts } }))
     const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
     expect(outbox).toHaveLength(1)
     expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.consumptions, op: 'save' })

@@ -19,10 +19,8 @@ export class Consumable {
   private readonly extra: Record<string, unknown>
 
   constructor(
-    props: (
-      | { facts: NutritionFacts; nutrients?: NutritionFacts }
-      | { nutrients: NutritionFacts; facts?: NutritionFacts }
-    ) & {
+    props: {
+      facts: NutritionFacts
       id?: Id
       name: string
       slug?: string
@@ -32,22 +30,14 @@ export class Consumable {
     extra: Record<string, unknown> = {},
   ) {
     if (props.name.length === 0) throw new DomainError('INVALID_QUANTITY', 'name must be non-empty')
-    const factsInput = props.facts ?? props.nutrients
-    if (factsInput === undefined) throw new DomainError('MALFORMED_JSON', 'Consumable requires facts or nutrients')
+    if (props.facts === undefined) throw new DomainError('MALFORMED_JSON', 'Consumable requires facts')
     this.id = props.id ?? Id.create()
     this.name = props.name
     if (props.slug !== undefined) this.slug = assertSlug(props.slug)
-    this.facts = { ...assertNutritionFacts(factsInput) }
+    this.facts = { ...assertNutritionFacts(props.facts) }
     if (props.ingredients !== undefined) this.ingredients = [...props.ingredients]
     if (props.allergens !== undefined) this.allergens = [...props.allergens]
     this.extra = extra
-  }
-
-  /**
-   * @deprecated use facts
-   */
-  get nutrients(): NutritionFacts {
-    return this.facts
   }
 
   toJSON(): Record<string, unknown> {
@@ -67,10 +57,8 @@ export class Consumable {
     if (typeof shape !== 'object' || shape === null) {
       throw new DomainError('MALFORMED_JSON', 'not a Consumable shape')
     }
-    const { id, name, slug, facts, nutrients, ingredients, allergens, meta, ...extra } = shape as Record<string, unknown>
-    // tolerate legacy nutrients key
-    const factsRaw = facts ?? nutrients
-    if (typeof id !== 'string' || typeof name !== 'string' || factsRaw === undefined) {
+    const { id, name, slug, facts, ingredients, allergens, meta, ...extra } = shape as Record<string, unknown>
+    if (typeof id !== 'string' || typeof name !== 'string' || facts === undefined) {
       throw new DomainError('MALFORMED_JSON', 'not a Consumable shape')
     }
     let parsedId: Id
@@ -96,7 +84,7 @@ export class Consumable {
         id: parsedId,
         name,
         ...(typeof slug === 'string' ? { slug } : {}),
-        facts: nutritionFactsFromJSON(factsRaw),
+        facts: nutritionFactsFromJSON(facts),
         ...(parsedIngredients !== undefined ? { ingredients: parsedIngredients } : {}),
         ...(parsedAllergens !== undefined ? { allergens: parsedAllergens } : {}),
       },

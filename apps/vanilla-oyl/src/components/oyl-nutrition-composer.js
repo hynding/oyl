@@ -218,7 +218,7 @@ export class OylNutritionComposer extends OylElement {
 
           if (product) {
             // Product path: use effectiveFacts (product override wins, else consumable's facts).
-            const resolvedFacts = effectiveFacts(product, consumable) ?? consumable.nutrients
+            const resolvedFacts = effectiveFacts(product, consumable) ?? consumable.facts
             consumption = new Consumption({
               occurredAt,
               nutrients: resolvedFacts,
@@ -228,7 +228,7 @@ export class OylNutritionComposer extends OylElement {
             })
           } else {
             // Standard consumable-snapshot path.
-            consumption = new Consumption({ occurredAt, consumable: { id: consumable.id, nutrients: consumable.nutrients }, servings: s })
+            consumption = new Consumption({ occurredAt, consumable: { id: consumable.id, nutrients: consumable.facts }, servings: s })
           }
         }
         await this.store.add(consumption)

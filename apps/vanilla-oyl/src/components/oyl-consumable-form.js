@@ -77,12 +77,12 @@ export class OylConsumableForm extends OylElement {
       error.textContent = ''
       try {
         /** @type {NutritionAmounts} */
-        const nutrients = {}
+        const facts = {}
         for (const [key, input] of inputs) {
           const raw = input.value.trim()
-          if (raw !== '') nutrients[key] = Number(raw)
+          if (raw !== '') facts[key] = Number(raw)
         }
-        const consumable = new Consumable({ name: name.value.trim(), nutrients })
+        const consumable = new Consumable({ name: name.value.trim(), facts })
         await this.store.add(consumable)
         name.value = ''
         for (const [, input] of inputs) input.value = ''

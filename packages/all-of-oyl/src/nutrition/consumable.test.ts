@@ -4,19 +4,12 @@ import { Id } from '../core/id.js'
 import { DomainError } from '../core/domain-error.js'
 
 describe('Consumable', () => {
-  it('constructs with per-serving nutrients (legacy constructor)', () => {
-    const oatmeal = new Consumable({ name: 'Oatmeal', nutrients: { calories: 150, protein: 5, totalCarbohydrate: 27, totalFat: 3 } })
-    expect(oatmeal.name).toBe('Oatmeal')
-    expect(oatmeal.nutrients.calories).toBe(150)
-    expect(Id.of(oatmeal.id)).toBe(oatmeal.id)
-  })
-
   it('constructs with facts (canonical field)', () => {
-    const oatmeal = new Consumable({ name: 'Oatmeal', facts: { calories: 150, protein: 5 } })
+    const oatmeal = new Consumable({ name: 'Oatmeal', facts: { calories: 150, protein: 5, totalCarbohydrate: 27, totalFat: 3 } })
+    expect(oatmeal.name).toBe('Oatmeal')
     expect(oatmeal.facts.calories).toBe(150)
     expect(oatmeal.facts.protein).toBe(5)
-    // back-compat alias
-    expect(oatmeal.nutrients.calories).toBe(150)
+    expect(Id.of(oatmeal.id)).toBe(oatmeal.id)
   })
 
   it('constructs with slug', () => {
@@ -57,19 +50,7 @@ describe('Consumable', () => {
     }
   })
 
-  it('rejects negative or non-finite nutrient values (legacy nutrients prop)', () => {
-    for (const nutrients of [{ calories: -1 }, { protein: NaN }, { waterMl: Infinity }]) {
-      let caught: unknown
-      try {
-        new Consumable({ name: 'Bad', nutrients })
-      } catch (e) {
-        caught = e
-      }
-      expect((caught as DomainError)?.code).toBe('INVALID_QUANTITY')
-    }
-  })
-
-  it('throws if neither facts nor nutrients provided', () => {
+  it('throws if facts not provided', () => {
     let caught: unknown
     try {
       // @ts-expect-error intentional bad input for runtime guard test
@@ -102,17 +83,19 @@ describe('Consumable', () => {
     expect(Consumable.fromJSON(shape).toJSON()).toEqual(shape)
   })
 
-  it('fromJSON tolerates legacy nutrients key', () => {
+  it('fromJSON throws MALFORMED_JSON for legacy nutrients-only shape (facts is now required)', () => {
     const shape = {
       id: '00000000-0000-4000-8000-000000000031',
       name: 'Oatmeal',
       nutrients: { calories: 150, protein: 5 },
     }
-    const c = Consumable.fromJSON(shape)
-    expect(c.facts.calories).toBe(150)
-    // toJSON emits facts, not nutrients
-    expect(c.toJSON()).toHaveProperty('facts')
-    expect(c.toJSON()).not.toHaveProperty('nutrients')
+    let caught: unknown
+    try {
+      Consumable.fromJSON(shape)
+    } catch (e) {
+      caught = e
+    }
+    expect((caught as DomainError)?.code).toBe('MALFORMED_JSON')
   })
 
   it('throws MALFORMED_JSON on bad shapes', () => {

@@ -90,8 +90,8 @@ export function makeSeed(): Seed {
   // ── Catalogs (id block 30-99) ───────────────────────────────────────────────
   const run = makeActivity({ id: fixtureId(30), name: 'Run', slug: 'run', areaId: fixtureId(10) })
   const meditate = makeActivity({ id: fixtureId(33), name: 'Meditate', slug: 'meditate', defaultUnit: 'minutes', areaId: fixtureId(10) })
-  const oatmeal = makeConsumable({ id: fixtureId(31), name: 'Oatmeal', nutrients: { calories: 150, protein: 5, totalCarbohydrate: 27, totalFat: 3 } })
-  const chickenBowl = makeConsumable({ id: fixtureId(34), name: 'Chicken Bowl', nutrients: { calories: 550, protein: 42, totalCarbohydrate: 45, totalFat: 18 } })
+  const oatmeal = makeConsumable({ id: fixtureId(31), name: 'Oatmeal', facts: { calories: 150, protein: 5, totalCarbohydrate: 27, totalFat: 3 } })
+  const chickenBowl = makeConsumable({ id: fixtureId(34), name: 'Chicken Bowl', facts: { calories: 550, protein: 42, totalCarbohydrate: 45, totalFat: 18 } })
   const checking = makeAccount({ id: fixtureId(32), name: 'Checking', currency: 'USD' })
 
   // ── Entries (id block 100+); all instants are UTC, FIXTURE_TZ is UTC-4 in June ──

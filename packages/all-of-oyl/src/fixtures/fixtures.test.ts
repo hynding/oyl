@@ -100,7 +100,7 @@ describe('fixtures', () => {
 
   it('phase 2 builders produce valid objects with overridable fields', () => {
     expect(makeActivity().slug).toBe('run')
-    expect(makeConsumable().nutrients.calories).toBe(150)
+    expect(makeConsumable().facts.calories).toBe(150)
     expect(makeAccount().currency).toBe('USD')
     expect(makeActivitySession().slug).toBe('run')
     expect(makeConsumption().servings).toBe(1)

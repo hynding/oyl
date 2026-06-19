@@ -166,7 +166,7 @@ export class OylNutrition extends OylElement {
         name.textContent = f.name
         const meta = document.createElement('span')
         meta.className = 'meta'
-        meta.textContent = formatNutrients(f.nutrients)
+        meta.textContent = formatNutrients(f.facts)
         li.append(name, meta)
         consumableList.append(li)
       }

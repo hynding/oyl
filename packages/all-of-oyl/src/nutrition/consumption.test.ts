@@ -8,14 +8,14 @@ import { DomainError } from '../core/domain-error.js'
 const oatmeal = new Consumable({
   id: Id.of('00000000-0000-4000-8000-000000000031'),
   name: 'Oatmeal',
-  nutrients: { calories: 150, protein: 5, waterMl: 10 },
+  facts: { calories: 150, protein: 5, waterMl: 10 },
 })
 const when = new Date('2026-06-01T12:00:00Z')
 const key = (s: string) => MetricKey.of(s)
 
 describe('Consumption', () => {
   it('snapshots consumable nutrients and emits × servings', () => {
-    const meal = new Consumption({ occurredAt: when, consumable: oatmeal, servings: 2 })
+    const meal = new Consumption({ occurredAt: when, consumable: { id: oatmeal.id, nutrients: oatmeal.facts }, servings: 2 })
     expect(meal.kind).toBe('consumption')
     expect(meal.consumableId).toBe(oatmeal.id)
     expect(meal.servings).toBe(2)
@@ -34,7 +34,7 @@ describe('Consumption', () => {
   })
 
   it('explicit nutrients override the consumable snapshot', () => {
-    const tweaked = new Consumption({ occurredAt: when, consumable: oatmeal, nutrients: { calories: 100 } })
+    const tweaked = new Consumption({ occurredAt: when, consumable: { id: oatmeal.id, nutrients: oatmeal.facts }, nutrients: { calories: 100 } })
     expect(tweaked.metrics().get(key('nutrition.calories'))).toBe(100)
     expect(tweaked.consumableId).toBe(oatmeal.id)
   })
@@ -51,7 +51,7 @@ describe('Consumption', () => {
     for (const servings of [0, -1, NaN]) {
       let caught: unknown
       try {
-        new Consumption({ occurredAt: when, consumable: oatmeal, servings })
+        new Consumption({ occurredAt: when, consumable: { id: oatmeal.id, nutrients: oatmeal.facts }, servings })
       } catch (e) {
         caught = e
       }
@@ -63,7 +63,7 @@ describe('Consumption', () => {
     const meal = new Consumption({
       id: Id.of('00000000-0000-4000-8000-000000000101'),
       occurredAt: when,
-      consumable: oatmeal,
+      consumable: { id: oatmeal.id, nutrients: oatmeal.facts },
       servings: 1.5,
     })
     const revived = Consumption.fromJSON({ ...meal.toJSON(), futureField: 2 })
@@ -81,7 +81,7 @@ describe('Consumption', () => {
   it('rejects conflicting consumable provenance', () => {
     let caught: unknown
     try {
-      new Consumption({ occurredAt: when, consumable: oatmeal, consumableId: Id.of('00000000-0000-4000-8000-000000000099') })
+      new Consumption({ occurredAt: when, consumable: { id: oatmeal.id, nutrients: oatmeal.facts }, consumableId: Id.of('00000000-0000-4000-8000-000000000099') })
     } catch (e) {
       caught = e
     }

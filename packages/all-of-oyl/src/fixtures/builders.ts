@@ -15,7 +15,7 @@ import { DayPlan, type DayPlanSlot } from '../plan/day-plan.js'
 import { Activity } from '../activity/activity.js'
 import { ActivitySession } from '../activity/activity-session.js'
 import { Consumable } from '../nutrition/consumable.js'
-import type { Nutrients } from '../nutrition/nutrients.js'
+import type { NutritionFacts, Nutrients } from '../nutrition/nutrients.js'
 import { Consumption } from '../nutrition/consumption.js'
 import { Account } from '../finance/account.js'
 import { Transaction, type TransactionDirection } from '../finance/transaction.js'
@@ -68,11 +68,11 @@ export function makeActivity(overrides: { id?: Id; name?: string; slug?: string;
   })
 }
 
-export function makeConsumable(overrides: { id?: Id; name?: string; nutrients?: Nutrients } = {}): Consumable {
+export function makeConsumable(overrides: { id?: Id; name?: string; facts?: NutritionFacts } = {}): Consumable {
   return new Consumable({
     id: overrides.id ?? fixtureId(31),
     name: overrides.name ?? 'Oatmeal',
-    nutrients: overrides.nutrients ?? { calories: 150, protein: 5, totalCarbohydrate: 27, totalFat: 3 },
+    facts: overrides.facts ?? { calories: 150, protein: 5, totalCarbohydrate: 27, totalFat: 3 },
   })
 }
 
@@ -105,7 +105,7 @@ export function makeConsumption(
     occurredAt: overrides.occurredAt ?? DEFAULT_AT,
     ...(overrides.note !== undefined ? { note: overrides.note } : {}),
     ...(overrides.nutrients !== undefined ? { nutrients: overrides.nutrients } : {}),
-    ...(consumable !== undefined ? { consumable } : {}),
+    ...(consumable !== undefined ? { consumable: { id: consumable.id, nutrients: consumable.facts } } : {}),
     ...(overrides.servings !== undefined ? { servings: overrides.servings } : {}),
   })
 }

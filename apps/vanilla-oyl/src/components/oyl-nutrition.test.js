@@ -24,7 +24,7 @@ describe('<oyl-nutrition>', () => {
   it('shows the consumables catalog and the day\'s totals', async () => {
     const store = createJournalStore(makeReposByKind(), 'UTC')
     const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
-    await consumables.add(new Consumable({ name: 'Oatmeal', nutrients: { calories: 150 } }))
+    await consumables.add(new Consumable({ name: 'Oatmeal', facts: { calories: 150 } }))
     const el = /** @type {any} */ (document.createElement('oyl-nutrition'))
     el.store = store
     el.consumables = consumables
@@ -58,8 +58,8 @@ describe('<oyl-nutrition>', () => {
   it('shows per-serving nutrients and a scaled calorie total for a multi-serving meal', async () => {
     const store = createJournalStore(makeReposByKind(), 'UTC')
     const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
-    const oatmeal = await consumables.add(new Consumable({ name: 'Oatmeal', nutrients: { calories: 150, protein: 5 } }))
-    await store.add(new Consumption({ occurredAt: new Date(), consumable: { id: oatmeal.id, nutrients: oatmeal.nutrients }, servings: 2 }))
+    const oatmeal = await consumables.add(new Consumable({ name: 'Oatmeal', facts: { calories: 150, protein: 5 } }))
+    await store.add(new Consumption({ occurredAt: new Date(), consumable: { id: oatmeal.id, nutrients: oatmeal.facts }, servings: 2 }))
     const el = /** @type {any} */ (document.createElement('oyl-nutrition'))
     el.store = store
     el.consumables = consumables

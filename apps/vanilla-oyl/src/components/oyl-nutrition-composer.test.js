@@ -38,7 +38,7 @@ describe('<oyl-nutrition-composer>', () => {
     const reposByKind = makeReposByKind()
     const store = createJournalStore(reposByKind, TZ)
     const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
-    const oatmeal = await consumables.add(new Consumable({ name: 'Oatmeal', nutrients: { calories: 150, protein: 5 } }))
+    const oatmeal = await consumables.add(new Consumable({ name: 'Oatmeal', facts: { calories: 150, protein: 5 } }))
     const el = composer(store, consumables)
     await settle()
     q(el, 'select[name="consumable"]').value = oatmeal.id
@@ -59,7 +59,7 @@ describe('<oyl-nutrition-composer>', () => {
     const reposByKind = makeReposByKind()
     const store = createJournalStore(reposByKind, TZ)
     const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
-    const oatmeal = await consumables.add(new Consumable({ name: 'Oatmeal', nutrients: { calories: 150, protein: 5 } }))
+    const oatmeal = await consumables.add(new Consumable({ name: 'Oatmeal', facts: { calories: 150, protein: 5 } }))
     const el = composer(store, consumables)
     await settle()
     q(el, 'select[name="consumable"]').value = oatmeal.id
@@ -92,8 +92,8 @@ describe('<oyl-nutrition-composer>', () => {
     const store = createJournalStore(reposByKind, TZ)
     const consumables = createConsumablesStore(/** @type {any} */ (new InMemoryRepository()))
     // Add two consumables
-    const oatmeal = await consumables.add(new Consumable({ name: 'Oatmeal', nutrients: { calories: 150, protein: 5 } }))
-    const egg = await consumables.add(new Consumable({ name: 'Egg', nutrients: { calories: 70, protein: 6 } }))
+    const oatmeal = await consumables.add(new Consumable({ name: 'Oatmeal', facts: { calories: 150, protein: 5 } }))
+    const egg = await consumables.add(new Consumable({ name: 'Egg', facts: { calories: 70, protein: 6 } }))
     const el = composer(store, consumables)
     await settle()
 
@@ -158,7 +158,7 @@ describe('<oyl-nutrition-composer>', () => {
     const consumableProducts = createConsumableProductsStore(/** @type {any} */ (new InMemoryRepository()))
 
     // Parent consumable: 150 cal, 5 prot
-    const oatmeal = await consumables.add(new Consumable({ name: 'Oatmeal', nutrients: { calories: 150, protein: 5 } }))
+    const oatmeal = await consumables.add(new Consumable({ name: 'Oatmeal', facts: { calories: 150, protein: 5 } }))
     // Product with OVERRIDE facts: 180 cal, 7 prot (should win via effectiveFacts)
     const product = await consumableProducts.add(new ConsumableProduct({
       consumableId: oatmeal.id,
