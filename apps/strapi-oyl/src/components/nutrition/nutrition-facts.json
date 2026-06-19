@@ -2,7 +2,7 @@
   "collectionName": "components_nutrition_nutrition_facts",
   "info": {
     "displayName": "Nutrition Facts",
-    "description": "FDA nutrition facts: mandatory typed columns + extensible additional nutrients. ingredients/allergens are json string-lists for now (could become repeatable components later)."
+    "description": "FDA nutrition facts mirroring the domain NutritionFacts: typed amount columns + nested servingSize + extensible additional nutrients. (ingredients/allergens live on consumable/consumable-product, not here — Consumption has facts but no ingredients.)"
   },
   "options": {},
   "attributes": {
@@ -23,8 +23,6 @@
     "potassium": { "type": "decimal" },
     "waterMl": { "type": "decimal" },
     "servingSize": { "type": "component", "repeatable": false, "component": "nutrition.serving-size" },
-    "ingredients": { "type": "json" },
-    "allergens": { "type": "json" },
     "additional": { "type": "component", "repeatable": true, "component": "nutrition.additional-nutrient" }
   }
 }
