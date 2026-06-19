@@ -433,6 +433,59 @@ describe('parity: budget schema ↔ manifest (personal kind)', () => {
   })
 })
 
+describe('parity: measurement schema ↔ manifest (personal kind)', () => {
+  it('kindOf("measurements") is personal', () => {
+    expect(kindOf('measurements')).toBe('personal')
+  })
+
+  const schema = loadSchema('measurement')
+  const attrs = attributes(schema)
+
+  it('measurement schema has recordId (required + unique string)', () => {
+    const f = attrs['recordId'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+    expect(f['required']).toBe(true)
+    expect(f['unique']).toBe(true)
+  })
+
+  it('measurement schema has occurredAt (datetime, required)', () => {
+    const f = attrs['occurredAt'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('datetime')
+    expect(f['required']).toBe(true)
+  })
+
+  it('measurement schema has metric (string)', () => {
+    const f = attrs['metric'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+  })
+
+  it('measurement schema has value (float)', () => {
+    const f = attrs['value'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('float')
+  })
+
+  it('measurement schema has owner manyToOne relation (personal shape)', () => {
+    const owner = attrs['owner'] as Record<string, unknown>
+    expect(owner).toBeDefined()
+    expect(owner['type']).toBe('relation')
+    expect(owner['relation']).toBe('manyToOne')
+    expect(owner['target']).toBe('plugin::users-permissions.user')
+  })
+
+  it('measurement schema does NOT have catalog fields (creator, visibility)', () => {
+    expect(attrs['creator']).toBeUndefined()
+    expect(attrs['visibility']).toBeUndefined()
+  })
+
+  it('measurement schema does NOT have a kind column', () => {
+    expect(attrs['kind']).toBeUndefined()
+  })
+})
+
 describe('parity: transaction schema ↔ manifest (personal kind)', () => {
   it('kindOf("transactions") is personal', () => {
     expect(kindOf('transactions')).toBe('personal')

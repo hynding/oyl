@@ -1,0 +1,14 @@
+{
+  "kind": "collectionType",
+  "collectionName": "measurements",
+  "info": { "singularName": "measurement", "pluralName": "measurements", "displayName": "Measurement" },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "recordId": { "type": "string", "required": true, "unique": true },
+    "occurredAt": { "type": "datetime", "required": true },
+    "note": { "type": "string" },
+    "metric": { "type": "string" },
+    "value": { "type": "float" },
+    "owner": { "type": "relation", "relation": "manyToOne", "target": "plugin::users-permissions.user" }
+  }
+}

@@ -681,6 +681,44 @@ export interface ApiConsumptionConsumption extends Struct.CollectionTypeSchema {
   }
 }
 
+export interface ApiMeasurementMeasurement extends Struct.CollectionTypeSchema {
+  collectionName: "measurements"
+  info: {
+    displayName: "Measurement"
+    pluralName: "measurements"
+    singularName: "measurement"
+  }
+  options: {
+    draftAndPublish: false
+  }
+  attributes: {
+    createdAt: Schema.Attribute.DateTime
+    createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    locale: Schema.Attribute.String & Schema.Attribute.Private
+    localizations: Schema.Attribute.Relation<
+      "oneToMany",
+      "api::measurement.measurement"
+    > &
+      Schema.Attribute.Private
+    metric: Schema.Attribute.String
+    note: Schema.Attribute.String
+    occurredAt: Schema.Attribute.DateTime & Schema.Attribute.Required
+    owner: Schema.Attribute.Relation<
+      "manyToOne",
+      "plugin::users-permissions.user"
+    >
+    publishedAt: Schema.Attribute.DateTime
+    recordId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique
+    updatedAt: Schema.Attribute.DateTime
+    updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    value: Schema.Attribute.Float
+  }
+}
+
 export interface ApiNoteNote extends Struct.CollectionTypeSchema {
   collectionName: "notes"
   info: {
@@ -1311,6 +1349,7 @@ declare module "@strapi/strapi" {
       "api::consumable-product.consumable-product": ApiConsumableProductConsumableProduct
       "api::consumable.consumable": ApiConsumableConsumable
       "api::consumption.consumption": ApiConsumptionConsumption
+      "api::measurement.measurement": ApiMeasurementMeasurement
       "api::note.note": ApiNoteNote
       "api::oyl-record.oyl-record": ApiOylRecordOylRecord
       "api::transaction.transaction": ApiTransactionTransaction
