@@ -1,7 +1,7 @@
 import { factories } from '@strapi/strapi'
 import { stripNulls } from '../../../utils/strip-nulls'
 
-const UID = 'api::measurement.measurement' as const
+const UID = 'api::goal.goal' as const
 
 export default factories.createCoreController(UID, ({ strapi }) => {
   const query = () => strapi.db.query(UID)
@@ -26,15 +26,33 @@ export default factories.createCoreController(UID, ({ strapi }) => {
     async create(ctx: any) {
       const owner = ctx.state.user?.id
       if (owner == null) return ctx.unauthorized()
-      const { recordId, occurredAt, note, metric, value } = (ctx.request.body?.data ?? {}) as {
-        recordId?: string
-        occurredAt?: string
-        note?: string
-        metric?: string
-        value?: number
-      }
+      const { recordId, name, metric, target, direction, period, aggregation, emptyPeriods, areaId, pauses } =
+        (ctx.request.body?.data ?? {}) as {
+          recordId?: string
+          name?: string
+          metric?: string
+          target?: number
+          direction?: string
+          period?: string
+          aggregation?: string
+          emptyPeriods?: string
+          areaId?: string
+          pauses?: unknown
+        }
       const row = await query().create({
-        data: { recordId, occurredAt, note: note ?? null, metric, value, owner },
+        data: {
+          recordId,
+          name: name ?? null,
+          metric,
+          target,
+          direction,
+          period,
+          aggregation,
+          emptyPeriods,
+          areaId: areaId ?? null,
+          pauses: pauses ?? null,
+          owner,
+        },
       })
       ctx.status = 201
       ctx.body = { data: stripNulls(row as Record<string, unknown>) }
@@ -46,17 +64,33 @@ export default factories.createCoreController(UID, ({ strapi }) => {
       const owner = ctx.state.user?.id
       if (owner == null) return ctx.unauthorized()
       const recordId = String(ctx.params.id)
-      const { occurredAt, note, metric, value } = (ctx.request.body?.data ?? {}) as {
-        occurredAt?: string
-        note?: string
-        metric?: string
-        value?: number
-      }
+      const { name, metric, target, direction, period, aggregation, emptyPeriods, areaId, pauses } =
+        (ctx.request.body?.data ?? {}) as {
+          name?: string
+          metric?: string
+          target?: number
+          direction?: string
+          period?: string
+          aggregation?: string
+          emptyPeriods?: string
+          areaId?: string
+          pauses?: unknown
+        }
       const existing = await query().findOne({ where: { recordId, owner: { id: owner } } })
       if (existing) {
         const row = await query().update({
           where: { id: existing.id, owner: { id: owner } },
-          data: { occurredAt, note: note ?? null, metric, value },
+          data: {
+            name: name ?? null,
+            metric,
+            target,
+            direction,
+            period,
+            aggregation,
+            emptyPeriods,
+            areaId: areaId ?? null,
+            pauses: pauses ?? null,
+          },
         })
         ctx.body = { data: stripNulls(row as Record<string, unknown>) }
         return
@@ -67,7 +101,19 @@ export default factories.createCoreController(UID, ({ strapi }) => {
       const claimed = await query().findOne({ where: { recordId } })
       if (claimed) return ctx.notFound()
       const row = await query().create({
-        data: { recordId, occurredAt, note: note ?? null, metric, value, owner },
+        data: {
+          recordId,
+          name: name ?? null,
+          metric,
+          target,
+          direction,
+          period,
+          aggregation,
+          emptyPeriods,
+          areaId: areaId ?? null,
+          pauses: pauses ?? null,
+          owner,
+        },
       })
       ctx.body = { data: stripNulls(row as Record<string, unknown>) }
     },

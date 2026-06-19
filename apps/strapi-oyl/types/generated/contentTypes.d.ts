@@ -721,6 +721,46 @@ export interface ApiConsumptionConsumption extends Struct.CollectionTypeSchema {
   }
 }
 
+export interface ApiGoalGoal extends Struct.CollectionTypeSchema {
+  collectionName: "goals"
+  info: {
+    displayName: "Goal"
+    pluralName: "goals"
+    singularName: "goal"
+  }
+  options: {
+    draftAndPublish: false
+  }
+  attributes: {
+    aggregation: Schema.Attribute.Enumeration<["sum", "avg", "last"]>
+    areaId: Schema.Attribute.String
+    createdAt: Schema.Attribute.DateTime
+    createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    direction: Schema.Attribute.Enumeration<["atLeast", "atMost"]>
+    emptyPeriods: Schema.Attribute.Enumeration<["met", "skip"]>
+    locale: Schema.Attribute.String & Schema.Attribute.Private
+    localizations: Schema.Attribute.Relation<"oneToMany", "api::goal.goal"> &
+      Schema.Attribute.Private
+    metric: Schema.Attribute.String
+    name: Schema.Attribute.String
+    owner: Schema.Attribute.Relation<
+      "manyToOne",
+      "plugin::users-permissions.user"
+    >
+    pauses: Schema.Attribute.JSON
+    period: Schema.Attribute.Enumeration<["day", "week", "month"]>
+    publishedAt: Schema.Attribute.DateTime
+    recordId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique
+    target: Schema.Attribute.Float
+    updatedAt: Schema.Attribute.DateTime
+    updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+  }
+}
+
 export interface ApiMeasurementMeasurement extends Struct.CollectionTypeSchema {
   collectionName: "measurements"
   info: {
@@ -1390,6 +1430,7 @@ declare module "@strapi/strapi" {
       "api::consumable-product.consumable-product": ApiConsumableProductConsumableProduct
       "api::consumable.consumable": ApiConsumableConsumable
       "api::consumption.consumption": ApiConsumptionConsumption
+      "api::goal.goal": ApiGoalGoal
       "api::measurement.measurement": ApiMeasurementMeasurement
       "api::note.note": ApiNoteNote
       "api::oyl-record.oyl-record": ApiOylRecordOylRecord

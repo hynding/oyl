@@ -1,0 +1,19 @@
+{
+  "kind": "collectionType",
+  "collectionName": "goals",
+  "info": { "singularName": "goal", "pluralName": "goals", "displayName": "Goal" },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "recordId": { "type": "string", "required": true, "unique": true },
+    "name": { "type": "string" },
+    "metric": { "type": "string" },
+    "target": { "type": "float" },
+    "direction": { "type": "enumeration", "enum": ["atLeast", "atMost"] },
+    "period": { "type": "enumeration", "enum": ["day", "week", "month"] },
+    "aggregation": { "type": "enumeration", "enum": ["sum", "avg", "last"] },
+    "emptyPeriods": { "type": "enumeration", "enum": ["met", "skip"] },
+    "areaId": { "type": "string" },
+    "pauses": { "type": "json" },
+    "owner": { "type": "relation", "relation": "manyToOne", "target": "plugin::users-permissions.user" }
+  }
+}

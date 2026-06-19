@@ -1,20 +1,7 @@
 import { factories } from '@strapi/strapi'
+import { stripNulls } from '../../../utils/strip-nulls'
 
 const UID = 'api::activity-session.activity-session' as const
-
-/**
- * Strip top-level null scalars so domain decoders receive `undefined` for
- * absent optional fields. `parseEntryBase` expects `note === undefined ||
- * typeof note === 'string'` and throws on `null`. Also strips `quantities:
- * null` so ActivitySession.fromJSON sees no quantities field (empty array).
- */
-function stripNulls(row: Record<string, unknown>): Record<string, unknown> {
-  const out: Record<string, unknown> = {}
-  for (const [k, v] of Object.entries(row)) {
-    if (v !== null) out[k] = v
-  }
-  return out
-}
 
 const QUANTITIES_POPULATE = { quantities: true } as const
 

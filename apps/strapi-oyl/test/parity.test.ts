@@ -486,6 +486,110 @@ describe('parity: measurement schema ↔ manifest (personal kind)', () => {
   })
 })
 
+describe('parity: goal schema ↔ manifest (personal kind)', () => {
+  it('kindOf("goals") is personal', () => {
+    expect(kindOf('goals')).toBe('personal')
+  })
+
+  const schema = loadSchema('goal')
+  const attrs = attributes(schema)
+
+  it('goal schema has recordId (required + unique string)', () => {
+    const f = attrs['recordId'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+    expect(f['required']).toBe(true)
+    expect(f['unique']).toBe(true)
+  })
+
+  it('goal schema has name (optional string)', () => {
+    const f = attrs['name'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+    expect(f['required']).toBeFalsy()
+  })
+
+  it('goal schema has metric (string)', () => {
+    const f = attrs['metric'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+  })
+
+  it('goal schema has target (float)', () => {
+    const f = attrs['target'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('float')
+  })
+
+  it('goal schema has direction (enumeration: atLeast | atMost)', () => {
+    const f = attrs['direction'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('enumeration')
+    const enumValues = f['enum'] as string[]
+    expect(enumValues).toContain('atLeast')
+    expect(enumValues).toContain('atMost')
+  })
+
+  it('goal schema has period (enumeration: day | week | month)', () => {
+    const f = attrs['period'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('enumeration')
+    const enumValues = f['enum'] as string[]
+    expect(enumValues).toContain('day')
+    expect(enumValues).toContain('week')
+    expect(enumValues).toContain('month')
+  })
+
+  it('goal schema has aggregation (enumeration: sum | avg | last)', () => {
+    const f = attrs['aggregation'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('enumeration')
+    const enumValues = f['enum'] as string[]
+    expect(enumValues).toContain('sum')
+    expect(enumValues).toContain('avg')
+    expect(enumValues).toContain('last')
+  })
+
+  it('goal schema has emptyPeriods (enumeration: met | skip)', () => {
+    const f = attrs['emptyPeriods'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('enumeration')
+    const enumValues = f['enum'] as string[]
+    expect(enumValues).toContain('met')
+    expect(enumValues).toContain('skip')
+  })
+
+  it('goal schema has areaId (string)', () => {
+    const f = attrs['areaId'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('string')
+  })
+
+  it('goal schema has pauses (json)', () => {
+    const f = attrs['pauses'] as Record<string, unknown>
+    expect(f).toBeDefined()
+    expect(f['type']).toBe('json')
+  })
+
+  it('goal schema has owner manyToOne relation (personal shape)', () => {
+    const owner = attrs['owner'] as Record<string, unknown>
+    expect(owner).toBeDefined()
+    expect(owner['type']).toBe('relation')
+    expect(owner['relation']).toBe('manyToOne')
+    expect(owner['target']).toBe('plugin::users-permissions.user')
+  })
+
+  it('goal schema does NOT have catalog fields (creator, visibility)', () => {
+    expect(attrs['creator']).toBeUndefined()
+    expect(attrs['visibility']).toBeUndefined()
+  })
+
+  it('goal schema does NOT have kind or occurredAt columns', () => {
+    expect(attrs['kind']).toBeUndefined()
+    expect(attrs['occurredAt']).toBeUndefined()
+  })
+})
+
 describe('parity: activity-session schema ↔ manifest (personal kind)', () => {
   it('kindOf("activitySessions") is personal', () => {
     expect(kindOf('activitySessions')).toBe('personal')

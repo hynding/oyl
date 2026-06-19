@@ -20,6 +20,8 @@ const MEASUREMENT_ACTIONS = ['find', 'findOne', 'create', 'update', 'delete'].ma
 
 const ACTIVITY_SESSION_ACTIONS = ['find', 'findOne', 'create', 'update', 'delete'].map((a) => `api::activity-session.activity-session.${a}`)
 
+const GOAL_ACTIONS = ['find', 'findOne', 'create', 'update', 'delete'].map((a) => `api::goal.goal.${a}`)
+
 async function grantRoleActions(strapi: Core.Strapi, roleType: string, actions: string[], label: string) {
   const role = (await strapi.db.query('plugin::users-permissions.role').findOne({ where: { type: roleType } })) as { id: number } | null
   if (!role) { strapi.log.warn(`[oyl] ${roleType} role not found; skipping ${label} permission grant`); return }
@@ -57,5 +59,6 @@ export default {
     await grantRoleActions(strapi, 'authenticated', BUDGET_ACTIONS, 'budget')
     await grantRoleActions(strapi, 'authenticated', MEASUREMENT_ACTIONS, 'measurement')
     await grantRoleActions(strapi, 'authenticated', ACTIVITY_SESSION_ACTIONS, 'activity-session')
+    await grantRoleActions(strapi, 'authenticated', GOAL_ACTIONS, 'goal')
   },
 }
