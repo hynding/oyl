@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { makeRepositories, createFlusher, PATH_BY_COLLECTION } from './bootstrap.js'
-import { Note, Consumption, Consumable, Transaction, Account, Budget, Money, Measurement, ActivitySession, Quantity, Id, entitiesByKind, manualConnectivity } from '@oyl/all-of-oyl'
+import { Note, Consumption, Consumable, Transaction, Account, Budget, Money, Measurement, ActivitySession, Quantity, Id, Goal, entitiesByKind, manualConnectivity } from '@oyl/all-of-oyl'
 import { OUTBOX_KEY } from './keys.js'
 
 function fakeStorage() {
@@ -210,6 +210,48 @@ describe('makeRepositories (online-first)', () => {
     const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
     expect(outbox).toHaveLength(1)
     expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.measurements, op: 'save' })
+    expect(api.calls).toHaveLength(0)
+  })
+
+  it('goals read path decodes a Strapi goal row to a Goal (no kind injection — Goal is not an Entry)', async () => {
+    const api = fakeApi()
+    // Goal is a standalone personal entity — not Entry-derived. Strapi row has no `kind`
+    // discriminant, and Goal.fromJSON does not require one. strapiRowToShape maps
+    // recordId → id and strips Strapi-internal keys; no ROW_KIND injection needed.
+    const recordId = 'ffffffff-ffff-4fff-8fff-ffffffffffff'
+    const row = {
+      id: 7,
+      recordId,
+      name: 'Run weekly',
+      metric: 'activity.run.minutes',
+      target: 100,
+      direction: 'atLeast',
+      period: 'week',
+      aggregation: 'sum',
+      emptyPeriods: 'skip',
+      pauses: [{ from: '2026-03-01', to: '2026-03-05' }],
+    }
+    api.find = async () => ({ data: [row], meta: {} })
+    const { repos } = makeRepositories(/** @type {any} */ (fakeStorage()), { api, connectivity: manualConnectivity(false) })
+    const list = await repos.goals.list()
+    expect(list).toHaveLength(1)
+    expect(list[0]).toBeInstanceOf(Goal)
+    expect(list[0].id).toBe(recordId)
+    expect(list[0].metric).toBe('activity.run.minutes')
+    expect(list[0].target).toBe(100)
+    expect(list[0].pauses).toHaveLength(1)
+    expect(list[0].pauses[0].from.value).toBe('2026-03-01')
+    expect(list[0].pauses[0].to.value).toBe('2026-03-05')
+  })
+
+  it('goals save enqueues to the outbox (no network)', async () => {
+    const storage = fakeStorage()
+    const api = fakeApi()
+    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    await repos.goals.save(new Goal({ metric: 'activity.run.minutes', target: 100, direction: 'atLeast', period: 'week' }))
+    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    expect(outbox).toHaveLength(1)
+    expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.goals, op: 'save' })
     expect(api.calls).toHaveLength(0)
   })
 
