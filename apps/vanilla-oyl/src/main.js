@@ -7,7 +7,7 @@ import { createAuthState } from './state/auth.js'
 import { loadDemoData, isEmpty } from './storage/seed.js'
 import { exportData, importData } from './storage/backup.js'
 import { isOylKey, SETTINGS_KEY, AUTH_KEY, TZ_RELOADED_KEY, OUTBOX_KEY } from './storage/keys.js'
-import { getApiBaseUrl, getStorageMode, setApiBaseUrl, setStorageMode, DEFAULT_API_BASE_URL } from './storage/config.js'
+import { getApiBaseUrl, getStorageMode, setApiBaseUrl, setStorageMode, defaultApiBaseUrl } from './storage/config.js'
 import { defaultTimezone, now } from './storage/clock.js'
 import { defineShell } from './components/oyl-shell.js'
 import { defineThemeToggle } from './components/oyl-theme-toggle.js'
@@ -53,15 +53,16 @@ async function boot() {
 
   const themeState = createThemeState(storage)
   const routeState = createRouteState(window)
-  const authState = createAuthState(storage, { baseUrl: getApiBaseUrl(storage), fetch: window.fetch.bind(window) })
+  const host = window.location.hostname
+  const authState = createAuthState(storage, { baseUrl: getApiBaseUrl(storage, host), fetch: window.fetch.bind(window) })
   const noticeState = createNoticeState()
-  const mode = getStorageMode(storage)
+  const mode = getStorageMode(storage, host)
 
   // Online-first, account-required: always build ONE api client + outbox + cache + repos
   // and start the flusher. The server is the source of truth; writes enqueue to the outbox
   // and flush when online (on the `online` event and after each enqueue).
   const api = createApiClient({
-    baseUrl: getApiBaseUrl(storage),
+    baseUrl: getApiBaseUrl(storage, host),
     fetch: window.fetch.bind(window),
     getToken: authState.getToken,
     onAuthError: () => authState.logout(),
@@ -163,8 +164,8 @@ async function boot() {
       const panel = /** @type {import('./components/oyl-status-panel.js').OylStatusPanel} */ (document.createElement('oyl-status-panel'))
       panel.connection = {
         mode,
-        apiBaseUrl: getApiBaseUrl(storage),
-        defaultApiBaseUrl: DEFAULT_API_BASE_URL,
+        apiBaseUrl: getApiBaseUrl(storage, host),
+        defaultApiBaseUrl: defaultApiBaseUrl(host),
         onApply: (m, url) => { setStorageMode(storage, m); setApiBaseUrl(storage, url); location.reload() },
       }
       // Sync/migration sections are deferred to the connection-UI reshape (Sub-project D);
@@ -266,8 +267,8 @@ async function boot() {
       }
       page.connection = {
         mode,
-        apiBaseUrl: getApiBaseUrl(storage),
-        defaultApiBaseUrl: DEFAULT_API_BASE_URL,
+        apiBaseUrl: getApiBaseUrl(storage, host),
+        defaultApiBaseUrl: defaultApiBaseUrl(host),
         onApply: (m, url) => { setStorageMode(storage, m); setApiBaseUrl(storage, url); location.reload() },
       }
       // Sync section is deferred to the connection-UI reshape (Sub-project D); upload-local
