@@ -16,12 +16,21 @@
     "@strapi/strapi": "5.48.0",
     "@strapi/utils": "5.48.0",
     "better-sqlite3": "^12.10.0",
+    "mysql2": "^3.23.0",
     "pg": "8.8.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.0.0",
     "styled-components": "^6.0.0"
   },
-  "devDependencies": { "@oyl/all-of-oyl": "workspace:*", "@types/node": "^20", "typescript": "^5", "vite": "^8.0.0", "vitest": "^4.1.8" },
-  "engines": { "node": ">=18.0.0 <=22.x.x" }
+  "devDependencies": {
+    "@oyl/all-of-oyl": "workspace:*",
+    "@types/node": "^20",
+    "typescript": "^5",
+    "vite": "^8.0.0",
+    "vitest": "^4.1.8"
+  },
+  "engines": {
+    "node": ">=18.0.0 <=22.x.x"
+  }
 }
