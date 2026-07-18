@@ -37,6 +37,7 @@ function makeApi(rows: unknown[] = [], single?: unknown): ApiClient & { findCapt
     create: async (_path, data) => data,
     update: async (_path, _id, data) => data,
     remove: async (_path, _id) => {},
+    bootstrap: async () => undefined,
   }
 }
 
@@ -167,6 +168,7 @@ describe('createCatalogClient', () => {
         create: async () => { apiWritten = true; return {} },
         update: async () => { apiWritten = true; return {} },
         remove: async () => { apiWritten = true },
+        bootstrap: async () => undefined,
       }
       const client = createCatalogClient({
         path,

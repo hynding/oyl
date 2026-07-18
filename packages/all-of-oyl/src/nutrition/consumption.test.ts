@@ -122,7 +122,7 @@ describe('Consumption', () => {
 
     // round-trip
     const revived = Consumption.fromJSON(meal.toJSON())
-    expect(revived.consumableProductId?.value).toBe(productId.value)
+    expect(revived.consumableProductId).toBe(productId)
     expect(revived.loggedAmount).toEqual({ amount: 250, unit: 'g' })
     expect(revived.servings).toBe(2)
     expect(revived.metrics().get(key('nutrition.calories'))).toBe(400)

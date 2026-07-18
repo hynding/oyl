@@ -33,6 +33,7 @@ function makeApi(rows: unknown[] = [], single?: unknown): ApiClient {
     create: async (_path, data) => data,
     update: async (_path, _id, data) => data,
     remove: async (_path, _id) => {},
+    bootstrap: async () => undefined,
   }
 }
 
@@ -180,6 +181,7 @@ describe('createServerPersonalRepository', () => {
         create: async () => { apiCalled = true; return {} },
         update: async () => { apiCalled = true; return {} },
         remove: async () => { apiCalled = true },
+        bootstrap: async () => undefined,
       }
       const item: Widget = { id: 'id-1' as Id, name: 'Alpha' }
       const repo = createServerPersonalRepository({
@@ -291,6 +293,7 @@ describe('createServerPersonalRepository', () => {
         create: async () => ({}),
         update: async () => ({}),
         remove: async () => { removeCalled = true },
+        bootstrap: async () => undefined,
       }
       const repo = createServerPersonalRepository({
         path,

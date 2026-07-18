@@ -1,6 +1,9 @@
 import { HttpRepositoryError } from './http-repository.js'
 import type { FetchFn } from './http-repository.js'
 
+/** Raw Strapi rows per collection, keyed by REST plural path (e.g. 'notes', 'activities'). */
+export type BootstrapPayload = Record<string, unknown[]>
+
 /** Talks to Strapi 5 content-type REST (flat fields + documentId), JWT-auth. */
 export interface ApiClient {
   find(path: string, query?: Record<string, string | number | boolean>): Promise<{ data: unknown[]; meta: unknown }>
@@ -9,6 +12,11 @@ export interface ApiClient {
   create(path: string, data: unknown): Promise<unknown>
   update(path: string, id: string, data: unknown): Promise<unknown>
   remove(path: string, id: string): Promise<void>
+  /**
+   * One-round-trip boot read: every backed collection's rows in a single GET /bootstrap.
+   * 404 → undefined (backend without the endpoint — caller falls back to per-collection reads).
+   */
+  bootstrap(): Promise<BootstrapPayload | undefined>
 }
 
 export function createApiClient(opts: {
@@ -39,6 +47,8 @@ export function createApiClient(opts: {
     }
 
     if (res.status === 404) return undefined
+    // No-content success (Strapi DELETE → 204): json() would reject on the empty body.
+    if (res.status === 204 || res.status === 205) return undefined
     if (res.ok) return res.json()
     if (res.status === 401 || res.status === 403) {
       opts.onAuthError?.()
@@ -57,6 +67,8 @@ export function createApiClient(opts: {
         url = `${url}?${params}`
       }
       const result = await request('GET', url)
+      // A 404 here means the collection route itself is missing — surface it typed.
+      if (result === undefined) throw new HttpRepositoryError('server', `not found: ${path} (404)`, 404)
       const envelope = result as { data: unknown[]; meta: unknown }
       return { data: envelope.data, meta: envelope.meta }
     },
@@ -86,6 +98,13 @@ export function createApiClient(opts: {
     async remove(path, id) {
       const url = `${root}/${path}/${id}`
       await request('DELETE', url)
+    },
+
+    async bootstrap() {
+      const result = await request('GET', `${root}/bootstrap`)
+      if (result === undefined) return undefined
+      const envelope = result as { data: Record<string, unknown[]> }
+      return envelope.data
     },
   }
 }

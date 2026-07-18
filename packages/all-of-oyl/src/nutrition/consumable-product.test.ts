@@ -103,16 +103,16 @@ describe('effectiveFacts', () => {
     })
     const consumable = new Consumable({ name: 'Oatmeal', facts: { calories: 150, protein: 5 } })
     const result = effectiveFacts(product, consumable)
-    expect(result.calories).toBe(160)
-    expect(result.protein).toBe(6)
+    expect(result?.calories).toBe(160)
+    expect(result?.protein).toBe(6)
   })
 
   it('falls back to consumable facts when product has none', () => {
     const product = new ConsumableProduct({ consumableId, name: 'Brand Oats' })
     const consumable = new Consumable({ name: 'Oatmeal', facts: { calories: 150, protein: 5 } })
     const result = effectiveFacts(product, consumable)
-    expect(result.calories).toBe(150)
-    expect(result.protein).toBe(5)
+    expect(result?.calories).toBe(150)
+    expect(result?.protein).toBe(5)
   })
 
   it('returns undefined when neither product nor consumable has facts', () => {

@@ -30,6 +30,8 @@ const STRAPI_INTERNAL_KEYS = new Set([
  * Convert a raw Strapi row into a plain object a domain codec's `fromJSON` accepts:
  * - the domain `id` is taken from `recordId`,
  * - Strapi-internal keys are stripped (numeric `id`, `documentId`, timestamps, relations),
+ * - null-valued columns are stripped (SQL null means "absent"; codecs model optionals as
+ *   missing keys and reject null — e.g. `tags: null` fails Note.fromJSON),
  * - `opts.kind` is injected when given (for the heterogeneous `entries` reviver),
  * - any other (domain) fields pass through unchanged.
  *
@@ -43,7 +45,7 @@ export function strapiRowToShape(row: unknown, opts?: { kind?: string }): unknow
   const isStrapiRow = 'recordId' in source
   const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(source)) {
-    if (isStrapiRow && STRAPI_INTERNAL_KEYS.has(key)) continue
+    if (isStrapiRow && (STRAPI_INTERNAL_KEYS.has(key) || value === null)) continue
     out[key] = value
   }
   if (isStrapiRow) out.id = source.recordId

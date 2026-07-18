@@ -56,4 +56,29 @@ describe('strapiRowToShape', () => {
     expect(strapiRowToShape(undefined)).toBeUndefined()
     expect(strapiRowToShape(null)).toBeNull()
   })
+
+  it('strips null-valued columns from a Strapi row (SQL null means "absent" to a codec)', () => {
+    // A note saved without tags/note comes back as tags:null / note:null / locale:null —
+    // codecs expect such optionals to be absent, and Note.fromJSON throws on tags:null.
+    const row = {
+      id: 9,
+      recordId: 'note-null',
+      text: 'no tags',
+      tags: null,
+      note: null,
+      locale: null,
+      occurredAt: '2026-06-18T00:00:00.000Z',
+    }
+    const shape = strapiRowToShape(row, { kind: 'note' }) as Record<string, unknown>
+    expect('tags' in shape).toBe(false)
+    expect('note' in shape).toBe(false)
+    expect('locale' in shape).toBe(false)
+    expect(shape.text).toBe('no tags')
+    expect(shape.id).toBe('note-null')
+  })
+
+  it('keeps null values on rows that are not Strapi rows (no recordId)', () => {
+    const shape = strapiRowToShape({ id: 'local-1', tags: null }) as Record<string, unknown>
+    expect(shape.tags).toBeNull()
+  })
 })
