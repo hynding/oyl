@@ -90,6 +90,22 @@ describe('createVaultStore', () => {
     expect(after.compare(before)).toBeGreaterThan(0)
   })
 
+  it('renew keeps the aggregate intact when repos are enqueue-only stubs (online-first)', async () => {
+    // vault collections are not yet backed: their repos save-as-no-op and list empty.
+    // A success-path re-hydrate would wipe the whole in-session vault after a renew.
+    const r = repos()
+    r.subscriptions = /** @type {any} */ ({
+      list: async () => [], get: async () => undefined,
+      save: async (/** @type {unknown} */ s) => s, saveMany: async (/** @type {unknown[]} */ i) => i,
+      delete: async () => {}, purge: async () => {},
+    })
+    const store = createVaultStore(r)
+    const saved = await store.addSubscription(sub())
+    const charge = await store.renew(saved.id, today)
+    expect(charge).toBeDefined()
+    expect(store.subscriptions()).toHaveLength(1)
+  })
+
   it('monthlySubscriptionTotals reflects added subscriptions', async () => {
     const r = repos()
     const store = createVaultStore(r)

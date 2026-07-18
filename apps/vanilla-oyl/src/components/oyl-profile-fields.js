@@ -36,7 +36,9 @@ export class OylProfileFields extends OylElement {
     const birthday = this._input('birthday', 'date', 'Birthday', v.birthday ?? '')
     const isImperial = () => /** @type {HTMLSelectElement} */ (units).value === 'imperial'
     const weight = this._input('weight', 'number', 'Weight', v.weightKg != null ? String(v.units === 'imperial' ? round1(v.weightKg / KG_PER_LB) : v.weightKg) : '')
+    weight.step = 'any'
     const height = this._input('height', 'number', 'Height', v.heightCm != null ? String(v.units === 'imperial' ? round1(v.heightCm / CM_PER_IN) : v.heightCm) : '')
+    height.step = 'any'
     const gender = this._genderControl(v.gender ?? '')
     const location = this._input('location', 'text', 'Location', v.location ?? '')
 

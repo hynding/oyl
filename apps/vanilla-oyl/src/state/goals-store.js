@@ -19,8 +19,9 @@ export function createGoalsStore(goalsRepo) {
   let n = 0
   const revision = signal(0)
 
-  async function hydrate() {
-    goals = [...(await goalsRepo.list())]
+  /** @param {readonly Goal[]} [preloaded]  Bootstrap-payload lists skip the repo read. */
+  async function hydrate(preloaded) {
+    goals = preloaded ? [...preloaded] : [...(await goalsRepo.list())]
     revision.set((n += 1))
   }
 
@@ -52,7 +53,9 @@ export function createGoalsStore(goalsRepo) {
         await hydrate()
         throw err
       }
-      await hydrate()
+      // Online-first: save() only enqueues — a repo re-read here could race the flush
+      // and clobber the in-place mutation. The aggregate is already current; just notify.
+      revision.set((n += 1))
     },
     /** @param {Id} id @param {DayKey} on */
     async resume(id, on) {
@@ -65,7 +68,9 @@ export function createGoalsStore(goalsRepo) {
         await hydrate()
         throw err
       }
-      await hydrate()
+      // Online-first: save() only enqueues — a repo re-read here could race the flush
+      // and clobber the in-place mutation. The aggregate is already current; just notify.
+      revision.set((n += 1))
     },
     /** @returns {readonly Goal[]} */
     all() {

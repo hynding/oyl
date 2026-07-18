@@ -106,7 +106,9 @@ export function createVaultStore(repos) {
         await hydrate()
         throw err
       }
-      await hydrate()
+      // Online-first: the aggregate already reflects the renew; a repo re-read would
+      // race the outbox flush (and wipe the unbacked vault repos). Notify only.
+      revision.set((n += 1))
       return charge
     },
 
@@ -141,7 +143,7 @@ export function createVaultStore(repos) {
         await hydrate()
         throw err
       }
-      await hydrate()
+      revision.set((n += 1))
     },
     /** @param {GiftIdea} g @returns {Promise<GiftIdea>} */
     async addGiftIdea(g) {
