@@ -1,0 +1,20 @@
+{
+  "name": "@oyl/e2e-oyl",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser end-to-end suite for the OYL stack (vanilla-oyl app + strapi-oyl backend) via Playwright",
+  "scripts": {
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@types/node": "^20",
+    "http-server": "^14.1.1",
+    "typescript": "^5"
+  }
+}
