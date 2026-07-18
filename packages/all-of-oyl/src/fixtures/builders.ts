@@ -2,6 +2,7 @@ import { LifeArea } from '../core/life-area.js'
 import { User, type Units } from '../user/user.js'
 import type { Id } from '../core/id.js'
 import { FIXTURE_TODAY, FIXTURE_TZ } from './constants.js'
+import { toSlug } from '../core/slug.js'
 import { fixtureId } from './fixture-id.js'
 import { Connection, type ConnectionStatus } from '../share/connection.js'
 import { Grant, type GrantScope } from '../share/grant.js'
@@ -68,10 +69,13 @@ export function makeActivity(overrides: { id?: Id; name?: string; slug?: string;
   })
 }
 
-export function makeConsumable(overrides: { id?: Id; name?: string; facts?: NutritionFacts } = {}): Consumable {
+export function makeConsumable(overrides: { id?: Id; name?: string; slug?: string; facts?: NutritionFacts } = {}): Consumable {
+  const name = overrides.name ?? 'Oatmeal'
   return new Consumable({
     id: overrides.id ?? fixtureId(31),
-    name: overrides.name ?? 'Oatmeal',
+    name,
+    // The Strapi consumable content-type requires a slug — seeds must be PUT-able as-is.
+    slug: overrides.slug ?? toSlug(name),
     facts: overrides.facts ?? { calories: 150, protein: 5, totalCarbohydrate: 27, totalFat: 3 },
   })
 }

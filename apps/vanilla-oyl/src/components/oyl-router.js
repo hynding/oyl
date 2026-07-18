@@ -27,16 +27,26 @@ export class OylRouter extends OylElement {
       const view = this.routes[name]?.() ?? this._notFound(name)
       const swap = () => {
         outlet.replaceChildren(view)
+        // Screens render their heading inside a shadow root — search it first, falling
+        // back to light DOM (e.g. the _notFound view).
+        const scope = view instanceof Element ? (view.shadowRoot ?? view) : null
         const heading = /** @type {HTMLElement | null} */ (
-          view instanceof Element ? view.querySelector('h1, h2, [role="heading"]') : null
+          scope ? scope.querySelector('h1, h2, [role="heading"]') : null
         )
         heading?.setAttribute('tabindex', '-1')
         heading?.focus?.()
         live.textContent = `Navigated to ${name}`
       }
       const reduce = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-      if (!reduce && typeof document.startViewTransition === 'function') document.startViewTransition(swap)
-      else swap()
+      if (!reduce && typeof document.startViewTransition === 'function') {
+        // A rapid follow-up navigation skips the in-flight transition and rejects its
+        // promises — benign here, but unhandled they surface as page errors.
+        const transition = document.startViewTransition(swap)
+        transition.ready.catch(() => {})
+        transition.finished.catch(() => {})
+      } else {
+        swap()
+      }
     })
   }
 

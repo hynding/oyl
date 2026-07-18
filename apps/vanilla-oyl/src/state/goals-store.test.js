@@ -31,6 +31,23 @@ describe('createGoalsStore', () => {
     expect(resumed.pauses[0]?.to?.value).toBe(today.value)
   })
 
+  it('pause survives an outbox-era repo whose reads lag the write (no post-save re-read)', async () => {
+    // Online-first: save() only ENQUEUES — a repo read right after may return stale
+    // state. The store must trust its in-place mutation, not re-hydrate on success.
+    const repo = /** @type {any} */ (new InMemoryRepository())
+    const store = createGoalsStore(repo)
+    const saved = await store.add(goal())
+    const staleList = repo.list.bind(repo)
+    repo.list = async () => (await staleList()).map((/** @type {GoalT} */ g) => Goal.fromJSON(JSON.parse(JSON.stringify(g.toJSON())))) // decouple instances
+    repo.save = async (/** @type {GoalT} */ g) => g // enqueue-only: repo state never advances
+    await store.pause(saved.id, today)
+    const paused = /** @type {GoalT} */ (store.all()[0])
+    expect(paused.pauses).toHaveLength(1)
+    await store.resume(saved.id, today)
+    const resumed = /** @type {GoalT} */ (store.all()[0])
+    expect(resumed.pauses[0]?.to?.value).toBe(today.value)
+  })
+
   it('hydrate rebuilds from the repo', async () => {
     const repo = /** @type {any} */ (new InMemoryRepository())
     await repo.save(goal('seeded'))

@@ -64,7 +64,9 @@ export function createPlannerStore(plansRepo) {
         await hydrate()
         throw err
       }
-      await hydrate()
+      // Online-first: the aggregate already holds the completed plan (+ successor);
+      // a repo re-read would race the outbox flush (and wipe unbacked repos). Notify only.
+      revision.set((n += 1))
       return successor
     },
 
@@ -79,7 +81,7 @@ export function createPlannerStore(plansRepo) {
         await hydrate()
         throw err
       }
-      await hydrate()
+      revision.set((n += 1))
     },
 
     /** @param {Id} id */

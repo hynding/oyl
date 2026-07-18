@@ -11,6 +11,15 @@ function makeFetch(status: number, body: unknown): () => Promise<FetchResponse> 
   })
 }
 
+/** A real no-content response: json() rejects (empty body), exactly like fetch's Response. */
+function makeNoContentFetch(): () => Promise<FetchResponse> {
+  return vi.fn().mockResolvedValue({
+    status: 204,
+    ok: true,
+    json: () => Promise.reject(new SyntaxError('Unexpected end of JSON input')),
+  })
+}
+
 describe('createApiClient', () => {
   // baseUrl is the API root (already carries /api). createApiClient appends only /<path>,
   // so the composed URL has a SINGLE /api — guards against the double-/api regression.
@@ -81,7 +90,7 @@ describe('createApiClient', () => {
       const onAuthError = vi.fn()
       const client = createApiClient({ baseUrl, fetch, getToken, onAuthError })
       await expect(client.find('articles')).rejects.toBeInstanceOf(HttpRepositoryError)
-      const err = await client.find('articles').catch((e: unknown) => e as HttpRepositoryError)
+      const err = (await client.find('articles').catch((e: unknown) => e)) as HttpRepositoryError
       expect(err.kind).toBe('auth')
       expect(err.status).toBe(403)
     })
@@ -89,7 +98,7 @@ describe('createApiClient', () => {
     it('throws HttpRepositoryError server on 500', async () => {
       const fetch = makeFetch(500, { error: { message: 'Internal Server Error' } })
       const client = createApiClient({ baseUrl, fetch, getToken })
-      const err = await client.find('articles').catch((e: unknown) => e as HttpRepositoryError)
+      const err = (await client.find('articles').catch((e: unknown) => e)) as HttpRepositoryError
       expect(err).toBeInstanceOf(HttpRepositoryError)
       expect(err.kind).toBe('server')
     })
@@ -97,9 +106,49 @@ describe('createApiClient', () => {
     it('throws HttpRepositoryError transport on network failure', async () => {
       const fetch = vi.fn().mockRejectedValue(new Error('network failure'))
       const client = createApiClient({ baseUrl, fetch, getToken })
-      const err = await client.find('articles').catch((e: unknown) => e as HttpRepositoryError)
+      const err = (await client.find('articles').catch((e: unknown) => e)) as HttpRepositoryError
       expect(err).toBeInstanceOf(HttpRepositoryError)
       expect(err.kind).toBe('transport')
+    })
+
+    // A 404 on a collection GET means the route does not exist (e.g. a content-type
+    // missing on the backend) — it must surface as a typed error, not a TypeError
+    // from dereferencing an undefined envelope.
+    it('throws HttpRepositoryError server with status 404 when the route is missing', async () => {
+      const fetch = makeFetch(404, { error: { message: 'Not Found' } })
+      const client = createApiClient({ baseUrl, fetch, getToken })
+      const err = (await client.find('articles').catch((e: unknown) => e)) as HttpRepositoryError
+      expect(err).toBeInstanceOf(HttpRepositoryError)
+      expect(err.kind).toBe('server')
+      expect(err.status).toBe(404)
+    })
+  })
+
+  describe('bootstrap', () => {
+    it('sends GET to ${baseUrl}/bootstrap and unwraps the per-collection map', async () => {
+      const payload = { notes: [{ recordId: 'n1' }], accounts: [] }
+      const fetch = makeFetch(200, { data: payload, meta: {} })
+      const client = createApiClient({ baseUrl, fetch, getToken })
+      const result = await client.bootstrap()
+      expect(result).toEqual(payload)
+      expect(fetch).toHaveBeenCalledWith(
+        'https://example.com/api/bootstrap',
+        expect.objectContaining({ method: 'GET' }),
+      )
+    })
+
+    it('returns undefined on 404 (older backend without the endpoint — caller falls back)', async () => {
+      const fetch = makeFetch(404, { error: { message: 'Not Found' } })
+      const client = createApiClient({ baseUrl, fetch, getToken })
+      await expect(client.bootstrap()).resolves.toBeUndefined()
+    })
+
+    it('throws HttpRepositoryError auth on 401 and calls onAuthError', async () => {
+      const fetch = makeFetch(401, {})
+      const onAuthError = vi.fn()
+      const client = createApiClient({ baseUrl, fetch, getToken, onAuthError })
+      await expect(client.bootstrap()).rejects.toMatchObject({ kind: 'auth', status: 401 })
+      expect(onAuthError).toHaveBeenCalledOnce()
     })
   })
 
@@ -193,6 +242,14 @@ describe('createApiClient', () => {
       const client = createApiClient({ baseUrl, fetch, getToken, onAuthError })
       await expect(client.remove('articles', 'abc')).rejects.toMatchObject({ kind: 'auth' })
       expect(onAuthError).toHaveBeenCalledOnce()
+    })
+
+    it('resolves on a 204 no-content response (Strapi DELETE) without parsing a body', async () => {
+      // Regression: json() on an empty 204 body rejects, which surfaced as a failed
+      // delete — the outbox re-sent the (already-applied) DELETE forever.
+      const fetch = makeNoContentFetch()
+      const client = createApiClient({ baseUrl, fetch, getToken })
+      await expect(client.remove('articles', 'abc')).resolves.toBeUndefined()
     })
   })
 

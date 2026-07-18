@@ -75,6 +75,7 @@ export class OylLogForm extends OylElement {
     customInput.hidden = true
     metricSel.addEventListener('change', () => { customInput.hidden = metricSel.value !== 'custom' }, { signal: this.lifecycle })
     const valueInput = this._input('value', 'number')
+    valueInput.step = 'any'
     valueInput.setAttribute('inputmode', 'decimal')
     const row2 = document.createElement('div')
     row2.className = 'row2'

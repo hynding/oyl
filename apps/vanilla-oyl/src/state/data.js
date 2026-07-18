@@ -1,6 +1,6 @@
 import { review, Transaction } from '@oyl/all-of-oyl'
 import { signal } from '../lib/reactive/signal.js'
-import { makeRepositories, collectionCounts } from '../storage/bootstrap.js'
+import { makeRepositories, collectionCounts, decodeBootstrap } from '../storage/bootstrap.js'
 import { readSchemaState } from '../storage/schema.js'
 import { createJournalStore } from './journal-store.js'
 import { createPlannerStore } from './planner-store.js'
@@ -28,6 +28,7 @@ import { defaultTimezone } from '../storage/clock.js'
  *   repos?: ReturnType<typeof makeRepositories>['repos'],
  *   outbox?: import('@oyl/all-of-oyl').WriteOutbox,
  *   timezone?: string,
+ *   bootstrap?: () => Promise<import('@oyl/all-of-oyl').BootstrapPayload | undefined>,
  * }} [opts]
  */
 export function createDataState(storage, themeState, opts = {}) {
@@ -80,6 +81,32 @@ export function createDataState(storage, themeState, opts = {}) {
 
   async function refresh() {
     schema.set(readSchemaState(storage))
+    const payload = opts.bootstrap ? await opts.bootstrap() : undefined
+    if (payload) {
+      // One-request path: GET /bootstrap returned every backed collection — distribute
+      // the decoded lists to the stores (zero per-collection reads) and derive counts
+      // from the same payload. Unbacked stores (planner/vault) hydrate off empty repos.
+      const lists = decodeBootstrap(payload)
+      await Promise.all([
+        journal.hydrate({
+          'note': lists.notes,
+          'consumption': lists.consumptions,
+          'transaction': lists.transactions,
+          'measurement': lists.measurements,
+          'activity-session': lists.activitySessions,
+        }),
+        planner.hydrate(), vault.hydrate(),
+        goals.hydrate(lists.goals), budgets.hydrate(lists.budgets), accounts.hydrate(lists.accounts),
+        consumables.hydrate(lists.consumables), consumableProducts.hydrate(lists.consumableProducts),
+      ])
+      lifeAreas = lists.lifeAreas; activities = lists.activities; projects = lists.projects
+      storageEstimate.set(await readStorageEstimate())
+      counts.set(Object.fromEntries(Object.entries(lists).map(([name, rows]) => [name, rows.length])))
+      refreshPending()
+      return
+    }
+    // Fan-out path: no bootstrap fetcher (tests, local repos) or an older backend
+    // without the endpoint — read each collection individually.
     const tasks = [
       journal.hydrate(), planner.hydrate(), vault.hydrate(), goals.hydrate(), budgets.hydrate(), accounts.hydrate(), consumables.hydrate(), consumableProducts.hydrate(),
       repos.lifeAreas.list(), repos.activities.list(), repos.projects.list(), readStorageEstimate(), collectionCounts(repos),

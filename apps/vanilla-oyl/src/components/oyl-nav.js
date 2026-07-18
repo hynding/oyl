@@ -23,6 +23,19 @@ const styles = sheet(`
   }
   a:hover { color: var(--color-text); }
   a[aria-current] { color: var(--color-text); background: color-mix(in oklch, var(--color-accent) 14%, transparent); }
+  /* Mobile: dock as a fixed bottom tab bar. The row scrolls horizontally instead of
+     wrapping (8 items won't fit a phone), with safe-area padding for notch/home-bar
+     devices. oyl-shell reserves matching bottom padding on .page. */
+  @media (max-width: 640px) {
+    nav {
+      position: fixed; inset-inline: 0; inset-block-end: 0; z-index: 10;
+      flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+      background: var(--color-surface); border-block-start: 1px solid var(--color-border);
+      padding: .3rem max(.5rem, env(safe-area-inset-left)) calc(.3rem + env(safe-area-inset-bottom)) max(.5rem, env(safe-area-inset-left));
+    }
+    nav::-webkit-scrollbar { display: none; }
+    a { flex: 1 0 auto; justify-content: center; }
+  }
 `)
 
 export class OylNav extends OylElement {
@@ -50,8 +63,12 @@ export class OylNav extends OylElement {
     this.track(() => {
       const active = this.routeSignal.get()
       for (const a of links) {
-        if (a.dataset.route === active) a.setAttribute('aria-current', 'page')
-        else a.removeAttribute('aria-current')
+        if (a.dataset.route === active) {
+          a.setAttribute('aria-current', 'page')
+          // Keep the active tab visible when the bar scrolls horizontally (mobile).
+          // Guarded: happy-dom (tests) has no scrollIntoView.
+          a.scrollIntoView?.({ inline: 'nearest', block: 'nearest' })
+        } else a.removeAttribute('aria-current')
       }
     })
   }

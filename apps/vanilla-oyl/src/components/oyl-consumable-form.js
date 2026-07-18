@@ -1,4 +1,4 @@
-import { Consumable } from '@oyl/all-of-oyl'
+import { Consumable, toSlug } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 
@@ -82,7 +82,8 @@ export class OylConsumableForm extends OylElement {
           const raw = input.value.trim()
           if (raw !== '') facts[key] = Number(raw)
         }
-        const consumable = new Consumable({ name: name.value.trim(), facts })
+        // The backend consumable content-type requires a slug — derive it from the name.
+        const consumable = new Consumable({ name: name.value.trim(), slug: toSlug(name.value), facts })
         await this.store.add(consumable)
         name.value = ''
         for (const [, input] of inputs) input.value = ''

@@ -4,7 +4,7 @@ import { createThemeState } from './state/theme.js'
 import { createRouteState } from './state/route.js'
 import { createDataState } from './state/data.js'
 import { createAuthState } from './state/auth.js'
-import { loadDemoData, isEmpty } from './storage/seed.js'
+import { seedAccount } from './storage/seed.js'
 import { exportData, importData } from './storage/backup.js'
 import { isOylKey, SETTINGS_KEY, AUTH_KEY, TZ_RELOADED_KEY, OUTBOX_KEY } from './storage/keys.js'
 import { getApiBaseUrl, getStorageMode, setApiBaseUrl, setStorageMode, defaultApiBaseUrl } from './storage/config.js'
@@ -23,7 +23,7 @@ import { defineFinance } from './components/oyl-finance.js'
 import { defineNutrition } from './components/oyl-nutrition.js'
 import { createNoticeState } from './state/notice.js'
 import { defineNotice } from './components/oyl-notice.js'
-import { createApiClient, DayKey } from '@oyl/all-of-oyl'
+import { createApiClient, DayKey, entitiesByKind } from '@oyl/all-of-oyl'
 import { createBrowserConnectivity } from './storage/connectivity.js'
 import { debounce } from './lib/debounce.js'
 import { makeRepositories } from './storage/bootstrap.js'
@@ -73,7 +73,9 @@ async function boot() {
   await profileStore.load()
   const browserTz = defaultTimezone()
   const tz = resolveTimezone(profileStore.profile.get(), browserTz)
-  const dataState = createDataState(storage, themeState, { repos, outbox, timezone: tz })
+  // refresh() boots from ONE GET /bootstrap (all collections in a single round trip);
+  // it falls back to per-collection reads if the backend lacks the endpoint.
+  const dataState = createDataState(storage, themeState, { repos, outbox, timezone: tz, bootstrap: () => api.bootstrap() })
 
   // Theme applied reactively (the inline head script already set the first paint).
   effect(() => applyTheme(document, themeState.settings.get()))
@@ -112,7 +114,13 @@ async function boot() {
     if (signedIn && !wasSignedIn) { void flush().then(() => dataState.refreshPending()).catch(() => {}) }
     wasSignedIn = signedIn
     if (shouldRedirectToLogin(mode, authState.session.get(), routeState.route.get())) {
-      routeState.navigate('/login', { replace: true })
+      // Deferred: this effect deliberately tracks the route (it guards every navigation),
+      // so a synchronous navigate() here would write a signal the effect reads (a cycle).
+      queueMicrotask(() => {
+        if (shouldRedirectToLogin(mode, authState.session.get(), routeState.route.get())) {
+          routeState.navigate('/login', { replace: true })
+        }
+      })
     }
   })
 
@@ -135,10 +143,11 @@ async function boot() {
     }
   })
 
-  // ?seed convenience for dev.
-  if (new URLSearchParams(location.search).has('seed')) {
-    await loadDemoData(storage)
-    await dataState.refresh()
+  // ?seed convenience for dev/demo: populate an EMPTY signed-in account through the
+  // stores (writes flush to the server). Non-empty accounts are left alone — reloads
+  // with the query present must not duplicate data.
+  if (new URLSearchParams(location.search).has('seed') && hasSession && accountIsEmpty(dataState)) {
+    await seedAccount(dataState, DayKey.from(now(), tz))
   }
 
   const shell = document.createElement('oyl-shell')
@@ -174,9 +183,18 @@ async function boot() {
       panel.sync = null
       panel.migration = null
       panel.actions = {
-        onSeed: () => void seedWithConfirm(storage, dataState),
-        onExport: () => download(exportData(storage)),
-        onImport: () => pickAndImport(storage, dataState),
+        // Inline (not a helper): dataState's inferred type stays in closure scope —
+        // annotating it via ReturnType<createDataState> trips TS2502 self-reference.
+        onSeed: () => {
+          void (async () => {
+            if (accountIsEmpty(dataState) || confirm('Add demo data to this account?')) {
+              await seedAccount(dataState, DayKey.from(now(), tz))
+              dataState.refreshPending()
+            }
+          })()
+        },
+        onExport: () => download(exportData(storage, dataState)),
+        onImport: () => pickAndImport(dataState),
         onReset: () => {
           if (confirm('Erase all local OYL data? This cannot be undone.')) {
             resetData(storage)
@@ -277,8 +295,8 @@ async function boot() {
       page.dataActions = {
         mode,
         canUploadLocal: false,
-        onExport: () => download(exportData(storage)),
-        onImport: () => pickAndImport(storage, dataState),
+        onExport: () => download(exportData(storage, dataState)),
+        onImport: () => pickAndImport(dataState),
         onUploadLocal: () => {},
       }
       return page
@@ -296,14 +314,17 @@ async function boot() {
   document.getElementById('boot-fallback')?.remove()
 }
 
-/** @param {Storage} storage @param {ReturnType<typeof createDataState>} dataState */
-async function seedWithConfirm(storage, dataState) {
-  const empty = await isEmpty(storage)
-  if (empty || confirm('Replace current data with demo data?')) {
-    await loadDemoData(storage)
-    await dataState.refresh()
-  }
+/**
+ * Whether the account holds no records yet — from the boot-refresh counts snapshot.
+ * Only PERSONAL (owner-scoped) collections count: the shared catalog (public-or-mine)
+ * can be non-empty for a brand-new account and says nothing about ITS data.
+ * @param {{ counts: { get(): Record<string, number> } }} dataState
+ */
+function accountIsEmpty(dataState) {
+  const counts = dataState.counts.get()
+  return entitiesByKind('personal').every((name) => (counts[name] ?? 0) === 0)
 }
+
 
 /** @param {ReturnType<typeof exportData>} doc */
 function download(doc) {
@@ -315,8 +336,8 @@ function download(doc) {
   URL.revokeObjectURL(a.href)
 }
 
-/** @param {Storage} storage @param {ReturnType<typeof createDataState>} dataState */
-function pickAndImport(storage, dataState) {
+/** @param {ReturnType<typeof createDataState>} dataState */
+function pickAndImport(dataState) {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'application/json'
@@ -324,8 +345,7 @@ function pickAndImport(storage, dataState) {
     const file = input.files?.[0]
     if (!file) return
     try {
-      await importData(storage, await file.text())
-      await dataState.refresh()
+      await importData(dataState, await file.text())
       alert('Import complete.')
     } catch (err) {
       alert(`Import failed: ${err instanceof Error ? err.message : String(err)}`)

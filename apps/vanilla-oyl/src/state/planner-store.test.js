@@ -50,6 +50,25 @@ describe('createPlannerStore', () => {
     expect(await repo.list()).toHaveLength(2)
   })
 
+  it('complete keeps the day agenda when the repo is an enqueue-only stub (online-first)', async () => {
+    // plans are not yet backed: the repo saves-as-no-op and lists empty. A success-path
+    // re-hydrate would erase the completed plan (and its successor) from the screen.
+    const stub = /** @type {PlansRepo} */ (/** @type {unknown} */ ({
+      list: async () => [], get: async () => undefined,
+      save: async (/** @type {unknown} */ p) => p, saveMany: async (/** @type {unknown[]} */ ps) => ps,
+      delete: async () => {}, purge: async () => {},
+    }))
+    const store = createPlannerStore(stub)
+    const t = task('Water', { cadence: Cadence.of(1, 'weeks') })
+    await store.add(t)
+    const successor = await store.complete(t.id, DUE)
+    expect(store.get(t.id)?.status).toBe('done')
+    expect(successor?.status).toBe('open')
+    expect(store.agendaFor(DUE).length).toBeGreaterThan(0)
+    await store.cancel(/** @type {Task} */ (successor).id)
+    expect(store.get(/** @type {Task} */ (successor).id)?.status).toBe('canceled')
+  })
+
   it('persist-first rollback: a failing save on complete restores the open state', async () => {
     const { repo, fail } = setup()
     const store = createPlannerStore(repo)

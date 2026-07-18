@@ -87,13 +87,21 @@ export class OylStatusPanel extends OylElement {
       this._button('Reset local data', 'reset', () => this.actions.onReset?.(), 'danger'),
     )
 
-    if (this.connection?.mode === 'remote') {
-      for (const b of actions.querySelectorAll('button')) /** @type {HTMLButtonElement} */ (b).disabled = true
+    // Seed/backup/import operate on the signed-in ACCOUNT (Remote mode); reset clears
+    // LOCAL storage (Local mode) — each tool is enabled only where it acts.
+    {
+      const remote = this.connection?.mode === 'remote'
+      for (const b of actions.querySelectorAll('button')) {
+        const btn = /** @type {HTMLButtonElement} */ (b)
+        btn.disabled = btn.dataset.act === 'reset' ? remote : !remote
+      }
       const note = document.createElement('p')
-      note.id = 'local-tools-note'
-      note.textContent = 'Local-data tools — unavailable in Remote mode.'
+      note.id = 'tools-note'
+      note.textContent = remote
+        ? 'Reset applies to local data — available in Local mode.'
+        : 'Demo data, backup, and import operate on your account — available in Remote mode.'
       actions.append(note)
-      actions.setAttribute('aria-describedby', 'local-tools-note')
+      actions.setAttribute('aria-describedby', 'tools-note')
     }
 
     const connLabel = document.createElement('h2')

@@ -17,8 +17,9 @@ export function createAccountsStore(accountsRepo) {
   let n = 0
   const revision = signal(0)
 
-  async function hydrate() {
-    accounts = [...(await accountsRepo.list())]
+  /** @param {readonly Account[]} [preloaded]  Bootstrap-payload lists skip the repo read. */
+  async function hydrate(preloaded) {
+    accounts = preloaded ? [...preloaded] : [...(await accountsRepo.list())]
     revision.set((n += 1))
   }
 

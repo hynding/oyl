@@ -2,7 +2,7 @@
 // every module, which is why the kind→fromJSON revivers will live here.
 
 export { DomainError, type DomainErrorCode } from './core/domain-error.js'
-export { assertSlug, isSlug } from './core/slug.js'
+export { assertSlug, isSlug, toSlug } from './core/slug.js'
 export { Id } from './core/id.js'
 export { KNOWN_NAMESPACES, MEASUREMENT_NAMESPACES, MetricKey } from './core/metric-key.js'
 export { DayKey, assertTimezone } from './core/day-key.js'
@@ -22,7 +22,7 @@ export { LocalStorageRepository, type StorageLike } from './core/local-storage-r
 export { createWriteOutbox, type WriteOutbox, type Mutation } from './core/write-outbox.js'
 export { type Connectivity, alwaysOnline, alwaysOffline, manualConnectivity } from './core/connectivity.js'
 export { HttpRepositoryError, type FetchFn, type FetchResponse } from './core/http-repository.js'
-export { createApiClient, type ApiClient } from './core/api-client.js'
+export { createApiClient, type ApiClient, type BootstrapPayload } from './core/api-client.js'
 export { createReadCache, type ReadCache } from './core/read-cache.js'
 export { createServerPersonalRepository } from './core/server-personal-repository.js'
 export { createCatalogClient, type CatalogClient } from './core/catalog-client.js'

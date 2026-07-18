@@ -127,9 +127,15 @@ export function createJournalStore(reposByKind, tz) {
      * Reads all repos in parallel, flattens the results into a fresh Journal, and rebuilds
      * the kindById index.
      */
-    async hydrate() {
-      const repos = Object.values(reposByKind)
-      const results = await Promise.all(repos.map((r) => r.list()))
+    /**
+     * Rebuild the aggregate. With `preloadedByKind` (the one-request bootstrap payload,
+     * keyed by entry kind) no repo reads happen; otherwise each kind repo is listed.
+     * @param {Record<string, readonly Entry[]>} [preloadedByKind]
+     */
+    async hydrate(preloadedByKind) {
+      const results = preloadedByKind
+        ? Object.keys(reposByKind).map((k) => preloadedByKind[k] ?? [])
+        : await Promise.all(Object.values(reposByKind).map((r) => r.list()))
       const fresh = new Journal(tz)
       /** @type {Map<string, string>} */
       const freshKindById = new Map()

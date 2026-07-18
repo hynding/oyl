@@ -15,8 +15,9 @@ export function createConsumableProductsStore(consumableProductsRepo) {
   let n = 0
   const revision = signal(0)
 
-  async function hydrate() {
-    consumableProducts = [...(await consumableProductsRepo.list())]
+  /** @param {readonly ConsumableProduct[]} [preloaded]  Bootstrap-payload lists skip the repo read. */
+  async function hydrate(preloaded) {
+    consumableProducts = preloaded ? [...preloaded] : [...(await consumableProductsRepo.list())]
     revision.set((n += 1))
   }
 

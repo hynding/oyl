@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { Note, Measurement, Goal, DayKey, Task, periodWindowOf, Subscription, Cadence, Money, Account, manualConnectivity, COLLECTIONS, InMemoryRepository } from '@oyl/all-of-oyl'
+import { Note, Measurement, Goal, DayKey, Task, periodWindowOf, Subscription, Cadence, Money, Account, manualConnectivity, COLLECTIONS, InMemoryRepository, makeSeed } from '@oyl/all-of-oyl'
 import { createThemeState } from './theme.js'
 import { createDataState } from './data.js'
 import { defaultTimezone } from '../storage/clock.js'
-import { loadDemoData } from '../storage/seed.js'
 
 /**
  * A COLLECTIONS-keyed map of conformant in-memory repos — used to exercise store/round-trip
@@ -19,14 +18,13 @@ function inMemoryRepos() {
   return repos
 }
 
-/** Seed localStorage data keys into a COLLECTIONS-keyed in-memory repos map. @param {any} storage @returns {Promise<any>} */
-async function reposFromSeed(storage) {
+/** Hydrate a COLLECTIONS-keyed in-memory repos map from the canonical seed shapes. @returns {Promise<any>} */
+async function reposFromSeed() {
   const repos = inMemoryRepos()
+  const seed = /** @type {Record<string, unknown[]>} */ (/** @type {unknown} */ (makeSeed()))
   for (const name of Object.keys(COLLECTIONS)) {
-    const raw = storage.getItem(`oyl/data/${name}`)
-    if (!raw) continue
     const codec = /** @type {any} */ (COLLECTIONS[/** @type {keyof typeof COLLECTIONS} */ (name)])
-    for (const shape of JSON.parse(raw)) await repos[name].save(codec.fromJSON(shape))
+    for (const shape of seed[name] ?? []) await repos[name].save(codec.fromJSON(shape))
   }
   return repos
 }
@@ -150,8 +148,7 @@ describe('data state', () => {
 
   it('reviewOn includes named life areas from the loaded catalogs', async () => {
     const storage = fakeStorage()
-    await loadDemoData(storage)
-    const ds = createDataState(storage, createThemeState(storage), { repos: await reposFromSeed(storage) })
+    const ds = createDataState(storage, createThemeState(storage), { repos: await reposFromSeed() })
     await ds.refresh()
     const day = DayKey.from(new Date(), defaultTimezone())
     const r = ds.reviewOn(periodWindowOf('month', day))
@@ -182,6 +179,53 @@ describe('data state', () => {
     await ds.repos.notes.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' }))
     ds.refreshPending()
     expect(ds.pending.get()).toBe(1)
+  })
+})
+
+describe('refresh via one bootstrap payload (request consolidation)', () => {
+  // Raw Strapi relational rows exactly as GET /bootstrap returns them (numeric id +
+  // recordId, no kind discriminant) — decode must inject kind for Entry-derived types.
+  const noteRow = { id: 1, recordId: '22222222-2222-4222-8222-222222222222', occurredAt: '2026-06-10T16:00:00.000Z', text: 'from payload' }
+  const activityRow = { id: 2, recordId: '33333333-3333-4333-8333-333333333333', name: 'Running', slug: 'running', visibility: 'public' }
+
+  /** @param {() => Promise<any>} bootstrap @returns {any} */
+  function apiWith(bootstrap) {
+    return {
+      find: async () => { throw new Error('per-collection read must not happen when the payload is served') },
+      findOne: async () => undefined,
+      create: async (/** @type {any} */ _p, /** @type {any} */ d) => d,
+      update: async (/** @type {any} */ _p, /** @type {any} */ _i, /** @type {any} */ d) => d,
+      remove: async () => {},
+      bootstrap,
+    }
+  }
+
+  it('hydrates stores, catalogs and counts from the payload with zero per-collection reads', async () => {
+    const storage = fakeStorage()
+    const { makeRepositories } = await import('../storage/bootstrap.js')
+    const api = apiWith(async () => ({ notes: [noteRow], activities: [activityRow] }))
+    const { repos, outbox } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    const ds = createDataState(storage, createThemeState(storage), { repos, outbox, bootstrap: () => api.bootstrap() })
+    await ds.refresh()
+
+    const day = DayKey.from(new Date('2026-06-10T16:00:00.000Z'), defaultTimezone())
+    expect(ds.journal.entriesOn(day)).toHaveLength(1)
+    expect(ds.counts.get()['notes']).toBe(1)
+    expect(ds.counts.get()['activities']).toBe(1)
+    expect(ds.counts.get()['plans']).toBe(0) // absent from the payload → empty, not undefined
+  })
+
+  it('falls back to per-collection reads when bootstrap() returns undefined (older backend)', async () => {
+    const storage = fakeStorage()
+    const { makeRepositories } = await import('../storage/bootstrap.js')
+    let finds = 0
+    /** @type {any} */
+    const api = apiWith(async () => undefined)
+    api.find = async () => { finds += 1; return { data: [], meta: {} } }
+    const { repos, outbox } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    const ds = createDataState(storage, createThemeState(storage), { repos, outbox, bootstrap: () => api.bootstrap() })
+    await ds.refresh()
+    expect(finds).toBeGreaterThan(0)
   })
 })
 

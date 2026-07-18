@@ -39,6 +39,8 @@ describe('<oyl-status-panel>', () => {
     let seeded = false
     const el = /** @type {import('./oyl-status-panel.js').OylStatusPanel} */ (document.createElement('oyl-status-panel'))
     el.actions = { onSeed: () => { seeded = true } }
+    // Seed acts on the account, so it is enabled in Remote mode.
+    el.connection = { mode: 'remote', apiBaseUrl: 'http://x/api', defaultApiBaseUrl: 'http://x/api', onApply: () => {} }
     el.diagnostics = { schema: { status: 'fresh' }, counts: {}, theme: { theme: 'classic', mode: 'system' }, build: 'dev' }
     document.body.append(el)
     const root = /** @type {ShadowRoot} */ (el.shadowRoot)
@@ -77,29 +79,33 @@ describe('<oyl-status-panel> connection section', () => {
     el.remove()
   })
 
-  it('enables the local-data actions in local mode', () => {
+  it('local mode: only the local-data reset is enabled; account tools explain themselves', () => {
     const el = /** @type {any} */ (document.createElement('oyl-status-panel'))
     el.connection = connConfig('local')
     el.diagnostics = { schema: { status: 'ok' }, counts: {}, theme: { theme: 'classic', mode: 'system' }, build: 'dev' }
     document.body.append(el)
     const root = /** @type {ShadowRoot} */ (el.shadowRoot)
-    expect(/** @type {HTMLButtonElement} */ (root.querySelector('button[data-act="seed"]')).disabled).toBe(false)
-    expect(root.querySelector('#local-tools-note')).toBeNull()
+    for (const act of ['seed', 'export', 'import']) {
+      expect(/** @type {HTMLButtonElement} */ (root.querySelector(`button[data-act="${act}"]`)).disabled).toBe(true)
+    }
+    expect(/** @type {HTMLButtonElement} */ (root.querySelector('button[data-act="reset"]')).disabled).toBe(false)
+    const note = root.querySelector('#tools-note')
+    expect(note?.textContent).toMatch(/remote mode/i)
     el.remove()
   })
 
-  it('disables and explains the local-data actions in remote mode', () => {
+  it('remote mode: account tools (seed/export/import) are enabled; local reset is not', () => {
     const el = /** @type {any} */ (document.createElement('oyl-status-panel'))
     el.connection = connConfig('remote')
     el.diagnostics = { schema: { status: 'ok' }, counts: {}, theme: { theme: 'classic', mode: 'system' }, build: 'dev' }
     document.body.append(el)
     const root = /** @type {ShadowRoot} */ (el.shadowRoot)
-    for (const act of ['seed', 'export', 'import', 'reset']) {
-      expect(/** @type {HTMLButtonElement} */ (root.querySelector(`button[data-act="${act}"]`)).disabled).toBe(true)
+    for (const act of ['seed', 'export', 'import']) {
+      expect(/** @type {HTMLButtonElement} */ (root.querySelector(`button[data-act="${act}"]`)).disabled).toBe(false)
     }
-    const note = root.querySelector('#local-tools-note')
-    expect(note).toBeTruthy()
-    expect(note?.textContent).toMatch(/remote mode/i)
+    expect(/** @type {HTMLButtonElement} */ (root.querySelector('button[data-act="reset"]')).disabled).toBe(true)
+    const note = root.querySelector('#tools-note')
+    expect(note?.textContent).toMatch(/local mode/i)
     el.remove()
   })
 })

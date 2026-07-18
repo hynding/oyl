@@ -1,8 +1,15 @@
 import { effect } from './effect.js'
 
-/** Shared focus ring so keyboard focus inside shadow DOM matches the design token (reset.css only reaches the light DOM). */
+/**
+ * Shared shadow-DOM base rules (reset.css only reaches the light DOM):
+ * border-box sizing — without it any `inline-size: 100%` + padding box (e.g. the shell's
+ * .page frame) overflows the viewport on narrow screens — and the shared focus ring.
+ */
 export const baseStyles = new CSSStyleSheet()
-baseStyles.replaceSync(':host(:focus-visible), :focus-visible { outline: var(--focus-ring); outline-offset: 2px; }')
+baseStyles.replaceSync(`
+  *, *::before, *::after { box-sizing: border-box; }
+  :host(:focus-visible), :focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+`)
 
 /**
  * Base class for OYL Web Components. Provides a shadow root, fine-grained signal

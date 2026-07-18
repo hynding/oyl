@@ -7,4 +7,11 @@
     transition: background 0.2s, color 0.2s;
   }
   oyl-shell { display: block; min-block-size: 100dvh; }
+
+  /* Mobile: oyl-nav docks as a fixed bottom tab bar (see oyl-nav.js). Scroll-padding
+     keeps scrollIntoView/anchor/focus targets clear of the bar — mirrors the .page
+     bottom padding oyl-shell reserves. */
+  @media (max-width: 640px) {
+    html { scroll-padding-block-end: calc(5rem + env(safe-area-inset-bottom)); }
+  }
 }

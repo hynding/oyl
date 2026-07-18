@@ -6,6 +6,7 @@ import {
   createServerPersonalRepository,
   createCatalogClient,
   alwaysOnline,
+  strapiRowToShape,
 } from '@oyl/all-of-oyl'
 import { OUTBOX_KEY, READ_CACHE_KEY } from './keys.js'
 import { now } from './clock.js'
@@ -74,6 +75,13 @@ export const ROW_KIND_BY_COLLECTION = {
  */
 const BACKED = new Set(/** @type {CollectionName[]} */ (['notes', 'consumptions', 'accounts', 'transactions', 'budgets', 'measurements', 'activitySessions', 'goals']))
 
+/**
+ * Catalog collections with a live Strapi backend. `lifeAreas` has no content-type yet,
+ * so it gets a no-network client — a live one would 404 `/api/life-areas` on every boot.
+ * @type {Set<CollectionName>}
+ */
+export const CATALOG_BACKED = new Set(/** @type {CollectionName[]} */ (['activities', 'consumables', 'consumableProducts']))
+
 /** A UUID source for outbox mutation ids. @returns {string} */
 function newId() {
   const c = /** @type {{ randomUUID?: () => string } | undefined} */ (globalThis.crypto)
@@ -136,12 +144,14 @@ export function makeRepositories(storage, opts = {}) {
 
   const catalogs = /** @type {Catalogs} */ ({})
   for (const name of entitiesByKind('catalog')) {
-    const client = createCatalogClient({
-      path: PATH_BY_COLLECTION[name],
-      codec: /** @type {any} */ (COLLECTIONS[name]),
-      api,
-      outbox,
-    })
+    const client = CATALOG_BACKED.has(name)
+      ? createCatalogClient({
+          path: PATH_BY_COLLECTION[name],
+          codec: /** @type {any} */ (COLLECTIONS[name]),
+          api,
+          outbox,
+        })
+      : emptyCatalogClient()
     catalogs[name] = client
     // Expose a Repository-shaped read facade so existing stores (which call .list())
     // keep working; catalog writes flow through the catalog client / outbox.
@@ -170,27 +180,42 @@ export function makeRepositories(storage, opts = {}) {
  */
 export function createFlusher(outbox, api, connectivity) {
   let draining = false
+  let requestedMidDrain = false
   return async function flush() {
-    if (draining || !connectivity.isOnline()) return
+    if (draining) {
+      // An enqueue arrived while a drain pass was iterating its snapshot — remember it,
+      // so the active drain runs another pass instead of stranding the new op.
+      requestedMidDrain = true
+      return
+    }
+    if (!connectivity.isOnline()) return
     draining = true
     try {
-      for (const m of outbox.peekAll()) {
-        try {
-          if (m.op === 'delete') {
-            const id = String(/** @type {{ id?: unknown }} */ (m.payload)?.id ?? '')
-            await api.remove(m.entity, id)
-          } else {
-            // Saves PUT to /<path>/<domainId> — the backend upserts by recordId (the
-            // domain id), so a create-then-edit round-trip reconciles to one row.
-            const id = String(/** @type {{ id?: unknown }} */ (m.payload)?.id ?? '')
-            await api.update(m.entity, id, m.payload)
+      let cleanPass = true
+      do {
+        requestedMidDrain = false
+        cleanPass = true
+        for (const m of outbox.peekAll()) {
+          try {
+            if (m.op === 'delete') {
+              const id = String(/** @type {{ id?: unknown }} */ (m.payload)?.id ?? '')
+              await api.remove(m.entity, id)
+            } else {
+              // Saves PUT to /<path>/<domainId> — the backend upserts by recordId (the
+              // domain id), so a create-then-edit round-trip reconciles to one row.
+              const id = String(/** @type {{ id?: unknown }} */ (m.payload)?.id ?? '')
+              await api.update(m.entity, id, m.payload)
+            }
+            outbox.ack(m.id)
+          } catch {
+            // Stop the drain — preserve order; retry this op on the next flush.
+            cleanPass = false
+            break
           }
-          outbox.ack(m.id)
-        } catch {
-          // Stop the drain — preserve order; retry this op on the next flush.
-          break
         }
-      }
+        // Re-pass only after a fully clean pass (a failed pass must wait for its retry
+        // trigger — looping immediately would hammer a failing backend).
+      } while (cleanPass && requestedMidDrain)
     } finally {
       draining = false
     }
@@ -215,6 +240,21 @@ function catalogRepoAdapter(client) {
   }
 }
 
+/**
+ * A no-network CatalogClient for catalog collections with no backend yet. `create` is a
+ * no-op (NOT an enqueue): the flusher stops at the first failure, so a mutation against
+ * a nonexistent route would 404 forever and wedge the outbox drain.
+ * @returns {import('@oyl/all-of-oyl').CatalogClient<any>}
+ */
+function emptyCatalogClient() {
+  return {
+    search: async () => [],
+    list: async () => [],
+    get: async () => undefined,
+    create: () => {},
+  }
+}
+
 /** An empty Repository for entities with no backend client yet. @returns {import('@oyl/all-of-oyl').Repository<any>} */
 function emptyRepo() {
   return {
@@ -235,7 +275,30 @@ function noopApi() {
     create: async (_path, data) => data,
     update: async (_path, _id, data) => data,
     remove: async () => {},
+    bootstrap: async () => undefined,
   }
+}
+
+/**
+ * Decode a raw GET /bootstrap payload (Strapi rows keyed by REST plural path) into domain
+ * lists keyed by CollectionName. Rows decode exactly like the per-collection read paths:
+ * `strapiRowToShape` normalization + per-kind injection for Entry-derived collections.
+ * Collections absent from the payload decode to [] so stores and counts read uniformly.
+ * @param {import('@oyl/all-of-oyl').BootstrapPayload} payload
+ * @returns {Record<CollectionName, any[]>}
+ */
+export function decodeBootstrap(payload) {
+  const out = /** @type {Record<CollectionName, any[]>} */ ({})
+  for (const name of /** @type {CollectionName[]} */ (Object.keys(COLLECTIONS))) {
+    const rows = payload[PATH_BY_COLLECTION[name]]
+    const rowKind = ROW_KIND_BY_COLLECTION[name]
+    out[name] = Array.isArray(rows)
+      ? rows.map((row) => /** @type {any} */ (COLLECTIONS[name]).fromJSON(
+          strapiRowToShape(row, rowKind !== undefined ? { kind: rowKind } : undefined),
+        ))
+      : []
+  }
+  return out
 }
 
 /**

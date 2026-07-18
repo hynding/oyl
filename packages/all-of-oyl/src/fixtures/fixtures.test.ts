@@ -117,6 +117,26 @@ describe('fixtures', () => {
     expect(allEntryShapes).toHaveLength(263) // deterministic: 42 days × pattern + showcase
   })
 
+  it('seed catalog consumables carry backend-required slugs', () => {
+    for (const shape of seed.consumables) {
+      expect(typeof (shape as { slug?: unknown }).slug, `slug on ${(shape as { name?: string }).name}`).toBe('string')
+    }
+  })
+
+  it('makeSeed(today) re-anchors the entry slice to end at the given day', () => {
+    const today = DayKey.of('2026-07-18')
+    const shifted = makeSeed(today)
+    const entries = [...shifted.notes, ...shifted.consumptions, ...shifted.transactions, ...shifted.measurements, ...shifted.activitySessions]
+    expect(entries).toHaveLength(allEntryShapes.length) // same deterministic pattern
+    const journal = new Journal(FIXTURE_TZ)
+    for (const shape of entries) journal.add(reviveEntry(shape))
+    // The rolling slice ends AT the requested today (breakfast is logged daily).
+    expect(journal.entriesOn(today).length).toBeGreaterThan(0)
+    expect(journal.entriesOn(today.addDays(1))).toHaveLength(0)
+    // Default (no arg) stays byte-stable at FIXTURE_TODAY.
+    expect(makeSeed()).toEqual(seed)
+  })
+
   it('every seed entry revives through reviveEntry and re-serializes identically', () => {
     const entries = allEntryShapes.map((shape) => reviveEntry(shape))
     expect(entries).toHaveLength(allEntryShapes.length)
