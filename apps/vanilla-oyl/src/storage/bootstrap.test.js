@@ -24,11 +24,12 @@ function fakeApi() {
   const calls = []
   return {
     calls,
-    find: async () => ({ data: [], meta: {} }),
+    find: async (path) => { calls.push({ op: 'find', path }); return { data: [], meta: {} } },
     findOne: async () => undefined,
     create: async (path, data) => { calls.push({ op: 'create', path, data }); return data },
     update: async (path, id, data) => { calls.push({ op: 'update', path, id, data }); return data },
     remove: async (path, id) => { calls.push({ op: 'remove', path, id }) },
+    bootstrap: async () => { calls.push({ op: 'bootstrap' }); return undefined },
   }
 }
 
@@ -43,6 +44,26 @@ describe('makeRepositories (online-first)', () => {
       expect(typeof catalogs[name]?.search).toBe('function')
       expect(typeof catalogs[name]?.list).toBe('function')
     }
+  })
+
+  // lifeAreas has no Strapi content-type yet — its repo/catalog must never hit the
+  // network (a live client would 404 /api/life-areas on every refresh).
+  it('lifeAreas (unbacked catalog) reads resolve empty without any network call', async () => {
+    const api = fakeApi()
+    const { repos, catalogs } = makeRepositories(/** @type {any} */ (fakeStorage()), { api })
+    await expect(repos.lifeAreas.list()).resolves.toEqual([])
+    await expect(catalogs.lifeAreas?.list()).resolves.toEqual([])
+    await expect(catalogs.lifeAreas?.search('x')).resolves.toEqual([])
+    expect(api.calls.filter((c) => c.op === 'find')).toEqual([])
+  })
+
+  // An unbacked catalog create must NOT enqueue — the flusher stops at the first
+  // failure, so a forever-404 mutation would wedge the whole outbox drain.
+  it('lifeAreas (unbacked catalog) create does not enqueue to the outbox', async () => {
+    const storage = fakeStorage()
+    const { catalogs, outbox } = makeRepositories(/** @type {any} */ (storage), { api: fakeApi() })
+    catalogs.lifeAreas?.create(/** @type {any} */ ({ id: 'la-1', name: 'Health' }))
+    expect(outbox.size()).toBe(0)
   })
 
   it('notes save enqueues to the outbox (no network)', async () => {
@@ -325,6 +346,42 @@ describe('createFlusher', () => {
     const flush = createFlusher(outbox, api, manualConnectivity(true))
     await flush()
     expect(api.calls).toEqual([{ op: 'remove', path: 'notes', id: 'rec-1' }])
+    expect(outbox.size()).toBe(0)
+  })
+
+  it('an op enqueued mid-drain is flushed by the same drain (no stranded writes)', async () => {
+    // Regression: a quick save-then-delete enqueues the delete while the save's drain is
+    // in flight; the re-entrant flush() call must schedule another pass, not drop it.
+    /** @type {(v?: unknown) => void} */
+    let releaseFirstPut = () => {}
+    const gate = new Promise((r) => { releaseFirstPut = r })
+    /** @type {any[]} */
+    const calls = []
+    const api = /** @type {any} */ ({
+      update: async (/** @type {string} */ path, /** @type {string} */ id) => {
+        calls.push({ op: 'update', path, id })
+        if (calls.length === 1) await gate
+      },
+      remove: async (/** @type {string} */ path, /** @type {string} */ id) => { calls.push({ op: 'remove', path, id }) },
+    })
+    /** @type {any} */
+    const outbox = {
+      _q: [{ id: 'm1', entity: 'notes', op: 'save', payload: { id: 'rec-1' }, baseUpdatedAt: null, enqueuedAt: '' }],
+      peekAll() { return this._q.slice() },
+      ack(/** @type {string} */ id) { this._q = this._q.filter((/** @type {any} */ m) => m.id !== id) },
+      enqueue() { throw new Error('unused') },
+      size() { return this._q.length },
+    }
+    const flush = createFlusher(outbox, api, manualConnectivity(true))
+    const firstDrain = flush() // drains m1, parked on the gate
+    outbox._q.push({ id: 'm2', entity: 'notes', op: 'delete', payload: { id: 'rec-1' }, baseUpdatedAt: null, enqueuedAt: '' })
+    void flush() // what onEnqueue does mid-drain
+    releaseFirstPut()
+    await firstDrain
+    expect(calls).toEqual([
+      { op: 'update', path: 'notes', id: 'rec-1' },
+      { op: 'remove', path: 'notes', id: 'rec-1' },
+    ])
     expect(outbox.size()).toBe(0)
   })
 })

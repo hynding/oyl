@@ -16,8 +16,9 @@ export function createBudgetsStore(budgetsRepo) {
   let n = 0
   const revision = signal(0)
 
-  async function hydrate() {
-    budgets = [...(await budgetsRepo.list())]
+  /** @param {readonly Budget[]} [preloaded]  Bootstrap-payload lists skip the repo read. */
+  async function hydrate(preloaded) {
+    budgets = preloaded ? [...preloaded] : [...(await budgetsRepo.list())]
     revision.set((n += 1))
   }
 
