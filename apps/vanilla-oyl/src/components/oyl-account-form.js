@@ -7,7 +7,13 @@ import { sheet } from './sheet.js'
 const CURRENCIES = ['USD', 'EUR', 'GBP']
 
 const styles = sheet(`
+  :host { display: block; container-type: inline-size; }
   form { display: grid; grid-template-columns: 1fr auto auto; gap: .5rem; align-items: start; }
+  /* Narrow screens: name gets its own row; currency + submit share the second. */
+  @container (max-width: 26rem) {
+    form { grid-template-columns: 1fr auto; }
+    input { grid-column: 1 / -1; }
+  }
   input, select { font: inherit; color: var(--color-text); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: .5rem .6rem; }
   button.primary { background: var(--color-accent); color: white; border: 0; border-radius: var(--radius-1); padding: .5rem 1rem; font: inherit; font-weight: 600; cursor: pointer; }
   [data-role="error"]:not(:empty) { grid-column: 1 / -1; color: var(--color-danger); font-size: .85rem; }
