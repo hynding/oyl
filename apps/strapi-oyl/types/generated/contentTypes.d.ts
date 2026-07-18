@@ -834,44 +834,6 @@ export interface ApiNoteNote extends Struct.CollectionTypeSchema {
   }
 }
 
-export interface ApiOylRecordOylRecord extends Struct.CollectionTypeSchema {
-  collectionName: "oyl_records"
-  info: {
-    displayName: "OYL Record"
-    pluralName: "oyl-records"
-    singularName: "oyl-record"
-  }
-  options: {
-    draftAndPublish: false
-  }
-  attributes: {
-    collection: Schema.Attribute.String & Schema.Attribute.Required
-    createdAt: Schema.Attribute.DateTime
-    createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
-      Schema.Attribute.Private
-    data: Schema.Attribute.JSON
-    deletedAt: Schema.Attribute.DateTime
-    locale: Schema.Attribute.String & Schema.Attribute.Private
-    localizations: Schema.Attribute.Relation<
-      "oneToMany",
-      "api::oyl-record.oyl-record"
-    > &
-      Schema.Attribute.Private
-    owner: Schema.Attribute.Relation<
-      "manyToOne",
-      "plugin::users-permissions.user"
-    >
-    publishedAt: Schema.Attribute.DateTime
-    recordId: Schema.Attribute.String & Schema.Attribute.Required
-    revision: Schema.Attribute.Integer &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<0>
-    updatedAt: Schema.Attribute.DateTime
-    updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
-      Schema.Attribute.Private
-  }
-}
-
 export interface ApiTransactionTransaction extends Struct.CollectionTypeSchema {
   collectionName: "transactions"
   info: {
@@ -1433,7 +1395,6 @@ declare module "@strapi/strapi" {
       "api::goal.goal": ApiGoalGoal
       "api::measurement.measurement": ApiMeasurementMeasurement
       "api::note.note": ApiNoteNote
-      "api::oyl-record.oyl-record": ApiOylRecordOylRecord
       "api::transaction.transaction": ApiTransactionTransaction
       "plugin::content-releases.release": PluginContentReleasesRelease
       "plugin::content-releases.release-action": PluginContentReleasesReleaseAction
