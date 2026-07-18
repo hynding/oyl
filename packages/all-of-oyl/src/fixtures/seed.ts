@@ -71,11 +71,19 @@ export type Seed = {
   grants: Record<string, unknown>[]
 }
 
-let cached: Seed | undefined
+const cached = new Map<string, Seed>()
 
-/** Build (once) and return the canonical seed dataset as wire shapes. Lazy so importing the barrel costs nothing. */
-export function makeSeed(): Seed {
-  if (cached) return cached
+/**
+ * Build (once per anchor day) and return the canonical seed dataset as wire shapes.
+ * Lazy so importing the barrel costs nothing. `today` re-anchors the rolling six-week
+ * slice (and every relative date) so an app can seed a live account with data that
+ * ends at the actual current day; the no-arg call stays byte-stable at FIXTURE_TODAY
+ * for tests. Absolute showcase dates (the March DST cluster, fixed appointments)
+ * are unaffected by the anchor.
+ */
+export function makeSeed(today: DayKey = FIXTURE_TODAY): Seed {
+  const hit = cached.get(today.value)
+  if (hit) return hit
 
   const avery = makeUser({ id: fixtureId(1), displayName: 'Avery', units: 'metric' })
   const blake = makeUser({ id: fixtureId(2), displayName: 'Blake', timezone: 'America/Chicago' })
@@ -100,9 +108,9 @@ export function makeSeed(): Seed {
   const at = (day: DayKey, hourUtc: number) => new Date(`${day.value}T${String(hourUtc).padStart(2, '0')}:00:00Z`)
 
   const entries: Entry[] = []
-  const start = FIXTURE_TODAY.addDays(-41) // six weeks, inclusive of today
+  const start = today.addDays(-41) // six weeks, inclusive of today
   let dayIndex = 0
-  for (const day of DayRange.of(start, FIXTURE_TODAY)) {
+  for (const day of DayRange.of(start, today)) {
     // breakfast every day; dinner most days
     entries.push(makeConsumption({ id: eid(), occurredAt: at(day, 12), consumable: oatmeal }))
     if (dayIndex % 3 !== 2) {
@@ -144,7 +152,7 @@ export function makeSeed(): Seed {
   entries.push(
     makeTransaction({
       id: eid(),
-      occurredAt: at(FIXTURE_TODAY.addDays(-5), 20),
+      occurredAt: at(today.addDays(-5), 20),
       amount: Money.usd(-1500),
       category: 'groceries',
       note: 'refund: returned the moldy berries',
@@ -154,7 +162,7 @@ export function makeSeed(): Seed {
   entries.push(
     makeConsumption({
       id: eid(),
-      occurredAt: at(FIXTURE_TODAY.addDays(-3), 23),
+      occurredAt: at(today.addDays(-3), 23),
       nutrients: { calories: 850, protein: 35, totalFat: 40 },
       note: 'ad-hoc: restaurant ramen, no catalog entry',
     }),
@@ -170,15 +178,15 @@ export function makeSeed(): Seed {
   const sleepGoal = makeGoal({ id: fixtureId(52), name: 'Sleep enough', metric: 'sleep.hours', target: 7, direction: 'atLeast', period: 'day' })
   const weightGoal = makeGoal({ id: fixtureId(53), name: 'Trim down', metric: 'body.weight_kg', target: 81, direction: 'atMost', period: 'day', aggregation: 'last' })
   // showcase: a paused goal mid-streak (spec, "Fixtures double as seed data")
-  weightGoal.pause(FIXTURE_TODAY.addDays(-10), FIXTURE_TODAY.addDays(-7))
+  weightGoal.pause(today.addDays(-10), today.addDays(-7))
   // limit $1,000: the deterministic May spend is ~$728 net of the refund, so the budget is met
   const groceryBudget = makeBudget({ id: fixtureId(60), name: 'Food money', category: 'groceries', limit: Money.usd(100000) })
 
   // ── Plans (id block 1000-1999) ──────────────────────────────────────────
   const project = makeProject({ id: fixtureId(1000), name: 'Spring reset', areaId: fixtureId(12) })
   // showcase: a recurring chore completed late + its respawned (already overdue from today's view) successor
-  const wateredLate = makeTask({ id: fixtureId(1001), title: 'Water the plants', due: FIXTURE_TODAY.addDays(-9), cadence: Cadence.of(7, 'days') })
-  wateredLate.complete(FIXTURE_TODAY.addDays(-6))
+  const wateredLate = makeTask({ id: fixtureId(1001), title: 'Water the plants', due: today.addDays(-9), cadence: Cadence.of(7, 'days') })
+  wateredLate.complete(today.addDays(-6))
   // the successor is constructed explicitly with a fixture id — spawnNext() would
   // generate a random id and break the seed's byte-stability contract
   const wateringNext = makeTask({
@@ -187,26 +195,26 @@ export function makeSeed(): Seed {
     due: wateredLate.cadence!.nextAfter(wateredLate.completedOn!), // -6 + 7 = TODAY+1
     cadence: Cadence.of(7, 'days'),
   })
-  const taxes = makeTask({ id: fixtureId(1003), title: 'File taxes', due: FIXTURE_TODAY.addDays(-3) })
-  const projectDone = makeTask({ id: fixtureId(1004), title: 'Declutter closet', due: FIXTURE_TODAY.addDays(-5), projectId: project.id })
-  projectDone.complete(FIXTURE_TODAY.addDays(-5))
-  const projectOpen = makeTask({ id: fixtureId(1005), title: 'Donate the pile', due: FIXTURE_TODAY.addDays(3), projectId: project.id })
+  const taxes = makeTask({ id: fixtureId(1003), title: 'File taxes', due: today.addDays(-3) })
+  const projectDone = makeTask({ id: fixtureId(1004), title: 'Declutter closet', due: today.addDays(-5), projectId: project.id })
+  projectDone.complete(today.addDays(-5))
+  const projectOpen = makeTask({ id: fixtureId(1005), title: 'Donate the pile', due: today.addDays(3), projectId: project.id })
   const dentist = makeAppointment({ id: fixtureId(1006), title: 'Dentist', startsAt: new Date('2026-06-03T15:00:00Z') })
-  const mealTomorrow = makePlannedMeal({ id: fixtureId(1007), title: 'Oatmeal breakfast', day: FIXTURE_TODAY.addDays(1) })
-  const mealLater = makePlannedMeal({ id: fixtureId(1008), title: 'Oatmeal again', day: FIXTURE_TODAY.addDays(3) })
+  const mealTomorrow = makePlannedMeal({ id: fixtureId(1007), title: 'Oatmeal breakfast', day: today.addDays(1) })
+  const mealLater = makePlannedMeal({ id: fixtureId(1008), title: 'Oatmeal again', day: today.addDays(3) })
   const todayPlan = makeDayPlan({
     id: fixtureId(1010),
-    day: FIXTURE_TODAY,
+    day: today,
     slots: [{ planId: fixtureId(1003), start: '09:00', end: '10:00' }],
   })
 
   // ── Vault (id block 2000-2999) ──────────────────────────────────────────
-  const passport = makeDocument({ id: fixtureId(2000), expiresOn: FIXTURE_TODAY.addDays(90) })
-  const espresso = makePossession({ id: fixtureId(2010), warrantyUntil: FIXTURE_TODAY.addDays(30), purchasePrice: Money.usd(64900), purchasedOn: DayKey.of('2025-07-01') })
+  const passport = makeDocument({ id: fixtureId(2000), expiresOn: today.addDays(90) })
+  const espresso = makePossession({ id: fixtureId(2010), warrantyUntil: today.addDays(30), purchasePrice: Money.usd(64900), purchasedOn: DayKey.of('2025-07-01') })
   const netflix = makeSubscription({ id: fixtureId(2020), renewedThrough: DayKey.of('2026-05-15'), accountId: fixtureId(32) })
   // showcase: a lapsed subscription — pending May 1 surfaces as overdue, never skipped
   const gym = makeSubscription({ id: fixtureId(2021), name: 'Gym', amount: Money.usd(4000), anchor: DayKey.of('2026-01-01'), renewedThrough: DayKey.of('2026-04-01'), category: 'fitness' })
-  const sam = makeContact({ id: fixtureId(2030), lastContactedOn: FIXTURE_TODAY.addDays(-95) })
+  const sam = makeContact({ id: fixtureId(2030), lastContactedOn: today.addDays(-95) })
   const kettle = makeGiftIdea({ id: fixtureId(2040), contactId: sam.id })
 
   // ── Sharing (id block 3000+) ────────────────────────────────────────────
@@ -218,7 +226,7 @@ export function makeSeed(): Seed {
   const revokedAreaGrant = makeGrant({
     id: fixtureId(3012),
     scope: { kind: 'area-summary', areaId: fixtureId(10) },
-    revokedOn: FIXTURE_TODAY.addDays(-2),
+    revokedOn: today.addDays(-2),
   })
   // grants flow both ways: Blake shares his activity aggregates with Avery
   const blakeActivityGrant = makeGrant({
@@ -227,7 +235,7 @@ export function makeSeed(): Seed {
     scope: { kind: 'metric', prefix: 'activity' },
   })
 
-  cached = {
+  const built: Seed = {
     users: [avery.toJSON(), blake.toJSON()],
     lifeAreas: areas.map((a) => a.toJSON()),
     activities: [run.toJSON(), meditate.toJSON()],
@@ -252,5 +260,6 @@ export function makeSeed(): Seed {
     connections: [connection.toJSON()],
     grants: [runGoalGrant.toJSON(), dayPlanGrant.toJSON(), revokedAreaGrant.toJSON(), blakeActivityGrant.toJSON()],
   }
-  return cached
+  cached.set(today.value, built)
+  return built
 }

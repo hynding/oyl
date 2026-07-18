@@ -12,3 +12,16 @@ export function assertSlug(value: string): string {
   }
   return value
 }
+
+/**
+ * Derive a valid slug from free text (lowercase, non-[a-z0-9] runs → single `_`,
+ * trimmed). Total loss (e.g. all-symbol input) falls back to `item` so the result
+ * always satisfies `isSlug` — callers can pass user-facing names directly.
+ */
+export function toSlug(value: string): string {
+  const s = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+  return s === '' ? 'item' : s
+}
