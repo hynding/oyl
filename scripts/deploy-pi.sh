@@ -78,7 +78,7 @@ SITE_HOST=""
 [[ -n "$SITE_URL" ]] && SITE_HOST="$(printf '%s' "$SITE_URL" | sed -E 's#^[a-z]+://##; s#/.*$##')"
 
 echo "==> Remote build + restart + publish + health"
-ssh "$PI_SSH" "APP_ROOT=$APP_ROOT WEB_ROOT=$WEB_ROOT SITE_HOST=$SITE_HOST bash -l -s" <<'REMOTE'
+ssh "$PI_SSH" "APP_ROOT=$(printf %q "$APP_ROOT") WEB_ROOT=$(printf %q "$WEB_ROOT") SITE_HOST=$(printf %q "$SITE_HOST") bash -l -s" <<'REMOTE'
 set -euo pipefail
 cd "$APP_ROOT"
 command -v pnpm >/dev/null || { echo "remote: pnpm not on PATH (login shell)"; exit 1; }
