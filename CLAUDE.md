@@ -38,6 +38,7 @@ pnpm strapi-app develop  # Strapi backend dev (port 1340 native, 3340 in docker)
 pnpm vanilla dev         # build all-of-oyl → vendor into the app → http-server on 8041
 pnpm vanilla test        # Vitest (happy-dom) on the app
 pnpm e2e                 # Playwright e2e (auto-starts app on 8042 + backend on 1341)
+pnpm deploy:pi           # deploy committed HEAD to the production Pi (config: OYL_PI_* in untracked root .env; --dry-run to preview)
 ```
 
 Docker — the full app stack (postgres + backend + app):

@@ -8,6 +8,7 @@
     "strapi-app": "pnpm --filter @oyl/strapi-oyl-app",
     "vanilla": "pnpm --filter @oyl/vanilla-oyl",
     "e2e": "pnpm --filter @oyl/e2e-oyl e2e",
+    "deploy:pi": "bash scripts/deploy-pi.sh",
     "test": "pnpm --filter './packages/*' --filter './apps/*' --if-present test",
     "lint": "pnpm --filter './packages/*' --filter './apps/*' --if-present lint",
     "typecheck": "pnpm --filter './packages/*' --filter './apps/*' --if-present typecheck"
