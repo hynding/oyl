@@ -9,7 +9,16 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DRY_RUN=0
-[[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
+if [[ $# -gt 0 ]]; then
+  case "$1" in
+    --dry-run) DRY_RUN=1 ;;
+    *) echo "deploy-pi: unknown argument '$1' (only --dry-run is supported)." >&2; exit 1 ;;
+  esac
+  if [[ $# -gt 1 ]]; then
+    echo "deploy-pi: too many arguments." >&2
+    exit 1
+  fi
+fi
 
 # Read KEY from the environment, else from the root .env (specific keys only —
 # .env holds unrelated credentials and must never be sourced wholesale).

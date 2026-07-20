@@ -1,7 +1,7 @@
 # Pi Deploy Script — Design
 
 **Date:** 2026-07-20
-**Status:** Approved (pending spec review)
+**Status:** Implemented 2026-07-20; first production deploy verified
 
 ## Purpose
 
@@ -45,7 +45,7 @@ Missing `OYL_PI_SSH` aborts with a message showing the exact `.env` lines to add
 ## Interface
 
 - `scripts/deploy-pi.sh` — bash, `set -euo pipefail`.
-- Root `package.json`: `"deploy:pi": "scripts/deploy-pi.sh"`.
+- Root `package.json`: `"deploy:pi": "bash scripts/deploy-pi.sh"`.
 - Flag: `--dry-run` — run preflight and show the rsync delta (`rsync -n`),
   mutate nothing locally or remotely.
 
