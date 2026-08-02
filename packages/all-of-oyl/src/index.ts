@@ -111,6 +111,7 @@ export {
   type Payment,
   type LineItem,
 } from './ocari/extracted-document.js'
+export { EXTRACTION_JSON_SCHEMA, extractionFromLlm } from './ocari/extraction-schema.js'
 
 export { Connection, type ConnectionStatus } from './share/connection.js'
 export { Grant, type GrantScope } from './share/grant.js'
