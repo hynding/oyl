@@ -36,7 +36,7 @@ export interface ConfigInputs {
 function dotenvKey(dotenv: string, key: string): string | undefined {
   let found: string | undefined
   for (const line of dotenv.split('\n')) {
-    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*(?:#.*)?$/.exec(line.replace(/\r$/, ''))
+    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/.exec(line.replace(/\r$/, ''))
     if (m && m[1] === key) found = m[2]!.replace(/^(["'])(.*)\1$/, '$2')
   }
   return found

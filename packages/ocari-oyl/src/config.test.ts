@@ -18,7 +18,7 @@ describe('loadConfig', () => {
 
   it('reads OYL_OCARI_* keys from the .env contents without sourcing it wholesale', () => {
     const dotenv = [
-      'OYL_PI_HOST=pi.local # unrelated key ignored',
+      'OYL_PI_HOST=pi.local', // unrelated key, ignored because it isn't queried
       'OYL_OCARI_MODEL=llava:13b',
       'OYL_OCARI_DATE_FORMAT=YYYYMMDD',
       'OYL_OCARI_NAME_PREFIX="<CATEGORY>_"',
@@ -27,6 +27,16 @@ describe('loadConfig', () => {
     expect(c.model).toBe('llava:13b')
     expect(c.name.dateFormat).toBe('YYYYMMDD')
     expect(c.name.prefix).toBe('<CATEGORY>_') // surrounding quotes stripped
+  })
+
+  it('preserves a literal "#" in a value instead of treating it as a comment', () => {
+    const c = loadConfig({ ...empty, dotenv: 'OYL_OCARI_MODEL=foo#bar' })
+    expect(c.model).toBe('foo#bar')
+  })
+
+  it('preserves a literal "#" inside a quoted value, stripping only the quotes', () => {
+    const c = loadConfig({ ...empty, dotenv: 'OYL_OCARI_NAME_PREFIX="#tag_"' })
+    expect(c.name.prefix).toBe('#tag_')
   })
 
   it('precedence: flag > env > .env > default', () => {
