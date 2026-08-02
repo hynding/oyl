@@ -113,6 +113,7 @@ export {
 } from './ocari/extracted-document.js'
 export { EXTRACTION_JSON_SCHEMA, extractionFromLlm } from './ocari/extraction-schema.js'
 export { validateExtraction, type ValidationCheck, type ValidationReport, type CheckStatus } from './ocari/validators.js'
+export { DEFAULT_NAME_CONFIG, renderFileName, validateNameConfig, type NameConfig } from './ocari/name-template.js'
 
 export { Connection, type ConnectionStatus } from './share/connection.js'
 export { Grant, type GrantScope } from './share/grant.js'
