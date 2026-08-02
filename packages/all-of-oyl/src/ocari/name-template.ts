@@ -121,9 +121,13 @@ export function renderFileName(
   }
 
   const rendered = (config.prefix + config.template).replace(VAR_RE, (_, v: string) => valueOf(v as Variable))
-  const name = rendered
+  // Protect minus signs in negative money values (e.g., -48.12) from being treated as separators
+  // Use a sentinel with only alphanumerics to avoid being affected by cleanup regexes
+  const protected_ = rendered.replace(/-(\d+\.\d+)/g, 'NEGV$1')
+  const name = protected_
     .replace(/[_-]{2,}/g, (run) => run[0]!) // collapse separator runs left by empty variables
     .replace(/[_-]+(?=\.)/g, '') // no dangling separator before the extension dot
     .replace(/^[_-]+/, '')
+    .replace(/NEGV(\d+\.\d+)/g, '-$1') // restore minus signs in negative numbers
   return { name, missing: [...missing] }
 }

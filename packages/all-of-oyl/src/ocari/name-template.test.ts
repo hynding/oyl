@@ -59,6 +59,23 @@ describe('renderFileName', () => {
     const hostile = doc({ merchant: { name: '  ../Sketchy//Store!!  ' } })
     expect(renderFileName(hostile, 'JPG', cfg()).name).toBe('2026-07-24_sketchy-store_48.12.jpg')
   })
+
+  it('preserves the minus sign in negative totals with default template', () => {
+    const refund = doc({ total: Money.usd(-4812) })
+    expect(renderFileName(refund, 'jpg', cfg()).name).toBe('2026-07-24_trader-joes_-48.12.jpg')
+  })
+
+  it('preserves the minus sign in negative totals adjacent to empty optional variables', () => {
+    const template = '<date>_<time>_<business>_<payment_method><payment_account_suffix>_<total>.<ext>'
+    const refund = doc({ time: undefined, payment: undefined, total: Money.usd(-4812) })
+    expect(renderFileName(refund, 'jpg', cfg({ template })).name).toBe('2026-07-24_trader-joes_-48.12.jpg')
+  })
+
+  it('preserves the minus sign when negative total is first in template', () => {
+    const template = '<total>_<date>_<business>.<ext>'
+    const refund = doc({ total: Money.usd(-4812) })
+    expect(renderFileName(refund, 'jpg', cfg({ template })).name).toBe('-48.12_2026-07-24_trader-joes.jpg')
+  })
 })
 
 describe('validateNameConfig', () => {
