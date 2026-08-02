@@ -15,6 +15,19 @@ function fakeFetch(status: number, body: unknown): { calls: { url: string; init:
   return { calls, fetchFn }
 }
 
+/** A response whose json() rejects, e.g. a reverse-proxy HTML error page instead of a JSON body. */
+function fakeFetchUnreadableBody(status: number): FetchFn {
+  return async () => {
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      json: async () => {
+        throw new SyntaxError('Unexpected token < in JSON at position 0')
+      },
+    } as Awaited<ReturnType<FetchFn>>
+  }
+}
+
 const image = new Uint8Array([1, 2, 3])
 const lines = [{ text: 'TRADER JOES' }, { text: 'TOTAL 48.12' }]
 
@@ -57,5 +70,27 @@ describe('createOllamaEngine', () => {
     const { fetchFn } = fakeFetch(200, { message: { content: 'not json' } })
     const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5-vl:7b', fetchFn })
     await expect(engine.extract(image, lines)).rejects.toThrowError(OllamaError)
+  })
+
+  it('maps a plain 500 with a JSON body to an actionable status+body message', async () => {
+    const { fetchFn } = fakeFetch(500, { error: 'internal server error' })
+    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5-vl:7b', fetchFn })
+    await expect(engine.extract(image, lines)).rejects.toThrowError(OllamaError)
+    await expect(engine.extract(image, lines)).rejects.toThrowError(/500/)
+    await expect(engine.extract(image, lines)).rejects.toThrowError(/internal server error/)
+  })
+
+  it('maps a non-OK response with an unreadable (non-JSON) body to an actionable OllamaError', async () => {
+    const fetchFn = fakeFetchUnreadableBody(500)
+    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5-vl:7b', fetchFn })
+    await expect(engine.extract(image, lines)).rejects.toThrowError(OllamaError)
+    await expect(engine.extract(image, lines)).rejects.toThrowError(/500/)
+  })
+
+  it('maps a 200 with an unreadable (non-JSON) body to an actionable OllamaError, not a raw SyntaxError', async () => {
+    const fetchFn = fakeFetchUnreadableBody(200)
+    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5-vl:7b', fetchFn })
+    await expect(engine.extract(image, lines)).rejects.toThrowError(OllamaError)
+    await expect(engine.extract(image, lines)).rejects.not.toThrowError(SyntaxError)
   })
 })

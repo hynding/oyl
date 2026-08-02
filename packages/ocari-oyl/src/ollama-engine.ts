@@ -56,9 +56,20 @@ export function createOllamaEngine(opts: { url: string; model: string; fetchFn: 
         throw new OllamaError(`Model "${model}" not found on the Ollama server — fetch it with: ollama pull ${model}`)
       }
       if (!response.ok) {
-        throw new OllamaError(`Ollama returned ${response.status}: ${JSON.stringify(await response.json())}`)
+        let bodyText: string
+        try {
+          bodyText = JSON.stringify(await response.json())
+        } catch {
+          throw new OllamaError(`Ollama returned ${response.status} with an unreadable body — is ${url} really an Ollama server?`)
+        }
+        throw new OllamaError(`Ollama returned ${response.status}: ${bodyText}`)
       }
-      const payload = (await response.json()) as { message?: { content?: unknown } }
+      let payload: { message?: { content?: unknown } }
+      try {
+        payload = (await response.json()) as { message?: { content?: unknown } }
+      } catch {
+        throw new OllamaError(`Ollama response was not JSON — is ${url} really an Ollama server?`)
+      }
       const content = payload?.message?.content
       if (typeof content !== 'string') throw new OllamaError('Ollama response had no message content')
       try {
