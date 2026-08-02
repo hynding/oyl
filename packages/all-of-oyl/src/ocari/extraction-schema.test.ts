@@ -55,4 +55,19 @@ describe('extractionFromLlm', () => {
   it('rejects a hallucinated date rather than passing it through', () => {
     expect(() => extractionFromLlm({ ...llmShape(), date: '2026-02-30' })).toThrowError(DomainError)
   })
+
+  it('rounds up 3-decimal amounts >= 0.005 to the nearest cent', () => {
+    const d = extractionFromLlm({ docType: 'receipt', total: '3.499', lineItems: [] })
+    expect(d.total?.minor).toBe(350) // 3.499 rounds to 3.50
+  })
+
+  it('rounds down 3-decimal amounts < 0.005 to the nearest cent', () => {
+    const d = extractionFromLlm({ docType: 'receipt', total: '1.114', lineItems: [] })
+    expect(d.total?.minor).toBe(111) // 1.114 rounds to 1.11
+  })
+
+  it('preserves negative amounts during rounding and conversion', () => {
+    const d = extractionFromLlm({ docType: 'receipt', total: '-5.00', lineItems: [] })
+    expect(d.total?.minor).toBe(-500)
+  })
 })

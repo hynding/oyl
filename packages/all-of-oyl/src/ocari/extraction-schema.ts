@@ -71,7 +71,26 @@ function moneyFrom(value: unknown, currency: string, label: string): Money | und
   }
   const negative = value.startsWith('-')
   const [whole = '0', frac = ''] = (negative ? value.slice(1) : value).split('.')
-  const minor = Number(whole) * 100 + Number(frac.padEnd(2, '0').slice(0, 2))
+
+  // Extract cents (first 2 digits) and rounding digit (3rd digit)
+  const padded = frac.padEnd(4, '0')
+  const centsStr = padded.slice(0, 2)
+  const roundingDigit = Number(padded[2])
+
+  let cents = Number(centsStr)
+  // Round half-up: if 3rd digit >= 5, round up
+  if (roundingDigit >= 5) {
+    cents += 1
+  }
+
+  // Handle carry-over if cents rounds to 100
+  let wholeNum = Number(whole)
+  if (cents >= 100) {
+    wholeNum += 1
+    cents = 0
+  }
+
+  const minor = wholeNum * 100 + cents
   return Money.of(negative ? -minor : minor, currency, 2)
 }
 
