@@ -127,9 +127,9 @@ export function renderFileName(
     return 'unknown'
   }
 
-  // Strip spaces from template/prefix (never valid in filenames, prevents sentinel fabrication)
-  const prefix = config.prefix.replace(/ /g, '')
-  const template = config.template.replace(/ /g, '')
+  // Strip sentinel bytes from config to prevent hostile configs from fabricating minus signs
+  const prefix = config.prefix.replace(new RegExp(SIGN, 'g'), '')
+  const template = config.template.replace(new RegExp(SIGN, 'g'), '')
   const rendered = (prefix + template).replace(VAR_RE, (_, v: string) => valueOf(v as Variable))
   const name = rendered
     .replace(/[_-]{2,}/g, (run) => run[0]!) // collapse separator runs left by empty variables

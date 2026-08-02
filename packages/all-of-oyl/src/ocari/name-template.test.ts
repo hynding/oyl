@@ -87,6 +87,12 @@ describe('renderFileName', () => {
     const positive = doc({ total: Money.usd(4812) })
     expect(renderFileName(positive, 'jpg', cfg({ template })).name).toBe('2026-07-24_NEGV48.12.jpg')
   })
+
+  it('preserves literal spaces in prefix and template', () => {
+    expect(renderFileName(doc(), 'jpg', cfg({ prefix: 'Scan ' })).name).toBe('Scan 2026-07-24_trader-joes_48.12.jpg')
+    const template = '<business> Receipt.<ext>'
+    expect(renderFileName(doc(), 'jpg', cfg({ template })).name).toBe('trader-joes Receipt.jpg')
+  })
 })
 
 describe('validateNameConfig', () => {
