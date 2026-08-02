@@ -15,20 +15,21 @@ const MIME: Record<string, string> = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpe
 const FIELDS = ['docType', 'transactionType', 'date', 'time', 'merchant.name', 'payment.method', 'payment.accountSuffix', 'subtotal', 'tax', 'total'] as const
 
 function project(doc: ExtractedDocument, field: string): unknown {
-  const json = doc.toJSON() as Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
+  const json = doc.toJSON() as Record<string, any>
   return field.split('.').reduce<unknown>((acc, key) => (acc as Record<string, unknown> | undefined)?.[key], json)
 }
 
 const config = loadConfig({ flags: {}, env: process.env, dotenv: '' })
-const ocr = await createPaddleOcrEngine()
-const structurer = createOllamaEngine({ url: config.ollamaUrl, model: config.model, fetchFn: fetch })
-const today = DayKey.from(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone)
 
 const cases = readdirSync(GOLDEN).filter((f) => IMAGE_EXTS.has(extname(f).toLowerCase()))
 if (cases.length === 0) {
   console.log(`No golden cases in ${GOLDEN} — see golden/README.md`)
   process.exit(0)
 }
+
+const ocr = await createPaddleOcrEngine()
+const structurer = createOllamaEngine({ url: config.ollamaUrl, model: config.model, fetchFn: fetch })
+const today = DayKey.from(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone)
 
 const hits = new Map<string, number>(FIELDS.map((f) => [f, 0]))
 let scored = 0
@@ -41,7 +42,14 @@ for (const image of cases) {
     console.warn(`skip ${image}: no ${basename(expectedPath)}`)
     continue
   }
-  const expected = ExtractedDocument.fromJSON(JSON.parse(readFileSync(expectedPath, 'utf8')))
+  let expected: ExtractedDocument
+  try {
+    expected = ExtractedDocument.fromJSON(JSON.parse(readFileSync(expectedPath, 'utf8')))
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn(`skip ${image}: malformed expected file (${message})`)
+    continue
+  }
   const bytes = readFileSync(join(GOLDEN, image))
   const result = await processDocument(
     { bytes, originalName: image, ext: ext.slice(1), mimeType: MIME[ext]! },
