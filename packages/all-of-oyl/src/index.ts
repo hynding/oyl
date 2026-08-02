@@ -102,6 +102,16 @@ export { Contact, type Occasion } from './vault/contact.js'
 export { GiftIdea } from './vault/gift-idea.js'
 export { Vault, type UpcomingDue } from './vault/vault.js'
 
+export {
+  ExtractedDocument,
+  type ExtractedDocumentProps,
+  type DocCategory,
+  type TransactionType,
+  type Merchant,
+  type Payment,
+  type LineItem,
+} from './ocari/extracted-document.js'
+
 export { Connection, type ConnectionStatus } from './share/connection.js'
 export { Grant, type GrantScope } from './share/grant.js'
 
