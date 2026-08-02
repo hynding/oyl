@@ -46,12 +46,14 @@ describe('processDocument', () => {
     expect(r.sidecar['engine']).toEqual({ model: 'fake-model', createdAt: '2026-08-02T12:00:00.000Z' })
   })
 
-  it('forces needs_review when filename variables are missing', async () => {
+  it('renders unknown segments and reports needs_review when required fields are missing', async () => {
     const r = await processDocument(input, deps({ docType: 'receipt', total: null, lineItems: [] }))
     expect(r.fileName).toBe('unknown_unknown_unknown.jpg')
     expect(r.validation.status).toBe('needs_review')
-    const names = r.validation.checks.map((c) => c.name)
-    expect(names).toContain('requiredFieldsPresent')
+    const checks = r.validation.checks
+    const requiredFieldsCheck = checks.find((c) => c.name === 'requiredFieldsPresent')
+    // The validation failure is the actual source of needs_review (not the forcing branch).
+    expect(requiredFieldsCheck?.status).toBe('fail')
   })
 
   it('propagates arithmetic failures as needs_review', async () => {

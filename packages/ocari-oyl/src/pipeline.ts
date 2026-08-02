@@ -51,6 +51,10 @@ export async function processDocument(input: DocInput, deps: PipelineDeps): Prom
 
   const report = validateExtraction(extraction, { today: deps.today })
   const { name: fileName, missing } = renderFileName(extraction, input.ext, deps.name)
+  // Invariant: a filename containing 'unknown' must never ship as status ok.
+  // Today, missing variables (date/business/total) exactly mirror requiredFieldsPresent failures,
+  // so this branch is defensive. It ensures the invariant holds even if validators or template
+  // variables evolve independently. Currently unreachable via public API (missing ⊆ validation fails).
   const validation: ValidationReport =
     missing.length > 0 && report.status === 'ok' ? { ...report, status: 'needs_review' } : report
 
