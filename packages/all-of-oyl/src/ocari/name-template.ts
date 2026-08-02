@@ -89,6 +89,8 @@ export function renderFileName(
   config: NameConfig,
 ): { name: string; missing: string[] } {
   const missing = new Set<string>()
+  // Sentinel for protecting minus signs (space is never valid in filenames)
+  const SIGN = '\x00'
 
   const valueOf = (variable: Variable): string => {
     switch (variable) {
@@ -109,7 +111,12 @@ export function renderFileName(
       case 'payment_account_suffix':
         return doc.payment?.accountSuffix !== undefined ? doc.payment.accountSuffix.replace(/[^0-9a-z]/gi, '') : ''
       case 'total':
-        return doc.total !== undefined ? moneyToDecimal(doc.total.minor, doc.total.exponent) : fallback('total')
+        if (doc.total !== undefined) {
+          const decimal = moneyToDecimal(doc.total.minor, doc.total.exponent)
+          // Protect minus sign (covers both -48.12 and -4812 formats)
+          return decimal.replace(/-(?=\d)/g, SIGN)
+        }
+        return fallback('total')
       case 'ext':
         return ext.toLowerCase().replace(/^\.+/, '')
     }
@@ -120,14 +127,14 @@ export function renderFileName(
     return 'unknown'
   }
 
-  const rendered = (config.prefix + config.template).replace(VAR_RE, (_, v: string) => valueOf(v as Variable))
-  // Protect minus signs in negative money values (e.g., -48.12) from being treated as separators
-  // Use a sentinel with only alphanumerics to avoid being affected by cleanup regexes
-  const protected_ = rendered.replace(/-(\d+\.\d+)/g, 'NEGV$1')
-  const name = protected_
+  // Strip spaces from template/prefix (never valid in filenames, prevents sentinel fabrication)
+  const prefix = config.prefix.replace(/ /g, '')
+  const template = config.template.replace(/ /g, '')
+  const rendered = (prefix + template).replace(VAR_RE, (_, v: string) => valueOf(v as Variable))
+  const name = rendered
     .replace(/[_-]{2,}/g, (run) => run[0]!) // collapse separator runs left by empty variables
     .replace(/[_-]+(?=\.)/g, '') // no dangling separator before the extension dot
     .replace(/^[_-]+/, '')
-    .replace(/NEGV(\d+\.\d+)/g, '-$1') // restore minus signs in negative numbers
+    .replace(new RegExp(SIGN, 'g'), '-') // restore protected minus signs
   return { name, missing: [...missing] }
 }

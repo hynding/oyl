@@ -76,6 +76,17 @@ describe('renderFileName', () => {
     const refund = doc({ total: Money.usd(-4812) })
     expect(renderFileName(refund, 'jpg', cfg({ template })).name).toBe('-48.12_2026-07-24_trader-joes.jpg')
   })
+
+  it('preserves minus sign in whole-unit negative currencies (exponent 0)', () => {
+    const jpy = doc({ total: Money.of(-4812, 'JPY', 0) })
+    expect(renderFileName(jpy, 'jpg', cfg()).name).toBe('2026-07-24_trader-joes_-4812.jpg')
+  })
+
+  it('does not fabricate minus from literal NEGV in template', () => {
+    const template = '<date>_NEGV<total>.<ext>'
+    const positive = doc({ total: Money.usd(4812) })
+    expect(renderFileName(positive, 'jpg', cfg({ template })).name).toBe('2026-07-24_NEGV48.12.jpg')
+  })
 })
 
 describe('validateNameConfig', () => {
