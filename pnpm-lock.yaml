@@ -116,6 +116,28 @@ importers:
         specifier: ^4.1.8
         version: 4.1.8(@opentelemetry/api@1.9.0)(@types/node@20.19.39)(@vitest/browser-playwright@4.1.8)(@vitest/coverage-v8@4.1.8)(happy-dom@20.10.3)(jsdom@25.0.1)(msw@2.14.6(@types/node@20.19.39)(typescript@5.9.3))(vite@8.0.16(@types/node@20.19.39)(esbuild@0.28.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.22.4)(yaml@2.9.0))
 
+  packages/ocari-oyl:
+    dependencies:
+      '@oyl/all-of-oyl':
+        specifier: workspace:*
+        version: link:../all-of-oyl
+      ppu-paddle-ocr:
+        specifier: ^6.2.0
+        version: 6.2.0
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.39
+      tsx:
+        specifier: ^4.19.0
+        version: 4.22.4
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.8
+        version: 4.1.8(@opentelemetry/api@1.9.0)(@types/node@20.19.39)(@vitest/browser-playwright@4.1.8)(@vitest/coverage-v8@4.1.8)(happy-dom@20.10.3)(jsdom@25.0.1)(msw@2.14.6(@types/node@20.19.39)(typescript@5.9.3))(vite@8.0.16(@types/node@20.19.39)(esbuild@0.28.0)(jiti@2.6.1)(terser@5.46.1)(tsx@4.22.4)(yaml@2.9.0))
+
 packages:
 
   '@ai-sdk/gateway@1.0.29':
@@ -1258,6 +1280,81 @@ packages:
 
   '@mux/playback-core@0.27.0':
     resolution: {integrity: sha512-9kzpGRJNXLNMfFV6hvOde2+Uy3HyllwwEt9H5r4gYXOmrivQ6IWIGr9nXrUy7fmNkx6H05W+96zt1GhtBTlSDQ==}
+
+  '@napi-rs/canvas-android-arm64@1.0.3':
+    resolution: {integrity: sha512-7kSCdUhoXiO+AaIMXdBGdtp6EctZNkmF62Rea/BmVQlwKaM3bBhOzyGUzxyxz9dv5vdBfpyAaxhSRSJF4kqK4A==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [android]
+
+  '@napi-rs/canvas-darwin-arm64@1.0.3':
+    resolution: {integrity: sha512-ds14V1BPagLszQyaDTeggny5fNeTCqsUQ5QhFj9VDxSEfzrVxXtdbR0LoFyKa0Siaaw8KvqSk4t7k/WoZJwvbg==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@napi-rs/canvas-darwin-x64@1.0.3':
+    resolution: {integrity: sha512-qof3LRAAycmkV2I1izZo9RoSHF8kCQr5O05sFwv0jK8rSdYV6KHVwimo6Qb7RxZj40WHKbLHm5JDaUF0o5XUAA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@napi-rs/canvas-linux-arm-gnueabihf@1.0.3':
+    resolution: {integrity: sha512-FU2kKZLmolHA9+KcUA+l1+xH3WTLUUTQDU/kLv9SEUr2TrRPu94aytOeizFJDHPs/QBcw4QL1mCQhetQXYBbag==}
+    engines: {node: '>= 10'}
+    cpu: [arm]
+    os: [linux]
+
+  '@napi-rs/canvas-linux-arm64-gnu@1.0.3':
+    resolution: {integrity: sha512-GVSjntxKeA+/y/ZKf1F+cmUw1WeIkE5aMRPqnZUlBTBvBcrvgWccJAWuYCKPX4QJQwZILIIwhgdAbl51yj6fpA==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@napi-rs/canvas-linux-arm64-musl@1.0.3':
+    resolution: {integrity: sha512-J51oK/axyZ13kxycumSMfLiDZMdWdOVvqDFI28BpuViZHE3A0bQfr8B5vg8YnPEnqLD3BSn1hkdlh2buspEcNQ==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@napi-rs/canvas-linux-riscv64-gnu@1.0.3':
+    resolution: {integrity: sha512-CtQgQjoVTX67jS9XuCTtJ40Sl7wRLMguoFnnGnfDmCWf7kzKFZVwj5ynqUOIGKFMSB61ZCuQlwPvVNxYTTseaw==}
+    engines: {node: '>= 10'}
+    cpu: [riscv64]
+    os: [linux]
+    libc: [glibc]
+
+  '@napi-rs/canvas-linux-x64-gnu@1.0.3':
+    resolution: {integrity: sha512-jtfzAHFp+FRaR7zGT4jyCe6wUgAG/dVb5A4Apd8FY9jKarntDfUAlJXscugiH7ZF5kKnu7/lHFk9LaDPcrGEVQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@napi-rs/canvas-linux-x64-musl@1.0.3':
+    resolution: {integrity: sha512-xTzaUCKUHTY4bCGadeeRZggbRVbGUT1petg7Z8r9AJR2+D9Bqu6nQAgqBGC6D47tA70LjaaaLTrJ7wNY1T74dg==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@napi-rs/canvas-win32-arm64-msvc@1.0.3':
+    resolution: {integrity: sha512-ktVLuBkI6QVOm5BwO/WbdGwxgeetAMJa7TTmR8qBarXF0OU2NKjvjUtPJAl2y8t+zBRczJl/1VOl9gua6WcK2g==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@napi-rs/canvas-win32-x64-msvc@1.0.3':
+    resolution: {integrity: sha512-SGhlQ8bDjL1Cz2KnsKMasr/5sTcwG/SZkB6WCJxLsmSm/3aS2C+3p39bA7iZ2/94+NkVDySZfbiGoaSZSFHYxA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [win32]
+
+  '@napi-rs/canvas@1.0.3':
+    resolution: {integrity: sha512-OlI657a5XXvKGFX7kNeIzJ8rO7IXt87Mqu2H8rXE46viAuOfum/JA7ysX7+eBhxNKznT+RCZh418mndlcFX3+w==}
+    engines: {node: '>= 10'}
 
   '@napi-rs/wasm-runtime@1.1.4':
     resolution: {integrity: sha512-3NQNNgA1YSlJb/kMH1ildASP9HW7/7kYnRI2szWJaofaS1hWmbGI4H+d3+22aGzXXN9IJ+n+GiFVcGipJP18ow==}
@@ -2587,6 +2684,9 @@ packages:
 
   '@tanstack/virtual-core@3.14.0':
     resolution: {integrity: sha512-JLANqGy/D6k4Ujmh8Tr25lGimuOXNiaVyXaCAZS0W+1390sADdGnyUdSWNIfd49gebtIxGMij4IktRVzrdr12Q==}
+
+  '@techstark/opencv-js@5.0.0-release.1':
+    resolution: {integrity: sha512-PIm+eB0MFtieXoNC2GRao0dv/02sehG+Nv2nSW5D6pQm6J/4WqvDHm0RyoqOmGYQm67jdGiaOdIeTShCY3PIUg==}
 
   '@testing-library/dom@10.4.1':
     resolution: {integrity: sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==}
@@ -5962,6 +6062,32 @@ packages:
     resolution: {integrity: sha512-9ZhXKM/rw350N1ovuWHbGxnGh/SNJ4cnxHiM0rxE4VN41wsg8P8zWn9hv/buK00RP4WvlOyr/RBDiptyxVbkZQ==}
     engines: {node: '>=0.10.0'}
 
+  ppu-ocv@4.0.0:
+    resolution: {integrity: sha512-ol+S9/KLZ0aTV0xbC8+ZB0iM+FYux8ujoULeQoYY2IDBZj4LAuujJUkzHzUA2O3KzHs17KuuIzV/w4/htPdn3w==}
+    peerDependencies:
+      '@shopify/react-native-skia': '>=1.0.0'
+    peerDependenciesMeta:
+      '@shopify/react-native-skia':
+        optional: true
+
+  ppu-paddle-ocr@6.2.0:
+    resolution: {integrity: sha512-8YI6uI/IdhK5Jsi7Tb2job2k+Z5NgLdxh/4xkXVV5RJ+Qxeqq1FnThCRyigb9wy7baOzGKjrMAUBzAm+r2q5sw==}
+    hasBin: true
+    peerDependencies:
+      '@shopify/react-native-skia': '>=1.0.0'
+      onnxruntime-node: ^1.23.2
+      onnxruntime-react-native: ^1.23.2
+      onnxruntime-web: ^1.23.2
+    peerDependenciesMeta:
+      '@shopify/react-native-skia':
+        optional: true
+      onnxruntime-node:
+        optional: true
+      onnxruntime-react-native:
+        optional: true
+      onnxruntime-web:
+        optional: true
+
   prebuild-install@7.1.3:
     resolution: {integrity: sha512-8Mf2cbV7x1cXPUILADGI3wuhfqWvtiLA1iclTDbFRZkgRQS0NqsPZphna9V+HyTEadheuPmjaJMsbzKQFOzLug==}
     engines: {node: '>=10'}
@@ -8642,6 +8768,53 @@ snapshots:
       hls.js: 1.5.20
       mux-embed: 5.18.0
 
+  '@napi-rs/canvas-android-arm64@1.0.3':
+    optional: true
+
+  '@napi-rs/canvas-darwin-arm64@1.0.3':
+    optional: true
+
+  '@napi-rs/canvas-darwin-x64@1.0.3':
+    optional: true
+
+  '@napi-rs/canvas-linux-arm-gnueabihf@1.0.3':
+    optional: true
+
+  '@napi-rs/canvas-linux-arm64-gnu@1.0.3':
+    optional: true
+
+  '@napi-rs/canvas-linux-arm64-musl@1.0.3':
+    optional: true
+
+  '@napi-rs/canvas-linux-riscv64-gnu@1.0.3':
+    optional: true
+
+  '@napi-rs/canvas-linux-x64-gnu@1.0.3':
+    optional: true
+
+  '@napi-rs/canvas-linux-x64-musl@1.0.3':
+    optional: true
+
+  '@napi-rs/canvas-win32-arm64-msvc@1.0.3':
+    optional: true
+
+  '@napi-rs/canvas-win32-x64-msvc@1.0.3':
+    optional: true
+
+  '@napi-rs/canvas@1.0.3':
+    optionalDependencies:
+      '@napi-rs/canvas-android-arm64': 1.0.3
+      '@napi-rs/canvas-darwin-arm64': 1.0.3
+      '@napi-rs/canvas-darwin-x64': 1.0.3
+      '@napi-rs/canvas-linux-arm-gnueabihf': 1.0.3
+      '@napi-rs/canvas-linux-arm64-gnu': 1.0.3
+      '@napi-rs/canvas-linux-arm64-musl': 1.0.3
+      '@napi-rs/canvas-linux-riscv64-gnu': 1.0.3
+      '@napi-rs/canvas-linux-x64-gnu': 1.0.3
+      '@napi-rs/canvas-linux-x64-musl': 1.0.3
+      '@napi-rs/canvas-win32-arm64-msvc': 1.0.3
+      '@napi-rs/canvas-win32-x64-msvc': 1.0.3
+
   '@napi-rs/wasm-runtime@1.1.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)':
     dependencies:
       '@emnapi/core': 1.10.0
@@ -10676,6 +10849,8 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
 
   '@tanstack/virtual-core@3.14.0': {}
+
+  '@techstark/opencv-js@5.0.0-release.1': {}
 
   '@testing-library/dom@10.4.1':
     dependencies:
@@ -14566,6 +14741,15 @@ snapshots:
     dependencies:
       xtend: 4.0.2
 
+  ppu-ocv@4.0.0:
+    dependencies:
+      '@napi-rs/canvas': 1.0.3
+      '@techstark/opencv-js': 5.0.0-release.1
+
+  ppu-paddle-ocr@6.2.0:
+    dependencies:
+      ppu-ocv: 4.0.0
+
   prebuild-install@7.1.3:
     dependencies:
       detect-libc: 2.1.2
@@ -15690,7 +15874,6 @@ snapshots:
       esbuild: 0.28.0
     optionalDependencies:
       fsevents: 2.3.3
-    optional: true
 
   tunnel-agent@0.6.0:
     dependencies:
