@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@oyl/all-of-oyl": "workspace:*",
+    "onnxruntime-node": "^1.27.0",
     "ppu-paddle-ocr": "^6.2.0"
   },
   "devDependencies": {

@@ -121,9 +121,12 @@ importers:
       '@oyl/all-of-oyl':
         specifier: workspace:*
         version: link:../all-of-oyl
+      onnxruntime-node:
+        specifier: ^1.27.0
+        version: 1.27.0
       ppu-paddle-ocr:
         specifier: ^6.2.0
-        version: 6.2.0
+        version: 6.2.0(onnxruntime-node@1.27.0)
     devDependencies:
       '@types/node':
         specifier: ^20
@@ -3103,6 +3106,10 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
+  adm-zip@0.5.18:
+    resolution: {integrity: sha512-ufJnssQGbxzLNS1Ho9bCtX4rQKCCvoVuDLHoJyc3F9dOGDB4BkWs2Ci0kv53lqocAEQ/Cbi+I2XCsNYGqVYqng==}
+    engines: {node: '>=12.0'}
+
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
@@ -5737,6 +5744,13 @@ packages:
 
   only@0.0.2:
     resolution: {integrity: sha512-Fvw+Jemq5fjjyWz6CpKx6w9s7xxqo3+JCyM0WXWeCSOboZ8ABkyvP8ID4CZuChA/wxSx+XSJmdOm8rGVyJ1hdQ==}
+
+  onnxruntime-common@1.27.0:
+    resolution: {integrity: sha512-3KxL5wIVqa8Ex08jxSzncm9CMgw8CjOFyOQ7SxvG9o0cVLlhTNKXyIQuTbtX4tGPJEf73OER2xrjt4HJSBL4ow==}
+
+  onnxruntime-node@1.27.0:
+    resolution: {integrity: sha512-QEzGwrvNBgv4uPVdnbHsOGG4G6T96mdlcFI8aAKPjMU8wOPpVocPXb6k3QGkaZagVTv2G9Bnnbo6Z3JdXr1fQw==}
+    os: [win32, darwin, linux]
 
   open@8.4.0:
     resolution: {integrity: sha512-XgFPPM+B28FtCCgSb9I+s9szOC1vZRSwgWsRUA5ylIxRTgKozqjOCrVOqGsYABPYK5qnfqClxZTFBa8PKt2v6Q==}
@@ -11433,6 +11447,8 @@ snapshots:
 
   acorn@8.16.0: {}
 
+  adm-zip@0.5.18: {}
+
   agent-base@6.0.2:
     dependencies:
       debug: 4.4.3(supports-color@5.5.0)
@@ -14430,6 +14446,14 @@ snapshots:
 
   only@0.0.2: {}
 
+  onnxruntime-common@1.27.0: {}
+
+  onnxruntime-node@1.27.0:
+    dependencies:
+      adm-zip: 0.5.18
+      global-agent: 4.1.3
+      onnxruntime-common: 1.27.0
+
   open@8.4.0:
     dependencies:
       define-lazy-prop: 2.0.0
@@ -14746,9 +14770,11 @@ snapshots:
       '@napi-rs/canvas': 1.0.3
       '@techstark/opencv-js': 5.0.0-release.1
 
-  ppu-paddle-ocr@6.2.0:
+  ppu-paddle-ocr@6.2.0(onnxruntime-node@1.27.0):
     dependencies:
       ppu-ocv: 4.0.0
+    optionalDependencies:
+      onnxruntime-node: 1.27.0
 
   prebuild-install@7.1.3:
     dependencies:
