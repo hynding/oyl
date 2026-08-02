@@ -1,4 +1,4 @@
-import { constants, copyFileSync, existsSync, renameSync, writeFileSync } from 'node:fs'
+import { constants, copyFileSync, existsSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 export interface OutputPlan {
@@ -29,14 +29,25 @@ export function writeOutputs(args: {
   sidecar: Record<string, unknown>
   rename: boolean
 }): void {
-  if (args.rename) {
-    // renameSync would clobber an existing target; probe with the sidecar's exclusive write first.
-    writeFileSync(args.plan.sidecarPath, `${JSON.stringify(args.sidecar, null, 2)}\n`, { flag: 'wx' })
-    // Guard against races and caller bugs: renameSync would still clobber an existing image
-    if (existsSync(args.plan.imagePath)) throw new Error(`target exists: ${args.plan.imagePath}`)
-    renameSync(args.sourcePath, args.plan.imagePath)
-  } else {
-    copyFileSync(args.sourcePath, args.plan.imagePath, constants.COPYFILE_EXCL)
-    writeFileSync(args.plan.sidecarPath, `${JSON.stringify(args.sidecar, null, 2)}\n`, { flag: 'wx' })
+  // Early guard: reject if image target already exists (cheap pre-check; exclusive flags remain authoritative for races).
+  if (existsSync(args.plan.imagePath)) throw new Error(`target exists: ${args.plan.imagePath}`)
+
+  // Write sidecar first (wx flag claims the basename atomically).
+  writeFileSync(args.plan.sidecarPath, `${JSON.stringify(args.sidecar, null, 2)}\n`, { flag: 'wx' })
+
+  try {
+    if (args.rename) {
+      renameSync(args.sourcePath, args.plan.imagePath)
+    } else {
+      copyFileSync(args.sourcePath, args.plan.imagePath, constants.COPYFILE_EXCL)
+    }
+  } catch (err) {
+    // Cleanup: if image operation fails, remove the sidecar so no orphan remains.
+    try {
+      unlinkSync(args.plan.sidecarPath)
+    } catch {
+      // Ignore cleanup errors; original error takes precedence.
+    }
+    throw err
   }
 }

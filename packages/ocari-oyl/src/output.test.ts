@@ -47,14 +47,49 @@ describe('writeOutputs', () => {
     expect(existsSync(plan.imagePath)).toBe(true)
   })
 
-  it('never overwrites an existing target', () => {
+  it('never overwrites an existing image target (copy branch)', () => {
     const dir = tempDir()
     const source = join(dir, 'IMG_3.jpg')
     writeFileSync(source, 'new')
     writeFileSync(join(dir, NAME), 'old')
-    // stale exists() said the name was free — the exclusive flag must still refuse
     const plan = { imagePath: join(dir, NAME), sidecarPath: join(dir, '2026-07-24_store_9.99.json') }
     expect(() => writeOutputs({ sourcePath: source, plan, sidecar: {}, rename: false })).toThrow()
     expect(readFileSync(join(dir, NAME), 'utf8')).toBe('old')
+    expect(existsSync(plan.sidecarPath)).toBe(false) // no orphan sidecar
+    expect(readFileSync(source, 'utf8')).toBe('new') // source untouched
+  })
+
+  it('never overwrites an existing image target (rename branch)', () => {
+    const dir = tempDir()
+    const source = join(dir, 'IMG_4.jpg')
+    writeFileSync(source, 'moveMe')
+    writeFileSync(join(dir, NAME), 'doNotTouch')
+    const plan = { imagePath: join(dir, NAME), sidecarPath: join(dir, '2026-07-24_store_9.99.json') }
+    expect(() => writeOutputs({ sourcePath: source, plan, sidecar: {}, rename: true })).toThrow()
+    expect(readFileSync(join(dir, NAME), 'utf8')).toBe('doNotTouch') // image untouched
+    expect(existsSync(plan.sidecarPath)).toBe(false) // no orphan sidecar
+    expect(readFileSync(source, 'utf8')).toBe('moveMe') // source not moved
+  })
+
+  it('cleans up sidecar if image copy fails', () => {
+    const dir = tempDir()
+    const source = join(dir, 'IMG_5.jpg')
+    writeFileSync(source, 'original')
+    const plan = { imagePath: join(dir, NAME), sidecarPath: join(dir, '2026-07-24_store_9.99.json') }
+    // Pre-create the image target to cause copyFileSync to fail
+    writeFileSync(plan.imagePath, 'existingImage')
+    expect(() => writeOutputs({ sourcePath: source, plan, sidecar: { test: 'data' }, rename: false })).toThrow()
+    expect(existsSync(plan.sidecarPath)).toBe(false) // sidecar cleaned up, no orphan
+  })
+
+  it('cleans up sidecar if image rename fails', () => {
+    const dir = tempDir()
+    const source = join(dir, 'IMG_6.jpg')
+    writeFileSync(source, 'toMove')
+    const plan = { imagePath: join(dir, NAME), sidecarPath: join(dir, '2026-07-24_store_9.99.json') }
+    // Pre-create the image target to cause renameSync to fail
+    writeFileSync(plan.imagePath, 'blocking')
+    expect(() => writeOutputs({ sourcePath: source, plan, sidecar: { test: 'data' }, rename: true })).toThrow()
+    expect(existsSync(plan.sidecarPath)).toBe(false) // sidecar cleaned up, no orphan
   })
 })
