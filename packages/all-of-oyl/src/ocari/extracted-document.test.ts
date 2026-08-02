@@ -47,7 +47,7 @@ describe('ExtractedDocument', () => {
     [{ docType: 'receipt', merchant: { name: '' } }, 'merchant name'],
     [{ docType: 'receipt', payment: { method: '' } }, 'payment method'],
     [{ docType: 'receipt', lineItems: [{ name: '' }] }, 'line item name'],
-  ])('rejects invalid props %j (%s)', (props) => {
+  ])('rejects invalid props %j (%s)', (props, _desc) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(() => new ExtractedDocument(props as any)).toThrowError(DomainError)
   })
