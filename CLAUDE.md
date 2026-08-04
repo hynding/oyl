@@ -16,6 +16,7 @@ OYL ("Organize Your Life") — a personal productivity stack covering daily acti
 | `@oyl/vanilla-oyl` | **Flagship app at `apps/vanilla-oyl`.** Zero runtime deps: vanilla JS + JSDoc, Web Components (shadow DOM + design tokens), a signals reactive core (`src/lib/reactive/`), themes via `light-dark()`/`oklch()`. **Online-first, account-required.** On sign-in, builds one `ApiClient` + `WriteOutbox` + `ReadCache`; personal writes enqueue via `ServerPersonalRepository`; catalog writes via `CatalogClient`; a `createFlusher` drains the outbox when connectivity is online. Consumes `@oyl/all-of-oyl` `dist/` through an importmap (`pnpm vanilla build:lib` builds + vendors it into `vendor/`). Status screen at `/status` is the diagnostics/acceptance surface (Connection, Account). Spec: `docs/superpowers/specs/2026-06-12-vanilla-oyl-foundation-design.md`. | Vanilla JS, Vitest (happy-dom), http-server |
 | `@oyl/strapi-oyl-app` | **Backend at `apps/strapi-oyl`.** Strapi 5 backend with relational content-types (personal `note`, catalog `activity` with creator+visibility, etc.); owner-scoped REST endpoints. Writes upsert by domain `recordId`. SQLite for dev/test (`.tmp/data.db`), Postgres (`oyl_app`) in compose. **`strapi build` must precede `tsc --noEmit`** (regenerates `types/generated/contentTypes.d.ts` which registers content-type UIDs). | Strapi 5 |
 | `@oyl/e2e-oyl` | **Browser e2e suite at `apps/e2e-oyl`.** Playwright drives the real app against the real backend (fresh SQLite DB, dedicated ports: app 8042, backend 1341 — never collides with dev). Both servers auto-start from `playwright.config.ts`. Desktop + mobile (Pixel 7) projects run every spec; an auto **hygiene fixture fails any test on console errors/warnings, page errors, or 4xx/5xx** (negative paths declare `hygiene.allow(...)`); per-test registered users isolate data. Conventions + backed-vs-unbacked rules: `apps/e2e-oyl/README.md`. | Playwright |
+| `@oyl/ocari-oyl` | **Receipt/document image parsing CLI at `packages/ocari-oyl`** ("OCR mixed with AI"). `pnpm ocari <image…>` → template-named copy + JSON data-sheet sidecar. Hybrid engine: `ppu-paddle-ocr` grounds text, local Ollama (`qwen2.5-vl:7b`, structured outputs) assigns semantics; arithmetic validators gate `ok`/`needs_review`. Domain types/validators/name renderer live in `all-of-oyl/src/ocari/` (NOT in `collections.ts` — nothing persists in v1). Config `OYL_OCARI_*` in untracked root `.env`; golden-set eval `pnpm --filter @oyl/ocari-oyl eval` (gitignored personal receipts). No e2e impact (no UI/API surface). | TS, vitest, tsx, Ollama |
 
 ## Port map (docker compose)
 
@@ -39,6 +40,7 @@ pnpm vanilla dev         # build all-of-oyl → vendor into the app → http-ser
 pnpm vanilla test        # Vitest (happy-dom) on the app
 pnpm e2e                 # Playwright e2e (auto-starts app on 8042 + backend on 1341)
 pnpm deploy:pi           # deploy committed HEAD to the production Pi (config: OYL_PI_* in untracked root .env; --dry-run to preview)
+pnpm ocari <image…>      # parse receipt/document images → named copy + JSON sidecar (needs local Ollama)
 ```
 
 Docker — the full app stack (postgres + backend + app):
@@ -57,6 +59,7 @@ Then at `http://localhost:8041` go to **Status → Connection**, set the backend
 | `vanilla-oyl` | `pnpm vanilla test` (vitest, happy-dom) | `pnpm vanilla typecheck` (`tsc --noEmit`, JSDoc checkJs). Resolves `@oyl/all-of-oyl` to TS source, so needs no prior build. |
 | `strapi-oyl-app` | `pnpm --filter @oyl/strapi-oyl-app test` (vitest: schema parity + endpoint smoke; needs a prior `strapi build` — tests run from `dist/`) | `pnpm --filter @oyl/strapi-oyl-app exec tsc --noEmit` (requires a prior `strapi build` to regenerate `types/generated/contentTypes.d.ts`) |
 | `e2e-oyl` | `pnpm e2e` (Playwright, desktop + mobile; servers auto-start. After strapi `src/` changes: `pnpm strapi-app build` + kill the process on :1341 so it reboots fresh; after `all-of-oyl/src` changes: `pnpm vanilla build:lib` if the app server is already running) | `pnpm --filter @oyl/e2e-oyl typecheck` |
+| `ocari-oyl` | `pnpm --filter @oyl/ocari-oyl test` (vitest; no live Ollama — engines faked). Live accuracy: `pnpm --filter @oyl/ocari-oyl eval` against `golden/` | `pnpm --filter @oyl/ocari-oyl typecheck` |
 
 Root aggregates run scripts across `./packages/*` **and** `./apps/*` with `--if-present`: `pnpm test`, `pnpm lint`, `pnpm typecheck`. (These do not build `all-of-oyl/dist` first — `pnpm vanilla dev`/`build:lib` do.)
 
