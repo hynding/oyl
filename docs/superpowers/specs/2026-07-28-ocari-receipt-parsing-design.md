@@ -12,7 +12,7 @@ OYL has no way to capture paper/digital documents (receipts, invoices, statement
 
 1. **Engine: hybrid OCR + local LLM** (open source, fully local, no training, no per-call cost):
    - OCR grounding: `ppu-paddle-ocr` (MIT, PP-OCRv6 ONNX models, pure Node via `onnxruntime-node`; ARM64 CPU binaries verified in the npm tarball).
-   - Structuring: Ollama structured outputs (`format` = JSON schema) with `qwen2.5-vl:7b` (Apache-2.0) receiving the image **plus** the OCR text. OCR can't invent prices (non-autoregressive); the VLM assigns semantics and reads context (business, payment method). Arithmetic validation brackets both.
+   - Structuring: Ollama structured outputs (`format` = JSON schema) with `qwen2.5vl:7b` (Apache-2.0) receiving the image **plus** the OCR text. OCR can't invent prices (non-autoregressive); the VLM assigns semantics and reads context (business, payment method). Arithmetic validation brackets both.
    - A Pi 5 profile (same pipeline, text-only ~4B model, minutes/receipt, async) is a designed-for follow-up, not v1.
 2. **Delivery: CLI-first** — new workspace package `packages/ocari-oyl`. App/backend integration (upload, review screen) is a later sub-project.
 3. **Scope: files + sidecar only** — no records are written to the OYL data model in v1. Sidecars use domain wire shapes so future import is a straight mapping.
@@ -20,6 +20,8 @@ OYL has no way to capture paper/digital documents (receipts, invoices, statement
 5. **Output filenames are template-driven** (user-configurable variables, date format, and category prefix — see Filename templating).
 
 Research references: Receipt Wrangler (reference architecture: OCR/vision → LLM w/ pluggable backends), paperless-ngx (filename-as-summary / DB-as-truth, naming templates), Ollama structured outputs docs, ppu-paddle-ocr, Qwen VL model family. Key negative findings: no maintained general-purpose receipt-parsing library exists (npm or PyPI); cloud receipt SaaS has no hobby tier anymore; prompted generic VLMs beat receipt-fine-tuned models (Donut/LayoutLM era superseded); Qwen2.5-VL-**3B** and Nanonets derivatives have non-commercial licenses — avoid.
+
+(2026-08-04: model tag corrected to `qwen2.5vl:7b` — the hyphenated tag does not exist in the Ollama library.)
 
 ## Architecture
 
@@ -67,7 +69,7 @@ Two homes, per the single-source-of-truth rule:
 
 Originals are never modified or deleted (except `--rename`, which moves the file to the new name). Default output dir = alongside the original; `--out <dir>` overrides. `--dry-run` prints planned names + extraction without writing. `--model` overrides the model. Batch mode continues past per-file failures and ends with a summary table (file → status → new name).
 
-Failure modes: Ollama unreachable or model missing → actionable message (`ollama pull qwen2.5-vl:7b`); OCR failure or undecodable extraction → per-file error, batch continues. Invalid template or format config → the CLI fails fast before processing any file, listing valid variables/tokens.
+Failure modes: Ollama unreachable or model missing → actionable message (`ollama pull qwen2.5vl:7b`); OCR failure or undecodable extraction → per-file error, batch continues. Invalid template or format config → the CLI fails fast before processing any file, listing valid variables/tokens.
 
 ## Filename templating
 
@@ -98,7 +100,7 @@ Config keys read from env or the untracked root `.env` (specific keys only, `dep
 | Env key | Flag | Default |
 |---|---|---|
 | `OYL_OCARI_OLLAMA_URL` | — | `http://localhost:11434` |
-| `OYL_OCARI_MODEL` | `--model` | `qwen2.5-vl:7b` |
+| `OYL_OCARI_MODEL` | `--model` | `qwen2.5vl:7b` |
 | `OYL_OCARI_NAME_TEMPLATE` | `--name-template` | `<date>_<business>_<total>.<ext>` |
 | `OYL_OCARI_NAME_PREFIX` | `--name-prefix` | empty |
 | `OYL_OCARI_DATE_FORMAT` | `--date-format` | `YYYY-MM-DD` |
@@ -113,7 +115,7 @@ Config keys read from env or the untracked root `.env` (specific keys only, `dep
   "extraction": { /* ExtractedDocument.toJSON() — the wire shape */ },
   "ocr": { "engine": "ppu-paddle-ocr@6.x", "lines": [ { "text": "…", "box": [/* … */] } ] },
   "validation": { "status": "ok", "checks": [ { "name": "totalsAddUp", "pass": true } ] },
-  "engine": { "model": "qwen2.5-vl:7b", "createdAt": "2026-08-02T18:00:00Z" }
+  "engine": { "model": "qwen2.5vl:7b", "createdAt": "2026-08-02T18:00:00Z" }
 }
 ```
 

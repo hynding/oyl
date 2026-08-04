@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { basename, dirname, extname, join, resolve } from 'node:path'
+import { basename, dirname, extname, isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { DayKey, DEFAULT_NAME_CONFIG } from '@oyl/all-of-oyl'
@@ -8,6 +8,7 @@ import { createOllamaEngine } from './ollama-engine.js'
 import { createPaddleOcrEngine } from './paddle-ocr-engine.js'
 import { processDocument } from './pipeline.js'
 import { planOutputs, writeOutputs } from './output.js'
+import { repoDotenv } from './repo-dotenv.js'
 
 const SUPPORTED = new Set(['.jpg', '.jpeg', '.png', '.webp'])
 const MIME: Record<string, string> = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' }
@@ -43,13 +44,16 @@ Template variables: <date> <time> <business> <category> <CATEGORY> <transaction_
 Defaults: template ${DEFAULT_NAME_CONFIG.template} · date ${DEFAULT_NAME_CONFIG.dateFormat} · time ${DEFAULT_NAME_CONFIG.timeFormat}
 Env (root .env): OYL_OCARI_OLLAMA_URL OYL_OCARI_MODEL OYL_OCARI_NAME_TEMPLATE OYL_OCARI_NAME_PREFIX OYL_OCARI_DATE_FORMAT OYL_OCARI_TIME_FORMAT
 
-Requires a running Ollama (ollama serve) with the model pulled (ollama pull qwen2.5-vl:7b).`
+Requires a running Ollama (ollama serve) with the model pulled (ollama pull qwen2.5vl:7b).`
 
-function repoDotenv(): string {
-  // repo root = two dirs up from packages/ocari-oyl/src
-  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
-  const path = join(root, '.env')
-  return existsSync(path) ? readFileSync(path, 'utf8') : ''
+/**
+ * Resolve a user-supplied path (a CLI positional or --out) against the invoking shell's cwd,
+ * not the process cwd. `pnpm --filter @oyl/ocari-oyl ocari` runs with cwd = packages/ocari-oyl,
+ * so a relative path typed at the repo root must resolve against `base` (INIT_CWD), never
+ * `process.cwd()`. Absolute paths pass through resolve() unchanged.
+ */
+export function resolveUserPath(base: string, p: string): string {
+  return isAbsolute(p) ? resolve(p) : resolve(base, p)
 }
 
 export async function main(argv: string[]): Promise<number> {
@@ -85,23 +89,28 @@ export async function main(argv: string[]): Promise<number> {
   const structurer = createOllamaEngine({ url: config.ollamaUrl, model: config.model, fetchFn: fetch })
   const today = DayKey.from(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone)
 
+  // pnpm sets INIT_CWD to the invoking shell's cwd; process.cwd() under `pnpm --filter` is the package dir.
+  const cwd = process.env.INIT_CWD ?? process.cwd()
+  const outDir = config.out !== undefined ? resolveUserPath(cwd, config.out) : undefined
+
   const rows: { file: string; status: string; detail: string }[] = []
   for (const file of parsed.files) {
     try {
+      const resolvedFile = resolveUserPath(cwd, file)
       const ext = extname(file).toLowerCase()
       if (ext === '.heic') throw new Error('HEIC is not supported — convert first (e.g. `sips -s format jpeg`)')
       if (!SUPPORTED.has(ext)) throw new Error(`unsupported extension "${ext}" (jpg/jpeg/png/webp)`)
-      const bytes = readFileSync(file)
+      const bytes = readFileSync(resolvedFile)
       const result = await processDocument(
         { bytes, originalName: basename(file), ext: ext.slice(1), mimeType: MIME[ext]! },
         { ocr, structurer, today, name: config.name, now: () => new Date().toISOString() },
       )
-      const dir = config.out ?? dirname(resolve(file))
+      const dir = outDir ?? dirname(resolvedFile)
       const plan = planOutputs(dir, result.fileName, existsSync)
       if (config.dryRun) {
         rows.push({ file, status: `${result.validation.status} (dry-run)`, detail: plan.imagePath })
       } else {
-        writeOutputs({ sourcePath: file, plan, sidecar: result.sidecar, rename: config.rename })
+        writeOutputs({ sourcePath: resolvedFile, plan, sidecar: result.sidecar, rename: config.rename })
         rows.push({ file, status: result.validation.status, detail: plan.imagePath })
       }
     } catch (e) {

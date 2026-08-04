@@ -57,7 +57,7 @@ export function loadConfig(inputs: ConfigInputs): OcariConfig {
 
   return {
     ollamaUrl: setting(undefined, 'OYL_OCARI_OLLAMA_URL', 'http://localhost:11434'),
-    model: setting(inputs.flags.model, 'OYL_OCARI_MODEL', 'qwen2.5-vl:7b'),
+    model: setting(inputs.flags.model, 'OYL_OCARI_MODEL', 'qwen2.5vl:7b'),
     name,
     ...(inputs.flags.out !== undefined ? { out: inputs.flags.out } : {}),
     rename: inputs.flags.rename ?? false,

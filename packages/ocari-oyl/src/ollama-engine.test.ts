@@ -34,14 +34,14 @@ const lines = [{ text: 'TRADER JOES' }, { text: 'TOTAL 48.12' }]
 describe('createOllamaEngine', () => {
   it('POSTs the structured-output request', async () => {
     const { calls, fetchFn } = fakeFetch(200, { message: { content: '{"docType":"receipt"}' } })
-    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5-vl:7b', fetchFn })
+    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5vl:7b', fetchFn })
     const result = await engine.extract(image, lines)
     expect(result).toEqual({ docType: 'receipt' })
 
     expect(calls).toHaveLength(1)
     expect(calls[0]!.url).toBe('http://localhost:11434/api/chat')
     const sent = JSON.parse(String(calls[0]!.init?.body))
-    expect(sent.model).toBe('qwen2.5-vl:7b')
+    expect(sent.model).toBe('qwen2.5vl:7b')
     expect(sent.stream).toBe(false)
     expect(sent.options).toEqual({ temperature: 0 })
     expect(sent.format.type).toBe('object') // EXTRACTION_JSON_SCHEMA passed through
@@ -55,26 +55,26 @@ describe('createOllamaEngine', () => {
     const fetchFn: FetchFn = async () => {
       throw new TypeError('fetch failed')
     }
-    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5-vl:7b', fetchFn })
+    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5vl:7b', fetchFn })
     await expect(engine.extract(image, lines)).rejects.toThrowError(OllamaError)
     await expect(engine.extract(image, lines)).rejects.toThrowError(/ollama serve|not reachable/i)
   })
 
   it('maps 404 to a pull hint', async () => {
     const { fetchFn } = fakeFetch(404, { error: 'model not found' })
-    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5-vl:7b', fetchFn })
-    await expect(engine.extract(image, lines)).rejects.toThrowError(/ollama pull qwen2\.5-vl:7b/)
+    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5vl:7b', fetchFn })
+    await expect(engine.extract(image, lines)).rejects.toThrowError(/ollama pull qwen2\.5vl:7b/)
   })
 
   it('rejects unparseable content', async () => {
     const { fetchFn } = fakeFetch(200, { message: { content: 'not json' } })
-    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5-vl:7b', fetchFn })
+    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5vl:7b', fetchFn })
     await expect(engine.extract(image, lines)).rejects.toThrowError(OllamaError)
   })
 
   it('maps a plain 500 with a JSON body to an actionable status+body message', async () => {
     const { fetchFn } = fakeFetch(500, { error: 'internal server error' })
-    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5-vl:7b', fetchFn })
+    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5vl:7b', fetchFn })
     await expect(engine.extract(image, lines)).rejects.toThrowError(OllamaError)
     await expect(engine.extract(image, lines)).rejects.toThrowError(/500/)
     await expect(engine.extract(image, lines)).rejects.toThrowError(/internal server error/)
@@ -82,14 +82,14 @@ describe('createOllamaEngine', () => {
 
   it('maps a non-OK response with an unreadable (non-JSON) body to an actionable OllamaError', async () => {
     const fetchFn = fakeFetchUnreadableBody(500)
-    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5-vl:7b', fetchFn })
+    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5vl:7b', fetchFn })
     await expect(engine.extract(image, lines)).rejects.toThrowError(OllamaError)
     await expect(engine.extract(image, lines)).rejects.toThrowError(/500/)
   })
 
   it('maps a 200 with an unreadable (non-JSON) body to an actionable OllamaError, not a raw SyntaxError', async () => {
     const fetchFn = fakeFetchUnreadableBody(200)
-    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5-vl:7b', fetchFn })
+    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5vl:7b', fetchFn })
     await expect(engine.extract(image, lines)).rejects.toThrowError(OllamaError)
     await expect(engine.extract(image, lines)).rejects.not.toThrowError(SyntaxError)
   })

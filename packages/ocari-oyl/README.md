@@ -4,14 +4,14 @@ ocari (OCR mixed with AI): parse a receipt/invoice/statement image into
 (1) a copy named by a configurable template and (2) a JSON data-sheet sidecar.
 
 Pipeline: ppu-paddle-ocr grounds the text (can't invent digits) → Ollama
-(`qwen2.5-vl:7b`) structures image+text against a JSON schema → arithmetic
+(`qwen2.5vl:7b`) structures image+text against a JSON schema → arithmetic
 validators gate `ok` vs `needs_review` → template renderer names the copy →
 sidecar is the source of truth (never parse the filename back).
 
 ## Setup
 
 1. Install [Ollama](https://ollama.com) and run `ollama serve`.
-2. `ollama pull qwen2.5-vl:7b` (~6GB, one-time).
+2. `ollama pull qwen2.5vl:7b` (~6GB, one-time).
 3. OCR models auto-download on first run.
 
 ## Usage
@@ -25,7 +25,7 @@ sidecar is the source of truth (never parse the filename back).
 | Env key | Flag | Default |
 |---|---|---|
 | `OYL_OCARI_OLLAMA_URL` | — | `http://localhost:11434` |
-| `OYL_OCARI_MODEL` | `--model` | `qwen2.5-vl:7b` |
+| `OYL_OCARI_MODEL` | `--model` | `qwen2.5vl:7b` |
 | `OYL_OCARI_NAME_TEMPLATE` | `--name-template` | `<date>_<business>_<total>.<ext>` |
 | `OYL_OCARI_NAME_PREFIX` | `--name-prefix` | (empty) |
 | `OYL_OCARI_DATE_FORMAT` | `--date-format` | `YYYY-MM-DD` |

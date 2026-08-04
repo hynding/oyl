@@ -109,7 +109,7 @@ export function renderFileName(
       case 'payment_method':
         return doc.payment !== undefined ? toNameSlug(doc.payment.method) : ''
       case 'payment_account_suffix':
-        return doc.payment?.accountSuffix !== undefined ? doc.payment.accountSuffix.replace(/[^0-9a-z]/gi, '') : ''
+        return doc.payment?.accountSuffix !== undefined ? doc.payment.accountSuffix.replace(/[^0-9a-z]/gi, '').toLowerCase() : ''
       case 'total':
         if (doc.total !== undefined) {
           const decimal = moneyToDecimal(doc.total.minor, doc.total.exponent)

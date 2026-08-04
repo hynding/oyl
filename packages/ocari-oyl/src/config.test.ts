@@ -7,7 +7,7 @@ describe('loadConfig', () => {
   it('applies defaults', () => {
     const c = loadConfig(empty)
     expect(c.ollamaUrl).toBe('http://localhost:11434')
-    expect(c.model).toBe('qwen2.5-vl:7b')
+    expect(c.model).toBe('qwen2.5vl:7b')
     expect(c.name.template).toBe('<date>_<business>_<total>.<ext>')
     expect(c.name.prefix).toBe('')
     expect(c.name.dateFormat).toBe('YYYY-MM-DD')

@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { parseCliArgs } from './cli.js'
+import { parseCliArgs, resolveUserPath } from './cli.js'
+
+describe('resolveUserPath', () => {
+  it('passes an absolute path through unchanged', () => {
+    expect(resolveUserPath('/repo', '/other/photo.jpg')).toBe('/other/photo.jpg')
+  })
+
+  it('joins a relative path onto the given base', () => {
+    expect(resolveUserPath('/repo', 'photo.jpg')).toBe('/repo/photo.jpg')
+    expect(resolveUserPath('/repo', './receipts/photo.jpg')).toBe('/repo/receipts/photo.jpg')
+  })
+})
 
 describe('parseCliArgs', () => {
   it('separates positionals from flags', () => {

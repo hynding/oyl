@@ -6,6 +6,7 @@ import { createOllamaEngine } from '../src/ollama-engine.js'
 import { createPaddleOcrEngine } from '../src/paddle-ocr-engine.js'
 import { loadConfig } from '../src/config.js'
 import { processDocument } from '../src/pipeline.js'
+import { repoDotenv } from '../src/repo-dotenv.js'
 
 const GOLDEN = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'golden')
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp'])
@@ -19,7 +20,7 @@ function project(doc: ExtractedDocument, field: string): unknown {
   return field.split('.').reduce<unknown>((acc, key) => (acc as Record<string, unknown> | undefined)?.[key], json)
 }
 
-const config = loadConfig({ flags: {}, env: process.env, dotenv: '' })
+const config = loadConfig({ flags: {}, env: process.env, dotenv: repoDotenv() })
 
 const cases = readdirSync(GOLDEN).filter((f) => IMAGE_EXTS.has(extname(f).toLowerCase()))
 if (cases.length === 0) {

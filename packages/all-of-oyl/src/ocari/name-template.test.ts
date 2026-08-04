@@ -31,6 +31,12 @@ describe('renderFileName', () => {
     )
   })
 
+  it('lowercases an alphabetic payment account suffix', () => {
+    const template = '<date>_<business>_<payment_method><payment_account_suffix>_<total>.<ext>'
+    const withAlphaSuffix = doc({ payment: { method: 'visa', accountSuffix: 'AB12' } })
+    expect(renderFileName(withAlphaSuffix, 'jpg', cfg({ template })).name).toBe('2026-07-24_trader-joes_visaab12_48.12.jpg')
+  })
+
   it('supports YYYYMMDD date format and HH-mm time format', () => {
     const c = cfg({ template: '<date>_<time>_<business>_<total>.<ext>', dateFormat: 'YYYYMMDD', timeFormat: 'HH-mm' })
     expect(renderFileName(doc(), 'jpg', c).name).toBe('20260724_18-34_trader-joes_48.12.jpg')
