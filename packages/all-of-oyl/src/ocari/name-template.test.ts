@@ -122,4 +122,19 @@ describe('validateNameConfig', () => {
   it('flags a template without <ext>', () => {
     expect(validateNameConfig(cfg({ template: '<date>_<business>_<total>' }))).toHaveLength(1)
   })
+
+  it('requires the template to END with ".<ext>", not merely contain <ext>', () => {
+    const noDot = validateNameConfig(cfg({ template: '<date>_<total>_<ext>' }))
+    expect(noDot).toHaveLength(1)
+    expect(noDot[0]).toContain('.<ext>')
+    expect(validateNameConfig(cfg({ template: '<ext>_<date>.bak' }))).toHaveLength(1)
+  })
+
+  it('rejects path separators in template and prefix literals', () => {
+    const slashTemplate = validateNameConfig(cfg({ template: 'sub/dir_<date>_<business>_<total>.<ext>' }))
+    expect(slashTemplate).toHaveLength(1)
+    expect(slashTemplate[0]).toContain('path separator')
+    expect(validateNameConfig(cfg({ prefix: '..\\up_' }))).toHaveLength(1)
+    expect(validateNameConfig(cfg({ prefix: 'receipts/' }))).toHaveLength(1)
+  })
 })

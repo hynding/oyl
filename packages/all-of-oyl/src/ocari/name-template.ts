@@ -49,8 +49,14 @@ export function validateNameConfig(config: NameConfig): string[] {
       }
     }
   }
-  if (!config.template.includes('<ext>')) {
-    problems.push('template must end with the file extension: include <ext>')
+  if (!/\.<ext>$/.test(config.template)) {
+    problems.push(`template must end with ".<ext>" (the file extension), got "${config.template}"`)
+  }
+  if (/[/\\]/.test(config.template)) {
+    problems.push(`template must not contain path separators, got "${config.template}"`)
+  }
+  if (/[/\\]/.test(config.prefix)) {
+    problems.push(`prefix must not contain path separators, got "${config.prefix}"`)
   }
   if (!/^(?=.*YYYY)(?=.*MM)(?=.*DD)[YMD\-_.]+$/.test(config.dateFormat)) {
     problems.push(`date format must use YYYY, MM and DD with only -_. separators, got "${config.dateFormat}"`)
