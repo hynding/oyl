@@ -69,7 +69,13 @@ Two homes, per the single-source-of-truth rule:
 
 Originals are never modified or deleted (except `--rename`, which moves the file to the new name). Default output dir = alongside the original; `--out <dir>` overrides. `--dry-run` prints planned names + extraction without writing. `--model` overrides the model. Batch mode continues past per-file failures and ends with a summary table (file → status → new name).
 
-Failure modes: Ollama unreachable or model missing → actionable message (`ollama pull qwen2.5vl:7b`); OCR failure or undecodable extraction → per-file error, batch continues. Invalid template or format config → the CLI fails fast before processing any file, listing valid variables/tokens.
+Failure modes: Ollama unreachable or model missing → actionable message (`ollama pull qwen2.5vl:7b`); OCR failure or a fundamentally non-object extraction → per-file error, batch continues. Invalid template or format config → the CLI fails fast before processing any file, listing valid variables/tokens.
+
+(2026-08-04 revisions:)
+- **Lenient optional-field decoding:** malformed OPTIONAL values from the LLM are dropped, never fatal — money strings are salvaged first (`$`/`€`/`£`/`¥`, thousands-commas, edge whitespace stripped), near-miss times normalized (`18:34:00`/`8:34` → `18:34`), invalid dates/out-of-enum `transactionType` dropped, unknown `docType` → `other`, junk currency → `USD`. A dropped date/merchant/total then fails `requiredFieldsPresent` → `unknown` filename segment + `needs_review`, instead of erroring the file.
+- **Currency exponents:** minor units follow ISO 4217 (JPY/KRW-class exponent 0, KWD/BHD-class exponent 3, default 2) rather than hardcoded cents.
+- **`--out` auto-creates** the directory (recursively) before processing; a same-named file fails fast (exit 2). Dry-run never creates it.
+- **Template validation hardened:** the template must END with `.<ext>`, and template/prefix literals must not contain path separators (`/`, `\`).
 
 ## Filename templating
 
