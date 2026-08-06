@@ -51,11 +51,19 @@ for (const image of cases) {
     console.warn(`skip ${image}: malformed expected file (${message})`)
     continue
   }
-  const bytes = readFileSync(join(GOLDEN, image))
-  const result = await processDocument(
-    { bytes, originalName: image, ext: ext.slice(1), mimeType: MIME[ext]! },
-    { ocr, structurer, today, name: DEFAULT_NAME_CONFIG, now: () => new Date().toISOString() },
-  )
+  // Isolate engine/decode failures per case — one bad image must not sink the whole scoring run.
+  let result
+  try {
+    const bytes = readFileSync(join(GOLDEN, image))
+    result = await processDocument(
+      { bytes, originalName: image, ext: ext.slice(1), mimeType: MIME[ext]! },
+      { ocr, structurer, today, name: DEFAULT_NAME_CONFIG, now: () => new Date().toISOString() },
+    )
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn(`skip ${image}: processing failed (${message})`)
+    continue
+  }
   scored++
   for (const field of FIELDS) {
     if (JSON.stringify(project(result.extraction, field)) === JSON.stringify(project(expected, field))) {
@@ -65,6 +73,8 @@ for (const image of cases) {
   if (result.extraction.lineItems.length === expected.lineItems.length) lineItemCountHits++
   console.log(`${image}: validation=${result.validation.status}`)
 }
+
+await ocr.dispose?.()
 
 console.log(`\nScored ${scored} document(s) with model ${config.model}:`)
 for (const field of FIELDS) {

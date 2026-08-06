@@ -49,11 +49,26 @@ export function createOllamaEngine(opts: { url: string; model: string; fetchFn: 
             ],
           }),
         })
-      } catch {
-        throw new OllamaError(`Ollama not reachable at ${url} — is it running? Start it with: ollama serve`)
+      } catch (e) {
+        throw new OllamaError(
+          `Ollama not reachable at ${url} — is it running? Start it with: ollama serve (${(e as Error).message})`,
+        )
       }
       if (response.status === 404) {
-        throw new OllamaError(`Model "${model}" not found on the Ollama server — fetch it with: ollama pull ${model}`)
+        // Ollama's missing-model 404 carries a JSON error naming the model; any
+        // other 404 body (HTML, empty) means the base URL points somewhere else.
+        let body = ''
+        try {
+          body = JSON.stringify(await response.json())
+        } catch {
+          // Non-JSON 404 body: treated as wrong-URL below.
+        }
+        if (body.includes('model')) {
+          throw new OllamaError(`Model "${model}" not found on the Ollama server — fetch it with: ollama pull ${model}`)
+        }
+        throw new OllamaError(
+          `404 from ${url}/api/chat — is OYL_OCARI_OLLAMA_URL the Ollama base URL? (the /api/chat path is appended automatically)`,
+        )
       }
       if (!response.ok) {
         let bodyText: string

@@ -127,8 +127,11 @@ export async function main(argv: string[]): Promise<number> {
     }
   }
 
-  const width = Math.max(...rows.map((r) => r.file.length))
-  for (const r of rows) console.log(`${r.file.padEnd(width)}  ${r.status.padEnd(14)}  ${r.detail}`)
+  await ocr.dispose?.()
+
+  const fileWidth = Math.max(...rows.map((r) => r.file.length))
+  const statusWidth = Math.max(...rows.map((r) => r.status.length))
+  for (const r of rows) console.log(`${r.file.padEnd(fileWidth)}  ${r.status.padEnd(statusWidth)}  ${r.detail}`)
   return rows.every((r) => r.status === 'ok' || r.status.startsWith('ok ')) ? 0 : 1
 }
 

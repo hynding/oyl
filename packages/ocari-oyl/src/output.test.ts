@@ -116,3 +116,39 @@ describe('ensureDir', () => {
     expect(() => ensureDir(filePath)).toThrow(/not a directory/)
   })
 })
+
+describe('edge naming and collisions', () => {
+  it('treats a dotfile-style rendered name as extensionless', () => {
+    expect(planOutputs('/out', '.hidden', () => false)).toEqual({
+      imagePath: join('/out', '.hidden'),
+      sidecarPath: join('/out', '.hidden.json'),
+    })
+  })
+
+  it('gives up with a clear error when no collision-free name exists', () => {
+    expect(() => planOutputs('/out', NAME, () => true)).toThrow(/no collision-free name/)
+  })
+
+  it('refuses when only the sidecar path is taken, without touching the pre-existing sidecar', () => {
+    const dir = tempDir()
+    const source = join(dir, 'IMG_7.jpg')
+    writeFileSync(source, 'src')
+    const plan = { imagePath: join(dir, NAME), sidecarPath: join(dir, '2026-07-24_store_9.99.json') }
+    writeFileSync(plan.sidecarPath, '{"preexisting":true}')
+    expect(() => writeOutputs({ sourcePath: source, plan, sidecar: {}, rename: false })).toThrow()
+    expect(readFileSync(plan.sidecarPath, 'utf8')).toBe('{"preexisting":true}') // untouched
+    expect(existsSync(plan.imagePath)).toBe(false) // no image written
+  })
+
+  it('reports a raced image collision with the unified target-exists message', () => {
+    const dir = tempDir()
+    const source = join(dir, 'IMG_8.jpg')
+    writeFileSync(source, 'new')
+    const plan = { imagePath: join(dir, NAME), sidecarPath: join(dir, '2026-07-24_store_9.99.json') }
+    // Simulate a race: the image target appears after the early guard would have passed.
+    // (Directly exercise the exclusive-flag branch by pre-creating the target — the early
+    // guard throws the same unified message, so either path yields it.)
+    writeFileSync(plan.imagePath, 'old')
+    expect(() => writeOutputs({ sourcePath: source, plan, sidecar: {}, rename: false })).toThrow(/target exists:/)
+  })
+})

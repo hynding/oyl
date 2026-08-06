@@ -35,13 +35,24 @@ function toOcrLine(words: RecognitionResult[]): OcrLine {
  */
 export async function createPaddleOcrEngine(): Promise<OcrEngine> {
   const service = new PaddleOcrService()
-  await service.initialize()
+  try {
+    await service.initialize()
+  } catch (e) {
+    throw new Error(`OCR engine failed to initialize (model download/load): ${(e as Error).message}`)
+  }
   return {
     name: `ppu-paddle-ocr@${version}`,
     async recognize(image: Uint8Array): Promise<OcrLine[]> {
       const buffer = image.buffer.slice(image.byteOffset, image.byteOffset + image.byteLength) as ArrayBuffer
-      const result = await service.recognize(buffer)
-      return result.lines.map(toOcrLine)
+      try {
+        const result = await service.recognize(buffer)
+        return result.lines.map(toOcrLine)
+      } catch (e) {
+        throw new Error(`OCR recognition failed: ${(e as Error).message}`)
+      }
+    },
+    async dispose(): Promise<void> {
+      await service.destroy()
     },
   }
 }

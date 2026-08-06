@@ -60,10 +60,24 @@ describe('createOllamaEngine', () => {
     await expect(engine.extract(image, lines)).rejects.toThrowError(/ollama serve|not reachable/i)
   })
 
-  it('maps 404 to a pull hint', async () => {
+  it('maps a missing-model 404 to a pull hint', async () => {
     const { fetchFn } = fakeFetch(404, { error: 'model not found' })
     const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5vl:7b', fetchFn })
     await expect(engine.extract(image, lines)).rejects.toThrowError(/ollama pull qwen2\.5vl:7b/)
+  })
+
+  it('maps a 404 without a model error to a wrong-base-URL hint', async () => {
+    const { fetchFn } = fakeFetch(404, { message: 'route not matched' })
+    const engine = createOllamaEngine({ url: 'http://localhost:11434/api', model: 'qwen2.5vl:7b', fetchFn })
+    await expect(engine.extract(image, lines)).rejects.toThrowError(/OYL_OCARI_OLLAMA_URL/)
+  })
+
+  it('preserves the underlying fetch failure in the not-reachable message', async () => {
+    const fetchFn: FetchFn = async () => {
+      throw new TypeError('connect ECONNREFUSED 127.0.0.1:11434')
+    }
+    const engine = createOllamaEngine({ url: 'http://localhost:11434', model: 'qwen2.5vl:7b', fetchFn })
+    await expect(engine.extract(image, lines)).rejects.toThrowError(/ECONNREFUSED/)
   })
 
   it('rejects unparseable content', async () => {

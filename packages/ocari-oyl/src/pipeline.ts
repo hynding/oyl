@@ -13,6 +13,8 @@ import type { OcrLine } from './ollama-engine.js'
 export interface OcrEngine {
   readonly name: string
   recognize(image: Uint8Array): Promise<OcrLine[]>
+  /** Release engine resources (e.g. ONNX sessions); optional — one-shot CLI runs may rely on process exit. */
+  dispose?(): Promise<void> | void
 }
 
 export interface StructuringEngine {
