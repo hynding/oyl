@@ -81,3 +81,17 @@ describe('validateExtraction', () => {
     expect(check(r, 'totalsAddUp').status).toBe('fail')
   })
 })
+
+describe('mixed priced/unpriced line items', () => {
+  it('skips lineItemsSumToSubtotal when only some items carry a totalPrice', () => {
+    const mixed = doc({
+      lineItems: [
+        { name: 'priced', totalPrice: usd(1000) },
+        { name: 'unpriced' },
+      ],
+    })
+    const r = validateExtraction(mixed, { today: TODAY })
+    expect(check(r, 'lineItemsSumToSubtotal').status).toBe('skipped')
+    expect(check(r, 'totalsAddUp').status).not.toBe('skipped') // subtotal+total still present
+  })
+})

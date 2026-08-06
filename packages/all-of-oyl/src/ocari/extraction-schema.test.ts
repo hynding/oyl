@@ -150,3 +150,16 @@ describe('extractionFromLlm', () => {
     expect(d.total?.minor).toBe(-500)
   })
 })
+
+describe('line-item quantity lenience', () => {
+  it.each([[-2], [0], [Number.NaN]])('drops invalid quantity %p but keeps the item', (bad) => {
+    const d = extractionFromLlm({
+      docType: 'receipt',
+      total: '1.00',
+      lineItems: [{ name: 'a', quantity: bad, totalPrice: '1.00' }],
+    })
+    expect(d.lineItems).toHaveLength(1)
+    expect(d.lineItems[0]?.quantity).toBeUndefined()
+    expect(d.lineItems[0]?.totalPrice?.minor).toBe(100)
+  })
+})

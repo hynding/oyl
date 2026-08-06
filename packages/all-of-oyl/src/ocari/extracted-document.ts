@@ -6,20 +6,20 @@ export type DocCategory = 'receipt' | 'invoice' | 'statement' | 'other'
 export type TransactionType = 'purchase' | 'refund' | 'payment' | 'other'
 
 export interface Merchant {
-  name: string
-  address?: string
-  phone?: string
+  readonly name: string
+  readonly address?: string
+  readonly phone?: string
 }
 export interface Payment {
-  method: string
-  accountSuffix?: string
-  raw?: string
+  readonly method: string
+  readonly accountSuffix?: string
+  readonly raw?: string
 }
 export interface LineItem {
-  name: string
-  quantity?: number
-  unitPrice?: Money
-  totalPrice?: Money
+  readonly name: string
+  readonly quantity?: number
+  readonly unitPrice?: Money
+  readonly totalPrice?: Money
 }
 
 export const DOC_CATEGORIES: readonly DocCategory[] = ['receipt', 'invoice', 'statement', 'other']
@@ -54,27 +54,31 @@ export class ExtractedDocument {
   readonly tip?: Money
   readonly total?: Money
   readonly lineItems: readonly LineItem[]
-  /** Tolerant reader: unknown JSON fields preserved through round-trips. Only ever spread into fresh object literals. */
+  /**
+   * Tolerant reader: unknown TOP-LEVEL JSON fields preserved through
+   * round-trips (nested unknowns under merchant/payment/lineItems are dropped
+   * by design). Only ever spread into fresh object literals.
+   */
   private readonly extra: Record<string, unknown>
 
   constructor(props: ExtractedDocumentProps, extra: Record<string, unknown> = {}) {
     if (!DOC_CATEGORIES.includes(props.docType)) {
-      throw new DomainError('INVALID_QUANTITY', `not a doc category: "${props.docType}"`)
+      throw new DomainError('INVALID_VALUE', `not a doc category: "${props.docType}"`)
     }
     if (props.transactionType !== undefined && !TRANSACTION_TYPES.includes(props.transactionType)) {
-      throw new DomainError('INVALID_QUANTITY', `not a transaction type: "${props.transactionType}"`)
+      throw new DomainError('INVALID_VALUE', `not a transaction type: "${props.transactionType}"`)
     }
     if (props.time !== undefined && !TIME_RE.test(props.time)) {
-      throw new DomainError('INVALID_QUANTITY', `not an HH:MM time: "${props.time}"`)
+      throw new DomainError('INVALID_VALUE', `not an HH:MM time: "${props.time}"`)
     }
     if (props.merchant !== undefined && props.merchant.name.length === 0) {
-      throw new DomainError('INVALID_QUANTITY', 'merchant name must be non-empty')
+      throw new DomainError('INVALID_VALUE', 'merchant name must be non-empty')
     }
     if (props.payment !== undefined && props.payment.method.length === 0) {
-      throw new DomainError('INVALID_QUANTITY', 'payment method must be non-empty')
+      throw new DomainError('INVALID_VALUE', 'payment method must be non-empty')
     }
     for (const item of props.lineItems ?? []) {
-      if (item.name.length === 0) throw new DomainError('INVALID_QUANTITY', 'line item name must be non-empty')
+      if (item.name.length === 0) throw new DomainError('INVALID_VALUE', 'line item name must be non-empty')
       if (item.quantity !== undefined && !(Number.isFinite(item.quantity) && item.quantity > 0)) {
         throw new DomainError('INVALID_QUANTITY', `line item quantity must be > 0, got ${item.quantity}`)
       }
@@ -154,26 +158,33 @@ function str(value: unknown, label: string): string {
   return value
 }
 
+function asObject(shape: unknown, label: string): Record<string, unknown> {
+  if (typeof shape !== 'object' || shape === null) {
+    throw new DomainError('MALFORMED_JSON', `${label} must be an object`)
+  }
+  return shape as Record<string, unknown>
+}
+
 function merchantFromJSON(shape: unknown): Merchant {
-  const s = shape as { name?: unknown; address?: unknown; phone?: unknown }
+  const s = asObject(shape, 'merchant')
   return {
-    name: str(s?.name, 'merchant.name'),
-    ...(s.address !== undefined ? { address: str(s.address, 'merchant.address') } : {}),
-    ...(s.phone !== undefined ? { phone: str(s.phone, 'merchant.phone') } : {}),
+    name: str(s['name'], 'merchant.name'),
+    ...(s['address'] !== undefined ? { address: str(s['address'], 'merchant.address') } : {}),
+    ...(s['phone'] !== undefined ? { phone: str(s['phone'], 'merchant.phone') } : {}),
   }
 }
 
 function paymentFromJSON(shape: unknown): Payment {
-  const s = shape as { method?: unknown; accountSuffix?: unknown; raw?: unknown }
+  const s = asObject(shape, 'payment')
   return {
-    method: str(s?.method, 'payment.method'),
-    ...(s.accountSuffix !== undefined ? { accountSuffix: str(s.accountSuffix, 'payment.accountSuffix') } : {}),
-    ...(s.raw !== undefined ? { raw: str(s.raw, 'payment.raw') } : {}),
+    method: str(s['method'], 'payment.method'),
+    ...(s['accountSuffix'] !== undefined ? { accountSuffix: str(s['accountSuffix'], 'payment.accountSuffix') } : {}),
+    ...(s['raw'] !== undefined ? { raw: str(s['raw'], 'payment.raw') } : {}),
   }
 }
 
 function lineItemFromJSON(shape: unknown): LineItem {
-  const s = shape as { name?: unknown; quantity?: unknown; unitPrice?: unknown; totalPrice?: unknown }
+  const s = asObject(shape, 'lineItem') as { name?: unknown; quantity?: unknown; unitPrice?: unknown; totalPrice?: unknown }
   if (s?.quantity !== undefined && typeof s.quantity !== 'number') {
     throw new DomainError('MALFORMED_JSON', 'lineItem.quantity must be a number')
   }

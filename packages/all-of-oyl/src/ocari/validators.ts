@@ -2,6 +2,9 @@ import { DayKey } from '../core/day-key.js'
 import { Money } from '../core/money.js'
 import type { ExtractedDocument } from './extracted-document.js'
 
+/** Rounding slack for subtotal+tax+tip ≈ total (spec: ±2 minor units). */
+const TOTALS_TOLERANCE_MINOR = 2
+
 export type CheckStatus = 'pass' | 'fail' | 'skipped'
 export interface ValidationCheck { name: string; status: CheckStatus; detail?: string }
 export interface ValidationReport { status: 'ok' | 'needs_review'; checks: ValidationCheck[] }
@@ -57,9 +60,9 @@ export function validateExtraction(doc: ExtractedDocument, opts: { today: DayKey
     } else {
       const off = Math.abs(expected.minor - doc.total.minor)
       checks.push(
-        off <= 2
+        off <= TOTALS_TOLERANCE_MINOR
           ? { name: 'totalsAddUp', status: 'pass' }
-          : { name: 'totalsAddUp', status: 'fail', detail: `subtotal+tax+tip ${expected.minor} vs total ${doc.total.minor} (tolerance 2)` },
+          : { name: 'totalsAddUp', status: 'fail', detail: `subtotal+tax+tip ${expected.minor} vs total ${doc.total.minor} (tolerance ${TOTALS_TOLERANCE_MINOR})` },
       )
     }
   }

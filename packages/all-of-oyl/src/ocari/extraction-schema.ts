@@ -156,10 +156,12 @@ export function extractionFromLlm(shape: unknown): ExtractedDocument {
   const m = s['merchant'] as Record<string, unknown> | null | undefined
   const merchantName = optStr(m?.['name'])
   if (merchantName !== undefined) {
+    const address = optStr(m?.['address'])
+    const phone = optStr(m?.['phone'])
     merchant = {
       name: merchantName,
-      ...(optStr(m?.['address']) !== undefined ? { address: optStr(m?.['address'])! } : {}),
-      ...(optStr(m?.['phone']) !== undefined ? { phone: optStr(m?.['phone'])! } : {}),
+      ...(address !== undefined ? { address } : {}),
+      ...(phone !== undefined ? { phone } : {}),
     }
   }
 
@@ -167,10 +169,12 @@ export function extractionFromLlm(shape: unknown): ExtractedDocument {
   const p = s['payment'] as Record<string, unknown> | null | undefined
   const paymentMethod = optStr(p?.['method'])
   if (paymentMethod !== undefined) {
+    const accountSuffix = optStr(p?.['accountSuffix'])
+    const raw = optStr(p?.['raw'])
     payment = {
       method: paymentMethod.toLowerCase(),
-      ...(optStr(p?.['accountSuffix']) !== undefined ? { accountSuffix: optStr(p?.['accountSuffix'])! } : {}),
-      ...(optStr(p?.['raw']) !== undefined ? { raw: optStr(p?.['raw'])! } : {}),
+      ...(accountSuffix !== undefined ? { accountSuffix } : {}),
+      ...(raw !== undefined ? { raw } : {}),
     }
   }
 
