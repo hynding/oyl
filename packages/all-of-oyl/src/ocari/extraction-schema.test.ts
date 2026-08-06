@@ -48,12 +48,91 @@ describe('extractionFromLlm', () => {
     expect(d.total).toBeUndefined()
   })
 
-  it.each(['4 8', 'twelve', '1.2.3', ''])('rejects malformed money string %j', (bad) => {
-    expect(() => extractionFromLlm({ docType: 'receipt', total: bad, lineItems: [] })).toThrowError(DomainError)
+  it.each(['4 8', 'twelve', '1.2.3'])('drops unsalvageable money string %j instead of failing the file', (bad) => {
+    const d = extractionFromLlm({ docType: 'receipt', total: bad, lineItems: [] })
+    expect(d.total).toBeUndefined()
+    expect(d.docType).toBe('receipt')
   })
 
-  it('rejects a hallucinated date rather than passing it through', () => {
-    expect(() => extractionFromLlm({ ...llmShape(), date: '2026-02-30' })).toThrowError(DomainError)
+  it.each([
+    ['$48.12', 4812],
+    ['1,234.56', 123456],
+    [' 48.12 ', 4812],
+    ['-$5.00', -500],
+  ])('salvages money string %j printed with symbols/commas → %i minor', (raw, minor) => {
+    const d = extractionFromLlm({ docType: 'receipt', total: raw, lineItems: [] })
+    expect(d.total?.minor).toBe(minor)
+  })
+
+  it('drops a hallucinated date instead of failing the file', () => {
+    const d = extractionFromLlm({ ...llmShape(), date: '2026-02-30' })
+    expect(d.date).toBeUndefined()
+    expect(d.total?.minor).toBe(4812) // rest of the extraction survives
+  })
+
+  it('drops a wrong-format date instead of failing the file', () => {
+    const d = extractionFromLlm({ ...llmShape(), date: '07/24/2026' })
+    expect(d.date).toBeUndefined()
+  })
+
+  it.each([
+    ['18:34:00', '18:34'],
+    ['8:34', '08:34'],
+  ])('salvages near-miss time %j → %j', (raw, expected) => {
+    const d = extractionFromLlm({ ...llmShape(), time: raw })
+    expect(d.time).toBe(expected)
+  })
+
+  it('drops an unparseable time instead of failing the file', () => {
+    const d = extractionFromLlm({ ...llmShape(), time: 'evening' })
+    expect(d.time).toBeUndefined()
+    expect(d.total?.minor).toBe(4812)
+  })
+
+  it('drops an out-of-enum transactionType and falls back docType to other', () => {
+    const d = extractionFromLlm({ ...llmShape(), docType: 'menu', transactionType: 'sale' })
+    expect(d.docType).toBe('other')
+    expect(d.transactionType).toBeUndefined()
+  })
+
+  it('uppercases lowercase currency codes and falls back to USD on junk', () => {
+    expect(extractionFromLlm({ docType: 'receipt', currency: 'usd', total: '1.00', lineItems: [] }).total?.currency).toBe('USD')
+    expect(extractionFromLlm({ docType: 'receipt', currency: 'US Dollars', total: '1.00', lineItems: [] }).total?.currency).toBe('USD')
+  })
+
+  it('still rejects a fundamentally non-object shape', () => {
+    expect(() => extractionFromLlm('not an object')).toThrowError(DomainError)
+  })
+
+  describe('currency exponents', () => {
+    it('parses zero-exponent currencies in whole units', () => {
+      const d = extractionFromLlm({ docType: 'receipt', currency: 'JPY', total: '500', lineItems: [] })
+      expect(d.total?.minor).toBe(500)
+      expect(d.total?.exponent).toBe(0)
+      expect(d.total?.currency).toBe('JPY')
+    })
+
+    it('rounds half-up at the whole-unit boundary for exponent-0', () => {
+      const d = extractionFromLlm({ docType: 'receipt', currency: 'JPY', total: '500.5', lineItems: [] })
+      expect(d.total?.minor).toBe(501)
+    })
+
+    it('parses three-exponent currencies in mils', () => {
+      const d = extractionFromLlm({ docType: 'receipt', currency: 'KWD', total: '1.234', lineItems: [] })
+      expect(d.total?.minor).toBe(1234)
+      expect(d.total?.exponent).toBe(3)
+    })
+
+    it('rounds the 4th decimal half-up for exponent-3 currencies', () => {
+      const d = extractionFromLlm({ docType: 'receipt', currency: 'KWD', total: '1.2345', lineItems: [] })
+      expect(d.total?.minor).toBe(1235)
+    })
+
+    it('defaults unknown codes to exponent 2', () => {
+      const d = extractionFromLlm({ docType: 'receipt', currency: 'CAD', total: '9.99', lineItems: [] })
+      expect(d.total?.minor).toBe(999)
+      expect(d.total?.exponent).toBe(2)
+    })
   })
 
   it('rounds up 3-decimal amounts >= 0.005 to the nearest cent', () => {

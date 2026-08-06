@@ -1,7 +1,16 @@
 import { DayKey } from '../core/day-key.js'
 import { DomainError } from '../core/domain-error.js'
 import { Money } from '../core/money.js'
-import { ExtractedDocument, type DocCategory, type TransactionType, type LineItem, type Merchant, type Payment } from './extracted-document.js'
+import {
+  DOC_CATEGORIES,
+  ExtractedDocument,
+  TRANSACTION_TYPES,
+  type DocCategory,
+  type TransactionType,
+  type LineItem,
+  type Merchant,
+  type Payment,
+} from './extracted-document.js'
 
 const moneyString = { type: ['string', 'null'], description: 'Decimal amount as printed, e.g. "48.12". null if absent.' }
 
@@ -64,47 +73,84 @@ export const EXTRACTION_JSON_SCHEMA: Record<string, unknown> = {
 
 const MONEY_RE = /^-?\d+(\.\d{1,4})?$/
 
-function moneyFrom(value: unknown, currency: string, label: string): Money | undefined {
-  if (value === null || value === undefined) return undefined
-  if (typeof value !== 'string' || !MONEY_RE.test(value)) {
-    throw new DomainError('MALFORMED_JSON', `${label} is not a decimal amount: ${JSON.stringify(value)}`)
-  }
-  const negative = value.startsWith('-')
-  const [whole = '0', frac = ''] = (negative ? value.slice(1) : value).split('.')
+/** ISO 4217 minor-unit exponents that differ from the default 2. */
+const CURRENCY_EXPONENTS: Readonly<Record<string, number>> = {
+  BHD: 3, BIF: 0, CLP: 0, DJF: 0, GNF: 0, IQD: 3, ISK: 0, JOD: 3, JPY: 0,
+  KMF: 0, KRW: 0, KWD: 3, LYD: 3, OMR: 3, PYG: 0, RWF: 0, TND: 3, UGX: 0,
+  VND: 0, VUV: 0, XAF: 0, XOF: 0, XPF: 0,
+}
 
-  // Extract cents (first 2 digits) and rounding digit (3rd digit)
-  const padded = frac.padEnd(4, '0')
-  const centsStr = padded.slice(0, 2)
-  const roundingDigit = Number(padded[2])
+function currencyExponent(currency: string): number {
+  return CURRENCY_EXPONENTS[currency] ?? 2
+}
 
-  let cents = Number(centsStr)
-  // Round half-up: if 3rd digit >= 5, round up
-  if (roundingDigit >= 5) {
-    cents += 1
-  }
+/**
+ * Lenient decimal-string → Money. Salvages symbols/commas/whitespace the model
+ * copied from the receipt ("$48.12", "1,234.56"); anything still malformed is
+ * dropped (undefined) so one bad field can't sink the whole file — absence of
+ * `total` is caught downstream by requiredFieldsPresent → needs_review.
+ */
+function moneyFrom(value: unknown, currency: string): Money | undefined {
+  if (typeof value !== 'string') return undefined
+  const cleaned = value.trim().replace(/[$€£¥]/g, '').replace(/,/g, '').trim()
+  if (!MONEY_RE.test(cleaned)) return undefined
+  const negative = cleaned.startsWith('-')
+  const [whole = '0', frac = ''] = (negative ? cleaned.slice(1) : cleaned).split('.')
 
-  // Handle carry-over if cents rounds to 100
+  // Half-up rounding at the currency's minor-unit boundary, integer arithmetic only.
+  const exponent = currencyExponent(currency)
+  const base = 10 ** exponent
+  const padded = frac.padEnd(exponent + 1, '0')
+  let minorFrac = exponent > 0 ? Number(padded.slice(0, exponent)) : 0
+  if (Number(padded[exponent]) >= 5) minorFrac += 1
   let wholeNum = Number(whole)
-  if (cents >= 100) {
+  if (minorFrac >= base) {
     wholeNum += 1
-    cents = 0
+    minorFrac = 0
   }
+  const minor = wholeNum * base + minorFrac
+  return Money.of(negative ? -minor : minor, currency, exponent)
+}
 
-  const minor = wholeNum * 100 + cents
-  return Money.of(negative ? -minor : minor, currency, 2)
+/** Salvage near-miss times ("18:34:00", "8:34") to HH:MM; unparseable → dropped. */
+function timeFrom(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined
+  const m = /^(\d{1,2}):([0-5]\d)(?::[0-5]\d)?$/.exec(value.trim())
+  if (!m) return undefined
+  const hour = Number(m[1])
+  if (hour > 23) return undefined
+  return `${String(hour).padStart(2, '0')}:${m[2]}`
+}
+
+/** Invalid/unparseable dates are dropped, not fatal — absence flows into requiredFieldsPresent. */
+function dateFrom(value: string | undefined): DayKey | undefined {
+  if (value === undefined) return undefined
+  try {
+    return DayKey.of(value.trim())
+  } catch {
+    return undefined
+  }
 }
 
 function optStr(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined
 }
 
-/** Decode the LLM wire shape (nullable fields, decimal-string money) into the domain type. */
+/**
+ * Decode the LLM wire shape (nullable fields, decimal-string money) into the
+ * domain type. Lenient by design: malformed OPTIONAL values (bad date/time
+ * formats, unsalvageable money strings, out-of-enum types) are dropped rather
+ * than fatal — missing date/merchant/total then fail requiredFieldsPresent and
+ * the file lands as needs_review instead of an error. Throws only when the
+ * shape is not an object at all.
+ */
 export function extractionFromLlm(shape: unknown): ExtractedDocument {
   if (typeof shape !== 'object' || shape === null) {
     throw new DomainError('MALFORMED_JSON', 'not an LLM extraction shape')
   }
   const s = shape as Record<string, unknown>
-  const currency = optStr(s['currency']) ?? 'USD'
+  const currencyRaw = optStr(s['currency'])?.trim().toUpperCase()
+  const currency = currencyRaw !== undefined && /^[A-Z]{3}$/.test(currencyRaw) ? currencyRaw : 'USD'
 
   let merchant: Merchant | undefined
   const m = s['merchant'] as Record<string, unknown> | null | undefined
@@ -134,8 +180,8 @@ export function extractionFromLlm(shape: unknown): ExtractedDocument {
     const name = optStr(i['name'])
     if (name === undefined) return []
     const quantity = typeof i['quantity'] === 'number' && i['quantity'] > 0 ? i['quantity'] : undefined
-    const unitPrice = moneyFrom(i['unitPrice'], currency, 'lineItem.unitPrice')
-    const totalPrice = moneyFrom(i['totalPrice'], currency, 'lineItem.totalPrice')
+    const unitPrice = moneyFrom(i['unitPrice'], currency)
+    const totalPrice = moneyFrom(i['totalPrice'], currency)
     return [
       {
         name,
@@ -146,18 +192,27 @@ export function extractionFromLlm(shape: unknown): ExtractedDocument {
     ]
   })
 
-  const date = optStr(s['date'])
-  const time = optStr(s['time'])
-  const transactionType = optStr(s['transactionType'])
-  const subtotal = moneyFrom(s['subtotal'], currency, 'subtotal')
-  const tax = moneyFrom(s['tax'], currency, 'tax')
-  const tip = moneyFrom(s['tip'], currency, 'tip')
-  const total = moneyFrom(s['total'], currency, 'total')
+  const date = dateFrom(optStr(s['date']))
+  const time = timeFrom(optStr(s['time']))
+  const transactionTypeRaw = optStr(s['transactionType'])
+  const transactionType =
+    transactionTypeRaw !== undefined && (TRANSACTION_TYPES as readonly string[]).includes(transactionTypeRaw)
+      ? (transactionTypeRaw as TransactionType)
+      : undefined
+  const docTypeRaw = optStr(s['docType'])
+  const docType: DocCategory =
+    docTypeRaw !== undefined && (DOC_CATEGORIES as readonly string[]).includes(docTypeRaw)
+      ? (docTypeRaw as DocCategory)
+      : 'other'
+  const subtotal = moneyFrom(s['subtotal'], currency)
+  const tax = moneyFrom(s['tax'], currency)
+  const tip = moneyFrom(s['tip'], currency)
+  const total = moneyFrom(s['total'], currency)
 
   return new ExtractedDocument({
-    docType: s['docType'] as DocCategory,
-    ...(transactionType !== undefined ? { transactionType: transactionType as TransactionType } : {}),
-    ...(date !== undefined ? { date: DayKey.of(date) } : {}),
+    docType,
+    ...(transactionType !== undefined ? { transactionType } : {}),
+    ...(date !== undefined ? { date } : {}),
     ...(time !== undefined ? { time } : {}),
     ...(merchant !== undefined ? { merchant } : {}),
     ...(payment !== undefined ? { payment } : {}),

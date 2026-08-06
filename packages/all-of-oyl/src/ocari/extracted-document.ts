@@ -22,8 +22,8 @@ export interface LineItem {
   totalPrice?: Money
 }
 
-const DOC_CATEGORIES: readonly DocCategory[] = ['receipt', 'invoice', 'statement', 'other']
-const TRANSACTION_TYPES: readonly TransactionType[] = ['purchase', 'refund', 'payment', 'other']
+export const DOC_CATEGORIES: readonly DocCategory[] = ['receipt', 'invoice', 'statement', 'other']
+export const TRANSACTION_TYPES: readonly TransactionType[] = ['purchase', 'refund', 'payment', 'other']
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 
 export interface ExtractedDocumentProps {
