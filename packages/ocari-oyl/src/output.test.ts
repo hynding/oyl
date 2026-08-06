@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { planOutputs, writeOutputs } from './output.js'
+import { ensureDir, planOutputs, writeOutputs } from './output.js'
 
 const NAME = '2026-07-24_store_9.99.jpg'
 
@@ -91,5 +91,28 @@ describe('writeOutputs', () => {
     writeFileSync(plan.imagePath, 'blocking')
     expect(() => writeOutputs({ sourcePath: source, plan, sidecar: { test: 'data' }, rename: true })).toThrow()
     expect(existsSync(plan.sidecarPath)).toBe(false) // sidecar cleaned up, no orphan
+  })
+})
+
+describe('ensureDir', () => {
+  it('creates a nested directory that does not exist yet', () => {
+    const dir = tempDir()
+    const nested = join(dir, 'a', 'b', 'receipts')
+    expect(existsSync(nested)).toBe(false)
+    ensureDir(nested)
+    expect(existsSync(nested)).toBe(true)
+  })
+
+  it('is a no-op when the directory already exists', () => {
+    const dir = tempDir()
+    ensureDir(dir)
+    expect(existsSync(dir)).toBe(true)
+  })
+
+  it('throws when the path exists but is a file', () => {
+    const dir = tempDir()
+    const filePath = join(dir, 'not-a-dir')
+    writeFileSync(filePath, 'x')
+    expect(() => ensureDir(filePath)).toThrow(/not a directory/)
   })
 })

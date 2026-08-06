@@ -7,7 +7,7 @@ import { ConfigError, loadConfig, type ConfigInputs } from './config.js'
 import { createOllamaEngine } from './ollama-engine.js'
 import { createPaddleOcrEngine } from './paddle-ocr-engine.js'
 import { processDocument } from './pipeline.js'
-import { planOutputs, writeOutputs } from './output.js'
+import { ensureDir, planOutputs, writeOutputs } from './output.js'
 import { repoDotenv } from './repo-dotenv.js'
 
 const SUPPORTED = new Set(['.jpg', '.jpeg', '.png', '.webp'])
@@ -85,13 +85,22 @@ export async function main(argv: string[]): Promise<number> {
     throw e
   }
 
-  const ocr = await createPaddleOcrEngine()
-  const structurer = createOllamaEngine({ url: config.ollamaUrl, model: config.model, fetchFn: fetch })
-  const today = DayKey.from(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone)
-
   // pnpm sets INIT_CWD to the invoking shell's cwd; process.cwd() under `pnpm --filter` is the package dir.
   const cwd = process.env.INIT_CWD ?? process.cwd()
   const outDir = config.out !== undefined ? resolveUserPath(cwd, config.out) : undefined
+  if (outDir !== undefined && !config.dryRun) {
+    // Auto-create before paying for engine startup; a same-named file fails fast.
+    try {
+      ensureDir(outDir)
+    } catch (e) {
+      console.error(`--out: ${(e as Error).message}`)
+      return 2
+    }
+  }
+
+  const ocr = await createPaddleOcrEngine()
+  const structurer = createOllamaEngine({ url: config.ollamaUrl, model: config.model, fetchFn: fetch })
+  const today = DayKey.from(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone)
 
   const rows: { file: string; status: string; detail: string }[] = []
   for (const file of parsed.files) {

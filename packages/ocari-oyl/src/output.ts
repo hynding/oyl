@@ -1,9 +1,18 @@
-import { constants, copyFileSync, existsSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import { constants, copyFileSync, existsSync, mkdirSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 export interface OutputPlan {
   imagePath: string
   sidecarPath: string
+}
+
+/** Create the output directory (recursively) if needed; a same-named file is an error, not a silent clobber. */
+export function ensureDir(dir: string): void {
+  if (existsSync(dir)) {
+    if (!statSync(dir).isDirectory()) throw new Error(`not a directory: ${dir}`)
+    return
+  }
+  mkdirSync(dir, { recursive: true })
 }
 
 function splitExt(fileName: string): { base: string; ext: string } {
