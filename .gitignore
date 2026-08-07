@@ -19,3 +19,7 @@ TODO.md
 
 log/
 .playwright-mcp/
+
+# ocari golden set (personal receipts — never committed)
+packages/ocari-oyl/golden/*
+!packages/ocari-oyl/golden/README.md
