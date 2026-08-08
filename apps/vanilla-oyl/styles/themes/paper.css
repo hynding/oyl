@@ -1,0 +1,18 @@
+@layer themes {
+  :root[data-theme="paper"] {
+    --color-bg: light-dark(oklch(96.5% 0.012 85), oklch(19% 0.01 75));
+    --color-surface: light-dark(oklch(98.5% 0.008 85), oklch(23.5% 0.012 75));
+    --color-surface-2: light-dark(oklch(94.5% 0.015 85), oklch(27.5% 0.014 75));
+    --color-text: light-dark(oklch(27% 0.02 65), oklch(92% 0.012 85));
+    --color-muted: light-dark(oklch(48% 0.02 65), oklch(69% 0.015 85));
+    --color-accent: light-dark(oklch(50% 0.14 30), oklch(70% 0.12 35));
+    --color-on-accent: light-dark(oklch(98% 0.006 85), oklch(19% 0.02 65));
+    --color-border: light-dark(oklch(87.5% 0.015 85), oklch(31.5% 0.012 75));
+    --color-danger: light-dark(oklch(53% 0.2 25), oklch(70% 0.17 25));
+    --color-warn: light-dark(oklch(60% 0.14 70), oklch(80% 0.12 72));
+    --color-ok: light-dark(oklch(55% 0.14 150), oklch(74% 0.13 150));
+    --color-accent-hover: color-mix(in oklch, var(--color-accent), black 12%);
+    /* Editorial voice: this theme is genuinely print-like, so serif is the point here. */
+    --font-sans: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
+  }
+}

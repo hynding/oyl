@@ -4,7 +4,7 @@ import { sheet } from './sheet.js'
 const styles = sheet(`
   form { display: grid; gap: .5rem; max-inline-size: 22rem; }
   input { font: inherit; color: var(--color-text); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: .5rem .6rem; }
-  button.primary { background: var(--color-accent); color: white; border: 0; border-radius: var(--radius-1); padding: .5rem 1rem; font: inherit; font-weight: 600; cursor: pointer; }
+  button.primary { background: var(--color-accent); color: var(--color-on-accent, white); border: 0; border-radius: var(--radius-1); padding: .5rem 1rem; font: inherit; font-weight: 600; cursor: pointer; }
   button.primary:disabled { opacity: .6; cursor: default; }
   [data-role="error"]:not(:empty) { color: var(--color-danger); font-size: .85rem; }
 `)

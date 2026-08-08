@@ -10,7 +10,7 @@ const styles = sheet(`
   label { display: grid; gap: .2rem; font-size: .85rem; color: var(--color-muted); }
   input, select { font: inherit; color: var(--color-text); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: .45rem .55rem; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
-  button.primary { background: var(--color-accent); color: white; border: 0; border-radius: var(--radius-1); padding: .5rem 1rem; font: inherit; font-weight: 600; cursor: pointer; justify-self: start; }
+  button.primary { background: var(--color-accent); color: var(--color-on-accent, white); border: 0; border-radius: var(--radius-1); padding: .5rem 1rem; font: inherit; font-weight: 600; cursor: pointer; justify-self: start; }
 `)
 
 export class OylProfileFields extends OylElement {

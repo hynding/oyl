@@ -15,7 +15,7 @@ const styles = sheet(`
   .check { appearance: none; inline-size: 1.25rem; block-size: 1.25rem; border: 1.5px solid var(--color-border); border-radius: 999px; cursor: pointer; margin-block-start: .15rem; display: grid; place-items: center; }
   .check:hover { border-color: var(--color-accent); }
   .check:checked, .check.done { background: var(--color-accent); border-color: var(--color-accent); }
-  .check:checked::after, .check.done::after { content: "✓"; color: white; font-size: .8rem; }
+  .check:checked::after, .check.done::after { content: "✓"; color: var(--color-on-accent, white); font-size: .8rem; }
   .body { grid-column: 2; }
   .title { color: var(--color-text); }
   .done .title, .canceled .title { text-decoration: line-through; color: var(--color-muted); }

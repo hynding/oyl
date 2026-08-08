@@ -1,5 +1,5 @@
 import { effect } from './lib/reactive/effect.js'
-import { applyTheme } from './theme/theme-manager.js'
+import { createThemeApplier } from './theme/theme-manager.js'
 import { createThemeState } from './state/theme.js'
 import { createRouteState } from './state/route.js'
 import { createDataState } from './state/data.js'
@@ -78,7 +78,10 @@ async function boot() {
   const dataState = createDataState(storage, themeState, { repos, outbox, timezone: tz, bootstrap: () => api.bootstrap() })
 
   // Theme applied reactively (the inline head script already set the first paint).
-  effect(() => applyTheme(document, themeState.settings.get()))
+  // Cross-fades theme switches via the View Transitions API (instant at boot,
+  // under reduced motion, and on browsers without the API).
+  const applyThemeSettings = createThemeApplier(document)
+  effect(() => applyThemeSettings(themeState.settings.get()))
   routeState.start()
 
   // Force the login page in Remote mode with no session (before touching the network).

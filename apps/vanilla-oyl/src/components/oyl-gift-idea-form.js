@@ -7,7 +7,7 @@ import { sheet } from './sheet.js'
 const styles = sheet(`
   form { display: grid; grid-template-columns: 1fr auto auto; gap: .5rem; align-items: start; }
   input, select { font: inherit; color: var(--color-text); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: .5rem .6rem; }
-  button.primary { background: var(--color-accent); color: white; border: 0; border-radius: var(--radius-1); padding: .5rem 1rem; font: inherit; font-weight: 600; cursor: pointer; }
+  button.primary { background: var(--color-accent); color: var(--color-on-accent, white); border: 0; border-radius: var(--radius-1); padding: .5rem 1rem; font: inherit; font-weight: 600; cursor: pointer; }
   .hint { color: var(--color-muted); font-size: var(--step--1); padding: .5rem 0; }
   [data-role="error"]:not(:empty) { grid-column: 1 / -1; color: var(--color-danger); font-size: .85rem; }
 `)

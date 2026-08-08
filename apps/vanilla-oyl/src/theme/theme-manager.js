@@ -1,8 +1,17 @@
-/** @typedef {'classic' | 'forest'} Theme */
+/** @typedef {'classic' | 'forest' | 'sunrise' | 'ocean' | 'lavender' | 'ember' | 'ink' | 'paper'} Theme */
 /** @typedef {'system' | 'light' | 'dark'} Mode */
 /** @typedef {{ theme: Theme, mode: Mode }} ThemeSettings */
 
-export const THEMES = /** @type {Theme[]} */ (['classic', 'forest'])
+export const THEMES = /** @type {Theme[]} */ ([
+  'classic',
+  'forest',
+  'sunrise',
+  'ocean',
+  'lavender',
+  'ember',
+  'ink',
+  'paper',
+])
 export const MODES = /** @type {Mode[]} */ (['system', 'light', 'dark'])
 
 export const DEFAULT_SETTINGS = /** @type {ThemeSettings} */ ({ theme: 'classic', mode: 'system' })
@@ -33,4 +42,29 @@ export function nextSettings(current, change) {
 export function applyTheme(doc, settings) {
   doc.documentElement.dataset.theme = settings.theme
   doc.documentElement.style.colorScheme = resolveColorScheme(settings.mode)
+}
+
+/**
+ * An applyTheme wrapper that cross-fades theme changes via the View Transitions API.
+ * The first call (boot paint) is always instant, as are all calls when the user
+ * prefers reduced motion or the browser lacks the API.
+ * @param {Document} doc
+ * @param {{ prefersReducedMotion?: () => boolean }} [opts]
+ * @returns {(settings: ThemeSettings) => void}
+ */
+export function createThemeApplier(doc, opts = {}) {
+  const prefersReducedMotion =
+    opts.prefersReducedMotion ??
+    (() => doc.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false)
+  // startViewTransition is not in every TS DOM lib yet; feature-detect through a local view.
+  const viewDoc = /** @type {{ startViewTransition?: (cb: () => void) => unknown }} */ (
+    /** @type {unknown} */ (doc)
+  )
+  let first = true
+  return (settings) => {
+    const instant = first || prefersReducedMotion() || typeof viewDoc.startViewTransition !== 'function'
+    first = false
+    if (instant) applyTheme(doc, settings)
+    else /** @type {(cb: () => void) => unknown} */ (viewDoc.startViewTransition).call(doc, () => applyTheme(doc, settings))
+  }
 }

@@ -28,7 +28,7 @@ const styles = sheet(`
   .group[hidden] { display: none; }
   input, select { font: inherit; color: var(--color-text); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: .5rem .6rem; }
   label.field { display: grid; gap: .15rem; font-size: .8rem; color: var(--color-muted); }
-  button.primary { background: var(--color-accent); color: white; border: 0; border-radius: var(--radius-1); padding: .5rem 1rem; font: inherit; font-weight: 600; cursor: pointer; justify-self: start; }
+  button.primary { background: var(--color-accent); color: var(--color-on-accent, white); border: 0; border-radius: var(--radius-1); padding: .5rem 1rem; font: inherit; font-weight: 600; cursor: pointer; justify-self: start; }
   [data-role="error"]:not(:empty) { color: var(--color-danger); font-size: .85rem; }
 `)
 

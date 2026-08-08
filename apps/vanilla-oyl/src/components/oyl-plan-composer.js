@@ -21,7 +21,7 @@ const styles = sheet(`
   .repeat input[type="number"] { width: 4.5rem; }
   .repeat select { width: auto; }
   .actions { display: flex; justify-content: flex-end; margin-block-start: .9rem; }
-  button.primary { background: var(--color-accent); color: white; border: 0; border-radius: var(--radius-1); padding: .5rem 1.1rem; font: inherit; font-weight: 600; cursor: pointer; }
+  button.primary { background: var(--color-accent); color: var(--color-on-accent, white); border: 0; border-radius: var(--radius-1); padding: .5rem 1.1rem; font: inherit; font-weight: 600; cursor: pointer; }
   [data-role="error"]:not(:empty) { color: var(--color-danger); font-size: .85rem; margin-block-start: .5rem; }
 `)
 

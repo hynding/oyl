@@ -22,7 +22,7 @@ const styles = sheet(`
   .chip { font-size: .72rem; font-weight: 600; color: var(--color-accent); background: color-mix(in oklch, var(--color-accent) 14%, transparent); border-radius: 999px; padding: .12rem .55rem; }
   .chip.bad { color: var(--color-danger); background: color-mix(in oklch, var(--color-danger) 14%, transparent); }
   .actions { display: flex; justify-content: flex-end; margin-block-start: .9rem; }
-  button.primary { background: var(--color-accent); color: white; border: 0; border-radius: var(--radius-1); padding: .5rem 1.1rem; font: inherit; font-weight: 600; cursor: pointer; }
+  button.primary { background: var(--color-accent); color: var(--color-on-accent, white); border: 0; border-radius: var(--radius-1); padding: .5rem 1.1rem; font: inherit; font-weight: 600; cursor: pointer; }
   [data-role="error"]:not(:empty) { color: var(--color-danger); font-size: .85rem; margin-block-start: .5rem; }
 `)
 

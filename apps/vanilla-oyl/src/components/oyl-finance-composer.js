@@ -19,7 +19,7 @@ const styles = sheet(`
   .price { display: grid; grid-template-columns: 1fr auto; gap: .5rem; }
   .price select { width: auto; }
   .actions { display: flex; justify-content: flex-end; margin-block-start: .9rem; }
-  button.primary { background: var(--color-accent); color: white; border: 0; border-radius: var(--radius-1); padding: .5rem 1.1rem; font: inherit; font-weight: 600; cursor: pointer; }
+  button.primary { background: var(--color-accent); color: var(--color-on-accent, white); border: 0; border-radius: var(--radius-1); padding: .5rem 1.1rem; font: inherit; font-weight: 600; cursor: pointer; }
   .seg { display: inline-flex; background: color-mix(in oklch, var(--color-text) 6%, transparent); border-radius: 999px; padding: .2rem; gap: .15rem; margin-block-end: .85rem; }
   .seg button { font: inherit; border: 0; background: none; cursor: pointer; padding: .3rem .9rem; border-radius: 999px; font-size: .85rem; font-weight: 550; color: var(--color-muted); }
   .seg button[aria-pressed="true"] { background: var(--color-surface); color: var(--color-text); }

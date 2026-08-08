@@ -10,10 +10,10 @@ const styles = sheet(`
   .results { list-style: none; margin: .3rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .2rem; }
   .results[hidden] { display: none; }
   .result-btn { width: 100%; text-align: left; background: var(--color-bg); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: .4rem .6rem; font: inherit; cursor: pointer; }
-  .result-btn:hover { background: var(--color-accent); color: white; }
+  .result-btn:hover { background: var(--color-accent); color: var(--color-on-accent, white); }
   .add-row { display: flex; gap: .4rem; margin-top: .6rem; align-items: center; }
   input { font: inherit; color: var(--color-text); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: .4rem .6rem; flex: 1; }
-  button.primary { background: var(--color-accent); color: white; border: 0; border-radius: var(--radius-1); padding: .4rem .8rem; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  button.primary { background: var(--color-accent); color: var(--color-on-accent, white); border: 0; border-radius: var(--radius-1); padding: .4rem .8rem; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
   [data-role="error"]:not(:empty) { color: var(--color-danger); font-size: .85rem; margin-top: .3rem; }
 `)
 

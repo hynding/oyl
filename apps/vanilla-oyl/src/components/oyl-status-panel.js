@@ -22,7 +22,7 @@ const styles = sheet(`
   button { background: var(--color-surface-2); color: var(--color-text); border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: var(--space-2) var(--space-3); cursor: pointer; }
   button:hover { background: color-mix(in oklch, var(--color-surface-2), var(--color-text) 7%); }
   button:disabled { opacity: .5; cursor: not-allowed; }
-  button.primary { background: var(--color-accent); color: white; border-color: transparent; }
+  button.primary { background: var(--color-accent); color: var(--color-on-accent, white); border-color: transparent; }
   button.primary:hover { background: var(--color-accent-hover); }
   button.danger { background: transparent; color: var(--color-danger); border-color: color-mix(in oklch, var(--color-danger) 40%, var(--color-border)); }
   button.danger:hover { background: color-mix(in oklch, var(--color-danger) 12%, transparent); }

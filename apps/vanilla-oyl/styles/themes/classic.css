@@ -6,6 +6,7 @@
     --color-text: light-dark(oklch(25% 0.01 265), oklch(94% 0.005 90));
     --color-muted: light-dark(oklch(50% 0.01 265), oklch(70% 0.01 90));
     --color-accent: light-dark(oklch(55% 0.16 255), oklch(72% 0.14 255));
+    --color-on-accent: light-dark(white, white);
     --color-border: light-dark(oklch(90% 0.006 265), oklch(32% 0.01 265));
     --color-danger: light-dark(oklch(53% 0.2 25), oklch(70% 0.17 25));
     --color-warn: light-dark(oklch(62% 0.15 65), oklch(80% 0.13 70));
