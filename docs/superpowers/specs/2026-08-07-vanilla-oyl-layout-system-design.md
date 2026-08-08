@@ -74,7 +74,12 @@ renders as a slim, centered, pill-shaped bar fixed near the bottom of the viewpo
 (visually similar to the mobile dock, but compact and floating over the page).
 
 `navMode` → `oyl-nav` `orientation` mapping: `top` → `horizontal`, `side` → `vertical`,
-`floating` → `horizontal`.
+`floating` → `horizontal`. Because `focus` and `classic` are attribute-identical on the
+nav (`horizontal` both), the floating pill is NOT styled from inside `oyl-nav` — it is
+host-level styling in `focus.js`'s own sheet via `::slotted([slot="nav"])` (fixed
+position, centered, pill background/radius/shadow on the host box — all legal for
+`::slotted`), media-scoped like every other layout rule. `focus.js` also adds its own
+≥641px `.page` bottom padding so long pages never end underneath the pill.
 
 Who consumes which field: the shell reads `widgets` (dock placement + deck `mode`
 reflection) and `navMode` (reflected as `orientation` onto the slotted `oyl-nav` per the
@@ -96,9 +101,10 @@ Its shadow DOM becomes a named-region CSS grid — regions `header`, `nav-dock`,
 1. `this.setAttribute('layout', id)` (hook for per-layout selectors),
 2. reflecting `orientation` (from `navMode`) onto the slotted `oyl-nav` and `mode`
    (`rail`/`band`) onto the slotted `oyl-widgets`, and
-3. `shadowRoot.adoptedStyleSheets = [...OylElement baseStyles, baseSheet, active.styles]`
-   — the element-level `baseStyles` (box-sizing reset + focus ring adopted by
-   `OylElement`'s constructor) must be re-included, or the swap would discard them.
+3. `shadowRoot.adoptedStyleSheets = [baseStyles, baseSheet, active.styles]` — the
+   element-level `baseStyles` (the single `CSSStyleSheet` with box-sizing reset + focus
+   ring that `OylElement`'s constructor adopts) must be re-included, or the swap would
+   discard it.
 
 Reflection ordering: the deck is mounted/unmounted by `main.js` *reacting to the same
 signal*, so the shell must not assume the deck exists when its `track()` runs. The shell
@@ -127,7 +133,13 @@ proven bottom-tab mobile UX**; layouts are a desktop/tablet experiment. Because 
 neither evaluates media queries nor computes layout, the vanilla test for this is
 *structural*: parse each sheet's `cssRules` and assert every per-layout rule (and every
 attribute-keyed nav/deck rule) is inside a `CSSMediaRule` whose condition is
-`min-width: 641px`.
+`min-width: 641px`. The layout + nav legs of this test ship in Plan A; the deck leg
+lands with Plan B (there is no `oyl-widgets` sheet before then).
+
+Accepted nit: mobile rules use `max-width: 640px` and desktop rules `min-width: 641px`,
+so fractional viewport widths inside (640, 641) (zoom/DPR artifacts) match neither —
+there, only unkeyed base rules apply (≈ classic frame). Benign by construction; not
+worth a breakpoint-unit change.
 
 Carried-over gotcha (documented in each layout module header): no layout may set
 `container-type` on `:host` — it would trap the slotted nav's `position: fixed` bottom
@@ -163,13 +175,20 @@ receives a single **`WidgetContext`** — an explicitly read-only facade built i
 ```
 
 Read-only is enforced by shape, not convention: the facade exposes only query functions
-and signals, so no widget can enqueue outbox writes.
+and **read-only signal views** — signals in this codebase are `{ get, set }`, so raw
+signals (e.g. `profileStore.profile`) are wrapped as `{ get: () => sig.get() }` before
+exposure. No widget can enqueue outbox writes or set shared state; the Plan B facade
+test asserts no exposed member has a `set`/write method.
 
 The deck reads `src/widgets/widget-catalog.js` — a registry `id → { label,
 create(context) }` — and instantiates every registered widget in registry order. The
 shell reflects a `mode` attribute (`rail` or `band`) onto the `oyl-widgets` host; the
 deck's **own** stylesheet renders vertically (rail) or as a horizontal scroll row (band)
-and owns widget-card appearance — shell CSS cannot style across the slot boundary. When
+and owns widget-card appearance — shell CSS cannot style across the slot boundary.
+Below 641px the `mode`-keyed rules don't apply (media-scoping rule); the deck's unkeyed
+base styles ARE the mobile presentation: a compact horizontal scroll row above the page
+content. So on a phone under `sidebar`/`dashboard` the deck stays useful, and
+`widgets.spec.ts` runs on both e2e projects with no mobile skips. When
 the active layout declares `widgets: 'none'`, `main.js` does not mount the deck (no
 hidden-but-computing work): an `effect()` in `main.js` mounts/unmounts it as the layout
 signal changes. On the default `classic` layout the deck is absent.
@@ -198,8 +217,10 @@ all-of build` gate):
   Note: this day-based streak is a separate algorithm from the goal-period `streak()`
   in `streak.ts`, which stays untouched — they live side by side, not merged.
 - `dailySeries(entries, range, tz)` — per-day numeric buckets for sparklines,
-- `digestOf(review, todayPlan)` — returns `{ plansDone, plansTotal, goalsMet,
-  goalsTotal, streak }`; the greeting widget formats these into its one-line summary.
+- `digestOf(review, todayPlan, dayStreak)` — returns `{ plansDone, plansTotal, goalsMet,
+  goalsTotal, streak }`; `streak` is the `dayStreak` argument passed through (the caller
+  supplies the `streakOf` result — NOT `review.goals[].streak`, which is the per-goal
+  goal-period streak). The greeting widget formats these into its one-line summary.
 
 Division of responsibility, stated once and enforced in review:
 
@@ -223,9 +244,11 @@ values on render paths — they are never written to any store.
   `layout` (signal), `setLayout(id)`, `refresh()`. Persists a `layout` field inside the
   existing `SETTINGS_KEY` JSON blob (one settings object; theme and layout are sibling
   fields). Unknown/corrupt values decode to `classic` via `isLayoutId()`.
-- **Settings round-trip (required fix to existing code):** the theme writer today
-  (`nextSettings` in `theme/theme-manager.js`, called by `state/theme.js`) rebuilds the
-  blob as `{ theme, mode }` only — a theme change would silently erase `layout`. Both
+- **Settings round-trip (required fix to existing code):** the actual write is
+  `storage.setItem(SETTINGS_KEY, JSON.stringify(next))` in `update()` in
+  `state/theme.js`, where `next` comes from `nextSettings` (`theme/theme-manager.js`, a
+  pure normalizer with no storage access) and carries `{ theme, mode }` only — so a
+  theme change would silently erase `layout`. The fix lands in `update()`. Both
   writers become read-merge-write with a precise spread base: **re-read the raw stored
   JSON (`JSON.parse(storage.getItem(SETTINGS_KEY))`) at write time** and override only
   their own field(s). Merging from the in-memory signal is NOT equivalent — the theme
@@ -294,7 +317,7 @@ New:
 - `apps/vanilla-oyl/src/state/layout.js` (+ test)
 - `apps/vanilla-oyl/src/components/oyl-layout-picker.js` (+ test)
 - `apps/vanilla-oyl/src/widgets/{oyl-widgets,widget-catalog,context,sample-data}.js` and one file per widget (+ tests)
-- `packages/all-of-oyl/src/insights/{daily-series,digest}.ts` and `streakOf` beside the existing `streak.ts` (+ tests, exported from the package index)
+- `packages/all-of-oyl/src/insights/{day-streak,daily-series,digest}.ts` (`streakOf` lives in `day-streak.ts` — a NEW file; the existing goal-period `streak.ts` is untouched) (+ tests, exported from the package index)
 - `apps/e2e-oyl/tests/layouts.spec.ts` (Plan A) and `apps/e2e-oyl/tests/widgets.spec.ts` (Plan B)
 
 Modified:
