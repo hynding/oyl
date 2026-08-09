@@ -71,6 +71,18 @@ describe('oyl-layout-picker', () => {
     expect(trigger.textContent).toContain('Wide')
   })
 
+  it('closes when focus moves outside the component (keyboard parity)', () => {
+    const { root } = mount()
+    ;/** @type {HTMLButtonElement} */ (root.querySelector('[data-layout-trigger]')).click()
+    const panel = /** @type {HTMLElement} */ (root.querySelector('[data-layout-panel]'))
+    expect(panel.hidden).toBe(false)
+    const outside = document.createElement('button')
+    document.body.append(outside)
+    outside.dispatchEvent(new Event('focusin', { bubbles: true, composed: true }))
+    expect(panel.hidden).toBe(true)
+    outside.remove()
+  })
+
   it('anchors the panel to the viewport on mobile (fixed sheet, not a host flyout)', () => {
     // Structural: happy-dom can't evaluate media queries, so assert the sheet's shape.
     // Same defect class as oyl-theme-toggle: a host-anchored absolute panel overflows

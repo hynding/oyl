@@ -1,5 +1,6 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
+import { MOBILE_SHEET_CSS } from './popover-sheet.js'
 import { THEMES, MODES } from '../theme/theme-manager.js'
 import { THEME_CATALOG } from '../theme/theme-catalog.js'
 
@@ -35,20 +36,9 @@ const styles = sheet(`
   }
   /* display:grid would otherwise defeat the hidden attribute's display:none. */
   .panel[hidden] { display: none; }
-  /* Mobile: the toolbar squeezes the host leftward (theme toggle, layout picker and
-     account menu share the row), so a host-anchored flyout can overflow the LEFT
-     viewport edge and its options become unclickable. Become a viewport-anchored
-     sheet under the header instead. Must stay AFTER the base .panel rule (same
-     specificity — order decides). Keep in sync with oyl-layout-picker.js. */
-  @media (max-width: 640px) {
-    .panel {
-      position: fixed; inset-inline: 1rem;
-      inset-block-start: calc(env(safe-area-inset-top) + 3.25rem);
-      inline-size: auto;
-      max-block-size: calc(100dvh - env(safe-area-inset-top) - 8rem);
-      overflow: auto;
-    }
-  }
+  /* Mobile: shared viewport-anchored sheet (see popover-sheet.js for the why).
+     Must stay AFTER the base .panel rule (same specificity — order decides). */
+  ${MOBILE_SHEET_CSS}
   .group-label { margin: 0; font-size: 0.72rem; font-weight: 600; color: var(--color-muted); }
   .themes {
     display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2);
@@ -156,6 +146,15 @@ export class OylThemeToggle extends OylElement {
     // Close when interaction moves outside the component (shadow-safe via composedPath).
     document.addEventListener(
       'pointerdown',
+      (e) => {
+        if (!panel.hidden && !e.composedPath().includes(this)) setOpen(false)
+      },
+      { signal: this.lifecycle },
+    )
+    // Keyboard parity: Enter-activation fires no pointerdown, so also close when
+    // focus lands outside the component (prevents stacked popovers on mobile).
+    document.addEventListener(
+      'focusin',
       (e) => {
         if (!panel.hidden && !e.composedPath().includes(this)) setOpen(false)
       },

@@ -94,6 +94,19 @@ describe('<oyl-theme-toggle>', () => {
     el.remove()
   })
 
+  it('closes when focus moves outside the component (keyboard parity)', () => {
+    const { el, root } = mount()
+    ;/** @type {HTMLButtonElement} */ (root.querySelector('button[data-picker-trigger]')).click()
+    const panel = /** @type {HTMLElement} */ (root.querySelector('[data-picker-panel]'))
+    expect(panel.hidden).toBe(false)
+    const outside = document.createElement('button')
+    document.body.append(outside)
+    outside.dispatchEvent(new Event('focusin', { bubbles: true, composed: true }))
+    expect(panel.hidden).toBe(true)
+    outside.remove()
+    el.remove()
+  })
+
   it('reflects external settings changes (multi-tab) into the controls', async () => {
     const { themeState, el, root } = mount()
     themeState.update({ theme: 'ember', mode: 'light' })
