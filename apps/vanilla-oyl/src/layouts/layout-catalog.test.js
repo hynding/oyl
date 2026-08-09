@@ -1,0 +1,58 @@
+import { describe, expect, it } from 'vitest'
+import { LAYOUTS, DEFAULT_LAYOUT, isLayoutId, byId, ORIENTATION } from './layout-catalog.js'
+
+describe('layout catalog', () => {
+  it('has classic as the default and first entry', () => {
+    expect(DEFAULT_LAYOUT).toBe('classic')
+    expect(LAYOUTS[0]?.id).toBe('classic')
+  })
+
+  it('every descriptor is frozen and complete', () => {
+    for (const l of LAYOUTS) {
+      expect(Object.isFrozen(l), l.id).toBe(true)
+      expect(typeof l.label).toBe('string')
+      expect(typeof l.description).toBe('string')
+      expect(['top', 'side', 'floating']).toContain(l.navMode)
+      expect(['rail', 'band', 'none']).toContain(l.widgets)
+      expect(['classic', 'wide']).toContain(l.pageWidth)
+      expect(l.styles).toBeInstanceOf(CSSStyleSheet)
+    }
+  })
+
+  it('ids are unique', () => {
+    expect(new Set(LAYOUTS.map((l) => l.id)).size).toBe(LAYOUTS.length)
+  })
+
+  it('isLayoutId accepts every catalog id and rejects everything else', () => {
+    for (const l of LAYOUTS) expect(isLayoutId(l.id)).toBe(true)
+    expect(isLayoutId('cyberpunk')).toBe(false)
+    expect(isLayoutId(undefined)).toBe(false)
+    expect(isLayoutId(7)).toBe(false)
+  })
+
+  it('byId falls back to classic for unknown ids', () => {
+    expect(byId('nope').id).toBe('classic')
+    expect(byId('classic').id).toBe('classic')
+  })
+
+  it('maps every navMode to a nav orientation', () => {
+    expect(ORIENTATION).toEqual({ top: 'horizontal', side: 'vertical', floating: 'horizontal' })
+  })
+
+  it('classic keeps the current frame contract', () => {
+    const classic = byId('classic')
+    expect(classic.navMode).toBe('top')
+    expect(classic.widgets).toBe('none')
+    expect(classic.pageWidth).toBe('classic')
+  })
+
+  it('every layout sheet rule is scoped to desktop (min-width: 641px)', () => {
+    for (const l of LAYOUTS) {
+      for (const rule of l.styles.cssRules) {
+        const media = /** @type {CSSMediaRule} */ (rule)
+        expect('conditionText' in media, `${l.id}: "${rule.cssText.slice(0, 60)}" must be an @media rule`).toBe(true)
+        expect(media.conditionText).toBe('(min-width: 641px)')
+      }
+    }
+  })
+})
