@@ -38,6 +38,32 @@ describe('oyl-widgets', () => {
     spy.mockRestore()
   })
 
+  it('isolates a widget that throws while connecting (render-time), not just in create()', () => {
+    // Custom elements run their render logic on connect — a widget whose
+    // connectedCallback throws must still be caught by the deck's per-card
+    // isolation, so the append has to happen inside the try/catch.
+    if (!customElements.get('oyl-test-connect-boom')) {
+      customElements.define('oyl-test-connect-boom', class extends HTMLElement {
+        connectedCallback() { throw new Error('connect boom') }
+      })
+    }
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const connectBoom = {
+      id: 'connect-boom',
+      label: 'Connect Boom',
+      create: () => document.createElement('oyl-test-connect-boom'),
+    }
+    const root = mount([stub('a'), connectBoom, stub('b')])
+    const cards = [...root.querySelectorAll('.card')]
+    expect(cards).toHaveLength(3)
+    expect(cards[0]?.textContent).toBe('a')
+    expect(cards[2]?.textContent).toBe('b')
+    expect(cards[1]?.classList.contains('failed')).toBe(true)
+    expect(cards[1]?.textContent).toContain('unavailable')
+    expect(spy).toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
   it('scopes every mode-keyed rule to desktop widths (deck leg of the structural test)', () => {
     const offenders = []
     for (const sheetObj of /** @type {CSSStyleSheet[]} */ (OylWidgets.styles)) {

@@ -274,7 +274,10 @@ values on render paths — they are never written to any store.
 
 - **Unknown/corrupt layout id** → `classic` fallback on read; never throws, never
   renders an empty frame.
-- **Widget isolation:** the deck wraps each `create(context)` in try/catch; a throwing
+- **Widget isolation:** the deck connects each widget inside its card's try/catch (the
+  deck is appended to the shadow root before the per-widget loop), so both `create(context)`
+  throws and connect-time render throws are isolated (reactive re-run throws remain out of
+  scope); a throwing
   widget renders as a muted "unavailable" card while the rest of the deck lives. The
   error still reaches `console.error`, so the e2e hygiene fixture fails the run —
   isolation protects users, not buggy code.

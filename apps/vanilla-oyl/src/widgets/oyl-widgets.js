@@ -40,21 +40,28 @@ export class OylWidgets extends OylElement {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
     const deck = document.createElement('div')
     deck.className = 'deck'
+    // Connect the deck FIRST: custom elements only run connectedCallback (and
+    // thus their render) when they reach the document, so each widget must be
+    // appended to an already-connected card for connect-time throws to land
+    // inside the try/catch below.
+    root.append(deck)
     for (const entry of this.widgets) {
       const card = document.createElement('div')
       card.className = 'card'
+      deck.append(card)
       try {
         card.append(entry.create(this.context))
       } catch (err) {
         // Isolation protects USERS, not buggy code: the console.error below
         // fails the e2e hygiene fixture, so a crashing widget still fails CI.
         console.error(`widget ${entry.id} failed to render`, err)
+        // A widget that threw on connect may already sit in the card —
+        // clear it so the failure text isn't shown beside a half-rendered element.
+        card.replaceChildren()
         card.classList.add('failed')
         card.textContent = `${entry.label} unavailable`
       }
-      deck.append(card)
     }
-    root.append(deck)
   }
 }
 
