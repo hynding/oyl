@@ -30,3 +30,15 @@ export const SAMPLE = Object.freeze({
 export function withSample(isEmpty, real, fixture) {
   return isEmpty ? { value: fixture, sample: true } : { value: real, sample: false }
 }
+
+/**
+ * The shared `Sample` badge element (badge contract: `<span data-sample-badge>`
+ * with text `Sample`, rendered only on the fixture path).
+ * @returns {HTMLSpanElement}
+ */
+export function sampleBadge() {
+  const b = document.createElement('span')
+  b.setAttribute('data-sample-badge', '')
+  b.textContent = 'Sample'
+  return b
+}

@@ -1,5 +1,7 @@
+import { defineGoalRings } from './oyl-goal-rings.js'
 import { defineStreakRing } from './oyl-streak-ring.js'
 import { defineTodayPlan } from './oyl-today-plan.js'
+import { defineTrendSparklines } from './oyl-trend-sparklines.js'
 
 /**
  * The widget registry: deck order = this order. Each entry's create(context)
@@ -26,6 +28,28 @@ export const WIDGETS = Object.freeze([
     create(context) {
       defineTodayPlan()
       const el = /** @type {import('./oyl-today-plan.js').OylTodayPlan} */ (document.createElement('oyl-today-plan'))
+      el.context = context
+      return el
+    },
+  },
+  {
+    id: 'trend-sparklines',
+    label: 'Trends',
+    create(context) {
+      defineTrendSparklines()
+      const el = /** @type {import('./oyl-trend-sparklines.js').OylTrendSparklines} */ (
+        document.createElement('oyl-trend-sparklines')
+      )
+      el.context = context
+      return el
+    },
+  },
+  {
+    id: 'goal-rings',
+    label: 'Goals',
+    create(context) {
+      defineGoalRings()
+      const el = /** @type {import('./oyl-goal-rings.js').OylGoalRings} */ (document.createElement('oyl-goal-rings'))
       el.context = context
       return el
     },
