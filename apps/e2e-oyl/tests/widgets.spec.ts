@@ -38,6 +38,10 @@ test('fresh account shows all five widgets with Sample badges', async ({ page, s
   // Greeting always renders real greeting text; its digest line is sampled:
   await expect(page.locator('oyl-streak-ring [data-sample-badge]')).toBeVisible()
   await expect(page.locator('oyl-today-plan [data-sample-badge]')).toBeVisible()
+  // The deck re-mounts per layout — Sample badges must show on the sidebar rail too:
+  await pickLayout(page, 'sidebar')
+  await expect(page.locator('oyl-streak-ring [data-sample-badge]')).toBeVisible()
+  await expect(page.locator('oyl-today-plan [data-sample-badge]')).toBeVisible()
 })
 
 test('adding a journal entry replaces the streak sample with real data, live', async ({ page, signIn }) => {
@@ -51,5 +55,5 @@ test('adding a journal entry replaces the streak sample with real data, live', a
   await expect(page.locator('oyl-entry-row')).toContainText('Streak swap note')
   // The deck travels with the dashboard layout, so it is visible on /journal:
   await expect(page.locator('oyl-streak-ring [data-sample-badge]')).toHaveCount(0)
-  await expect(page.locator('oyl-streak-ring')).toContainText('1')
+  await expect(page.locator('oyl-streak-ring .count')).toHaveText('1')
 })
