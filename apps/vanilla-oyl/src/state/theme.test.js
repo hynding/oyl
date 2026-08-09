@@ -35,4 +35,28 @@ describe('theme state', () => {
     expect(state.settings.get().theme).toBe('forest')
     expect(JSON.parse(/** @type {string} */ (storage.getItem(SETTINGS_KEY))).theme).toBe('forest')
   })
+
+  it('update() preserves unknown settings keys (e.g. layout) in the stored blob', () => {
+    const storage = fakeStorage({
+      [SETTINGS_KEY]: JSON.stringify({ theme: 'forest', mode: 'dark', layout: 'sidebar' }),
+    })
+    const state = createThemeState(storage)
+    state.update({ theme: 'ink' })
+    expect(JSON.parse(/** @type {string} */ (storage.getItem(SETTINGS_KEY)))).toEqual({
+      theme: 'ink',
+      mode: 'dark',
+      layout: 'sidebar',
+    })
+  })
+
+  it('update() merges from RAW storage, not the normalized signal (out-of-band write survives)', () => {
+    const storage = fakeStorage()
+    const state = createThemeState(storage) // signal born WITHOUT layout
+    // Another writer (the future layout state) adds a key after this state was created:
+    storage.setItem(SETTINGS_KEY, JSON.stringify({ layout: 'focus' }))
+    state.update({ mode: 'light' })
+    const stored = JSON.parse(/** @type {string} */ (storage.getItem(SETTINGS_KEY)))
+    expect(stored.layout).toBe('focus')
+    expect(stored.mode).toBe('light')
+  })
 })

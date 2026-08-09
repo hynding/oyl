@@ -1,5 +1,6 @@
 import { signal } from '../lib/reactive/signal.js'
 import { SETTINGS_KEY } from '../storage/keys.js'
+import { readRawSettings } from '../storage/settings.js'
 import { DEFAULT_SETTINGS, nextSettings } from '../theme/theme-manager.js'
 
 /** @typedef {import('../theme/theme-manager.js').ThemeSettings} ThemeSettings */
@@ -32,7 +33,7 @@ export function createThemeState(storage) {
     update(change) {
       const next = nextSettings(settings.get(), change)
       settings.set(next)
-      storage.setItem(SETTINGS_KEY, JSON.stringify(next))
+      storage.setItem(SETTINGS_KEY, JSON.stringify({ ...readRawSettings(storage), ...next }))
     },
     /** Re-read from storage (multi-tab sync). */
     refresh() {
