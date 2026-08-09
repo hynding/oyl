@@ -81,6 +81,19 @@ describe('oyl-shell', () => {
     })
   })
 
+  it('removes the stale mode attribute when switching to a widgets-none layout', async () => {
+    const shell = mount('dashboard')
+    const deck = document.createElement('div')
+    deck.slot = 'widgets'
+    shell.append(deck)
+    await Promise.resolve()
+    expect(deck.getAttribute('mode')).toBe('band')
+    const sig = /** @type {import('../lib/reactive/signal.js').Signal<string>} */ (shell.layoutSignal)
+    sig.set('focus')
+    await Promise.resolve()
+    expect(deck.hasAttribute('mode')).toBe(false)
+  })
+
   it('never sets container-type on the host (would trap the fixed mobile nav)', () => {
     const shell = mount('classic')
     const root = /** @type {ShadowRoot} */ (shell.shadowRoot)

@@ -129,7 +129,10 @@ export class OylShell extends OylElement {
     const active = byId(this.layoutSignal ? this.layoutSignal.get() : DEFAULT_LAYOUT)
     this.querySelector('[slot="nav"]')?.setAttribute('orientation', ORIENTATION[active.navMode])
     const deck = this.querySelector('[slot="widgets"]')
-    if (deck && active.widgets !== 'none') deck.setAttribute('mode', active.widgets)
+    if (deck) {
+      if (active.widgets === 'none') deck.removeAttribute('mode')
+      else deck.setAttribute('mode', active.widgets)
+    }
   }
 }
 
