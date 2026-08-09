@@ -123,6 +123,7 @@ export { streakOf, activeDaysIn } from './insights/day-streak.js'
 export { dailySeries, spendingOn, caloriesOn, activeMinutesOn } from './insights/daily-series.js'
 export { correlate } from './insights/correlate.js'
 export { review, type Review, type ReviewTotals, type GoalReview, type AreaRollup } from './insights/review.js'
+export { digestOf, type Digest } from './insights/digest.js'
 export { sharedProgress, type SharedView, type SharedMetricSummary, type SharedDayPlan } from './insights/shared-progress.js'
 
 // ── Revivers ────────────────────────────────────────────────────────────────
