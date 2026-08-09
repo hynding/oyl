@@ -119,6 +119,7 @@ export { Connection, type ConnectionStatus } from './share/connection.js'
 export { Grant, type GrantScope } from './share/grant.js'
 
 export { streak } from './insights/streak.js'
+export { streakOf, activeDaysIn } from './insights/day-streak.js'
 export { correlate } from './insights/correlate.js'
 export { review, type Review, type ReviewTotals, type GoalReview, type AreaRollup } from './insights/review.js'
 export { sharedProgress, type SharedView, type SharedMetricSummary, type SharedDayPlan } from './insights/shared-progress.js'
