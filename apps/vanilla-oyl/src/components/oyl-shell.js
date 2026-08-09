@@ -1,49 +1,135 @@
-import { OylElement } from '../lib/reactive/oyl-element.js'
+import { OylElement, baseStyles } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
+import { byId, ORIENTATION, DEFAULT_LAYOUT } from '../layouts/layout-catalog.js'
 
-const styles = sheet(`
-  /* No container-type on :host — layout containment would trap the slotted nav's
-     position:fixed bottom bar (it must position against the viewport on mobile). */
-  :host { display: grid; grid-template-rows: auto 1fr; min-block-size: 100dvh; }
-  header {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: var(--space-4); padding: var(--space-3) var(--space-4);
-    padding-inline: max(var(--space-4), env(safe-area-inset-left)) max(var(--space-4), env(safe-area-inset-right));
-    background: var(--color-surface); border-block-end: 1px solid var(--color-border);
+/** @typedef {import('../lib/reactive/signal.js').Signal<string>} LayoutSignal */
+
+/*
+ * The shared frame every layout builds on. Contains ALL sub-641px rules: below that
+ * width no per-layout sheet applies (they are media-scoped by rule), so this IS the
+ * mobile arrangement — the fixed bottom tab bar comes from oyl-nav's own stylesheet.
+ * No container-type on :host — layout containment would trap the slotted nav's
+ * position:fixed bottom bar (it must position against the viewport on mobile).
+ */
+const baseSheet = sheet(`
+  :host {
+    display: grid;
+    min-block-size: 100dvh;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto 1fr;
+    grid-template-areas:
+      "title toolbar"
+      "nav nav"
+      "widgets widgets"
+      "page page";
   }
-  h1 { font-size: var(--step-1); }
-  @media (min-width: 48rem) { header { padding-inline: var(--space-8); } }
-  /* The shared page frame: every routed view is centered + padded here, so views
-     don't each re-declare their own max-width/margin/padding. */
-  .page { inline-size: 100%; max-inline-size: 680px; margin-inline: auto; padding: clamp(var(--space-4), 4vw, var(--space-8)) var(--space-4) 4rem; }
-  /* Mobile: the primary nav docks as a fixed bottom tab bar (see oyl-nav) — slim the
-     header down to title + toolbar and keep the page bottom clear of the bar. */
+  .title { grid-area: title; }
+  .nav-dock { grid-area: nav; }
+  .toolbar { grid-area: toolbar; }
+  .widgets { grid-area: widgets; }
+  .page { grid-area: page; }
+  :host([widgets="none"]) .widgets { display: none; }
+
+  .title, .toolbar {
+    display: flex; align-items: center; gap: var(--space-4);
+    background: var(--color-surface);
+    border-block-end: 1px solid var(--color-border);
+    padding-block: var(--space-2);
+  }
+  .title { padding-inline-start: max(var(--space-4), env(safe-area-inset-left)); }
+  .toolbar { justify-content: flex-end; padding-inline-end: max(var(--space-4), env(safe-area-inset-right)); }
+  h1 { font-size: var(--step-1); margin-block: 0; }
+
+  .page {
+    inline-size: 100%;
+    padding: clamp(var(--space-4), 4vw, var(--space-8)) var(--space-4) 4rem;
+  }
+  /* Mobile: oyl-nav docks as a fixed bottom tab bar — keep the page clear of it. */
   @media (max-width: 640px) {
-    header { padding-block: var(--space-2); }
     .page { padding-block-end: calc(5rem + env(safe-area-inset-bottom)); }
   }
   ::slotted([slot="main"]) { display: block; }
 `)
 
 export class OylShell extends OylElement {
-  static styles = [styles]
+  static styles = [baseSheet]
+
+  constructor() {
+    super()
+    /** Assigned by the host before append; without it the shell renders DEFAULT_LAYOUT statically. @type {LayoutSignal | undefined} */
+    this.layoutSignal = undefined
+  }
 
   render() {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
-    const header = document.createElement('header')
+
+    const title = document.createElement('div')
+    title.className = 'title'
     const h1 = document.createElement('h1')
     h1.textContent = 'OYL'
+    title.append(h1)
+
+    const navDock = document.createElement('div')
+    navDock.className = 'nav-dock'
     const navSlot = document.createElement('slot')
     navSlot.setAttribute('name', 'nav')
-    const toolbar = document.createElement('slot')
-    toolbar.setAttribute('name', 'toolbar')
-    header.append(h1, navSlot, toolbar)
-    const main = document.createElement('slot')
-    main.setAttribute('name', 'main')
+    navDock.append(navSlot)
+
+    const toolbar = document.createElement('div')
+    toolbar.className = 'toolbar'
+    const toolbarSlot = document.createElement('slot')
+    toolbarSlot.setAttribute('name', 'toolbar')
+    toolbar.append(toolbarSlot)
+
+    const widgets = document.createElement('div')
+    widgets.className = 'widgets'
+    const widgetsSlot = document.createElement('slot')
+    widgetsSlot.setAttribute('name', 'widgets')
+    widgets.append(widgetsSlot)
+
     const page = document.createElement('div')
     page.className = 'page'
-    page.append(main)
-    root.append(header, page)
+    const mainSlot = document.createElement('slot')
+    mainSlot.setAttribute('name', 'main')
+    page.append(mainSlot)
+
+    root.append(title, navDock, toolbar, widgets, page)
+
+    // Late-slotted children (append order in main.js is not guaranteed relative to
+    // the first layout track) still get their reflected attributes.
+    navSlot.addEventListener('slotchange', () => this._reflect(), { signal: this.lifecycle })
+    widgetsSlot.addEventListener('slotchange', () => this._reflect(), { signal: this.lifecycle })
+
+    let first = true
+    this.track(() => {
+      const active = byId(this.layoutSignal ? this.layoutSignal.get() : DEFAULT_LAYOUT)
+      const swap = () => {
+        this.setAttribute('layout', active.id)
+        this.setAttribute('widgets', active.widgets)
+        if ('adoptedStyleSheets' in root) root.adoptedStyleSheets = [baseStyles, baseSheet, active.styles]
+        this._reflect()
+      }
+      // Same View Transition policy as the router/theme applier: instant on first
+      // paint, under reduced motion, and without the API; rapid re-switches may
+      // reject the in-flight transition's promises — benign, swallow them.
+      const reduce = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      if (first || reduce || typeof document.startViewTransition !== 'function') {
+        first = false
+        swap()
+      } else {
+        const transition = document.startViewTransition(swap)
+        transition.ready.catch(() => {})
+        transition.finished.catch(() => {})
+      }
+    })
+  }
+
+  /** Push layout-derived attributes onto slotted children (nav orientation, deck mode). */
+  _reflect() {
+    const active = byId(this.layoutSignal ? this.layoutSignal.get() : DEFAULT_LAYOUT)
+    this.querySelector('[slot="nav"]')?.setAttribute('orientation', ORIENTATION[active.navMode])
+    const deck = this.querySelector('[slot="widgets"]')
+    if (deck && active.widgets !== 'none') deck.setAttribute('mode', active.widgets)
   }
 }
 
