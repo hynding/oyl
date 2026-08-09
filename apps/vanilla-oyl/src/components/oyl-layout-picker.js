@@ -68,6 +68,23 @@ export class OylLayoutPicker extends OylElement {
     group.setAttribute('aria-label', 'Layout')
     group.style.display = 'grid'
     group.style.gap = 'var(--space-2)'
+    // Roving arrow-key selection — copied verbatim from oyl-theme-toggle.js `_radiogroup`.
+    group.addEventListener(
+      'keydown',
+      (e) => {
+        const key = /** @type {KeyboardEvent} */ (e).key
+        const delta = key === 'ArrowRight' || key === 'ArrowDown' ? 1 : key === 'ArrowLeft' || key === 'ArrowUp' ? -1 : 0
+        if (!delta) return
+        e.preventDefault()
+        const radios = /** @type {HTMLButtonElement[]} */ ([...group.querySelectorAll('[role="radio"]')])
+        const current = radios.findIndex((r) => r.getAttribute('aria-checked') === 'true')
+        const next = radios[(current + delta + radios.length) % radios.length]
+        if (!next) return
+        next.focus()
+        next.click() // radios select on arrow movement; selection applies the layout live
+      },
+      { signal: this.lifecycle },
+    )
 
     /** @type {Map<string, HTMLButtonElement>} */
     const buttons = new Map()

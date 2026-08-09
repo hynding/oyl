@@ -50,6 +50,19 @@ describe('oyl-layout-picker', () => {
     expect(root.querySelector('[data-layout-option="classic"]')?.getAttribute('aria-checked')).toBe('false')
   })
 
+  it('arrow keys rove selection to the next catalog option', async () => {
+    const { root, state } = mount()
+    ;/** @type {HTMLButtonElement} */ (root.querySelector('[data-layout-trigger]')).click()
+    const group = /** @type {HTMLElement} */ (root.querySelector('[role="radiogroup"]'))
+    group.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
+    await Promise.resolve() // effects re-run on a microtask batch (internals.js schedule)
+    // classic is active by default; ArrowDown advances one in catalog order
+    const next = /** @type {(typeof LAYOUTS)[number]} */ (LAYOUTS[1]).id
+    expect(state.layout.get()).toBe(next)
+    expect(root.querySelector(`[data-layout-option="${next}"]`)?.getAttribute('aria-checked')).toBe('true')
+    expect(root.querySelector('[data-layout-option="classic"]')?.getAttribute('aria-checked')).toBe('false')
+  })
+
   it('reflects external state changes (multi-tab refresh path)', async () => {
     const { root, state } = mount()
     state.setLayout('wide')
