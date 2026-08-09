@@ -1,6 +1,7 @@
 import { effect } from './lib/reactive/effect.js'
 import { createThemeApplier } from './theme/theme-manager.js'
 import { createThemeState } from './state/theme.js'
+import { createLayoutState } from './state/layout.js'
 import { createRouteState } from './state/route.js'
 import { createDataState } from './state/data.js'
 import { createAuthState } from './state/auth.js'
@@ -33,6 +34,7 @@ import { defineLogin } from './components/oyl-login.js'
 import { defineRegister } from './components/oyl-register.js'
 import { defineProfile } from './components/oyl-profile.js'
 import { defineAccountMenu } from './components/oyl-account-menu.js'
+import { defineLayoutPicker } from './components/oyl-layout-picker.js'
 
 async function boot() {
   const storage = window.localStorage
@@ -50,8 +52,10 @@ async function boot() {
   defineNutrition()
   defineNotice()
   defineLogin(); defineRegister(); defineProfile(); defineAccountMenu()
+  defineLayoutPicker()
 
   const themeState = createThemeState(storage)
+  const layoutState = createLayoutState(storage)
   const routeState = createRouteState(window)
   const host = window.location.hostname
   const authState = createAuthState(storage, { baseUrl: getApiBaseUrl(storage, host), fetch: window.fetch.bind(window) })
@@ -132,8 +136,10 @@ async function boot() {
   const debouncedRefresh = debounce(() => void dataState.refresh(), 150)
   window.addEventListener('storage', (e) => {
     if (!e.key || !isOylKey(e.key)) return
-    if (e.key === SETTINGS_KEY) themeState.refresh()
-    else if (e.key === AUTH_KEY) authState.refresh()
+    if (e.key === SETTINGS_KEY) {
+      themeState.refresh()
+      layoutState.refresh()
+    } else if (e.key === AUTH_KEY) authState.refresh()
     else if (e.key === OUTBOX_KEY) void flush().then(() => dataState.refreshPending()).catch(() => {})
     else debouncedRefresh()
   })
@@ -153,7 +159,8 @@ async function boot() {
     await seedAccount(dataState, DayKey.from(now(), tz))
   }
 
-  const shell = document.createElement('oyl-shell')
+  const shell = /** @type {import('./components/oyl-shell.js').OylShell} */ (document.createElement('oyl-shell'))
+  shell.layoutSignal = layoutState.layout
 
   const notice = /** @type {import('./components/oyl-notice.js').OylNotice} */ (document.createElement('oyl-notice'))
   notice.notice = noticeState.notice
@@ -167,6 +174,12 @@ async function boot() {
   const toggle = /** @type {import('./components/oyl-theme-toggle.js').OylThemeToggle} */ (document.createElement('oyl-theme-toggle'))
   toggle.slot = 'toolbar'
   toggle.themeState = themeState
+
+  const layoutPicker = /** @type {import('./components/oyl-layout-picker.js').OylLayoutPicker} */ (
+    document.createElement('oyl-layout-picker')
+  )
+  layoutPicker.slot = 'toolbar'
+  layoutPicker.layoutState = layoutState
 
   const router = /** @type {import('./components/oyl-router.js').OylRouter} */ (document.createElement('oyl-router'))
   router.slot = 'main'
@@ -311,7 +324,7 @@ async function boot() {
   accountMenu.session = authState.session
   accountMenu.onLogout = () => authState.logout()
 
-  shell.append(navEl, toggle, accountMenu, router)
+  shell.append(navEl, toggle, layoutPicker, accountMenu, router)
   const root = document.getElementById('app')
   if (root) root.replaceChildren(shell)
   document.getElementById('boot-fallback')?.remove()
