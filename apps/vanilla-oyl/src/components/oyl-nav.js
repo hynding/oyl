@@ -36,6 +36,18 @@ const styles = sheet(`
     nav::-webkit-scrollbar { display: none; }
     a { flex: 1 0 auto; justify-content: center; }
   }
+  /* Vertical mode (sidebar layout): the shell reflects orientation="vertical".
+     DESKTOP-ONLY BY RULE: reflected attributes exist at every viewport, so any
+     [orientation]-keyed rule outside this media block would override the mobile
+     bottom bar above. The oyl-nav test enforces this structurally. */
+  @media (min-width: 641px) {
+    :host([orientation="vertical"]) nav {
+      flex-direction: column; align-items: stretch; gap: var(--space-1);
+    }
+    :host([orientation="vertical"]) a {
+      justify-content: flex-start; border-radius: var(--radius-1);
+    }
+  }
 `)
 
 export class OylNav extends OylElement {

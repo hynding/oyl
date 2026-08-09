@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeAll } from 'vitest'
 import { signal } from '../lib/reactive/signal.js'
-import { defineNav } from './oyl-nav.js'
+import { defineNav, OylNav } from './oyl-nav.js'
 
 beforeAll(() => defineNav())
 
@@ -35,5 +35,32 @@ describe('<oyl-nav>', () => {
     expect(link.getAttribute('href')).toBe('/planner')
     expect(link.getAttribute('aria-current')).toBe('page')
     el.remove()
+  })
+
+  it('scopes every orientation-keyed rule to desktop widths', () => {
+    // Structural: happy-dom can't evaluate media queries, so assert the sheet's shape.
+    // An unscoped [orientation] rule would override the mobile bottom-bar rules.
+    const sheets = /** @type {CSSStyleSheet[]} */ (OylNav.styles)
+    const offenders = []
+    for (const s of sheets) {
+      for (const rule of s.cssRules) {
+        const text = /** @type {CSSStyleRule} */ (rule).selectorText ?? ''
+        if (text.includes('[orientation')) offenders.push(rule.cssText)
+        if ('conditionText' in rule && /** @type {CSSMediaRule} */ (rule).conditionText !== '(min-width: 641px)') {
+          // media blocks other than the mobile one and the desktop one are unexpected
+          if (/** @type {CSSMediaRule} */ (rule).conditionText !== '(max-width: 640px)') offenders.push(rule.cssText)
+        }
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
+  it('has vertical-orientation rules inside the desktop media block', () => {
+    const sheets = /** @type {CSSStyleSheet[]} */ (OylNav.styles)
+    const desktopRules = sheets
+      .flatMap((s) => [...s.cssRules])
+      .filter((r) => 'conditionText' in r && /** @type {CSSMediaRule} */ (r).conditionText === '(min-width: 641px)')
+      .flatMap((r) => [.../** @type {CSSMediaRule} */ (r).cssRules].map((inner) => inner.cssText))
+    expect(desktopRules.some((t) => t.includes('[orientation="vertical"]'))).toBe(true)
   })
 })
