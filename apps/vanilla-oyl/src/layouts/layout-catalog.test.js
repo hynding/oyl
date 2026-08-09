@@ -19,6 +19,23 @@ describe('layout catalog', () => {
     }
   })
 
+  it('registers exactly the five v1 layouts in picker order', () => {
+    expect(LAYOUTS.map((l) => l.id)).toEqual(['classic', 'sidebar', 'dashboard', 'focus', 'wide'])
+  })
+
+  it('descriptor values match the spec table', () => {
+    const table = /** @type {Record<string, [string, string, string]>} */ ({
+      classic: ['top', 'none', 'classic'],
+      sidebar: ['side', 'rail', 'wide'],
+      dashboard: ['top', 'band', 'classic'],
+      focus: ['floating', 'none', 'classic'],
+      wide: ['top', 'none', 'wide'],
+    })
+    for (const l of LAYOUTS) {
+      expect([l.navMode, l.widgets, l.pageWidth], l.id).toEqual(table[l.id])
+    }
+  })
+
   it('ids are unique', () => {
     expect(new Set(LAYOUTS.map((l) => l.id)).size).toBe(LAYOUTS.length)
   })

@@ -1,4 +1,8 @@
 import { classic } from './classic.js'
+import { sidebar } from './sidebar.js'
+import { dashboard } from './dashboard.js'
+import { focus } from './focus.js'
+import { wide } from './wide.js'
 
 /**
  * The layout catalog — mirrors theme-catalog.js: one frozen descriptor per layout,
@@ -18,7 +22,7 @@ import { classic } from './classic.js'
  */
 
 /** @type {LayoutDescriptor[]} Picker order. */
-export const LAYOUTS = [classic]
+export const LAYOUTS = [classic, sidebar, dashboard, focus, wide]
 
 export const DEFAULT_LAYOUT = 'classic'
 
