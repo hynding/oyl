@@ -1,4 +1,5 @@
 import { defineGoalRings } from './oyl-goal-rings.js'
+import { defineGreetingDigest } from './oyl-greeting-digest.js'
 import { defineStreakRing } from './oyl-streak-ring.js'
 import { defineTodayPlan } from './oyl-today-plan.js'
 import { defineTrendSparklines } from './oyl-trend-sparklines.js'
@@ -12,6 +13,18 @@ import { defineTrendSparklines } from './oyl-trend-sparklines.js'
  * @type {readonly WidgetEntry[]}
  */
 export const WIDGETS = Object.freeze([
+  {
+    id: 'greeting-digest',
+    label: 'Greeting',
+    create(context) {
+      defineGreetingDigest()
+      const el = /** @type {import('./oyl-greeting-digest.js').OylGreetingDigest} */ (
+        document.createElement('oyl-greeting-digest')
+      )
+      el.context = context
+      return el
+    },
+  },
   {
     id: 'streak-ring',
     label: 'Streak',

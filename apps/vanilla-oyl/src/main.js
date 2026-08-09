@@ -35,6 +35,9 @@ import { defineRegister } from './components/oyl-register.js'
 import { defineProfile } from './components/oyl-profile.js'
 import { defineAccountMenu } from './components/oyl-account-menu.js'
 import { defineLayoutPicker } from './components/oyl-layout-picker.js'
+import { createWidgetContext } from './widgets/context.js'
+import { defineWidgets } from './widgets/oyl-widgets.js'
+import { byId } from './layouts/layout-catalog.js'
 
 async function boot() {
   const storage = window.localStorage
@@ -161,6 +164,33 @@ async function boot() {
 
   const shell = /** @type {import('./components/oyl-shell.js').OylShell} */ (document.createElement('oyl-shell'))
   shell.layoutSignal = layoutState.layout
+
+  // Engagement deck: mounted only for widget-bearing layouts (no
+  // hidden-but-computing work on classic/focus/wide). The shell reflects
+  // mode via slotchange, so append order vs. the layout track is immaterial.
+  defineWidgets()
+  const widgetContext = createWidgetContext({
+    journal: dataState.journal,
+    planner: dataState.planner,
+    reviewOn: dataState.reviewOn,
+    profile: profileStore.profile,
+    tz,
+    now,
+  })
+  /** @type {import('./widgets/oyl-widgets.js').OylWidgets | null} */
+  let deck = null
+  effect(() => {
+    const wantsDeck = byId(layoutState.layout.get()).widgets !== 'none'
+    if (wantsDeck && !deck) {
+      deck = /** @type {import('./widgets/oyl-widgets.js').OylWidgets} */ (document.createElement('oyl-widgets'))
+      deck.slot = 'widgets'
+      deck.context = widgetContext
+      shell.append(deck)
+    } else if (!wantsDeck && deck) {
+      deck.remove()
+      deck = null
+    }
+  })
 
   const notice = /** @type {import('./components/oyl-notice.js').OylNotice} */ (document.createElement('oyl-notice'))
   notice.notice = noticeState.notice
