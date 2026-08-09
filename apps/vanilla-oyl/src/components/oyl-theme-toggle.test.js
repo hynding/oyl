@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll } from 'vitest'
 import { createThemeState } from '../state/theme.js'
 import { THEMES, MODES } from '../theme/theme-manager.js'
-import { defineThemeToggle } from './oyl-theme-toggle.js'
+import { defineThemeToggle, OylThemeToggle } from './oyl-theme-toggle.js'
 
 const settle = () => new Promise((r) => setTimeout(r, 0))
 
@@ -104,5 +104,17 @@ describe('<oyl-theme-toggle>', () => {
     expect(root.querySelector('[data-theme-option="ember"]')?.getAttribute('aria-checked')).toBe('true')
     expect(root.querySelector('[data-mode-option="light"]')?.getAttribute('aria-checked')).toBe('true')
     el.remove()
+  })
+
+  it('anchors the panel to the viewport on mobile (fixed sheet, not a host flyout)', () => {
+    // Structural: happy-dom can't evaluate media queries, so assert the sheet's shape.
+    // The desktop flyout is right-anchored to the host; on phones the toolbar squeezes
+    // the host leftward (layout picker + account menu share the row), so a host-anchored
+    // panel overflows the left viewport edge and its options become unclickable.
+    const mobileRules = /** @type {CSSStyleSheet[]} */ (OylThemeToggle.styles)
+      .flatMap((s) => [...s.cssRules])
+      .filter((r) => 'conditionText' in r && /** @type {CSSMediaRule} */ (r).conditionText === '(max-width: 640px)')
+      .flatMap((r) => [.../** @type {CSSMediaRule} */ (r).cssRules].map((inner) => inner.cssText))
+    expect(mobileRules.some((t) => t.includes('.panel') && /position:\s*fixed/.test(t))).toBe(true)
   })
 })

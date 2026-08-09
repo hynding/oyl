@@ -70,4 +70,15 @@ describe('oyl-layout-picker', () => {
     const trigger = /** @type {HTMLButtonElement} */ (root.querySelector('[data-layout-trigger]'))
     expect(trigger.textContent).toContain('Wide')
   })
+
+  it('anchors the panel to the viewport on mobile (fixed sheet, not a host flyout)', () => {
+    // Structural: happy-dom can't evaluate media queries, so assert the sheet's shape.
+    // Same defect class as oyl-theme-toggle: a host-anchored absolute panel overflows
+    // the left viewport edge once the toolbar squeezes the host leftward on phones.
+    const mobileRules = /** @type {CSSStyleSheet[]} */ (OylLayoutPicker.styles)
+      .flatMap((s) => [...s.cssRules])
+      .filter((r) => 'conditionText' in r && /** @type {CSSMediaRule} */ (r).conditionText === '(max-width: 640px)')
+      .flatMap((r) => [.../** @type {CSSMediaRule} */ (r).cssRules].map((inner) => inner.cssText))
+    expect(mobileRules.some((t) => t.includes('.panel') && /position:\s*fixed/.test(t))).toBe(true)
+  })
 })

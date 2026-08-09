@@ -23,6 +23,20 @@ const styles = sheet(`
     display: grid; gap: var(--space-2);
   }
   .panel[hidden] { display: none; }
+  /* Mobile: same defect class as oyl-theme-toggle — a host-anchored flyout can
+     overflow the LEFT viewport edge once the toolbar squeezes the host leftward on
+     phones. Become a viewport-anchored sheet under the header instead. Must stay
+     AFTER the base .panel rule (same specificity — order decides). Keep in sync
+     with oyl-theme-toggle.js. */
+  @media (max-width: 640px) {
+    .panel {
+      position: fixed; inset-inline: 1rem;
+      inset-block-start: calc(env(safe-area-inset-top) + 3.25rem);
+      inline-size: auto;
+      max-block-size: calc(100dvh - env(safe-area-inset-top) - 8rem);
+      overflow: auto;
+    }
+  }
   .group-label { margin: 0; font-size: 0.72rem; font-weight: 600; color: var(--color-muted); }
   .option {
     display: grid; gap: 0.15rem; padding: var(--space-2);

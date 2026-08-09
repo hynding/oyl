@@ -35,6 +35,20 @@ const styles = sheet(`
   }
   /* display:grid would otherwise defeat the hidden attribute's display:none. */
   .panel[hidden] { display: none; }
+  /* Mobile: the toolbar squeezes the host leftward (theme toggle, layout picker and
+     account menu share the row), so a host-anchored flyout can overflow the LEFT
+     viewport edge and its options become unclickable. Become a viewport-anchored
+     sheet under the header instead. Must stay AFTER the base .panel rule (same
+     specificity — order decides). Keep in sync with oyl-layout-picker.js. */
+  @media (max-width: 640px) {
+    .panel {
+      position: fixed; inset-inline: 1rem;
+      inset-block-start: calc(env(safe-area-inset-top) + 3.25rem);
+      inline-size: auto;
+      max-block-size: calc(100dvh - env(safe-area-inset-top) - 8rem);
+      overflow: auto;
+    }
+  }
   .group-label { margin: 0; font-size: 0.72rem; font-weight: 600; color: var(--color-muted); }
   .themes {
     display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2);
