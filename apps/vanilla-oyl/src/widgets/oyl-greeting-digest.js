@@ -1,19 +1,13 @@
 import { DayRange, digestOf, periodWindowOf, streakOf } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from '../components/sheet.js'
-import { SAMPLE, sampleBadge, withSample } from './sample-data.js'
+import { badgeStyles, SAMPLE, sampleBadge, withSample } from './sample-data.js'
 
 const styles = sheet(`
   :host { display: block; }
   .wrap { position: relative; display: grid; gap: var(--space-1); min-inline-size: 13rem; }
   .hello { font-size: var(--step-1); font-weight: 650; }
   .line { font-size: var(--step--1); color: var(--color-muted); font-variant-numeric: tabular-nums; }
-  [data-sample-badge] {
-    position: absolute; inset-block-start: 0; inset-inline-end: 0;
-    font-size: 0.62rem; text-transform: uppercase; letter-spacing: .06em;
-    color: var(--color-muted); border: 1px solid var(--color-border);
-    border-radius: 999px; padding: 0 .4rem;
-  }
 `)
 
 /** @param {number} hour */
@@ -24,7 +18,7 @@ function greetingFor(hour) {
 }
 
 export class OylGreetingDigest extends OylElement {
-  static styles = [styles]
+  static styles = [badgeStyles, styles]
 
   constructor() {
     super()

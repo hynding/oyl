@@ -1,7 +1,7 @@
 import { periodWindowOf } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from '../components/sheet.js'
-import { SAMPLE, sampleBadge, withSample } from './sample-data.js'
+import { badgeStyles, SAMPLE, sampleBadge, withSample } from './sample-data.js'
 import { ringSvg } from './svg.js'
 
 const styles = sheet(`
@@ -10,16 +10,10 @@ const styles = sheet(`
   .goal { display: grid; justify-items: center; gap: var(--space-1); }
   .name { font-size: var(--step--1); color: var(--color-text); }
   .flame { font-size: var(--step--1); color: var(--color-muted); font-variant-numeric: tabular-nums; }
-  [data-sample-badge] {
-    position: absolute; inset-block-start: 0; inset-inline-end: 0;
-    font-size: 0.62rem; text-transform: uppercase; letter-spacing: .06em;
-    color: var(--color-muted); border: 1px solid var(--color-border);
-    border-radius: 999px; padding: 0 .4rem;
-  }
 `)
 
 export class OylGoalRings extends OylElement {
-  static styles = [styles]
+  static styles = [badgeStyles, styles]
 
   constructor() {
     super()

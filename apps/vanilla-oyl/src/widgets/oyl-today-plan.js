@@ -1,6 +1,6 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from '../components/sheet.js'
-import { SAMPLE, withSample } from './sample-data.js'
+import { badgeStyles, SAMPLE, sampleBadge, withSample } from './sample-data.js'
 
 const styles = sheet(`
   :host { display: block; }
@@ -10,16 +10,10 @@ const styles = sheet(`
   .bar { block-size: .35rem; background: color-mix(in oklch, var(--color-text) 10%, transparent); border-radius: 999px; overflow: hidden; }
   .fill { block-size: 100%; inline-size: 0; background: var(--color-accent); }
   .next { font-size: var(--step--1); color: var(--color-text); }
-  [data-sample-badge] {
-    position: absolute; inset-block-start: 0; inset-inline-end: 0;
-    font-size: 0.62rem; text-transform: uppercase; letter-spacing: .06em;
-    color: var(--color-muted); border: 1px solid var(--color-border);
-    border-radius: 999px; padding: 0 .4rem;
-  }
 `)
 
 export class OylTodayPlan extends OylElement {
-  static styles = [styles]
+  static styles = [badgeStyles, styles]
 
   constructor() {
     super()
@@ -56,12 +50,7 @@ export class OylTodayPlan extends OylElement {
       next.className = 'next'
       next.textContent = value.next ? `next: ${value.next}` : 'All done 🎉'
       wrap.append(k, progress, bar, next)
-      if (sample) {
-        const b = document.createElement('span')
-        b.setAttribute('data-sample-badge', '')
-        b.textContent = 'Sample'
-        wrap.append(b)
-      }
+      if (sample) wrap.append(sampleBadge())
       root.replaceChildren(wrap)
     })
   }

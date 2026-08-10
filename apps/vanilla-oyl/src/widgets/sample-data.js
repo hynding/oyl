@@ -1,3 +1,5 @@
+import { sheet } from '../components/sheet.js'
+
 /**
  * Aspirational sample fixtures for a fresh account — rendered with a visible
  * `Sample` badge and NEVER written to any store (plain frozen values on
@@ -42,3 +44,18 @@ export function sampleBadge() {
   b.textContent = 'Sample'
   return b
 }
+
+/**
+ * The one shared badge stylesheet — include as the FIRST entry of a widget's
+ * `static styles` (the baseStyles pattern) so a widget's own sheet could
+ * override it if ever needed. Positioning assumes the widget's root wrapper
+ * is `position: relative` (every widget's `.wrap` is).
+ */
+export const badgeStyles = sheet(`
+  [data-sample-badge] {
+    position: absolute; inset-block-start: 0; inset-inline-end: 0;
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--color-muted); border: 1px solid var(--color-border);
+    border-radius: 999px; padding: 0 .4rem;
+  }
+`)

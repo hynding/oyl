@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SAMPLE, withSample } from './sample-data.js'
+import { badgeStyles, SAMPLE, withSample } from './sample-data.js'
 
 describe('sample data', () => {
   it('fixtures are frozen plain values with the pinned shapes', () => {
@@ -16,5 +16,15 @@ describe('sample data', () => {
   it('withSample picks fixture only when empty and reports sample-ness', () => {
     expect(withSample(false, 7, 12)).toEqual({ value: 7, sample: false })
     expect(withSample(true, 0, 12)).toEqual({ value: 12, sample: true })
+  })
+
+  it('exports the one shared badge stylesheet', () => {
+    expect(badgeStyles).toBeInstanceOf(CSSStyleSheet)
+    const text = [...badgeStyles.cssRules].map((r) => r.cssText).join('\n')
+    expect(text).toContain('[data-sample-badge]')
+    expect(text).toContain('position: absolute')
+    // No media queries and no layout-attribute rules — keeps the structural
+    // media-scoping tests' world simple.
+    expect([...badgeStyles.cssRules].some((r) => 'conditionText' in r)).toBe(false)
   })
 })

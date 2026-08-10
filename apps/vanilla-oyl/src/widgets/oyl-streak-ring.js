@@ -1,7 +1,7 @@
 import { DayRange, streakOf } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from '../components/sheet.js'
-import { SAMPLE, withSample } from './sample-data.js'
+import { badgeStyles, SAMPLE, sampleBadge, withSample } from './sample-data.js'
 import { ringSvg } from './svg.js'
 
 /** Next milestone the arc fills toward. */
@@ -12,16 +12,10 @@ const styles = sheet(`
   .wrap { position: relative; display: grid; justify-items: center; gap: var(--space-1); }
   .count { font-size: var(--step-1); font-weight: 700; font-variant-numeric: tabular-nums; }
   .k { font-size: var(--step--1); color: var(--color-muted); }
-  [data-sample-badge] {
-    position: absolute; inset-block-start: 0; inset-inline-end: 0;
-    font-size: 0.62rem; text-transform: uppercase; letter-spacing: .06em;
-    color: var(--color-muted); border: 1px solid var(--color-border);
-    border-radius: 999px; padding: 0 .4rem;
-  }
 `)
 
 export class OylStreakRing extends OylElement {
-  static styles = [styles]
+  static styles = [badgeStyles, styles]
 
   constructor() {
     super()
@@ -48,17 +42,10 @@ export class OylStreakRing extends OylElement {
       k.className = 'k'
       k.textContent = 'day streak'
       wrap.append(count, k)
-      if (sample) wrap.append(badge())
+      if (sample) wrap.append(sampleBadge())
       root.replaceChildren(wrap)
     })
   }
-}
-
-function badge() {
-  const b = document.createElement('span')
-  b.setAttribute('data-sample-badge', '')
-  b.textContent = 'Sample'
-  return b
 }
 
 /** Register the element (idempotent). */
