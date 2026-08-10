@@ -64,6 +64,14 @@ describe('oyl-widgets', () => {
     spy.mockRestore()
   })
 
+  it('is keyboard-scrollable: the deck container is focusable with an accessible name', () => {
+    const root = mount([stub('a')])
+    const deck = /** @type {HTMLElement} */ (root.querySelector('.deck'))
+    expect(deck.getAttribute('tabindex')).toBe('0')
+    expect(deck.getAttribute('role')).toBe('group')
+    expect(deck.getAttribute('aria-label')).toBe('Highlights')
+  })
+
   it('scopes every mode-keyed rule to desktop widths (deck leg of the structural test)', () => {
     const offenders = []
     for (const sheetObj of /** @type {CSSStyleSheet[]} */ (OylWidgets.styles)) {

@@ -40,6 +40,12 @@ export class OylWidgets extends OylElement {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
     const deck = document.createElement('div')
     deck.className = 'deck'
+    // Keyboard access: the row scrolls (mobile base + band mode), and widgets
+    // are non-interactive, so the container itself must take focus for
+    // keyboard scrolling. Focus ring comes from the shared baseStyles.
+    deck.tabIndex = 0
+    deck.setAttribute('role', 'group')
+    deck.setAttribute('aria-label', 'Highlights')
     // Connect the deck FIRST: custom elements only run connectedCallback (and
     // thus their render) when they reach the document, so each widget must be
     // appended to an already-connected card for connect-time throws to land
