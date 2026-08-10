@@ -1,6 +1,6 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
-import { MOBILE_SHEET_CSS } from './popover-sheet.js'
+import { MOBILE_SHEET_CSS, closeOnOutside } from './popover-sheet.js'
 import { THEMES, MODES } from '../theme/theme-manager.js'
 import { THEME_CATALOG } from '../theme/theme-catalog.js'
 
@@ -143,23 +143,7 @@ export class OylThemeToggle extends OylElement {
       },
       { signal: this.lifecycle },
     )
-    // Close when interaction moves outside the component (shadow-safe via composedPath).
-    document.addEventListener(
-      'pointerdown',
-      (e) => {
-        if (!panel.hidden && !e.composedPath().includes(this)) setOpen(false)
-      },
-      { signal: this.lifecycle },
-    )
-    // Keyboard parity: Enter-activation fires no pointerdown, so also close when
-    // focus lands outside the component (prevents stacked popovers on mobile).
-    document.addEventListener(
-      'focusin',
-      (e) => {
-        if (!panel.hidden && !e.composedPath().includes(this)) setOpen(false)
-      },
-      { signal: this.lifecycle },
-    )
+    closeOnOutside(this, panel, setOpen, this.lifecycle)
 
     // Reflect settings (local changes and multi-tab refreshes) into every control.
     this.track(() => {

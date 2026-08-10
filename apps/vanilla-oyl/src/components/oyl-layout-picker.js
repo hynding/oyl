@@ -1,6 +1,6 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
-import { MOBILE_SHEET_CSS } from './popover-sheet.js'
+import { MOBILE_SHEET_CSS, closeOnOutside } from './popover-sheet.js'
 import { LAYOUTS, byId } from '../layouts/layout-catalog.js'
 
 /** @typedef {ReturnType<typeof import('../state/layout.js').createLayoutState>} LayoutState */
@@ -127,22 +127,7 @@ export class OylLayoutPicker extends OylElement {
       },
       { signal: this.lifecycle },
     )
-    document.addEventListener(
-      'pointerdown',
-      (e) => {
-        if (!panel.hidden && !e.composedPath().includes(this)) setOpen(false)
-      },
-      { signal: this.lifecycle },
-    )
-    // Keyboard parity: Enter-activation fires no pointerdown, so also close when
-    // focus lands outside the component (prevents stacked popovers on mobile).
-    document.addEventListener(
-      'focusin',
-      (e) => {
-        if (!panel.hidden && !e.composedPath().includes(this)) setOpen(false)
-      },
-      { signal: this.lifecycle },
-    )
+    closeOnOutside(this, panel, setOpen, this.lifecycle)
 
     this.track(() => {
       const active = byId(this.layoutState.layout.get())

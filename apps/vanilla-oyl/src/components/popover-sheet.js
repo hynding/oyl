@@ -19,3 +19,23 @@ export const MOBILE_SHEET_CSS = `
     }
   }
 `
+
+/**
+ * The shared outside-closer for toolbar popovers: pointer AND keyboard parity
+ * (Enter-activated triggers fire no pointerdown; without focusin, keyboard-
+ * opened popovers can stack). composedPath makes the containment check
+ * shadow-safe.
+ * @param {HTMLElement} host @param {HTMLElement} panel
+ * @param {(open: boolean) => void} setOpen @param {AbortSignal} signal
+ */
+export function closeOnOutside(host, panel, setOpen, signal) {
+  for (const type of ['pointerdown', 'focusin']) {
+    document.addEventListener(
+      type,
+      (e) => {
+        if (!panel.hidden && !e.composedPath().includes(host)) setOpen(false)
+      },
+      { signal },
+    )
+  }
+}
