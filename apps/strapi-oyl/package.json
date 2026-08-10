@@ -28,7 +28,7 @@
     "@types/node": "^20",
     "typescript": "^5",
     "vite": "^8.0.0",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.10"
   },
   "engines": {
     "node": ">=18.0.0 <=22.x.x"
