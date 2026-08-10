@@ -14,7 +14,7 @@
   "dependencies": {
     "@strapi/plugin-users-permissions": "5.51.2",
     "@strapi/strapi": "5.51.2",
-    "@strapi/utils": "5.48.0",
+    "@strapi/utils": "5.51.2",
     "better-sqlite3": "^12.10.0",
     "mysql2": "^3.23.0",
     "pg": "8.8.0",
