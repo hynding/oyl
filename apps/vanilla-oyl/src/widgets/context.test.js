@@ -3,13 +3,13 @@ import { DayKey, DayRange, Journal, Task } from '@oyl/all-of-oyl'
 import { createWidgetContext } from './context.js'
 import { signal } from '../lib/reactive/signal.js'
 
-function makeCtx() {
+function makeCtx(profileValue = /** @type {any} */ ({ displayName: 'Steve' })) {
   const journal = new Journal('UTC')
   const revision = signal(0)
   const journalStore = { peek: () => { revision.get(); return journal } }
   const plans = [new Task({ title: 'Run 5k', due: DayKey.of('2026-08-09') })]
   const planner = { agendaFor: () => plans }
-  const profile = signal(/** @type {any} */ ({ displayName: 'Steve' }))
+  const profile = signal(profileValue)
   const reviewOn = (/** @type {any} */ range) => ({ period: range, goals: [] })
   const ctx = createWidgetContext({
     journal: journalStore,
@@ -44,6 +44,7 @@ describe('createWidgetContext', () => {
   it('profileName reads the signal; null profile gives undefined', () => {
     const { ctx } = makeCtx()
     expect(ctx.profileName()).toBe('Steve')
+    expect(makeCtx(null).ctx.profileName()).toBeUndefined()
   })
 
   it('plansOn maps agenda plans to plain {status,label} data — no domain objects leak', () => {

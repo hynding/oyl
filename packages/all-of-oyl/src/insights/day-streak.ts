@@ -10,6 +10,10 @@ import type { Journal } from '../core/journal.js'
  *
  * Today counts if active; an inactive today does not break yesterday's streak
  * (the day isn't over yet).
+ *
+ * Callers pass a range-bounded set (activeDaysIn over a bounded range): the
+ * walk-back visits one day per consecutive member, so the set's span bounds
+ * the work.
  */
 export function streakOf(activeDays: ReadonlySet<string>, today: DayKey): number {
   let count = 0

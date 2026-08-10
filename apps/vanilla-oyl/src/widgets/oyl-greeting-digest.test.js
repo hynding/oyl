@@ -35,6 +35,10 @@ describe('oyl-greeting-digest', () => {
     expect(mount({ hour: 9 }).querySelector('.hello')?.textContent).toBe('Good morning, Steve')
     expect(mount({ hour: 15 }).querySelector('.hello')?.textContent).toBe('Good afternoon, Steve')
     expect(mount({ hour: 21 }).querySelector('.hello')?.textContent).toBe('Good evening, Steve')
+    expect(mount({ hour: 11 }).querySelector('.hello')?.textContent).toBe('Good morning, Steve')
+    expect(mount({ hour: 12 }).querySelector('.hello')?.textContent).toBe('Good afternoon, Steve')
+    expect(mount({ hour: 17 }).querySelector('.hello')?.textContent).toBe('Good afternoon, Steve')
+    expect(mount({ hour: 18 }).querySelector('.hello')?.textContent).toBe('Good evening, Steve')
   })
 
   it('greets without a name when the profile has none', () => {

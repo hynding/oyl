@@ -48,7 +48,7 @@ describe('metric day-selectors', () => {
     journal.add(new Transaction({ occurredAt: at('2026-08-06', 18), amount: Money.usd(2500), category: 'groceries', direction: 'expense' }))
     journal.add(new Consumption({ occurredAt: at('2026-08-06', 12), nutrients: { calories: 300 } }))
     journal.add(new ActivitySession({ occurredAt: at('2026-08-06', 11), activity: run, quantities: [Quantity.of(45, 'minutes')] }))
-    expect(spendingOn(journal, day('2026-08-06'))).toBeGreaterThan(0)
+    expect(spendingOn(journal, day('2026-08-06'))).toBe(25)
     expect(spendingOn(journal, day('2026-08-05'))).toBe(0)
     expect(caloriesOn(journal, day('2026-08-06'))).toBe(300)
     expect(caloriesOn(journal, day('2026-08-05'))).toBe(0)
