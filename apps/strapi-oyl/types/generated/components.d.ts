@@ -82,7 +82,7 @@ export interface NutritionServingSize extends Struct.ComponentSchema {
 }
 
 declare module "@strapi/strapi" {
-  export module Public {
+  export namespace Public {
     export interface ComponentSchemas {
       "activity.quantity": ActivityQuantity
       "finance.money": FinanceMoney
