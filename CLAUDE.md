@@ -33,10 +33,13 @@ Native dev (`pnpm <pkg> develop`/`dev` outside docker) uses each tool's default 
 Root filter shortcuts. From the repo root:
 
 ```bash
+pnpm dev                 # FULL STACK: backend on 1340 + app on 8041, health-gated, one Ctrl-C stops both
+pnpm dev:watch           # …plus rebuild+revendor all-of-oyl on every src/ change
+pnpm dev:fresh           # …plus wipe apps/strapi-oyl/.tmp/data.db first
 pnpm all-of test         # Vitest on the shared lib (src/)
 pnpm all-of build        # Emit browser ESM to packages/all-of-oyl/dist
-pnpm strapi-app develop  # Strapi backend dev (port 1340 native, 3340 in docker)
-pnpm vanilla dev         # build all-of-oyl → vendor into the app → http-server on 8041
+pnpm strapi-app develop  # Strapi backend dev alone (port 1340 native, 3340 in docker)
+pnpm vanilla dev         # app alone: build all-of-oyl → vendor into the app → http-server on 8041
 pnpm vanilla test        # Vitest (happy-dom) on the app
 pnpm e2e                 # Playwright e2e (auto-starts app on 8042 + backend on 1341)
 pnpm deploy:pi           # deploy committed HEAD to the production Pi (config: OYL_PI_* in untracked root .env; --dry-run to preview)
@@ -77,6 +80,7 @@ Root aggregates run scripts across `./packages/*` **and** `./apps/*` with `--if-
 - New shared business logic goes in `@oyl/all-of-oyl/src` (never duplicated in an app). When adding a persistable type, register it in `src/collections.ts` so every app and the backend pick it up. `src/` is `"type": "module"` + NodeNext, so all relative imports need explicit `.js` extensions. **Anything in `src/` that touches Web/DOM globals must be injected via a minimal interface** (the browser build tsconfig has NO DOM lib — `pnpm all-of build` is the gate); see `src/core/http-repository.ts` (`FetchFn`) and `src/core/local-storage-repository.ts` (`StorageLike`). The build guard (`scripts/check-no-bare-imports.mjs`) fails if `dist/` ever gains a bare-specifier import (would break the one-entry importmap).
 - **Routing is HTML5 History API** (clean paths like `/journal`, not `#/journal`): `apps/vanilla-oyl/src/state/route.js` (`parsePath`/`createRouteState`/`navigate`, fed by `popstate`) + `src/state/link-interceptor.js` (one delegated `document` click listener captures same-origin anchor clicks across the shadow boundary via `composedPath()`). `/` redirects to `/status`. Route name = first path segment (the seam for future nested routes); the route signal stays `Signal<string>` so `oyl-nav`/`oyl-router` are unchanged. `navigate(path, { replace: true })` uses `replaceState` (no history growth) — used for forced-login redirects.
 - Auth routes: `/login` + `/register` (dedicated pages; account required — no skip/local-data option); `/profile` (identity, profile fields, connection/sync, data actions). Auth moved OUT of the Status screen. Forced login when no session (`state/auth-guard.js`).
+- **`defaultStorageMode` is `'remote'` on every host, localhost included** (`src/storage/config.js`) — the app is online-first/account-required, so `pnpm dev` needs no Status configuration: a fresh profile boots against `DEFAULT_API_BASE_URL` (`http://localhost:1340/api`) and the guard redirects to `/login` *before* any network call. `'local'` is never a host-derived default any more; it is only ever an explicit Status → Connection choice (an explicit stored choice still wins), kept as the basis for the deferred private mode. Docker is the exception — it publishes the backend on 3340, so the composed stack still needs the URL set by hand.
 - Header `oyl-account-menu` (toolbar slot): Profile link always; Log out when signed in, Sign in when not.
 - Effective-timezone seam: `state/profile-store.js` (current-user record) + `resolveTimezone(profile, browserTz)` resolves tz at boot; injected into `createDataState` and every screen's `view.tz`; tz/units changes save+reload.
 - `@oyl/all-of-oyl/format` also exports body formatters: `formatWeight(kg, units)`, `formatHeight(cm, units)`, `age(birthday, today)` (both dates `YYYY-MM-DD`).

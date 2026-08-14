@@ -51,8 +51,19 @@ describe('host-derived defaults', () => {
     expect(defaultApiBaseUrl(undefined)).toBe(DEFAULT_API_BASE_URL)
     expect(defaultApiBaseUrl('localhost')).toBe(DEFAULT_API_BASE_URL)
     expect(defaultApiBaseUrl('127.0.0.1')).toBe(DEFAULT_API_BASE_URL)
-    expect(defaultStorageMode(undefined)).toBe('local')
-    expect(defaultStorageMode('localhost')).toBe('local')
+  })
+
+  it('defaults to remote mode on local hosts (the app is online-first, account-required)', () => {
+    expect(defaultStorageMode(undefined)).toBe('remote')
+    expect(defaultStorageMode('localhost')).toBe('remote')
+    expect(defaultStorageMode('127.0.0.1')).toBe('remote')
+    expect(defaultStorageMode('[::1]')).toBe('remote')
+  })
+
+  it('still honors an explicit local-mode choice on a local host', () => {
+    const storage = fakeStorage()
+    setStorageMode(storage, 'local')
+    expect(getStorageMode(storage, 'localhost')).toBe('local')
   })
 
   it('derives the api.* origin from an app.* production host, mode remote', () => {
