@@ -24,11 +24,15 @@ export function defaultApiBaseUrl(hostname) {
 }
 
 /**
- * Default storage mode for the app's hostname: 'remote' in production, 'local' on dev hosts.
- * @param {string} [hostname] @returns {'local'|'remote'}
+ * Default storage mode — 'remote' on every host, including local ones. The app is online-first
+ * and account-required, so a local host should talk to the dev backend at DEFAULT_API_BASE_URL
+ * rather than sit in the dormant local-only path. 'local' remains selectable via
+ * Status → Connection (it is the basis for the deferred private mode) and an explicit stored
+ * choice still wins — see getStorageMode.
+ * @param {string} [_hostname] @returns {'local'|'remote'}
  */
-export function defaultStorageMode(hostname) {
-  return isLocalHost(hostname) ? 'local' : 'remote'
+export function defaultStorageMode(_hostname) {
+  return 'remote'
 }
 
 /** Backend base URL: stored override, else host-derived default. @param {{ getItem(k: string): string | null }} storage @param {string} [hostname] @returns {string} */

@@ -43,7 +43,11 @@ export async function awaitOutboxDrained(page: Page, timeout = 10_000): Promise<
     .toBe(0)
 }
 
-/** Boot signed-out on the e2e backend in LOCAL storage mode (dev-host default persona). */
+/**
+ * Boot signed-out on the e2e backend in LOCAL storage mode. Local is never a host-derived
+ * default any more (every host defaults to remote) — it is only ever an explicit choice made
+ * in Status → Connection, which is what this seeds.
+ */
 export async function primeLocalMode(page: Page): Promise<void> {
   await page.addInitScript((api) => {
     localStorage.setItem('oyl/storage-mode', 'local')
