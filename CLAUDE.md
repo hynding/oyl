@@ -33,10 +33,13 @@ Native dev (`pnpm <pkg> develop`/`dev` outside docker) uses each tool's default 
 Root filter shortcuts. From the repo root:
 
 ```bash
+pnpm dev                 # FULL STACK: backend on 1340 + app on 8041, health-gated, one Ctrl-C stops both
+pnpm dev:watch           # …plus rebuild+revendor all-of-oyl on every src/ change
+pnpm dev:fresh           # …plus wipe apps/strapi-oyl/.tmp/data.db first
 pnpm all-of test         # Vitest on the shared lib (src/)
 pnpm all-of build        # Emit browser ESM to packages/all-of-oyl/dist
-pnpm strapi-app develop  # Strapi backend dev (port 1340 native, 3340 in docker)
-pnpm vanilla dev         # build all-of-oyl → vendor into the app → http-server on 8041
+pnpm strapi-app develop  # Strapi backend dev alone (port 1340 native, 3340 in docker)
+pnpm vanilla dev         # app alone: build all-of-oyl → vendor into the app → http-server on 8041
 pnpm vanilla test        # Vitest (happy-dom) on the app
 pnpm e2e                 # Playwright e2e (auto-starts app on 8042 + backend on 1341)
 pnpm deploy:pi           # deploy committed HEAD to the production Pi (config: OYL_PI_* in untracked root .env; --dry-run to preview)
