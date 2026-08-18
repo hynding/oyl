@@ -29,6 +29,7 @@ export class OylProfile extends OylElement {
     /** @type {{ state: import('../lib/reactive/signal.js').Signal<any>, onResync: () => void } | null} */ this.sync = null
     /** @type {{ mode: 'local'|'remote', canUploadLocal: boolean, onExport: () => void, onImport: () => void, onUploadLocal: () => void } | null} */ this.dataActions = null
     /** @type {string} */ this.today = ''
+    /** @type {{ connection: import('../lib/reactive/signal.js').Signal<import('../state/google-store.js').GoogleConnection>, onConnect: () => void, onDisconnect: () => void } | null} */ this.google = null
   }
   render() {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
@@ -86,6 +87,30 @@ export class OylProfile extends OylElement {
       const resync = this._btn('Resync now', 'resync', () => this.sync?.onResync())
       rowEl.append(chip, resync)
       root.append(label, rowEl)
+    }
+
+    if (this.google) {
+      const google = this.google
+      const container = document.createElement('div')
+      root.append(container)
+      this.track(() => {
+        const conn = google.connection.get()
+        container.replaceChildren()
+        if (conn.state === 'unconfigured' || conn.state === 'unknown') return
+        const label = document.createElement('h2'); label.textContent = 'Google Drive'
+        const card = document.createElement('div'); card.className = 'card'; card.dataset.role = 'google-drive'
+        if (conn.state === 'connected') {
+          const who = document.createElement('span'); who.textContent = `Connected as ${conn.email ?? ''}`
+          card.append(who, ' ', this._btn('Disconnect', 'google-disconnect', () => google.onDisconnect()))
+        } else if (conn.state === 'reconnect-needed') {
+          const warn = document.createElement('p'); warn.dataset.role = 'google-reconnect'; warn.className = 'muted'
+          warn.textContent = 'Google access expired — reconnect to keep using Drive.'
+          card.append(warn, this._btn('Reconnect', 'google-connect', () => google.onConnect()))
+        } else {
+          card.append(this._btn('Connect Google Drive', 'google-connect', () => google.onConnect()))
+        }
+        container.append(label, card)
+      })
     }
 
     if (this.dataActions) {

@@ -7,6 +7,8 @@ const styles = sheet(`
   button.primary { background: var(--color-accent); color: var(--color-on-accent, white); border: 0; border-radius: var(--radius-1); padding: .5rem 1rem; font: inherit; font-weight: 600; cursor: pointer; }
   button.primary:disabled { opacity: .6; cursor: default; }
   [data-role="error"]:not(:empty) { color: var(--color-danger); font-size: .85rem; }
+  .divider { color: var(--color-muted); font-size: .85rem; text-align: center; margin-block: .5rem; }
+  a.google { display: block; text-align: center; border: 1px solid var(--color-border); border-radius: var(--radius-1); padding: .5rem 1rem; color: var(--color-text); text-decoration: none; font-weight: 600; }
 `)
 
 export class OylAuthForm extends OylElement {
@@ -19,6 +21,8 @@ export class OylAuthForm extends OylElement {
     this.mode = 'login'
     /** @type {() => void} */
     this.onSuccess = () => {}
+    /** @type {import('../lib/reactive/signal.js').Signal<{ href: string } | null> | null} */
+    this.googleAuth = null
   }
 
   render() {
@@ -36,6 +40,27 @@ export class OylAuthForm extends OylElement {
     error.dataset.role = 'error'; error.setAttribute('aria-live', 'polite')
     form.append(...fields, password, submit, error)
     root.append(form)
+
+    if (this.googleAuth) {
+      const alt = document.createElement('div')
+      alt.dataset.role = 'google-alt'
+      root.append(alt)
+      const googleAuth = this.googleAuth
+      this.track(() => {
+        const config = googleAuth.get()
+        alt.replaceChildren()
+        if (!config) return
+        const divider = document.createElement('div')
+        divider.className = 'divider'
+        divider.textContent = 'or'
+        const a = document.createElement('a')
+        a.dataset.act = 'google'
+        a.href = config.href
+        a.className = 'google'
+        a.textContent = 'Continue with Google'
+        alt.append(divider, a)
+      })
+    }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault()

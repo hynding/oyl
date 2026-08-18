@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeAll, vi } from 'vitest'
+import { signal } from '../lib/reactive/signal.js'
 import { defineAuthForm } from './oyl-auth-form.js'
 
 beforeAll(() => defineAuthForm())
@@ -49,5 +50,33 @@ describe('<oyl-auth-form>', () => {
     await Promise.resolve(); await Promise.resolve()
     expect(root.querySelector('[data-role="error"]').textContent).toContain('bad creds')
     el.remove()
+  })
+})
+
+describe('oyl-auth-form google button', () => {
+  it('renders the Google anchor reactively from the googleAuth signal', async () => {
+    defineAuthForm()
+    const form = /** @type {any} */ (document.createElement('oyl-auth-form'))
+    form.auth = { login: async () => {}, register: async () => {} }
+    const googleAuth = signal(/** @type {{ href: string } | null} */ (null))
+    form.googleAuth = googleAuth
+    document.body.append(form)
+    expect(form.shadowRoot.querySelector('a[data-act="google"]')).toBeNull()
+    googleAuth.set({ href: 'http://api.test/api/google/connect?mode=login' })
+    await Promise.resolve()
+    expect(form.shadowRoot.querySelector('a[data-act="google"]')?.getAttribute('href')).toBe('http://api.test/api/google/connect?mode=login')
+    googleAuth.set(null)
+    await Promise.resolve()
+    expect(form.shadowRoot.querySelector('a[data-act="google"]')).toBeNull()
+    form.remove()
+  })
+
+  it('renders no Google UI when the prop is unset', () => {
+    defineAuthForm()
+    const form = /** @type {any} */ (document.createElement('oyl-auth-form'))
+    form.auth = { login: async () => {}, register: async () => {} }
+    document.body.append(form)
+    expect(form.shadowRoot.querySelector('a[data-act="google"]')).toBeNull()
+    form.remove()
   })
 })

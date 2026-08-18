@@ -109,3 +109,44 @@ describe('<oyl-profile>', () => {
     el.remove()
   })
 })
+
+describe('oyl-profile google section', () => {
+  /** @param {any} connectionValue */
+  function mountWithGoogle(connectionValue) {
+    defineProfile()
+    const page = /** @type {any} */ (document.createElement('oyl-profile'))
+    page.session = signal({ token: 't', user: { id: 1, username: 'u', email: 'u@test.dev' } })
+    page.profile = signal(null)
+    const connection = signal(connectionValue)
+    const actions = { connect: 0, disconnect: 0 }
+    page.google = { connection, onConnect: () => { actions.connect += 1 }, onDisconnect: () => { actions.disconnect += 1 } }
+    document.body.append(page)
+    return { page, connection, actions }
+  }
+
+  it('connected: shows the email and a working Disconnect button', () => {
+    const { page, actions } = mountWithGoogle({ state: 'connected', email: 'me@gmail.test' })
+    const section = page.shadowRoot.querySelector('[data-role="google-drive"]')
+    expect(section.textContent).toContain('me@gmail.test')
+    section.querySelector('button[data-act="google-disconnect"]').click()
+    expect(actions.disconnect).toBe(1)
+    page.remove()
+  })
+
+  it('disconnected: shows Connect; reconnect-needed: shows the warning + Reconnect', () => {
+    const a = mountWithGoogle({ state: 'disconnected' })
+    a.page.shadowRoot.querySelector('button[data-act="google-connect"]').click()
+    expect(a.actions.connect).toBe(1)
+    a.page.remove()
+    const b = mountWithGoogle({ state: 'reconnect-needed' })
+    expect(b.page.shadowRoot.querySelector('[data-role="google-reconnect"]')).not.toBeNull()
+    expect(b.page.shadowRoot.querySelector('button[data-act="google-connect"]')).not.toBeNull()
+    b.page.remove()
+  })
+
+  it('unconfigured or null prop: no Google section at all', () => {
+    const { page } = mountWithGoogle({ state: 'unconfigured' })
+    expect(page.shadowRoot.querySelector('[data-role="google-drive"]')).toBeNull()
+    page.remove()
+  })
+})
