@@ -181,3 +181,7 @@ const PLAN_REVIVERS: Readonly<Record<string, (shape: unknown) => Plan>> = {
 export function revivePlan(shape: unknown): Plan {
   return reviveByKind(shape, PLAN_REVIVERS, 'plan')
 }
+
+export { createDriveClient, type DriveClient } from './google/drive-client.js'
+export { DriveError, type DriveFile, type AccessTokenProvider, type DriveFetchFn, type DriveFetchResponse } from './google/types.js'
+export { utf8Encode } from './google/utf8.js'
