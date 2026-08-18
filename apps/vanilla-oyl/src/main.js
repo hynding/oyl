@@ -131,11 +131,16 @@ async function boot() {
 
   // Google affordances: pre-auth config probe feeds the login button; signed-in status feeds
   // Profile. Fire-and-forget — the app renders immediately regardless of network latency.
+  // Sequenced (not concurrent): probe() and loadStatus() both write `connection`, and probe()
+  // has no "don't downgrade" guard the way loadStatus() does — racing them lets a slower
+  // probe() overwrite a signed-in user's real (connected/reconnect-needed) status with a stale
+  // disconnected/unconfigured guess. Chaining loadStatus() after probe() resolves guarantees
+  // the more authoritative, signed-in-only read is always the last write.
   void googleStore.probe().then(() => {
     const state = googleStore.connection.get().state
     googleLoginHref.set(state === 'unconfigured' || state === 'unknown' ? null : { href: `${getApiBaseUrl(storage, host)}/google/connect?mode=login` })
+    if (hasSession) return googleStore.loadStatus()
   })
-  if (hasSession) void googleStore.loadStatus()
 
   // Flush the outbox whenever connectivity returns online, then refresh the pending indicator.
   connectivity.subscribe((online) => {
