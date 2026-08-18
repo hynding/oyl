@@ -764,6 +764,45 @@ export interface ApiGoalGoal extends Struct.CollectionTypeSchema {
   }
 }
 
+export interface ApiGoogleAccountGoogleAccount
+  extends Struct.CollectionTypeSchema {
+  collectionName: "google_accounts"
+  info: {
+    displayName: "Google Account"
+    pluralName: "google-accounts"
+    singularName: "google-account"
+  }
+  options: {
+    draftAndPublish: false
+  }
+  attributes: {
+    connectedAt: Schema.Attribute.DateTime
+    createdAt: Schema.Attribute.DateTime
+    createdBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    email: Schema.Attribute.String
+    googleUserId: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique
+    locale: Schema.Attribute.String & Schema.Attribute.Private
+    localizations: Schema.Attribute.Relation<
+      "oneToMany",
+      "api::google-account.google-account"
+    > &
+      Schema.Attribute.Private
+    publishedAt: Schema.Attribute.DateTime
+    refreshToken: Schema.Attribute.Text & Schema.Attribute.Private
+    scopes: Schema.Attribute.String
+    updatedAt: Schema.Attribute.DateTime
+    updatedBy: Schema.Attribute.Relation<"oneToOne", "admin::user"> &
+      Schema.Attribute.Private
+    user: Schema.Attribute.Relation<
+      "oneToOne",
+      "plugin::users-permissions.user"
+    >
+  }
+}
+
 export interface ApiMeasurementMeasurement extends Struct.CollectionTypeSchema {
   collectionName: "measurements"
   info: {
@@ -1396,6 +1435,7 @@ declare module "@strapi/strapi" {
       "api::consumable.consumable": ApiConsumableConsumable
       "api::consumption.consumption": ApiConsumptionConsumption
       "api::goal.goal": ApiGoalGoal
+      "api::google-account.google-account": ApiGoogleAccountGoogleAccount
       "api::measurement.measurement": ApiMeasurementMeasurement
       "api::note.note": ApiNoteNote
       "api::transaction.transaction": ApiTransactionTransaction

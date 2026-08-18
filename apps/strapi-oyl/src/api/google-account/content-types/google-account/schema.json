@@ -1,0 +1,14 @@
+{
+  "kind": "collectionType",
+  "collectionName": "google_accounts",
+  "info": { "singularName": "google-account", "pluralName": "google-accounts", "displayName": "Google Account" },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "googleUserId": { "type": "string", "required": true, "unique": true },
+    "email": { "type": "string" },
+    "scopes": { "type": "string" },
+    "connectedAt": { "type": "datetime" },
+    "refreshToken": { "type": "text", "private": true },
+    "user": { "type": "relation", "relation": "oneToOne", "target": "plugin::users-permissions.user" }
+  }
+}
