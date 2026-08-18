@@ -73,10 +73,16 @@ the UID registers, then use `as const` UIDs (no `as any`).
 | `GET /api/google/config` | public | `{ configured: boolean }` — how the pre-auth login screen learns whether to show the Google button (it has no JWT, so this cannot live on the JWT-gated `status` route). |
 | `GET /api/google/connect` | public | 302 to Google's auth URL. Scopes `openid email profile https://www.googleapis.com/auth/drive.file`, `access_type=offline`. `state` is HMAC-signed and short-lived (nonce, `mode`, `retried` flag, expiry; link mode adds the user id). Used directly (plain anchor) only for `mode=login`. |
 | `GET /api/google/connect-url` | JWT | Returns `{ url }` — the Google auth URL with a signed `mode=link` state carrying the JWT-verified user id. The Profile screen fetches this with its JWT, then navigates to the returned URL. (A plain anchor cannot send an Authorization header, and a JWT in a query string would leak into server logs — hence this two-step.) |
-| `GET /api/google/callback` | public | Verify `state`; exchange the code server-side; read the ID token (came directly from Google's token endpoint over TLS; still check `aud` == our client id). **login mode:** find user by `googleUserId`; else, if a user with that email already exists, redirect to `#google_error=account_exists` (NO silent auto-link — OYL registration never verifies email, so auto-linking would let an attacker pre-register a victim's email and capture their Google/Drive link; the user instead signs in with their password and links from Profile); else create a confirmed user with a random password. **link mode:** attach to the user id from state. Upsert `google-account`; store the refresh token when Google returns one. If no refresh token arrived and none is stored: when `retried` is unset, redirect once more with `prompt=consent` and `retried` set in state; when already set, fail to `#google_error=no_refresh_token` (no loop). Issue the standard OYL JWT via the users-permissions JWT service and redirect to `${APP_URL}/login#google=<jwt>` (URL **fragment** — never reaches server logs). Failures (denied consent, bad/expired state) redirect to `${APP_URL}/login#google_error=<code>`. |
-| `GET /api/google/drive-token` | JWT | Use the stored refresh token to mint a short-lived Drive access token; return `{ accessToken, expiresAt }`. Cached per user in an in-process Map until expiry (lost on restart — harmless, a refresh mints a new one). Revoked/invalid refresh token → `410` (client interprets as "reconnect needed"). |
+| `GET /api/google/callback` | public | Verify `state`; exchange the code server-side; read the ID token (came directly from Google's token endpoint over TLS; still check `aud` == our client id). **login mode:** find user by `googleUserId`; else, if a user with that email already exists, redirect to `#google_error=account_exists` (NO silent auto-link — OYL registration never verifies email, so auto-linking would let an attacker pre-register a victim's email and capture their Google/Drive link; the user instead signs in with their password and links from Profile); else create a confirmed user with a random password. **link mode:** attach to the user id from state. Upsert `google-account`; store the refresh token when Google returns one. If no refresh token arrived and none is stored: when `retried` is unset, redirect once more with `prompt=consent` and `retried` set in state; when already set, fail to `#google_error=no_refresh_token` (no loop). (Reconnect after revocation/expiry works because `drive-token` deletes a stale refresh token on `invalid_grant` — so by the time the user re-runs the flow, "none is stored" is true and the consent retry engages.) Issue the standard OYL JWT via the users-permissions JWT service and redirect back with the JWT in the URL **fragment** — never reaches server logs: login mode → `${APP_URL}/login#google=<jwt>`, link mode → `${APP_URL}/profile#google=<jwt>` (hash adoption is boot-level in `auth.js`, so it is path-agnostic). Failures (denied consent, bad/expired state) redirect to the same per-mode path with `#google_error=<code>`. |
+| `GET /api/google/drive-token` | JWT | Use the stored refresh token to mint a short-lived Drive access token; return `{ accessToken, expiresAt }`. Cached per user in an in-process Map until expiry (lost on restart — harmless, a refresh mints a new one). On `invalid_grant` from Google (revoked, or expired — testing-mode refresh tokens die after 7 days): **delete the stored refresh token**, then return `410` (client interprets as "reconnect needed"; the deletion is what lets the next connect flow capture a fresh token). |
 | `GET /api/google/status` | JWT | `{ connected, email, scopes }` for the Profile screen. |
-| `POST /api/google/disconnect` | JWT | POST to Google's revoke endpoint, delete the `google-account` row. |
+| `POST /api/google/disconnect` | JWT | POST to Google's revoke endpoint, then delete the `google-account` row — **deleted even if the revoke call fails** (the user can always revoke from their Google account page; a dangling row is the worse failure). |
+
+Residual risk, acknowledged: a link-mode `connect-url` minted under an
+attacker's JWT could be phished to a victim, attaching the victim's Drive to
+the attacker's account. The short state expiry narrows the window; binding
+state to a browser cookie would close it fully and is deferred as
+out-of-scope for a personal app.
 
 Permissions are granted in the bootstrap (`src/index.ts`) exactly like existing
 grants (`grantRoleActions` already handles custom API actions — see
@@ -98,9 +104,10 @@ grants (`grantRoleActions` already handles custom API actions — see
 | `APP_URL` | where the callback redirects back, e.g. `http://localhost:8041` |
 | `GOOGLE_AUTH_BASE_URL`, `GOOGLE_TOKEN_URL`, `GOOGLE_REVOKE_URL` | default to real Google; overridable for the fake-Google test servers |
 
-With `GOOGLE_CLIENT_ID`/`SECRET` unset, all five routes answer `501` and the
-client hides every Google affordance. Dev without Google credentials keeps
-working unchanged.
+With `GOOGLE_CLIENT_ID`/`SECRET` unset, `config` answers `200
+{ configured: false }` (that is its whole job) and the other six routes
+answer `501`; the client hides every Google affordance. Dev without Google
+credentials keeps working unchanged.
 
 ## Shared Drive client (`packages/all-of-oyl/src/google/`)
 
@@ -108,9 +115,11 @@ DOM-free, zero-dependency, Web globals injected (the `pnpm all-of build` gate
 enforces this):
 
 - `types.ts` — `DriveFile` (`id`, `name`, `mimeType`, `size`, `modifiedTime`),
-  `AccessTokenProvider` (`getAccessToken(): Promise<string>`): the seam
-  between the Drive client and its token source (browser store now, ocari CLI
-  in SP4).
+  `AccessTokenProvider` (`getAccessToken(opts?: { force?: boolean }):
+  Promise<string>`): the seam between the Drive client and its token source
+  (browser store now, ocari CLI in SP4). `force: true` means "the last token
+  was rejected — bypass any cache and mint a fresh one"; without it a caching
+  provider would hand back the same bad token on the 401 retry.
 - `drive-client.ts` — `createDriveClient({ fetch, tokens, baseUrl? })` against
   Drive REST v3:
   - `ensureFolder(name)` — find-or-create the "OYL" folder
@@ -120,7 +129,7 @@ enforces this):
   - `update(fileId, mimeType, bytes)` — multipart overwrite of an existing file
   - `download(fileId)` — `files.get?alt=media` → bytes
   - `remove(fileId)`
-  - On 401: request a fresh token once, retry once. Failures map to a typed
+  - On 401: `getAccessToken({ force: true })` once, retry once. Failures map to a typed
     `DriveError` (`unauthorized` | `not-found` | `rate-limited` | `network`),
     mirroring `HttpRepositoryError`.
 - **Not** in `collections.ts`; file operations do **not** ride the outbox.
@@ -137,7 +146,8 @@ enforces this):
   Pre-auth, `unconfigured` comes from the public `/api/google/config`;
   signed-in, the JWT-gated `/api/google/status` fills in the rest. Implements
   `AccessTokenProvider` over `/api/google/drive-token` with
-  refresh-before-expiry caching; a `410` flips state to `reconnect-needed`.
+  refresh-before-expiry caching (`force: true` bypasses the cache); a `410`
+  flips state to `reconnect-needed`.
 - **Login handoff** — `src/state/auth.js` gains `adoptTokenFromHash()`: on
   boot, `#google=<jwt>` → persist session, fetch `/users/me` for the user
   record, clean the hash with `replaceState`. `#google_error=<code>` → login
@@ -157,8 +167,9 @@ enforces this):
   connected* (connect CTA), *reconnect needed*, *offline* (reuses the
   existing connectivity signal). After every mutation the list re-fetches —
   no optimistic inserts, so failed uploads leave no phantom rows.
-- **Drive base URL override** — a localStorage key (same pattern as
-  `oyl/api-base-url`) so tests can point the Drive client at a fake server.
+- **Drive base URL override** — localStorage key `oyl/drive-base-url` (same
+  pattern as `oyl/api-base-url`) so tests can point the Drive client at a
+  fake server.
 
 ## Error handling summary
 
@@ -182,7 +193,9 @@ enforces this):
   find-or-create, `account_exists` rejection for an existing email, link
   mode, no-refresh-token retry-once-then-fail, refresh-token encryption at
   rest, JWT issuance + fragment redirect, `drive-token` refresh, `410` on
-  revocation, `501` when unconfigured.
+  revocation **including deletion of the stale refresh token** (then a fresh
+  connect flow succeeds), `501` when unconfigured + `config` reporting
+  `configured: false`.
 - **`vanilla-oyl` (vitest):** google-store state transitions (config probe →
   `unconfigured` hides the button; `410` → `reconnect-needed`), hash adoption
   (`#google=` / `#google_error=`), `oyl-files` states via shadowRoot/props.
