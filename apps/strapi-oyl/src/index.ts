@@ -24,6 +24,9 @@ const GOAL_ACTIONS = ['find', 'findOne', 'create', 'update', 'delete'].map((a) =
 
 const BOOTSTRAP_ACTIONS = ['api::bootstrap.bootstrap.find']
 
+const GOOGLE_PUBLIC_ACTIONS = ['config', 'connect', 'callback'].map((a) => `api::google.google.${a}`)
+const GOOGLE_AUTH_ACTIONS = ['connectUrl', 'driveToken', 'status', 'disconnect'].map((a) => `api::google.google.${a}`)
+
 async function grantRoleActions(strapi: Core.Strapi, roleType: string, actions: string[], label: string) {
   const role = (await strapi.db.query('plugin::users-permissions.role').findOne({ where: { type: roleType } })) as { id: number } | null
   if (!role) { strapi.log.warn(`[oyl] ${roleType} role not found; skipping ${label} permission grant`); return }
@@ -63,5 +66,7 @@ export default {
     await grantRoleActions(strapi, 'authenticated', ACTIVITY_SESSION_ACTIONS, 'activity-session')
     await grantRoleActions(strapi, 'authenticated', GOAL_ACTIONS, 'goal')
     await grantRoleActions(strapi, 'authenticated', BOOTSTRAP_ACTIONS, 'bootstrap')
+    await grantRoleActions(strapi, 'public', GOOGLE_PUBLIC_ACTIONS, 'google-public')
+    await grantRoleActions(strapi, 'authenticated', GOOGLE_AUTH_ACTIONS, 'google')
   },
 }
