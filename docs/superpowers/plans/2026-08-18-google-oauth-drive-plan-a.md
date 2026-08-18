@@ -1476,11 +1476,14 @@ describe('google-store', () => {
     expect(store.connection.get().state).toBe('reconnect-needed')
   })
 
-  it('connectUrl returns the server-minted url with the JWT attached', async () => {
+  it('connectUrl returns the server-minted url with the JWT attached, sent with credentials', async () => {
     const { fetch, calls } = fakeFetch([{ status: 200, body: { url: 'https://google/auth?x=1' } }])
     const store = createGoogleStore({ baseUrl: BASE, fetch, getToken })
     expect(await store.connectUrl()).toBe('https://google/auth?x=1')
     expect(calls[0].init.headers.Authorization).toBe('Bearer jwt-1')
+    // credentials:'include' is required cross-origin so the browser keeps the session-binding
+    // cookie the backend's Set-Cookie response header carries — see authed()'s doc comment.
+    expect(calls[0].init.credentials).toBe('include')
   })
 
   it('disconnect POSTs then sets disconnected and clears the token cache', async () => {
@@ -1530,10 +1533,17 @@ export function createGoogleStore({ baseUrl, fetch, getToken }) {
   /** @type {{ accessToken: string, expiresAt: number } | null} */
   let cached = null
 
-  /** @param {string} path @param {{ method?: string }} [init] */
+  /**
+   * @param {string} path @param {{ method?: string }} [init]
+   * `credentials: 'include'` is required for `/google/connect-url`: its response sets an
+   * HttpOnly session-binding cookie (Strapi's `config/middlewares.ts` CORS was widened to
+   * `credentials: true` for exactly this — a cross-origin fetch() without this flag silently
+   * drops the Set-Cookie, breaking link-mode connect with `bad_state`). Harmless on the other
+   * authed() calls, which don't set or need cookies.
+   */
   async function authed(path, init) {
     const token = await getToken()
-    return fetch(`${baseUrl}${path}`, { ...init, headers: { Authorization: `Bearer ${token}` } })
+    return fetch(`${baseUrl}${path}`, { ...init, credentials: 'include', headers: { Authorization: `Bearer ${token}` } })
   }
 
   return {
