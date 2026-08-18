@@ -34,6 +34,16 @@ process.env.TRANSFER_TOKEN_SALT ??= 'e2e-test'
 process.env.ENCRYPTION_KEY ??= 'e2etest-e2etest-e2etest-e2etest-'
 process.env.CORS_ORIGINS = `${APP_ORIGIN},http://127.0.0.1:8042`
 
+// Google OAuth against the fake-google fixture server (started by playwright.config.ts).
+const FAKE_GOOGLE = `http://localhost:${process.env.FAKE_GOOGLE_PORT ?? 1342}`
+process.env.GOOGLE_CLIENT_ID = 'e2e-google-client'
+process.env.GOOGLE_CLIENT_SECRET = 'e2e-google-secret'
+process.env.GOOGLE_AUTH_BASE_URL = `${FAKE_GOOGLE}/auth`
+process.env.GOOGLE_TOKEN_URL = `${FAKE_GOOGLE}/token`
+process.env.GOOGLE_REVOKE_URL = `${FAKE_GOOGLE}/revoke`
+process.env.GOOGLE_REDIRECT_URI = `http://localhost:${PORT}/api/google/callback`
+process.env.APP_URL = APP_ORIGIN
+
 // DATABASE_FILENAME is resolved relative to the CWD — run from the strapi app dir.
 process.chdir(APP_DIR)
 

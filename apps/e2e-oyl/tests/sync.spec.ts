@@ -9,6 +9,10 @@ import { primeRemoteSession } from '../lib/fixtures'
 
 test('offline writes queue in the outbox and flush on reconnect', async ({ page, context, signIn }) => {
   await signIn('/journal')
+  // Let boot's fire-and-forget Google probe/status round trip finish before going offline —
+  // otherwise it can still be in flight when we flip the network, failing with an
+  // unsuppressible browser console error (ERR_INTERNET_DISCONNECTED) unrelated to this test.
+  await page.waitForLoadState('networkidle')
 
   await context.setOffline(true)
   await addNote(page, 'Written in a tunnel')

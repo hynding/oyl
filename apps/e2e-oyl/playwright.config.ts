@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
-import { APP_URL, APP_PORT, BACKEND_PORT } from './lib/urls'
+import { APP_URL, APP_PORT, BACKEND_PORT, FAKE_GOOGLE_PORT } from './lib/urls'
 
 /**
  * E2E stack layout (dedicated ports — never collides with native dev on 8041/1340):
@@ -33,6 +33,12 @@ export default defineConfig({
     },
   ],
   webServer: [
+    {
+      command: 'node scripts/start-fake-google.mjs',
+      url: `http://localhost:${FAKE_GOOGLE_PORT}/health`,
+      reuseExistingServer: true,
+      timeout: 30_000,
+    },
     {
       command: 'node scripts/start-backend.mjs',
       url: `http://localhost:${BACKEND_PORT}/_health`,
