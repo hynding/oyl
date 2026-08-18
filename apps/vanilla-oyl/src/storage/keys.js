@@ -27,3 +27,5 @@ export const OUTBOX_KEY = 'oyl/write-outbox'
 export const READ_CACHE_KEY = 'oyl/read-cache'
 export const PROFILE_ID_KEY = 'oyl/profile-id'
 export const TZ_RELOADED_KEY = 'oyl/tz-reloaded'
+/** Drive REST base-URL override (tests point the client at a fake server). */
+export const DRIVE_BASE_URL_KEY = 'oyl/drive-base-url'
