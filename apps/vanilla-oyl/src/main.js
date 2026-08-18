@@ -138,8 +138,14 @@ async function boot() {
   // the more authoritative, signed-in-only read is always the last write.
   void googleStore.probe().then(() => {
     const state = googleStore.connection.get().state
-    googleLoginHref.set(state === 'unconfigured' || state === 'unknown' ? null : { href: `${getApiBaseUrl(storage, host)}/google/connect?mode=login` })
-    if (hasSession) return googleStore.loadStatus()
+    const unconfigured = state === 'unconfigured' || state === 'unknown'
+    googleLoginHref.set(unconfigured ? null : { href: `${getApiBaseUrl(storage, host)}/google/connect?mode=login` })
+    // Only hit /google/status when probe() found Google actually configured — an unconfigured
+    // backend 501s that route, and the browser logs its own console.error for ANY non-2xx
+    // fetch regardless of how gracefully the app handles the response, which would fail the
+    // e2e hygiene fixture (and is a real console error for every signed-in user before an
+    // operator ever sets up Google OAuth — the whole point of 'unconfigured' is a no-op app).
+    if (hasSession && !unconfigured) return googleStore.loadStatus()
   })
 
   // Flush the outbox whenever connectivity returns online, then refresh the pending indicator.
