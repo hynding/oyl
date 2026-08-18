@@ -14,6 +14,8 @@ export class OylLogin extends OylElement {
     super()
     /** @type {any} */ this.auth = undefined
     /** @type {() => void} */ this.onAuthenticated = () => {}
+    /** @type {import('../lib/reactive/signal.js').Signal<{ href: string } | null> | null} */
+    this.googleAuth = null
   }
   render() {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
@@ -21,6 +23,7 @@ export class OylLogin extends OylElement {
     const h2 = document.createElement('h2'); h2.textContent = 'Sign in'; h2.setAttribute('tabindex', '-1')
     const form = /** @type {any} */ (document.createElement('oyl-auth-form'))
     form.auth = this.auth; form.mode = 'login'; form.onSuccess = () => this.onAuthenticated()
+    form.googleAuth = this.googleAuth
     const alt = document.createElement('div'); alt.className = 'alt'
     const reg = document.createElement('a'); reg.href = '/register'; reg.textContent = 'Create an account'
     alt.append(reg)

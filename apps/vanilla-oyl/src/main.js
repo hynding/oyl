@@ -1,10 +1,12 @@
 import { effect } from './lib/reactive/effect.js'
+import { signal } from './lib/reactive/signal.js'
 import { createThemeApplier } from './theme/theme-manager.js'
 import { createThemeState } from './state/theme.js'
 import { createLayoutState } from './state/layout.js'
 import { createRouteState } from './state/route.js'
 import { createDataState } from './state/data.js'
-import { createAuthState } from './state/auth.js'
+import { createAuthState, googleErrorMessage } from './state/auth.js'
+import { createGoogleStore } from './state/google-store.js'
 import { seedAccount } from './storage/seed.js'
 import { exportData, importData } from './storage/backup.js'
 import { isOylKey, SETTINGS_KEY, AUTH_KEY, TZ_RELOADED_KEY, OUTBOX_KEY } from './storage/keys.js'
@@ -65,6 +67,14 @@ async function boot() {
   const noticeState = createNoticeState()
   const mode = getStorageMode(storage, host)
 
+  const googleStore = createGoogleStore({ baseUrl: getApiBaseUrl(storage, host), fetch: window.fetch.bind(window), getToken: authState.getToken })
+  const googleLoginHref = signal(/** @type {{ href: string } | null} */ (null))
+  // OAuth return: adopt #google=<jwt> / surface #google_error=<code> BEFORE the login guard
+  // runs below, so a fragment-delivered session wins over the "no session → /login" redirect.
+  const adoption = await authState.adoptTokenFromHash(window)
+  if (adoption.adopted) setStorageMode(storage, 'remote')
+  if (adoption.error) noticeState.show(googleErrorMessage(adoption.error))
+
   // Online-first, account-required: always build ONE api client + outbox + cache + repos
   // and start the flusher. The server is the source of truth; writes enqueue to the outbox
   // and flush when online (on the `online` event and after each enqueue).
@@ -91,6 +101,12 @@ async function boot() {
   effect(() => applyThemeSettings(themeState.settings.get()))
   routeState.start()
 
+  // Hash-adopted sign-ins never go through the login form, so onAuthenticated never fires —
+  // send the user off /login (or /, already redirected to /status by start() above) into the app.
+  if (adoption.adopted && (window.location.pathname === '/login' || window.location.pathname === '/')) {
+    routeState.navigate('/status', { replace: true })
+  }
+
   // Force the login page in Remote mode with no session (before touching the network).
   if (shouldRedirectToLogin(mode, authState.session.get(), routeState.route.get())) {
     routeState.navigate('/login', { replace: true })
@@ -112,6 +128,14 @@ async function boot() {
     // Drain any writes queued offline / from a prior session.
     void flush().then(() => dataState.refreshPending()).catch(() => {})
   }
+
+  // Google affordances: pre-auth config probe feeds the login button; signed-in status feeds
+  // Profile. Fire-and-forget — the app renders immediately regardless of network latency.
+  void googleStore.probe().then(() => {
+    const state = googleStore.connection.get().state
+    googleLoginHref.set(state === 'unconfigured' || state === 'unknown' ? null : { href: `${getApiBaseUrl(storage, host)}/google/connect?mode=login` })
+  })
+  if (hasSession) void googleStore.loadStatus()
 
   // Flush the outbox whenever connectivity returns online, then refresh the pending indicator.
   connectivity.subscribe((online) => {
@@ -304,6 +328,7 @@ async function boot() {
     login: () => {
       const page = /** @type {import('./components/oyl-login.js').OylLogin} */ (document.createElement('oyl-login'))
       page.auth = authState
+      page.googleAuth = googleLoginHref
       page.onAuthenticated = () => { setStorageMode(storage, 'remote'); location.assign('/status') }
       return page
     },
@@ -334,6 +359,11 @@ async function boot() {
         apiBaseUrl: getApiBaseUrl(storage, host),
         defaultApiBaseUrl: defaultApiBaseUrl(host),
         onApply: (m, url) => { setStorageMode(storage, m); setApiBaseUrl(storage, url); location.reload() },
+      }
+      page.google = {
+        connection: googleStore.connection,
+        onConnect: () => { void googleStore.connectUrl().then((url) => location.assign(url)).catch(() => noticeState.show('Could not start Google connect — try again.')) },
+        onDisconnect: () => { void googleStore.disconnect().then(() => noticeState.show('Google disconnected.')).catch(() => noticeState.show('Disconnect failed — try again.')) },
       }
       // Sync section is deferred to the connection-UI reshape (Sub-project D); upload-local
       // is obsolete under account-required. Export stays for a manual backup.

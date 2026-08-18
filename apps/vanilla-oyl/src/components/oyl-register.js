@@ -17,6 +17,8 @@ export class OylRegister extends OylElement {
     super()
     /** @type {any} */ this.auth = undefined
     /** @type {(patch: Record<string, any>) => void} */ this.onAuthenticated = () => {}
+    /** @type {import('../lib/reactive/signal.js').Signal<{ href: string } | null> | null} */
+    this.googleAuth = null
   }
   render() {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)
@@ -27,6 +29,7 @@ export class OylRegister extends OylElement {
     const form = /** @type {any} */ (document.createElement('oyl-auth-form'))
     form.auth = this.auth; form.mode = 'register'
     form.onSuccess = () => this.onAuthenticated(fields.getValues())
+    form.googleAuth = this.googleAuth
     const details = document.createElement('details')
     const summary = document.createElement('summary'); summary.textContent = 'Optional details (timezone, body, location)'
     details.append(summary, fields)
