@@ -69,6 +69,7 @@ export function googleErrorMessage(code) {
     account_exists: 'An account with this email already exists. Sign in with your password, then connect Google from your Profile.',
     no_refresh_token: 'Google did not grant offline access. Please try connecting again.',
     exchange_failed: 'Google sign-in failed. Please try again.',
+    already_linked: 'This Google account is already connected to a different OYL account.',
     unknown: 'Google sign-in failed. Please try again.',
   })
   return messages[code] ?? 'Google sign-in failed. Please try again.'

@@ -117,7 +117,7 @@ describe('adoptTokenFromHash', () => {
 
 describe('googleErrorMessage', () => {
   it('maps every callback error code to a human sentence and unknown codes to a fallback', () => {
-    for (const code of ['denied', 'bad_state', 'account_exists', 'no_refresh_token', 'exchange_failed']) {
+    for (const code of ['denied', 'bad_state', 'account_exists', 'no_refresh_token', 'exchange_failed', 'already_linked']) {
       const message = googleErrorMessage(code)
       expect(message.length).toBeGreaterThan(10)
       expect(message).not.toContain('_')
