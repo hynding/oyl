@@ -38,5 +38,38 @@ export function createAuthState(storage, { baseUrl, fetch }) {
     getToken: async () => session.get()?.token ?? null,
     /** Multi-tab: re-read the session from storage. */
     refresh: () => session.set(readSession(storage)),
+    /**
+     * Adopt an OAuth-callback session from the URL fragment (#google=<jwt>) or surface
+     * a callback error (#google_error=<code>). Always cleans the hash first — the
+     * fragment must not survive into history or a shared link.
+     * @param {{ location: { hash: string, pathname: string, search: string }, history: { replaceState(a: any, b: string, url: string): void } }} win
+     * @returns {Promise<{ adopted: boolean, error: string | null }>}
+     */
+    async adoptTokenFromHash(win) {
+      const hash = win.location.hash
+      const token = hash.startsWith('#google=') ? decodeURIComponent(hash.slice('#google='.length)) : null
+      const errorCode = hash.startsWith('#google_error=') ? decodeURIComponent(hash.slice('#google_error='.length)) : null
+      if (token == null && errorCode == null) return { adopted: false, error: null }
+      win.history.replaceState(null, '', win.location.pathname + win.location.search)
+      if (errorCode != null) return { adopted: false, error: errorCode }
+      const res = await fetch(`${baseUrl}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) return { adopted: false, error: 'session' }
+      const user = /** @type {{ id: number, username: string, email: string }} */ (await res.json())
+      persist({ token: /** @type {string} */ (token), user: { id: user.id, username: user.username, email: user.email } })
+      return { adopted: true, error: null }
+    },
   }
+}
+
+/** Human messages for /google/callback error codes (hash `#google_error=<code>`). @param {string} code @returns {string} */
+export function googleErrorMessage(code) {
+  const messages = /** @type {Record<string, string>} */ ({
+    denied: 'Google sign-in was cancelled.',
+    bad_state: 'The Google sign-in link expired. Please try again.',
+    account_exists: 'An account with this email already exists. Sign in with your password, then connect Google from your Profile.',
+    no_refresh_token: 'Google did not grant offline access. Please try connecting again.',
+    exchange_failed: 'Google sign-in failed. Please try again.',
+    unknown: 'Google sign-in failed. Please try again.',
+  })
+  return messages[code] ?? 'Google sign-in failed. Please try again.'
 }
