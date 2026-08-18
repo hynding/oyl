@@ -21,12 +21,29 @@ afterAll(async () => { await stop?.(); await fake.stop() })
 const noRedirect: RequestInit = { redirect: 'manual' }
 const h = (jwt: string) => ({ Authorization: `Bearer ${jwt}` })
 
-/** From Google's authorize URL: fake google → callback. Returns the final app redirect URL. */
-async function followFromGoogle(googleUrl: string): Promise<URL> {
+/**
+ * The callback route binds the OAuth state to the browser session via an HttpOnly nonce cookie
+ * set by connect/connectUrl. Node's `fetch` has no cookie jar (unlike a real browser), so tests
+ * must carry that cookie forward by hand — extract the raw `name=value` pair from a Set-Cookie
+ * response header (dropping attributes like `HttpOnly`/`SameSite`/`Max-Age`) for use as a
+ * request's `Cookie` header.
+ */
+function extractCookie(res: Response): string | undefined {
+  const raw = res.headers.get('set-cookie')
+  return raw ? raw.split(';')[0] : undefined
+}
+
+/**
+ * From Google's authorize URL: fake google → callback. Returns the final app redirect URL.
+ * `cookie`, if given, is forwarded as the Cookie header on the callback request — the nonce
+ * cookie set when the flow started (by connect/connectUrl). Omit it to simulate a browser/device
+ * that never received that cookie (the session-binding defense's negative-path tests).
+ */
+async function followFromGoogle(googleUrl: string, cookie?: string): Promise<URL> {
   const fromGoogle = await fetch(googleUrl, noRedirect)
   expect(fromGoogle.status).toBe(302)
   const callbackUrl = fromGoogle.headers.get('location')!
-  const toApp = await fetch(callbackUrl, noRedirect)
+  const toApp = await fetch(callbackUrl, { ...noRedirect, headers: cookie ? { Cookie: cookie } : undefined })
   expect(toApp.status).toBe(302)
   return new URL(toApp.headers.get('location')!)
 }
@@ -35,13 +52,15 @@ async function followFromGoogle(googleUrl: string): Promise<URL> {
  * Follow the whole dance by hand: connect → fake google → callback. Returns the final app
  * redirect URL. `startUrl` must be a backend route that itself 302s to Google (e.g. the public
  * `/google/connect?mode=login` route) — NOT a URL that is already Google's authorize URL (that's
- * what `/google/connect-url` returns for link mode; use `followFromGoogle` directly for that).
+ * what `/google/connect-url` returns for link mode; use `followFromGoogle` directly for that,
+ * forwarding the nonce cookie captured from the connect-url response).
  */
 async function signInWithGoogle(startUrl: string): Promise<URL> {
   const toGoogle = await fetch(startUrl, noRedirect)
   expect(toGoogle.status).toBe(302)
+  const cookie = extractCookie(toGoogle)
   const googleUrl = toGoogle.headers.get('location')!
-  return followFromGoogle(googleUrl)
+  return followFromGoogle(googleUrl, cookie)
 }
 
 const fragmentParam = (url: URL, key: string): string | null =>
@@ -52,6 +71,13 @@ describe('google oauth (booted, fake Google)', () => {
     const res = await fetch(`${baseUrl}/google/config`)
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ configured: true })
+  })
+
+  it('config is reachable both unauthenticated and authenticated (JWT bypasses the public role\'s grants)', async () => {
+    const user = await registerUser(baseUrl, `configcheck-${Date.now()}`)
+    const authed = await fetch(`${baseUrl}/google/config`, { headers: h(user.jwt) })
+    expect(authed.status).toBe(200)
+    expect(await authed.json()).toEqual({ configured: true })
   })
 
   it('connect redirects to Google with drive.file scope + offline access + signed state', async () => {
@@ -106,7 +132,7 @@ describe('google oauth (booted, fake Google)', () => {
     const res = await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })
     expect(res.status).toBe(200)
     const { url } = (await res.json()) as { url: string }
-    const appUrl = await followFromGoogle(url)
+    const appUrl = await followFromGoogle(url, extractCookie(res))
     expect(appUrl.pathname).toBe('/profile')
     expect(fragmentParam(appUrl, 'google')).toBeTruthy()
     const status = (await (await fetch(`${baseUrl}/google/status`, { headers: h(user.jwt) })).json()) as { connected: boolean; email: string }
@@ -114,10 +140,32 @@ describe('google oauth (booted, fake Google)', () => {
     expect(status.email).toBe(fake.issued.at(-1)!.email)
   })
 
+  it('link mode: connecting a Google identity already linked to a DIFFERENT user redirects already_linked (no crash)', async () => {
+    // Some other OYL user links this Google identity first (via login mode).
+    const identity = { sub: `dup-${Date.now()}`, email: `dup-${Date.now()}@gmail.test` }
+    fake.nextIdentity = identity
+    const firstAppUrl = await signInWithGoogle(`${baseUrl}/google/connect?mode=login`)
+    expect(fragmentParam(firstAppUrl, 'google')).toBeTruthy()
+
+    // A second, different OYL user tries to link the SAME Google identity via link mode.
+    const other = await registerUser(baseUrl, `dup-linker-${Date.now()}`)
+    const connectUrlRes = await fetch(`${baseUrl}/google/connect-url`, { headers: h(other.jwt) })
+    const { url } = (await connectUrlRes.json()) as { url: string }
+    fake.nextIdentity = identity
+    const appUrl = await followFromGoogle(url, extractCookie(connectUrlRes))
+    expect(appUrl.pathname).toBe('/profile')
+    expect(fragmentParam(appUrl, 'google_error')).toBe('already_linked')
+    expect(fragmentParam(appUrl, 'google')).toBeNull()
+    // The second user's own account was never touched.
+    const status = (await (await fetch(`${baseUrl}/google/status`, { headers: h(other.jwt) })).json()) as { connected: boolean }
+    expect(status.connected).toBe(false)
+  })
+
   it('refresh token is stored ENCRYPTED (never plaintext in the DB row)', async () => {
     const user = await registerUser(baseUrl, `enc-${Date.now()}`)
-    const { url } = (await (await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })).json()) as { url: string }
-    await followFromGoogle(url)
+    const connectUrlRes = await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })
+    const { url } = (await connectUrlRes.json()) as { url: string }
+    await followFromGoogle(url, extractCookie(connectUrlRes))
     const plainRefresh = fake.issued.at(-1)!.refreshToken
     // Read the raw row through the booted app's db layer is not reachable from here;
     // instead assert via behavior + shape: status is connected AND drive-token works,
@@ -133,46 +181,159 @@ describe('google oauth (booted, fake Google)', () => {
 
   it('drive-token caches until expiry (second call does not re-hit Google)', async () => {
     const user = await registerUser(baseUrl, `cache-${Date.now()}`)
-    const { url } = (await (await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })).json()) as { url: string }
-    await followFromGoogle(url)
+    const connectUrlRes = await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })
+    const { url } = (await connectUrlRes.json()) as { url: string }
+    await followFromGoogle(url, extractCookie(connectUrlRes))
     const before = fake.refreshCalls
     await fetch(`${baseUrl}/google/drive-token`, { headers: h(user.jwt) })
     await fetch(`${baseUrl}/google/drive-token`, { headers: h(user.jwt) })
     expect(fake.refreshCalls).toBe(before + 1)
   })
 
-  it('invalid_grant on refresh → 410, stored token deleted, reconnect then succeeds', async () => {
+  it('invalid_grant on refresh → 410, stored token CLEARED (row kept), reconnect then succeeds', async () => {
     const user = await registerUser(baseUrl, `revoked-${Date.now()}`)
-    const { url } = (await (await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })).json()) as { url: string }
-    await followFromGoogle(url)
+    const connectUrlRes = await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })
+    const { url } = (await connectUrlRes.json()) as { url: string }
+    await followFromGoogle(url, extractCookie(connectUrlRes))
     fake.failNextRefresh = 'invalid_grant'
     const gone = await fetch(`${baseUrl}/google/drive-token`, { headers: h(user.jwt) })
     expect(gone.status).toBe(410)
-    // token deleted → status now disconnected
+    // token cleared → status now disconnected
     const status = (await (await fetch(`${baseUrl}/google/status`, { headers: h(user.jwt) })).json()) as { connected: boolean }
     expect(status.connected).toBe(false)
     // reconnect captures a fresh refresh token and drive-token works again
-    const again = (await (await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })).json()) as { url: string }
-    await followFromGoogle(again.url)
+    const reconnectRes = await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })
+    const again = (await reconnectRes.json()) as { url: string }
+    await followFromGoogle(again.url, extractCookie(reconnectRes))
     const ok = await fetch(`${baseUrl}/google/drive-token`, { headers: h(user.jwt) })
     expect(ok.status).toBe(200)
   })
 
-  it('no refresh token in exchange → retries ONCE with prompt=consent, then errors (no loop)', async () => {
+  it('invalid_grant then "Sign in with Google" (login mode) with the SAME identity does NOT lock the user out with account_exists', async () => {
+    // Distinct from the disconnect regression test below: link-mode reconnect resolves the user
+    // via state.userId directly and never touches findOrCreateLoginUser's email fallback, so it
+    // can't catch this. A LOGIN-mode reconnect after an invalid_grant clear is the path that
+    // actually exercises the googleUserId → user lookup this fix protects.
+    const identity = { sub: `revoked2-${Date.now()}`, email: `revoked2-${Date.now()}@gmail.test` }
+    fake.nextIdentity = identity
+    const appUrl1 = await signInWithGoogle(`${baseUrl}/google/connect?mode=login`)
+    const jwt1 = fragmentParam(appUrl1, 'google')!
+    const me1 = (await (await fetch(`${baseUrl}/users/me`, { headers: h(jwt1) })).json()) as { id: number }
+    fake.failNextRefresh = 'invalid_grant'
+    const gone = await fetch(`${baseUrl}/google/drive-token`, { headers: h(jwt1) })
+    expect(gone.status).toBe(410)
+    fake.nextIdentity = identity
+    const appUrl2 = await signInWithGoogle(`${baseUrl}/google/connect?mode=login`)
+    expect(fragmentParam(appUrl2, 'google_error')).toBeNull()
+    const jwt2 = fragmentParam(appUrl2, 'google')
+    expect(jwt2).toBeTruthy()
+    const me2 = (await (await fetch(`${baseUrl}/users/me`, { headers: h(jwt2!) })).json()) as { id: number }
+    expect(me2.id).toBe(me1.id)
+  })
+
+  it('a non-invalid_grant refresh failure (transient) returns 502 and leaves the stored token untouched', async () => {
+    const user = await registerUser(baseUrl, `transient-${Date.now()}`)
+    const connectUrlRes = await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })
+    const { url } = (await connectUrlRes.json()) as { url: string }
+    await followFromGoogle(url, extractCookie(connectUrlRes))
+    fake.failNextRefresh = 'server_error' as any
+    const res = await fetch(`${baseUrl}/google/drive-token`, { headers: h(user.jwt) })
+    expect(res.status).toBe(502)
+    // NOT cleared — still connected, and a subsequent (non-failing) call succeeds
+    const status = (await (await fetch(`${baseUrl}/google/status`, { headers: h(user.jwt) })).json()) as { connected: boolean }
+    expect(status.connected).toBe(true)
+    const ok = await fetch(`${baseUrl}/google/drive-token`, { headers: h(user.jwt) })
+    expect(ok.status).toBe(200)
+  })
+
+  it('driveToken returns 502 (not a raw 500) on a network failure talking to Google, without touching the stored token', async () => {
+    const user = await registerUser(baseUrl, `neterr-${Date.now()}`)
+    const connectUrlRes = await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })
+    const { url } = (await connectUrlRes.json()) as { url: string }
+    await followFromGoogle(url, extractCookie(connectUrlRes))
+    const realTokenUrl = process.env['GOOGLE_TOKEN_URL']!
+    process.env['GOOGLE_TOKEN_URL'] = 'http://127.0.0.1:1/token' // nothing listens here
+    let res: Response
+    try {
+      res = await fetch(`${baseUrl}/google/drive-token`, { headers: h(user.jwt) })
+    } finally {
+      process.env['GOOGLE_TOKEN_URL'] = realTokenUrl
+    }
+    expect(res.status).toBe(502)
+    const status = (await (await fetch(`${baseUrl}/google/status`, { headers: h(user.jwt) })).json()) as { connected: boolean }
+    expect(status.connected).toBe(true)
+  })
+
+  it('callback exchanging code against an unreachable token endpoint redirects exchange_failed (no raw 500)', async () => {
+    const toGoogle = await fetch(`${baseUrl}/google/connect?mode=login`, noRedirect)
+    const cookie = extractCookie(toGoogle)
+    const googleUrl = toGoogle.headers.get('location')!
+    const cbLocation = (await fetch(googleUrl, noRedirect)).headers.get('location')!
+    const realTokenUrl = process.env['GOOGLE_TOKEN_URL']!
+    process.env['GOOGLE_TOKEN_URL'] = 'http://127.0.0.1:1/token'
+    let res: Response
+    try {
+      res = await fetch(cbLocation, { ...noRedirect, headers: cookie ? { Cookie: cookie } : undefined })
+    } finally {
+      process.env['GOOGLE_TOKEN_URL'] = realTokenUrl
+    }
+    expect(res.status).toBe(302)
+    const appUrl = new URL(res.headers.get('location')!)
+    expect(fragmentParam(appUrl, 'google_error')).toBe('exchange_failed')
+  })
+
+  it('no refresh token in exchange → retries ONCE with prompt=consent (same identity both hops), then errors (no loop)', async () => {
+    // Real Google presents the SAME identity on the forced re-consent hop; fake-google mints a
+    // fresh identity per /auth hit unless nextIdentity is pinned, so pin it before EACH hop —
+    // this is what actually exercises the retry-carries-the-created-user fix (a stale
+    // implementation would re-run findOrCreateLoginUser on the retry hop, find the user IT JUST
+    // CREATED on the first hop by email, and wrongly reject with account_exists instead of
+    // reaching this no_refresh_token check).
     fake.omitRefreshToken = true
+    const identity = { sub: `norefresh-${Date.now()}`, email: `norefresh-${Date.now()}@gmail.test` }
+    fake.nextIdentity = identity
     const first = await fetch(`${baseUrl}/google/connect?mode=login`, noRedirect)
+    const cookie1 = extractCookie(first)
     const googleUrl1 = first.headers.get('location')!
     const cb1 = (await fetch(googleUrl1, noRedirect)).headers.get('location')!
-    const retry = await fetch(cb1, noRedirect)
+    const retry = await fetch(cb1, { ...noRedirect, headers: cookie1 ? { Cookie: cookie1 } : undefined })
     expect(retry.status).toBe(302)
+    const cookie2 = extractCookie(retry) // the retry redirect mints a NEW nonce + cookie
     const retryUrl = new URL(retry.headers.get('location')!)
-    // still no refresh token → second callback fails out with no_refresh_token
     expect(retryUrl.searchParams.get('prompt')).toBe('consent')
+    fake.nextIdentity = identity
     const cb2 = (await fetch(retryUrl.toString(), noRedirect)).headers.get('location')!
-    const final = await fetch(cb2, noRedirect)
+    const final = await fetch(cb2, { ...noRedirect, headers: cookie2 ? { Cookie: cookie2 } : undefined })
     const appUrl = new URL(final.headers.get('location')!)
     fake.omitRefreshToken = false
+    // still no refresh token on the retry hop → fails out with no_refresh_token (NOT account_exists)
     expect(fragmentParam(appUrl, 'google_error')).toBe('no_refresh_token')
+  })
+
+  it('no refresh token on the first hop but present on the retry hop → succeeds and reuses the SAME newly-created user', async () => {
+    fake.omitRefreshToken = true
+    const identity = { sub: `retry-ok-${Date.now()}`, email: `retry-ok-${Date.now()}@gmail.test` }
+    fake.nextIdentity = identity
+    const first = await fetch(`${baseUrl}/google/connect?mode=login`, noRedirect)
+    const cookie1 = extractCookie(first)
+    const googleUrl1 = first.headers.get('location')!
+    const cb1 = (await fetch(googleUrl1, noRedirect)).headers.get('location')!
+    const retry = await fetch(cb1, { ...noRedirect, headers: cookie1 ? { Cookie: cookie1 } : undefined })
+    const cookie2 = extractCookie(retry)
+    const retryUrl = new URL(retry.headers.get('location')!)
+    expect(retryUrl.searchParams.get('prompt')).toBe('consent')
+    fake.omitRefreshToken = false
+    fake.nextIdentity = identity
+    const cb2 = (await fetch(retryUrl.toString(), noRedirect)).headers.get('location')!
+    const final = await fetch(cb2, { ...noRedirect, headers: cookie2 ? { Cookie: cookie2 } : undefined })
+    const appUrl = new URL(final.headers.get('location')!)
+    expect(appUrl.pathname).toBe('/login')
+    const jwt = fragmentParam(appUrl, 'google')
+    expect(jwt).toBeTruthy()
+    const me = await fetch(`${baseUrl}/users/me`, { headers: h(jwt!) })
+    expect(me.status).toBe(200)
+    const user = (await me.json()) as { email: string }
+    expect(user.email).toBe(identity.email)
   })
 
   it('callback with a forged state redirects bad_state', async () => {
@@ -182,14 +343,54 @@ describe('google oauth (booted, fake Google)', () => {
     expect(fragmentParam(appUrl, 'google_error')).toBe('bad_state')
   })
 
-  it('disconnect revokes at Google and deletes the record', async () => {
+  it('callback without the session-binding nonce cookie (stolen/forwarded connect-url link, e.g. a victim in a different browser) redirects bad_state and links nothing', async () => {
+    const user = await registerUser(baseUrl, `hijack-${Date.now()}`)
+    const res = await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })
+    expect(res.status).toBe(200)
+    const { url } = (await res.json()) as { url: string }
+    // Deliberately do NOT forward the cookie from `res` — simulates an attacker handing this
+    // `url` (obtained from THEIR OWN connectUrl call) to a victim who opens it in a different
+    // browser/device and completes Google's consent screen there. Without the matching cookie,
+    // callback must refuse to trust the embedded (validly-signed!) state.userId.
+    const appUrl = await followFromGoogle(url /* no cookie */)
+    expect(fragmentParam(appUrl, 'google_error')).toBe('bad_state')
+    expect(fragmentParam(appUrl, 'google')).toBeNull()
+    const status = (await (await fetch(`${baseUrl}/google/status`, { headers: h(user.jwt) })).json()) as { connected: boolean }
+    expect(status.connected).toBe(false)
+  })
+
+  it('disconnect revokes at Google and clears the stored token (row kept so a future sign-in still finds this user)', async () => {
     const user = await registerUser(baseUrl, `disc-${Date.now()}`)
-    const { url } = (await (await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })).json()) as { url: string }
-    await followFromGoogle(url)
+    const connectUrlRes = await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })
+    const { url } = (await connectUrlRes.json()) as { url: string }
+    await followFromGoogle(url, extractCookie(connectUrlRes))
     const res = await fetch(`${baseUrl}/google/disconnect`, { method: 'POST', headers: h(user.jwt) })
     expect(res.status).toBe(200)
     expect(fake.revoked.length).toBeGreaterThan(0)
     const status = (await (await fetch(`${baseUrl}/google/status`, { headers: h(user.jwt) })).json()) as { connected: boolean }
     expect(status.connected).toBe(false)
+  })
+
+  it('disconnect then "Sign in with Google" again with the SAME identity does NOT lock the user out with account_exists', async () => {
+    const user = await registerUser(baseUrl, `disc2-${Date.now()}`)
+    const identity = { sub: `disc2-${Date.now()}`, email: `disc2-${Date.now()}@gmail.test` }
+    fake.nextIdentity = identity
+    const connectUrlRes = await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })
+    const { url } = (await connectUrlRes.json()) as { url: string }
+    await followFromGoogle(url, extractCookie(connectUrlRes))
+    const res = await fetch(`${baseUrl}/google/disconnect`, { method: 'POST', headers: h(user.jwt) })
+    expect(res.status).toBe(200)
+
+    // A fresh "Sign in with Google" (login mode) with the SAME identity must reuse this user,
+    // not hit account_exists (the old delete-the-row behavior severed the googleUserId link,
+    // so findOrCreateLoginUser's identity lookup missed and fell through to the email lookup,
+    // finding this same user and permanently rejecting the sign-in).
+    fake.nextIdentity = identity
+    const appUrl = await signInWithGoogle(`${baseUrl}/google/connect?mode=login`)
+    expect(fragmentParam(appUrl, 'google_error')).toBeNull()
+    const jwt = fragmentParam(appUrl, 'google')
+    expect(jwt).toBeTruthy()
+    const me = (await (await fetch(`${baseUrl}/users/me`, { headers: h(jwt!) })).json()) as { id: number }
+    expect(me.id).toBe(user.userId)
   })
 })

@@ -25,7 +25,10 @@ const GOAL_ACTIONS = ['find', 'findOne', 'create', 'update', 'delete'].map((a) =
 const BOOTSTRAP_ACTIONS = ['api::bootstrap.bootstrap.find']
 
 const GOOGLE_PUBLIC_ACTIONS = ['config', 'connect', 'callback'].map((a) => `api::google.google.${a}`)
-const GOOGLE_AUTH_ACTIONS = ['connectUrl', 'driveToken', 'status', 'disconnect'].map((a) => `api::google.google.${a}`)
+// `config` is granted to BOTH roles: Strapi's JWT auth strategy does not fall back to the
+// public role's grants when a request carries a Bearer token, so an authenticated client
+// hitting /google/config would otherwise 403 instead of getting its always-200 answer.
+const GOOGLE_AUTH_ACTIONS = ['config', 'connectUrl', 'driveToken', 'status', 'disconnect'].map((a) => `api::google.google.${a}`)
 
 async function grantRoleActions(strapi: Core.Strapi, roleType: string, actions: string[], label: string) {
   const role = (await strapi.db.query('plugin::users-permissions.role').findOne({ where: { type: roleType } })) as { id: number } | null
