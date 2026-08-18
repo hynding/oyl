@@ -23,3 +23,4 @@ log/
 # ocari golden set (personal receipts — never committed)
 packages/ocari-oyl/golden/*
 !packages/ocari-oyl/golden/README.md
+.worktrees/
