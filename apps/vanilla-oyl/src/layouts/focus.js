@@ -32,7 +32,7 @@ export const focus = Object.freeze({
       }
       .title, .toolbar { background: transparent; border-block-end: none; padding-block: var(--space-2); }
       .nav-dock {
-        position: fixed; inset-inline: 0; inset-block-end: var(--space-5); z-index: 10;
+        position: fixed; inset-inline: 0; inset-block-end: var(--space-6); z-index: 10;
         display: flex; justify-content: center;
         pointer-events: none; /* the pill re-enables; the empty gutter stays click-through */
       }

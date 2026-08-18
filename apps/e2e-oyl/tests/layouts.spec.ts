@@ -8,7 +8,7 @@
 import { test, expect } from '../lib/fixtures'
 
 const trigger = 'oyl-layout-picker button[data-layout-trigger]'
-const ALL = ['classic', 'sidebar', 'dashboard', 'focus', 'wide'] as const
+const ALL = ['classic', 'sidebar', 'workspace', 'dashboard', 'focus', 'studio', 'wide'] as const
 
 /**
  * Open the picker, choose a layout, then close the popover with Escape.
@@ -37,15 +37,62 @@ test('defaults to classic and persists a picked layout across reload', async ({ 
   await expect(page.locator(trigger)).toContainText('Sidebar')
 })
 
-test('offers all five layouts and reflects nav orientation per layout', async ({ page, signIn }) => {
+test('offers every catalog layout and reflects nav orientation per layout', async ({ page, signIn }) => {
   await signIn('/')
   await page.locator(trigger).click()
-  await expect(page.locator('oyl-layout-picker [data-layout-option]')).toHaveCount(5)
+  await expect(page.locator('oyl-layout-picker [data-layout-option]')).toHaveCount(ALL.length)
   await page.keyboard.press('Escape')
   await pickLayout(page, 'sidebar')
   await expect(page.locator('oyl-nav')).toHaveAttribute('orientation', 'vertical')
   await pickLayout(page, 'focus')
   await expect(page.locator('oyl-nav')).toHaveAttribute('orientation', 'horizontal')
+})
+
+test('studio keeps its header docked while the page scrolls under it', async ({
+  page,
+  signIn,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'the floating-panel frame is desktop-only')
+  await signIn('/journal')
+  await pickLayout(page, 'studio')
+  await page.evaluate(() => window.scrollTo(0, 900))
+  // The point of the glass header: the primary actions stay reachable no matter
+  // how far down a long day list the reader has travelled.
+  await expect(page.locator('oyl-layout-picker')).toBeInViewport()
+  await expect(page.locator('oyl-shell')).toHaveAttribute('layout', 'studio')
+})
+
+test('the desktop frame is a real grid in every layout', async ({ page, signIn, isMobile }) => {
+  test.skip(isMobile, 'below 641px the shell is deliberately a stacked column')
+  await signIn('/')
+  for (const id of ALL) {
+    await pickLayout(page, id)
+    // Regression guard: a bare `oyl-shell` rule in the outer document beats the
+    // shell's own `:host { display: grid }` (encapsulation context outranks cascade
+    // layers), which silently flattens every layout into one stacked column.
+    const display = await page
+      .locator('oyl-shell')
+      .evaluate((el) => getComputedStyle(el).display)
+    expect(display, id).toBe('grid')
+  }
+})
+
+test('workspace docks the highlights deck as a right-hand aside', async ({ page, signIn, isMobile }) => {
+  test.skip(isMobile, 'the three-column frame is desktop-only; phones keep the bottom-tab arrangement')
+  await signIn('/')
+  await pickLayout(page, 'workspace')
+  const [nav, main, deck] = await Promise.all([
+    page.locator('oyl-nav').boundingBox(),
+    page.locator('oyl-router').boundingBox(),
+    page.locator('oyl-widgets').boundingBox(),
+  ])
+  expect(nav).not.toBeNull()
+  expect(main).not.toBeNull()
+  expect(deck).not.toBeNull()
+  // Reading order across the frame: nav rail, page, highlights aside.
+  expect(nav!.x + nav!.width).toBeLessThanOrEqual(main!.x)
+  expect(deck!.x).toBeGreaterThanOrEqual(main!.x + main!.width)
 })
 
 test('navigation works in every layout', async ({ page, signIn }) => {
@@ -73,6 +120,22 @@ test('theme and layout persist independently (neither write clobbers the other)'
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'forest')
   await expect(page.locator('oyl-shell')).toHaveAttribute('layout', 'wide')
+})
+
+test('no layout overflows a phone sideways', async ({ page, signIn, isMobile }) => {
+  test.skip(!isMobile, 'mobile-project geometry check')
+  await signIn('/')
+  for (const id of ALL) {
+    await pickLayout(page, id)
+    // A sideways overflow makes Chrome widen the LAYOUT viewport, which drags the
+    // fixed bottom tab bar below the visual viewport. The header row is the usual
+    // culprit: its toolbar must wrap rather than push the document wide.
+    // Compare against the CONFIGURED viewport, never window.innerWidth: the
+    // widened layout viewport is the symptom, so innerWidth grows to match the
+    // overflow and the check would always pass.
+    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth)
+    expect(scrollWidth, id).toBeLessThanOrEqual(page.viewportSize()!.width)
+  }
 })
 
 test('mobile keeps the bottom tab bar usable in every layout', async ({ page, signIn, isMobile }) => {

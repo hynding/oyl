@@ -1,7 +1,9 @@
 import { classic } from './classic.js'
 import { sidebar } from './sidebar.js'
+import { workspace } from './workspace.js'
 import { dashboard } from './dashboard.js'
 import { focus } from './focus.js'
+import { studio } from './studio.js'
 import { wide } from './wide.js'
 
 /**
@@ -22,7 +24,7 @@ import { wide } from './wide.js'
  */
 
 /** @type {LayoutDescriptor[]} Picker order. */
-export const LAYOUTS = [classic, sidebar, dashboard, focus, wide]
+export const LAYOUTS = [classic, sidebar, workspace, dashboard, focus, studio, wide]
 
 export const DEFAULT_LAYOUT = 'classic'
 

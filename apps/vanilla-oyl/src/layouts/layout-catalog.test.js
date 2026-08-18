@@ -19,16 +19,20 @@ describe('layout catalog', () => {
     }
   })
 
-  it('registers exactly the five v1 layouts in picker order', () => {
-    expect(LAYOUTS.map((l) => l.id)).toEqual(['classic', 'sidebar', 'dashboard', 'focus', 'wide'])
+  it('registers exactly the seven layouts in picker order', () => {
+    expect(LAYOUTS.map((l) => l.id)).toEqual([
+      'classic', 'sidebar', 'workspace', 'dashboard', 'focus', 'studio', 'wide',
+    ])
   })
 
   it('descriptor values match the spec table', () => {
     const table = /** @type {Record<string, [string, string, string]>} */ ({
       classic: ['top', 'none', 'classic'],
       sidebar: ['side', 'rail', 'wide'],
+      workspace: ['side', 'rail', 'wide'],
       dashboard: ['top', 'band', 'classic'],
       focus: ['floating', 'none', 'classic'],
+      studio: ['side', 'band', 'wide'],
       wide: ['top', 'none', 'wide'],
     })
     for (const l of LAYOUTS) {
@@ -61,6 +65,26 @@ describe('layout catalog', () => {
     expect(classic.navMode).toBe('top')
     expect(classic.widgets).toBe('none')
     expect(classic.pageWidth).toBe('classic')
+  })
+
+  it('workspace degrades its aside inside the desktop scope, never outside it', () => {
+    // The three-column frame only has room above ~1100px; below that the aside
+    // rejoins the nav rail. That fallback is a NESTED @media, so the structural
+    // desktop-scope test above still holds. Assert it survived parsing.
+    const [desktop] = /** @type {CSSMediaRule[]} */ ([...byId('workspace').styles.cssRules])
+    const nested = /** @type {CSSMediaRule[]} */ ([...(desktop?.cssRules ?? [])]).filter((r) => 'conditionText' in r)
+    expect(nested.map((r) => r.conditionText)).toEqual(['(max-width: 1099px)'])
+  })
+
+  it('studio nests its transparency and motion fallbacks inside the desktop scope', () => {
+    // Glass surfaces and the entry reveal are both opt-out-able, and @keyframes has
+    // to live somewhere: all three are NESTED at-rules, so the structural
+    // desktop-scope test below still holds. Assert they survived parsing.
+    const [desktop] = /** @type {CSSMediaRule[]} */ ([...byId('studio').styles.cssRules])
+    const nested = [...(desktop?.cssRules ?? [])].filter((r) => !(r instanceof CSSStyleRule))
+    const conditions = nested.map((r) => ('conditionText' in r ? r.conditionText : r.constructor.name))
+    expect(conditions).toContain('(prefers-reduced-transparency: reduce)')
+    expect(conditions).toContain('(prefers-reduced-motion: no-preference)')
   })
 
   it('every layout sheet rule is scoped to desktop (min-width: 641px)', () => {

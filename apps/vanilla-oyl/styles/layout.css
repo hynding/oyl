@@ -6,7 +6,12 @@
     color: var(--color-text);
     transition: background 0.2s, color 0.2s;
   }
-  oyl-shell { display: block; min-block-size: 100dvh; }
+  /* Pre-upgrade placeholder ONLY. It must stay scoped to :not(:defined): a bare
+     `oyl-shell` rule here matches the shadow host from the OUTER tree, and outer
+     declarations beat `:host` ones (encapsulation context is compared before
+     cascade layers), which would override the shell's `:host { display: grid }`
+     and leave every desktop layout inert. */
+  oyl-shell:not(:defined) { display: block; min-block-size: 100dvh; }
 
   /* Mobile: oyl-nav docks as a fixed bottom tab bar (see oyl-nav.js). Scroll-padding
      keeps scrollIntoView/anchor/focus targets clear of the bar — mirrors the .page

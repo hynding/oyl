@@ -15,7 +15,11 @@ const baseSheet = sheet(`
   :host {
     display: grid;
     min-block-size: 100dvh;
-    grid-template-columns: 1fr auto;
+    /* auto + minmax(0,1fr): an 'auto' toolbar track takes its max-content width and
+       never shrinks, so a long picker label pushes the whole document sideways on a
+       phone (which widens the layout viewport and drops the fixed tab bar below it).
+       Giving the toolbar the flexible track lets it wrap instead. */
+    grid-template-columns: auto minmax(0, 1fr);
     grid-template-rows: auto auto auto 1fr;
     grid-template-areas:
       "title toolbar"
@@ -31,7 +35,7 @@ const baseSheet = sheet(`
   :host([widgets="none"]) .widgets { display: none; }
 
   .title, .toolbar {
-    display: flex; align-items: center; gap: var(--space-4);
+    display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4);
     background: var(--color-surface);
     border-block-end: 1px solid var(--color-border);
     padding-block: var(--space-2);
