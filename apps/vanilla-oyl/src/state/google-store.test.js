@@ -84,4 +84,19 @@ describe('google-store', () => {
     expect(store.connection.get().state).toBe('disconnected')
     expect(await store.getAccessToken()).toBe('t3')
   })
+
+  it('disconnect throws on a non-ok response and does not clear the cache or change state', async () => {
+    const { fetch } = fakeFetch([
+      { status: 200, body: { accessToken: 't1', expiresAt: Date.now() + 3_600_000 } },
+      { status: 502 },
+    ])
+    const store = createGoogleStore({ baseUrl: BASE, fetch, getToken })
+    await store.getAccessToken()
+    store.connection.set({ state: 'connected', email: 'a@gmail.test' })
+    await expect(store.disconnect()).rejects.toThrow('disconnect failed (502)')
+    expect(store.connection.get()).toEqual({ state: 'connected', email: 'a@gmail.test' })
+    // Cache untouched: no further fetch is issued for a subsequent getAccessToken() call.
+    expect(await store.getAccessToken()).toBe('t1')
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
 })

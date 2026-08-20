@@ -71,6 +71,20 @@ describe('oyl-auth-form google button', () => {
     form.remove()
   })
 
+  it('sets rel="external" on the Google anchor so the SPA link-interceptor skips it', async () => {
+    defineAuthForm()
+    const form = /** @type {any} */ (document.createElement('oyl-auth-form'))
+    form.auth = { login: async () => {}, register: async () => {} }
+    const googleAuth = signal(/** @type {{ href: string } | null} */ (null))
+    form.googleAuth = googleAuth
+    document.body.append(form)
+    googleAuth.set({ href: 'http://api.test/api/google/connect?mode=login' })
+    await Promise.resolve()
+    const a = form.shadowRoot.querySelector('a[data-act="google"]')
+    expect(a.getAttribute('rel')).toBe('external')
+    form.remove()
+  })
+
   it('renders no Google UI when the prop is unset', () => {
     defineAuthForm()
     const form = /** @type {any} */ (document.createElement('oyl-auth-form'))

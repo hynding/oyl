@@ -75,7 +75,8 @@ export function createGoogleStore({ baseUrl, fetch, getToken }) {
     },
 
     async disconnect() {
-      await authed('/google/disconnect', { method: 'POST' })
+      const res = await authed('/google/disconnect', { method: 'POST' })
+      if (!res.ok) throw new Error(`disconnect failed (${res.status})`)
       cached = null
       connection.set({ state: 'disconnected' })
     },

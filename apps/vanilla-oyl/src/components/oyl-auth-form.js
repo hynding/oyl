@@ -56,6 +56,10 @@ export class OylAuthForm extends OylElement {
         const a = document.createElement('a')
         a.dataset.act = 'google'
         a.href = config.href
+        // Escape the SPA link-interceptor: this anchor must hit the backend (an
+        // actual server navigation, not client-side routing), even when the API
+        // base URL is same-origin with the app (see link-interceptor.js).
+        a.rel = 'external'
         a.className = 'google'
         a.textContent = 'Continue with Google'
         alt.append(divider, a)
