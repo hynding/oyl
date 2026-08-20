@@ -123,8 +123,9 @@ async function findOrCreateLoginUser(idPayload: { sub: string; email?: string })
 /**
  * Create or update the google-account row for this user. Returns `already_linked` (instead of
  * throwing a unique-constraint violation) when the Google identity is already tied to a
- * DIFFERENT OYL user — this can only happen in link mode, since login mode always resolves the
- * owning user via the same googleUserId lookup first.
+ * DIFFERENT OYL user — this is checked up front, BEFORE deciding create-vs-update, so it also
+ * protects the update path (this user already has a row, e.g. for a different Google identity,
+ * and tries to link an identity someone else already holds) and not just the create path.
  */
 async function upsertGoogleAccount(userId: number, idPayload: { sub: string; email?: string }, refreshToken: string | null): Promise<{ ok: true } | { error: 'already_linked' }> {
   const data: Record<string, unknown> = {
@@ -135,13 +136,26 @@ async function upsertGoogleAccount(userId: number, idPayload: { sub: string; ema
     user: userId,
     ...(refreshToken ? { refreshToken: encryptToken(refreshToken) } : {}),
   }
+  const byGoogleId = (await strapi.db.query(GOOGLE_ACCOUNT_UID).findOne({ where: { googleUserId: idPayload.sub }, populate: { user: true } })) as GoogleAccountRow | null
+  if (byGoogleId && byGoogleId.user?.id !== userId) return { error: 'already_linked' }
+
   const existing = (await strapi.db.query(GOOGLE_ACCOUNT_UID).findOne({ where: { user: { id: userId } } })) as GoogleAccountRow | null
   if (existing) {
+    if (existing.googleUserId !== idPayload.sub && !refreshToken) {
+      // Re-consenting with a DIFFERENT Google identity but no fresh refresh_token (Google's
+      // normal behavior for an already-consented client): don't relabel this row under the new
+      // identity while leaving the OLD identity's refresh token in place — that would make
+      // /google/status report the NEW email while /google/drive-token keeps minting tokens that
+      // authenticate the OLD identity's Drive. Instead, clear ONLY the stale token (mirroring
+      // disconnect()'s own update shape) and leave googleUserId/email untouched, producing the
+      // same disconnected/reconnect-needed state a legitimate identity switch should produce —
+      // the user must complete a fresh consent (which carries a real refresh_token) to relink.
+      await strapi.db.query(GOOGLE_ACCOUNT_UID).update({ where: { id: existing.id }, data: { refreshToken: null } })
+      return { ok: true }
+    }
     await strapi.db.query(GOOGLE_ACCOUNT_UID).update({ where: { id: existing.id }, data })
     return { ok: true }
   }
-  const byGoogleId = (await strapi.db.query(GOOGLE_ACCOUNT_UID).findOne({ where: { googleUserId: idPayload.sub } })) as GoogleAccountRow | null
-  if (byGoogleId) return { error: 'already_linked' }
   await strapi.db.query(GOOGLE_ACCOUNT_UID).create({ data })
   return { ok: true }
 }

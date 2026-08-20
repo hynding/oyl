@@ -161,6 +161,95 @@ describe('google oauth (booted, fake Google)', () => {
     expect(status.connected).toBe(false)
   })
 
+  it('link mode: linking a Google identity already linked to a DIFFERENT user redirects already_linked even when the linking user ALREADY HAS their own google-account row (update path, not just create)', async () => {
+    // User A links identityA (login mode creates A's google-account row).
+    const identityA = { sub: `updup-a-${Date.now()}`, email: `updup-a-${Date.now()}@gmail.test` }
+    fake.nextIdentity = identityA
+    const appUrlA = await signInWithGoogle(`${baseUrl}/google/connect?mode=login`)
+    const jwtA = fragmentParam(appUrlA, 'google')!
+    expect(jwtA).toBeTruthy()
+
+    // User B registers and links a DIFFERENT identity first, so B already has their OWN
+    // google-account row before the collision attempt below — this is what exercises the
+    // UPDATE path (3a), distinct from the existing create-path test above.
+    const other = await registerUser(baseUrl, `updup-b-${Date.now()}`)
+    const identityB = { sub: `updup-b-${Date.now()}`, email: `updup-b-${Date.now()}@gmail.test` }
+    fake.nextIdentity = identityB
+    const firstLinkRes = await fetch(`${baseUrl}/google/connect-url`, { headers: h(other.jwt) })
+    const { url: firstLinkUrl } = (await firstLinkRes.json()) as { url: string }
+    await followFromGoogle(firstLinkUrl, extractCookie(firstLinkRes))
+    const statusBBefore = (await (await fetch(`${baseUrl}/google/status`, { headers: h(other.jwt) })).json()) as { connected: boolean; email: string }
+    expect(statusBBefore.connected).toBe(true)
+    expect(statusBBefore.email).toBe(identityB.email)
+
+    // User B now tries to link identityA — already linked to user A. Because B already has a
+    // row (for identityB), the pre-fix code would skip the already_linked guard entirely (it
+    // only ran in the create branch) and attempt a raw update with A's googleUserId, throwing a
+    // unique-constraint violation that surfaced as the misleading exchange_failed.
+    const collideRes = await fetch(`${baseUrl}/google/connect-url`, { headers: h(other.jwt) })
+    const { url: collideUrl } = (await collideRes.json()) as { url: string }
+    fake.nextIdentity = identityA
+    const appUrl = await followFromGoogle(collideUrl, extractCookie(collideRes))
+    expect(appUrl.pathname).toBe('/profile')
+    expect(fragmentParam(appUrl, 'google_error')).toBe('already_linked')
+    expect(fragmentParam(appUrl, 'google')).toBeNull()
+
+    // Neither user's row was corrupted by the failed attempt.
+    const statusA = (await (await fetch(`${baseUrl}/google/status`, { headers: h(jwtA) })).json()) as { connected: boolean; email: string }
+    expect(statusA.connected).toBe(true)
+    expect(statusA.email).toBe(identityA.email)
+    const statusBAfter = (await (await fetch(`${baseUrl}/google/status`, { headers: h(other.jwt) })).json()) as { connected: boolean; email: string }
+    expect(statusBAfter.connected).toBe(true)
+    expect(statusBAfter.email).toBe(identityB.email)
+  })
+
+  it('re-consenting with a DIFFERENT Google identity but no fresh refresh_token clears the stored token WITHOUT relabeling googleUserId/email to the new identity', async () => {
+    // A user completes a normal link with identityOld.
+    const user = await registerUser(baseUrl, `relabel-${Date.now()}`)
+    const identityOld = { sub: `relabel-old-${Date.now()}`, email: `relabel-old-${Date.now()}@gmail.test` }
+    fake.nextIdentity = identityOld
+    const firstRes = await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })
+    const { url: firstUrl } = (await firstRes.json()) as { url: string }
+    await followFromGoogle(firstUrl, extractCookie(firstRes))
+    const statusAfterFirst = (await (await fetch(`${baseUrl}/google/status`, { headers: h(user.jwt) })).json()) as { connected: boolean; email: string }
+    expect(statusAfterFirst.connected).toBe(true)
+    expect(statusAfterFirst.email).toBe(identityOld.email)
+
+    // Simulate a second consent presenting a DIFFERENT identity while Google withholds the
+    // refresh_token (its normal behavior for an already-consented client). Because this user
+    // already has a stored refreshToken (from the first link above), the "no refresh token"
+    // retry-once guard does NOT fire here (`account?.refreshToken` is already truthy) — the
+    // callback proceeds straight into upsertGoogleAccount with refreshToken: null, which is
+    // exactly the 3b branch under test.
+    const identityNew = { sub: `relabel-new-${Date.now()}`, email: `relabel-new-${Date.now()}@gmail.test` }
+    fake.omitRefreshToken = true
+    fake.nextIdentity = identityNew
+    const secondRes = await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })
+    const { url: secondUrl } = (await secondRes.json()) as { url: string }
+    const appUrl = await followFromGoogle(secondUrl, extractCookie(secondRes))
+    fake.omitRefreshToken = false
+    expect(appUrl.pathname).toBe('/profile')
+    expect(fragmentParam(appUrl, 'google_error')).toBeNull() // not an error path — the callback still "succeeds" (issues a JWT)
+
+    // The row's stored token was cleared (disconnected), NOT relabeled under identityNew.
+    const statusAfterSecond = (await (await fetch(`${baseUrl}/google/status`, { headers: h(user.jwt) })).json()) as { connected: boolean }
+    expect(statusAfterSecond).toEqual({ connected: false })
+
+    // Proof the row's googleUserId/email are STILL identityOld's, not relabeled to identityNew:
+    // a fresh login-mode "Sign in with Google" presenting identityOld must resolve to this SAME
+    // user via the googleUserId lookup. If the row had been wrongly relabeled to identityNew, that
+    // lookup would miss, fall through to the email fallback (identityOld.email doesn't match this
+    // user's OYL account email — they registered under a different `@test.dev` address), and mint
+    // a brand-new user instead.
+    fake.nextIdentity = identityOld
+    const reloginUrl = await signInWithGoogle(`${baseUrl}/google/connect?mode=login`)
+    expect(fragmentParam(reloginUrl, 'google_error')).toBeNull()
+    const rejwt = fragmentParam(reloginUrl, 'google')!
+    expect(rejwt).toBeTruthy()
+    const reme = (await (await fetch(`${baseUrl}/users/me`, { headers: h(rejwt) })).json()) as { id: number }
+    expect(reme.id).toBe(user.userId)
+  })
+
   it('refresh token is stored ENCRYPTED (never plaintext in the DB row)', async () => {
     const user = await registerUser(baseUrl, `enc-${Date.now()}`)
     const connectUrlRes = await fetch(`${baseUrl}/google/connect-url`, { headers: h(user.jwt) })
