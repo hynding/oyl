@@ -22,6 +22,9 @@ E2E_BACKEND=php pnpm e2e   # the acceptance gate: the browser suite against this
 pnpm deploy:dreamhost # rsync + remote composer/artisan (config: OYL_DH_* in root .env)
 ```
 
+On a PHP without `ext-intl`, export `COMPOSER_IGNORE_PLATFORM_REQ=ext-intl` for the first
+`pnpm php-app build`; the API itself does not use intl.
+
 ## What is committed
 
 | File                                                                  | Purpose                                                                                                         |
