@@ -15,7 +15,12 @@ use Illuminate\Http\Request;
  *  - If a row with the given UPC already exists, return it (convergence; the client's own
  *    recordId yields to the shared row). Any signed-in user may read it.
  *  - A new UPC product is always public; a product without a UPC keeps the client's
- *    visibility (default private, from the schema).
+ *    visibility (default private, from the schema). An empty-string UPC is treated as
+ *    absent.
+ *  - PUT of an existing recordId whose payload adds a UPC not yet in the table updates
+ *    that row in place (via the generated update). strapi-oyl instead creates a second row
+ *    sharing the recordId; that is a Strapi-side bug, not part of the sync protocol, and is
+ *    intentionally not reproduced.
  * camis mirrors this file from overlay/ on every build.
  */
 class ConsumableProductApiController extends Generated

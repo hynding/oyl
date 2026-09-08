@@ -55,5 +55,9 @@ describe("overlay PHP", () => {
     expect(src).toContain("where('upc', $upc)")
     expect(src).toContain("parent::store(")
     expect(src).toContain("parent::update(")
+    expect(src).toContain("'visibility' => 'public'")
+    expect(src).toContain(
+      "ConsumableProductSerializer::toWire($existing)], 200)",
+    )
   })
 })

@@ -34,8 +34,12 @@ use Illuminate\Support\Facades\Route;
 /**
  * One boot read: every backed collection in scope for the signed-in user, keyed by the
  * REST plural path the client routes by (apps/vanilla-oyl/src/storage/bootstrap.js
- * PATH_BY_COLLECTION). Rows go through the same scope + policy + serializer as each
- * collection's own index(), so they decode identically whichever path fetched them.
+ * PATH_BY_COLLECTION). Rows go through the same `forUser` scope, the same per-row
+ * `can('view')` check, and the same serializer as each collection's own index(), so they
+ * decode identically whichever path fetched them. Unlike index(), this closure does not
+ * run the class-level `viewAny` check — every grant that reads a type also permits viewAny
+ * today, so this is a no-op in practice; if a role-gated type is ever added, add
+ * `Gate::authorize('viewAny', $model)` per collection above.
  */
 Route::middleware('auth:sanctum')->get('/bootstrap', function (Request $request) {
     $user = $request->user();
