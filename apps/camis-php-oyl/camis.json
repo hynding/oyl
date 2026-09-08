@@ -1,0 +1,849 @@
+{
+  "version": 1,
+  "contentTypes": [
+    {
+      "name": "Transaction",
+      "kind": "collection",
+      "names": {
+        "display": "Transaction",
+        "plural": "Transactions",
+        "collection": "transactions"
+      },
+      "fields": [
+        {
+          "type": "string",
+          "name": "recordId",
+          "required": true,
+          "unique": true
+        },
+        {
+          "type": "dateTime",
+          "name": "occurredAt",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "note"
+        },
+        {
+          "type": "component",
+          "name": "amount",
+          "component": "Money",
+          "repeatable": false
+        },
+        {
+          "type": "string",
+          "name": "category"
+        },
+        {
+          "type": "enumeration",
+          "name": "direction",
+          "values": [
+            "expense",
+            "income"
+          ]
+        },
+        {
+          "type": "string",
+          "name": "accountId"
+        },
+        {
+          "type": "relation",
+          "name": "owner",
+          "relationKind": "manyToOne",
+          "target": "User"
+        }
+      ],
+      "options": {
+        "draftPublish": false,
+        "timestamps": true,
+        "softDelete": false,
+        "upsertBy": "recordId"
+      }
+    },
+    {
+      "name": "Note",
+      "kind": "collection",
+      "names": {
+        "display": "Note",
+        "plural": "Notes",
+        "collection": "notes"
+      },
+      "fields": [
+        {
+          "type": "string",
+          "name": "recordId",
+          "required": true,
+          "unique": true
+        },
+        {
+          "type": "text",
+          "name": "text",
+          "required": true
+        },
+        {
+          "type": "json",
+          "name": "tags"
+        },
+        {
+          "type": "dateTime",
+          "name": "occurredAt",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "note"
+        },
+        {
+          "type": "relation",
+          "name": "owner",
+          "relationKind": "manyToOne",
+          "target": "User"
+        }
+      ],
+      "options": {
+        "draftPublish": false,
+        "timestamps": true,
+        "softDelete": false,
+        "upsertBy": "recordId"
+      }
+    },
+    {
+      "name": "Measurement",
+      "kind": "collection",
+      "names": {
+        "display": "Measurement",
+        "plural": "Measurements",
+        "collection": "measurements"
+      },
+      "fields": [
+        {
+          "type": "string",
+          "name": "recordId",
+          "required": true,
+          "unique": true
+        },
+        {
+          "type": "dateTime",
+          "name": "occurredAt",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "note"
+        },
+        {
+          "type": "string",
+          "name": "metric"
+        },
+        {
+          "type": "float",
+          "name": "value"
+        },
+        {
+          "type": "relation",
+          "name": "owner",
+          "relationKind": "manyToOne",
+          "target": "User"
+        }
+      ],
+      "options": {
+        "draftPublish": false,
+        "timestamps": true,
+        "softDelete": false,
+        "upsertBy": "recordId"
+      }
+    },
+    {
+      "name": "GoogleAccount",
+      "kind": "collection",
+      "names": {
+        "display": "Google Account",
+        "plural": "GoogleAccounts",
+        "collection": "google_accounts"
+      },
+      "fields": [
+        {
+          "type": "string",
+          "name": "googleUserId",
+          "required": true,
+          "unique": true
+        },
+        {
+          "type": "string",
+          "name": "email"
+        },
+        {
+          "type": "string",
+          "name": "scopes"
+        },
+        {
+          "type": "dateTime",
+          "name": "connectedAt"
+        },
+        {
+          "type": "text",
+          "name": "refreshToken"
+        },
+        {
+          "type": "relation",
+          "name": "user",
+          "relationKind": "oneToOne",
+          "target": "User"
+        }
+      ],
+      "options": {
+        "draftPublish": false,
+        "timestamps": true,
+        "softDelete": false
+      }
+    },
+    {
+      "name": "Goal",
+      "kind": "collection",
+      "names": {
+        "display": "Goal",
+        "plural": "Goals",
+        "collection": "goals"
+      },
+      "fields": [
+        {
+          "type": "string",
+          "name": "recordId",
+          "required": true,
+          "unique": true
+        },
+        {
+          "type": "string",
+          "name": "name"
+        },
+        {
+          "type": "string",
+          "name": "metric"
+        },
+        {
+          "type": "float",
+          "name": "target"
+        },
+        {
+          "type": "enumeration",
+          "name": "direction",
+          "values": [
+            "atLeast",
+            "atMost"
+          ]
+        },
+        {
+          "type": "enumeration",
+          "name": "period",
+          "values": [
+            "day",
+            "week",
+            "month"
+          ]
+        },
+        {
+          "type": "enumeration",
+          "name": "aggregation",
+          "values": [
+            "sum",
+            "avg",
+            "last"
+          ]
+        },
+        {
+          "type": "enumeration",
+          "name": "emptyPeriods",
+          "values": [
+            "met",
+            "skip"
+          ]
+        },
+        {
+          "type": "string",
+          "name": "areaId"
+        },
+        {
+          "type": "json",
+          "name": "pauses"
+        },
+        {
+          "type": "relation",
+          "name": "owner",
+          "relationKind": "manyToOne",
+          "target": "User"
+        }
+      ],
+      "options": {
+        "draftPublish": false,
+        "timestamps": true,
+        "softDelete": false,
+        "upsertBy": "recordId"
+      }
+    },
+    {
+      "name": "Consumption",
+      "kind": "collection",
+      "names": {
+        "display": "Consumption",
+        "plural": "Consumptions",
+        "collection": "consumptions"
+      },
+      "fields": [
+        {
+          "type": "string",
+          "name": "recordId",
+          "required": true,
+          "unique": true
+        },
+        {
+          "type": "dateTime",
+          "name": "occurredAt",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "note"
+        },
+        {
+          "type": "decimal",
+          "name": "servings"
+        },
+        {
+          "type": "string",
+          "name": "consumableId"
+        },
+        {
+          "type": "string",
+          "name": "consumableProductId"
+        },
+        {
+          "type": "json",
+          "name": "loggedAmount"
+        },
+        {
+          "type": "component",
+          "name": "nutrients",
+          "component": "NutritionFacts",
+          "repeatable": false
+        },
+        {
+          "type": "relation",
+          "name": "owner",
+          "relationKind": "manyToOne",
+          "target": "User"
+        }
+      ],
+      "options": {
+        "draftPublish": false,
+        "timestamps": true,
+        "softDelete": false,
+        "upsertBy": "recordId"
+      }
+    },
+    {
+      "name": "ConsumableProduct",
+      "kind": "collection",
+      "names": {
+        "display": "Consumable Product",
+        "plural": "ConsumableProducts",
+        "collection": "consumable_products"
+      },
+      "fields": [
+        {
+          "type": "string",
+          "name": "recordId",
+          "required": true,
+          "unique": true
+        },
+        {
+          "type": "string",
+          "name": "name",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "consumableId"
+        },
+        {
+          "type": "string",
+          "name": "upc",
+          "unique": true
+        },
+        {
+          "type": "string",
+          "name": "brand"
+        },
+        {
+          "type": "json",
+          "name": "netWeight"
+        },
+        {
+          "type": "decimal",
+          "name": "servingsPerContainer"
+        },
+        {
+          "type": "component",
+          "name": "facts",
+          "component": "NutritionFacts",
+          "repeatable": false
+        },
+        {
+          "type": "json",
+          "name": "ingredients"
+        },
+        {
+          "type": "json",
+          "name": "allergens"
+        },
+        {
+          "type": "relation",
+          "name": "creator",
+          "relationKind": "manyToOne",
+          "target": "User"
+        },
+        {
+          "type": "enumeration",
+          "name": "visibility",
+          "values": [
+            "private",
+            "public"
+          ],
+          "default": "private"
+        }
+      ],
+      "options": {
+        "draftPublish": false,
+        "timestamps": true,
+        "softDelete": false,
+        "upsertBy": "recordId"
+      }
+    },
+    {
+      "name": "Consumable",
+      "kind": "collection",
+      "names": {
+        "display": "Consumable",
+        "plural": "Consumables",
+        "collection": "consumables"
+      },
+      "fields": [
+        {
+          "type": "string",
+          "name": "recordId",
+          "required": true,
+          "unique": true
+        },
+        {
+          "type": "string",
+          "name": "name",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "slug",
+          "required": true
+        },
+        {
+          "type": "component",
+          "name": "facts",
+          "component": "NutritionFacts",
+          "repeatable": false
+        },
+        {
+          "type": "json",
+          "name": "ingredients"
+        },
+        {
+          "type": "json",
+          "name": "allergens"
+        },
+        {
+          "type": "relation",
+          "name": "creator",
+          "relationKind": "manyToOne",
+          "target": "User"
+        },
+        {
+          "type": "enumeration",
+          "name": "visibility",
+          "values": [
+            "private",
+            "public"
+          ],
+          "default": "public"
+        }
+      ],
+      "options": {
+        "draftPublish": false,
+        "timestamps": true,
+        "softDelete": false,
+        "upsertBy": "recordId"
+      }
+    },
+    {
+      "name": "Budget",
+      "kind": "collection",
+      "names": {
+        "display": "Budget",
+        "plural": "Budgets",
+        "collection": "budgets"
+      },
+      "fields": [
+        {
+          "type": "string",
+          "name": "recordId",
+          "required": true,
+          "unique": true
+        },
+        {
+          "type": "string",
+          "name": "name"
+        },
+        {
+          "type": "string",
+          "name": "category"
+        },
+        {
+          "type": "component",
+          "name": "limit",
+          "component": "Money",
+          "repeatable": false
+        },
+        {
+          "type": "relation",
+          "name": "owner",
+          "relationKind": "manyToOne",
+          "target": "User"
+        }
+      ],
+      "options": {
+        "draftPublish": false,
+        "timestamps": true,
+        "softDelete": false,
+        "upsertBy": "recordId"
+      }
+    },
+    {
+      "name": "ActivitySession",
+      "kind": "collection",
+      "names": {
+        "display": "Activity Session",
+        "plural": "ActivitySessions",
+        "collection": "activity_sessions"
+      },
+      "fields": [
+        {
+          "type": "string",
+          "name": "recordId",
+          "required": true,
+          "unique": true
+        },
+        {
+          "type": "dateTime",
+          "name": "occurredAt",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "note"
+        },
+        {
+          "type": "string",
+          "name": "activityId"
+        },
+        {
+          "type": "string",
+          "name": "slug"
+        },
+        {
+          "type": "component",
+          "name": "quantities",
+          "component": "Quantity",
+          "repeatable": true
+        },
+        {
+          "type": "relation",
+          "name": "owner",
+          "relationKind": "manyToOne",
+          "target": "User"
+        }
+      ],
+      "options": {
+        "draftPublish": false,
+        "timestamps": true,
+        "softDelete": false,
+        "upsertBy": "recordId"
+      }
+    },
+    {
+      "name": "Activity",
+      "kind": "collection",
+      "names": {
+        "display": "Activity",
+        "plural": "Activities",
+        "collection": "activities"
+      },
+      "fields": [
+        {
+          "type": "string",
+          "name": "recordId",
+          "required": true,
+          "unique": true
+        },
+        {
+          "type": "string",
+          "name": "name",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "slug",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "defaultUnit"
+        },
+        {
+          "type": "string",
+          "name": "areaId"
+        },
+        {
+          "type": "relation",
+          "name": "creator",
+          "relationKind": "manyToOne",
+          "target": "User"
+        },
+        {
+          "type": "enumeration",
+          "name": "visibility",
+          "values": [
+            "private",
+            "public"
+          ],
+          "default": "public"
+        }
+      ],
+      "options": {
+        "draftPublish": false,
+        "timestamps": true,
+        "softDelete": false,
+        "upsertBy": "recordId"
+      }
+    },
+    {
+      "name": "Account",
+      "kind": "collection",
+      "names": {
+        "display": "Account",
+        "plural": "Accounts",
+        "collection": "accounts"
+      },
+      "fields": [
+        {
+          "type": "string",
+          "name": "recordId",
+          "required": true,
+          "unique": true
+        },
+        {
+          "type": "string",
+          "name": "name",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "currency"
+        },
+        {
+          "type": "relation",
+          "name": "owner",
+          "relationKind": "manyToOne",
+          "target": "User"
+        }
+      ],
+      "options": {
+        "draftPublish": false,
+        "timestamps": true,
+        "softDelete": false,
+        "upsertBy": "recordId"
+      }
+    },
+    {
+      "name": "User",
+      "kind": "collection",
+      "builtin": "user",
+      "names": {
+        "display": "User",
+        "plural": "Users",
+        "collection": "users"
+      },
+      "fields": [
+        {
+          "type": "string",
+          "name": "username",
+          "required": true,
+          "unique": true
+        },
+        {
+          "type": "email",
+          "name": "email",
+          "required": true
+        }
+      ],
+      "options": {
+        "draftPublish": false,
+        "timestamps": true,
+        "softDelete": false
+      }
+    }
+  ],
+  "components": [
+    {
+      "name": "AdditionalNutrient",
+      "fields": [
+        {
+          "type": "string",
+          "name": "slug",
+          "required": true
+        },
+        {
+          "type": "decimal",
+          "name": "amount",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "NutritionFacts",
+      "fields": [
+        {
+          "type": "decimal",
+          "name": "calories"
+        },
+        {
+          "type": "decimal",
+          "name": "totalFat"
+        },
+        {
+          "type": "decimal",
+          "name": "saturatedFat"
+        },
+        {
+          "type": "decimal",
+          "name": "transFat"
+        },
+        {
+          "type": "decimal",
+          "name": "cholesterol"
+        },
+        {
+          "type": "decimal",
+          "name": "sodium"
+        },
+        {
+          "type": "decimal",
+          "name": "totalCarbohydrate"
+        },
+        {
+          "type": "decimal",
+          "name": "dietaryFiber"
+        },
+        {
+          "type": "decimal",
+          "name": "totalSugars"
+        },
+        {
+          "type": "decimal",
+          "name": "addedSugars"
+        },
+        {
+          "type": "decimal",
+          "name": "protein"
+        },
+        {
+          "type": "decimal",
+          "name": "vitaminD"
+        },
+        {
+          "type": "decimal",
+          "name": "calcium"
+        },
+        {
+          "type": "decimal",
+          "name": "iron"
+        },
+        {
+          "type": "decimal",
+          "name": "potassium"
+        },
+        {
+          "type": "decimal",
+          "name": "waterMl"
+        },
+        {
+          "type": "component",
+          "name": "servingSize",
+          "component": "ServingSize",
+          "repeatable": false
+        },
+        {
+          "type": "component",
+          "name": "additional",
+          "component": "AdditionalNutrient",
+          "repeatable": true
+        }
+      ]
+    },
+    {
+      "name": "ServingSize",
+      "fields": [
+        {
+          "type": "decimal",
+          "name": "amount",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "unit",
+          "required": true
+        },
+        {
+          "type": "string",
+          "name": "household"
+        }
+      ]
+    },
+    {
+      "name": "Money",
+      "fields": [
+        {
+          "type": "bigInteger",
+          "name": "minor"
+        },
+        {
+          "type": "string",
+          "name": "currency"
+        },
+        {
+          "type": "integer",
+          "name": "exponent"
+        }
+      ]
+    },
+    {
+      "name": "Quantity",
+      "fields": [
+        {
+          "type": "float",
+          "name": "amount"
+        },
+        {
+          "type": "string",
+          "name": "unit"
+        }
+      ]
+    }
+  ]
+}
