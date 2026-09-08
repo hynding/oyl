@@ -1,0 +1,2 @@
+# The generated Laravel app is disposable: `pnpm php-app build` recreates it.
+laravel/
