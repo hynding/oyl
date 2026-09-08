@@ -1,0 +1,359 @@
+{
+  "defaultRole": "authenticated",
+  "roles": [
+    {
+      "name": "authenticated",
+      "grants": [
+        {
+          "contentType": "Account",
+          "actions": [
+            "create",
+            "read",
+            "update",
+            "delete"
+          ],
+          "condition": {
+            "kind": "eq",
+            "left": {
+              "kind": "var",
+              "name": "record.ownerId"
+            },
+            "right": {
+              "kind": "var",
+              "name": "user.id"
+            }
+          },
+          "assign": {
+            "owner": "user.id"
+          }
+        },
+        {
+          "contentType": "Activity",
+          "actions": [
+            "read"
+          ],
+          "condition": {
+            "kind": "or",
+            "args": [
+              {
+                "kind": "eq",
+                "left": {
+                  "kind": "var",
+                  "name": "record.visibility"
+                },
+                "right": {
+                  "kind": "lit",
+                  "value": "public"
+                }
+              },
+              {
+                "kind": "eq",
+                "left": {
+                  "kind": "var",
+                  "name": "record.creatorId"
+                },
+                "right": {
+                  "kind": "var",
+                  "name": "user.id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "contentType": "Activity",
+          "actions": [
+            "create",
+            "update",
+            "delete"
+          ],
+          "condition": {
+            "kind": "eq",
+            "left": {
+              "kind": "var",
+              "name": "record.creatorId"
+            },
+            "right": {
+              "kind": "var",
+              "name": "user.id"
+            }
+          },
+          "assign": {
+            "creator": "user.id"
+          }
+        },
+        {
+          "contentType": "ActivitySession",
+          "actions": [
+            "create",
+            "read",
+            "update",
+            "delete"
+          ],
+          "condition": {
+            "kind": "eq",
+            "left": {
+              "kind": "var",
+              "name": "record.ownerId"
+            },
+            "right": {
+              "kind": "var",
+              "name": "user.id"
+            }
+          },
+          "assign": {
+            "owner": "user.id"
+          }
+        },
+        {
+          "contentType": "Budget",
+          "actions": [
+            "create",
+            "read",
+            "update",
+            "delete"
+          ],
+          "condition": {
+            "kind": "eq",
+            "left": {
+              "kind": "var",
+              "name": "record.ownerId"
+            },
+            "right": {
+              "kind": "var",
+              "name": "user.id"
+            }
+          },
+          "assign": {
+            "owner": "user.id"
+          }
+        },
+        {
+          "contentType": "Consumable",
+          "actions": [
+            "read"
+          ],
+          "condition": {
+            "kind": "or",
+            "args": [
+              {
+                "kind": "eq",
+                "left": {
+                  "kind": "var",
+                  "name": "record.visibility"
+                },
+                "right": {
+                  "kind": "lit",
+                  "value": "public"
+                }
+              },
+              {
+                "kind": "eq",
+                "left": {
+                  "kind": "var",
+                  "name": "record.creatorId"
+                },
+                "right": {
+                  "kind": "var",
+                  "name": "user.id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "contentType": "Consumable",
+          "actions": [
+            "create",
+            "update",
+            "delete"
+          ],
+          "condition": {
+            "kind": "eq",
+            "left": {
+              "kind": "var",
+              "name": "record.creatorId"
+            },
+            "right": {
+              "kind": "var",
+              "name": "user.id"
+            }
+          },
+          "assign": {
+            "creator": "user.id"
+          }
+        },
+        {
+          "contentType": "ConsumableProduct",
+          "actions": [
+            "read"
+          ],
+          "condition": {
+            "kind": "or",
+            "args": [
+              {
+                "kind": "eq",
+                "left": {
+                  "kind": "var",
+                  "name": "record.visibility"
+                },
+                "right": {
+                  "kind": "lit",
+                  "value": "public"
+                }
+              },
+              {
+                "kind": "eq",
+                "left": {
+                  "kind": "var",
+                  "name": "record.creatorId"
+                },
+                "right": {
+                  "kind": "var",
+                  "name": "user.id"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "contentType": "ConsumableProduct",
+          "actions": [
+            "create",
+            "update",
+            "delete"
+          ],
+          "condition": {
+            "kind": "eq",
+            "left": {
+              "kind": "var",
+              "name": "record.creatorId"
+            },
+            "right": {
+              "kind": "var",
+              "name": "user.id"
+            }
+          },
+          "assign": {
+            "creator": "user.id"
+          }
+        },
+        {
+          "contentType": "Consumption",
+          "actions": [
+            "create",
+            "read",
+            "update",
+            "delete"
+          ],
+          "condition": {
+            "kind": "eq",
+            "left": {
+              "kind": "var",
+              "name": "record.ownerId"
+            },
+            "right": {
+              "kind": "var",
+              "name": "user.id"
+            }
+          },
+          "assign": {
+            "owner": "user.id"
+          }
+        },
+        {
+          "contentType": "Goal",
+          "actions": [
+            "create",
+            "read",
+            "update",
+            "delete"
+          ],
+          "condition": {
+            "kind": "eq",
+            "left": {
+              "kind": "var",
+              "name": "record.ownerId"
+            },
+            "right": {
+              "kind": "var",
+              "name": "user.id"
+            }
+          },
+          "assign": {
+            "owner": "user.id"
+          }
+        },
+        {
+          "contentType": "Measurement",
+          "actions": [
+            "create",
+            "read",
+            "update",
+            "delete"
+          ],
+          "condition": {
+            "kind": "eq",
+            "left": {
+              "kind": "var",
+              "name": "record.ownerId"
+            },
+            "right": {
+              "kind": "var",
+              "name": "user.id"
+            }
+          },
+          "assign": {
+            "owner": "user.id"
+          }
+        },
+        {
+          "contentType": "Note",
+          "actions": [
+            "create",
+            "read",
+            "update",
+            "delete"
+          ],
+          "condition": {
+            "kind": "eq",
+            "left": {
+              "kind": "var",
+              "name": "record.ownerId"
+            },
+            "right": {
+              "kind": "var",
+              "name": "user.id"
+            }
+          },
+          "assign": {
+            "owner": "user.id"
+          }
+        },
+        {
+          "contentType": "Transaction",
+          "actions": [
+            "create",
+            "read",
+            "update",
+            "delete"
+          ],
+          "condition": {
+            "kind": "eq",
+            "left": {
+              "kind": "var",
+              "name": "record.ownerId"
+            },
+            "right": {
+              "kind": "var",
+              "name": "user.id"
+            }
+          },
+          "assign": {
+            "owner": "user.id"
+          }
+        }
+      ]
+    }
+  ]
+}
