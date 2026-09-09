@@ -9,6 +9,8 @@
     "vanilla": "pnpm --filter @oyl/vanilla-oyl",
     "e2e": "pnpm --filter @oyl/e2e-oyl e2e",
     "ocari": "pnpm --filter @oyl/ocari-oyl ocari",
+    "php-app": "pnpm --filter @oyl/camis-php-oyl",
+    "deploy:dreamhost": "bash scripts/deploy-dreamhost.sh",
     "dev": "node scripts/dev.mjs",
     "dev:watch": "node scripts/dev.mjs --watch",
     "dev:fresh": "node scripts/dev.mjs --fresh --watch",

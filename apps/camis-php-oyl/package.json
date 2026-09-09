@@ -1,0 +1,26 @@
+{
+  "name": "@oyl/camis-php-oyl",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "camis-generated Laravel backend serving the OYL sync API (Strapi-compatible) for DreamHost shared hosting",
+  "scripts": {
+    "import": "camis import strapi ../strapi-oyl --upsert-by recordId --out camis.json && pnpm roles",
+    "roles": "tsx scripts/generate-roles.ts",
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/dev.mjs",
+    "deploy": "bash ../../scripts/deploy-dreamhost.sh",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@camis/cli": "link:../../../camis/packages/cli",
+    "@oyl/all-of-oyl": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.19.0",
+    "typescript": "^5",
+    "vitest": "^4.1.10"
+  }
+}

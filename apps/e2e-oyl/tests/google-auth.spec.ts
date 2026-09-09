@@ -5,6 +5,9 @@
  */
 import { test, expect, registerUser, primeRemoteSignedOut } from '../lib/fixtures'
 
+// Google OAuth is served by strapi-oyl only; the PHP backend answers /google/config unconfigured.
+test.skip(process.env.E2E_BACKEND === 'php', 'google oauth is not part of the camis-php-oyl backend')
+
 test('sign in with Google from the login page creates a session', async ({ page }) => {
   await primeRemoteSignedOut(page)
   await page.goto('/login')

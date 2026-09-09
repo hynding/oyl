@@ -7,6 +7,7 @@ A personal productivity stack for tracking daily activities, goals, and nutritio
 - **`@oyl/all-of-oyl`** (`packages/all-of-oyl`) — shared zero-dependency TypeScript domain core (`src/`: journal, planner, vault, goals, insights, sharing, plus the offline-first sync engine). The single source of truth.
 - **`@oyl/vanilla-oyl`** (`apps/vanilla-oyl`) — flagship web app: zero runtime deps, vanilla JS + Web Components, local-first with an offline-first Remote mode.
 - **`@oyl/strapi-oyl-app`** (`apps/strapi-oyl`) — backend-agnostic Strapi 5 reference backend for the OYL sync protocol (`docs/oyl-sync-protocol-v1.md`).
+- **`@oyl/camis-php-oyl`** (`apps/camis-php-oyl`) — the same API as `strapi-oyl`, generated as a Laravel app by [camis](https://github.com/hynding/camis) for PHP shared hosting.
 
 > The earlier React/Next/Storybook/Strapi/Playwright stack was removed on 2026-06-16 and is preserved on branch `legacy/2026-06-16`.
 

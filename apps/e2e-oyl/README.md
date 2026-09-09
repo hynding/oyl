@@ -11,8 +11,14 @@ pnpm --filter @oyl/e2e-oyl e2e:ui     # interactive runner
 pnpm --filter @oyl/e2e-oyl report     # open the last HTML report
 ```
 
+`E2E_BACKEND=php pnpm e2e` runs the identical suite against the camis-generated PHP backend
+(`apps/camis-php-oyl`, built with `pnpm php-app build`). It is the Strapi-compatibility gate
+for that backend; `google-auth.spec.ts` is skipped there because Google OAuth stays on Strapi.
+
 Both servers auto-start on dedicated ports (app `:8042`, backend `:1341` — never collides
-with native dev on 8041/1340) and are reused across runs for fast iteration. The backend
+with native dev on 8041/1340) and are reused across runs for fast iteration. Reuse is by port
+alone, so when switching between the two backends kill whatever holds `:1341` first — Playwright
+would otherwise silently run the suite against the backend you just switched away from. The backend
 boot script rebuilds `strapi dist/` only when missing; after changing strapi `src/`, run
 `pnpm strapi-app build` and restart (kill the process on :1341, the next run reboots it).
 After changing `all-of-oyl/src`, the app webServer re-runs `vanilla build:lib` on next

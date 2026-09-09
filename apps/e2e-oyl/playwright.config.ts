@@ -8,7 +8,12 @@ import { APP_URL, APP_PORT, BACKEND_PORT, FAKE_GOOGLE_PORT } from './lib/urls'
  *
  * Both servers auto-start (and are reused when already running, so `pnpm e2e` iterates fast).
  * Every test runs on BOTH the desktop and mobile projects unless it opts out.
+ *
+ * E2E_BACKEND=php runs the same suite against the camis-generated PHP backend
+ * (apps/camis-php-oyl) — the Strapi-compatibility gate.
  */
+const PHP = process.env.E2E_BACKEND === 'php'
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
@@ -40,8 +45,10 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
-      command: 'node scripts/start-backend.mjs',
-      url: `http://localhost:${BACKEND_PORT}/_health`,
+      command: PHP ? 'node scripts/start-php-backend.mjs' : 'node scripts/start-backend.mjs',
+      url: PHP
+        ? `http://localhost:${BACKEND_PORT}/api/_health`
+        : `http://localhost:${BACKEND_PORT}/_health`,
       reuseExistingServer: true,
       timeout: 180_000,
       stdout: 'ignore',

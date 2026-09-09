@@ -1,0 +1,13 @@
+{
+  "ir": "./camis.json",
+  "roles": "./roles.json",
+  "protected": "./overlay",
+  "targets": [
+    {
+      "target": "filament",
+      "out": "./laravel",
+      "apiStyle": "strapi",
+      "projectName": "oyl"
+    }
+  ]
+}
