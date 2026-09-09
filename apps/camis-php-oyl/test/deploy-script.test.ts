@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process"
+import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 
@@ -35,5 +36,14 @@ describe("deploy-dreamhost.sh", () => {
     })
     expect(res.status).toBe(1)
     expect(res.stderr).toContain("unknown argument")
+  })
+  it("rsync excludes bootstrap/cache and storage/app (a local config:cache or upload must never ship)", () => {
+    const src = readFileSync(SCRIPT, "utf8")
+    const line = src
+      .split("\n")
+      .find((l) => l.trimStart().startsWith("RSYNC_FLAGS=("))
+    expect(line).toBeDefined()
+    expect(line).toContain("--exclude 'bootstrap/cache/'")
+    expect(line).toContain("--exclude 'storage/app/'")
   })
 })

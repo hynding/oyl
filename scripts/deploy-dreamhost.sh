@@ -76,7 +76,7 @@ pnpm --filter @oyl/camis-php-oyl build >/dev/null
 printf 'sha=%s\ndeployed_utc=%s\n' "$(git rev-parse HEAD)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$APP_DIR/laravel/DEPLOYED"
 
 # vendor/ is installed on the host (platform-matched); .env and the sqlite files never ship.
-RSYNC_FLAGS=(-a --delete --exclude vendor/ --exclude node_modules/ --exclude '.env' --exclude 'database/*.sqlite' --exclude 'storage/logs/' --exclude 'storage/framework/cache/')
+RSYNC_FLAGS=(-a --delete --exclude vendor/ --exclude node_modules/ --exclude '.env' --exclude 'database/*.sqlite' --exclude 'storage/logs/' --exclude 'storage/framework/cache/' --exclude 'bootstrap/cache/' --exclude 'storage/app/')
 
 if [[ $DRY_RUN -eq 1 ]]; then
   echo "==> DRY RUN: rsync delta ($SHORT -> $DH_SSH:$APP_ROOT/laravel); nothing will change"
