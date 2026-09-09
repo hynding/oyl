@@ -27,14 +27,14 @@ On a PHP without `ext-intl`, export `COMPOSER_IGNORE_PLATFORM_REQ=ext-intl` for 
 
 ## What is committed
 
-| File                                                                  | Purpose                                                                                                         |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `camis.config.json`                                                   | camis project config: IR, roles, `overlay/` as the protected dir, one filament target with `apiStyle: "strapi"` |
-| `camis.json`                                                          | IR imported from `../strapi-oyl` (generated; reviewable diffs)                                                  |
-| `roles.json`                                                          | one `authenticated` role derived from `KINDS` (generated)                                                       |
-| `overlay/routes/api-custom.php`                                       | `GET /bootstrap` and `GET /google/config`                                                                       |
-| `overlay/app/Http/Controllers/Api/ConsumableProductApiController.php` | UPC dedup + UPC-implies-public                                                                                  |
-| `.env.example`                                                        | production env template (MySQL, `SANCTUM_TOKEN_EXPIRATION`)                                                     |
+| File                                                                  | Purpose                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `camis.config.json`                                                   | camis project config: IR, roles, `overlay/` as the protected dir, one filament target with `apiStyle: "strapi"`                                                                                                                                                                                                                                                              |
+| `camis.json`                                                          | IR imported from `../strapi-oyl` (generated; reviewable diffs)                                                                                                                                                                                                                                                                                                               |
+| `roles.json`                                                          | one `authenticated` role derived from `KINDS` (generated)                                                                                                                                                                                                                                                                                                                    |
+| `overlay/routes/api-custom.php`                                       | `GET /bootstrap` and `GET /google/config`                                                                                                                                                                                                                                                                                                                                    |
+| `overlay/app/Http/Controllers/Api/ConsumableProductApiController.php` | UPC dedup + UPC-implies-public                                                                                                                                                                                                                                                                                                                                               |
+| `.env.example`                                                        | production env template (MySQL, `SANCTUM_TOKEN_EXPIRATION`, `CAMIS_AUTH_THROTTLE_PER_MINUTE`). `SANCTUM_TOKEN_EXPIRATION` is currently a no-op: the scaffolded `config/sanctum.php` reads a literal `null` until camis emits `env('SANCTUM_TOKEN_EXPIRATION')` there (camis follow-up) — until then, set `'expiration'` in `laravel/config/sanctum.php` on the host by hand. |
 
 ## DreamHost one-time setup
 
@@ -47,3 +47,5 @@ On a PHP without `ext-intl`, export `COMPOSER_IGNORE_PLATFORM_REQ=ext-intl` for 
    anyone registers.
 6. Add to the untracked root `.env`: `OYL_DH_SSH=<user>@<host>`, `OYL_DH_APP_ROOT=<path>`,
    `OYL_DH_SITE_URL=https://<api-domain>`.
+7. Changing `CAMIS_AUTH_THROTTLE_PER_MINUTE` on the host requires `php artisan config:cache`
+   (the deploy script runs it).
