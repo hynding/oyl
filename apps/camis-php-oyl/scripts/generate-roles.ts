@@ -54,6 +54,9 @@ const camel = (s: string): string =>
 /** IR type → KINDS key: `ActivitySessions` → `activity-sessions` → `activitySessions`. */
 export const kindsKey = (ct: ContentType): string =>
   camel(kebab(ct.names?.plural ?? `${ct.name}s`))
+/** IR type → REST plural path a client/route keys by: `ActivitySessions` → `activity-sessions`. */
+export const restPath = (ct: ContentType): string =>
+  kebab(ct.names?.plural ?? `${ct.name}s`)
 
 const v = (name: string): Expression => ({ kind: "var", name })
 const eqUser = (fk: string): Expression => ({
