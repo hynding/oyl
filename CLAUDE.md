@@ -4,7 +4,7 @@ Operator notes for working in this repo. Keep terse; update when something chang
 
 ## What this is
 
-OYL ("Organize Your Life") — a personal productivity stack covering daily activities, goals, and nutrition tracking. pnpm workspace monorepo. Four members: a shared zero-dependency TS domain core (`@oyl/all-of-oyl`), a flagship vanilla-JS app (`apps/vanilla-oyl`), a Strapi backend (`apps/strapi-oyl`), and a Playwright browser e2e suite (`apps/e2e-oyl`).
+OYL ("Organize Your Life") — a personal productivity stack covering daily activities, goals, and nutrition tracking. pnpm workspace monorepo. Six members: a shared zero-dependency TS domain core (`@oyl/all-of-oyl`), a flagship vanilla-JS app (`apps/vanilla-oyl`), a Strapi backend (`apps/strapi-oyl`), a camis-generated PHP backend (`apps/camis-php-oyl`), a Playwright browser e2e suite (`apps/e2e-oyl`), and a receipt/document parsing CLI (`packages/ocari-oyl`).
 
 `apps/` is the home for all apps; everything shared lives in `@oyl/all-of-oyl` `src/` (the single source of truth). The legacy stack (`next-oyl`, `react-oyl`, `storybook-oyl`, `strapi-oyl`, `e2e-oyl`, the old `vanilla-oyl` testbed, `vendors/firebase`, and the `all-of-oyl` `modules/`+`vendors/` barrels) was removed on 2026-06-16 — **preserved on branch `legacy/2026-06-16`** if you need to reference or restore any of it.
 

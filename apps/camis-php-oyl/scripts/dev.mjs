@@ -5,7 +5,7 @@
  * First run migrates + seeds the role; `--fresh` wipes the database first.
  */
 import { spawn, spawnSync } from "node:child_process"
-import { existsSync, rmSync } from "node:fs"
+import { existsSync, rmSync, writeFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -27,7 +27,7 @@ if (!existsSync(resolve(LARAVEL, "artisan"))) {
 if (process.argv.includes("--fresh")) rmSync(DB, { force: true })
 const fresh = !existsSync(DB)
 if (fresh) {
-  spawnSync("touch", [DB])
+  writeFileSync(DB, "")
   for (const args of [
     ["migrate", "--force"],
     ["db:seed", "--class=RolePermissionSeeder", "--force"],

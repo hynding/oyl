@@ -32,6 +32,8 @@ const env = {
 }
 
 rmSync(DB, { force: true })
+rmSync(`${DB}-wal`, { force: true })
+rmSync(`${DB}-shm`, { force: true })
 writeFileSync(DB, '')
 for (const args of [
   ['migrate', '--force'],

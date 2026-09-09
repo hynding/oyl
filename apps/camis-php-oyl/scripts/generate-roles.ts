@@ -120,8 +120,11 @@ export function generateRoles(ir: Ir): RolesFile {
   }
   grants.sort(
     (a, b) =>
-      a.contentType.localeCompare(b.contentType) ||
-      a.actions.length - b.actions.length,
+      (a.contentType < b.contentType
+        ? -1
+        : a.contentType > b.contentType
+          ? 1
+          : 0) || a.actions.length - b.actions.length,
   )
   return {
     defaultRole: "authenticated",
