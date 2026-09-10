@@ -17,6 +17,15 @@ const product = resolve(
   OVERLAY,
   "app/Http/Controllers/Api/ConsumableProductApiController.php",
 )
+const money = resolve(OVERLAY, "app/Support/OylMoney.php")
+const txController = resolve(
+  OVERLAY,
+  "app/Http/Controllers/Api/TransactionApiController.php",
+)
+const budgetController = resolve(
+  OVERLAY,
+  "app/Http/Controllers/Api/BudgetApiController.php",
+)
 
 const hasPhp = (): boolean => {
   try {
@@ -67,7 +76,7 @@ const ir = JSON.parse(readFileSync(resolve(PKG, "camis.json"), "utf8")) as Ir
 
 describe("overlay PHP", () => {
   it.skipIf(!hasPhp())("lints", () => {
-    for (const f of [routes, product])
+    for (const f of [routes, product, money, txController, budgetController])
       expect(execFileSync("php", ["-l", f], { encoding: "utf8" })).toContain(
         "No syntax errors",
       )
@@ -139,5 +148,66 @@ describe("overlay PHP", () => {
     expect(src).toContain(
       "ConsumableProductSerializer::toWire($existing)], 200)",
     )
+  })
+})
+
+/**
+ * strapi-oyl coerces `finance.money`'s `minor` (a Strapi `biginteger`) from the wire string
+ * Strapi renders to a JS number, because the domain decoder (`Money.fromJSON`) only accepts a
+ * number — see apps/strapi-oyl/src/utils/finance-money.ts. camis emits the stock-Strapi string,
+ * so the overlay has to mirror that OYL-specific coercion here.
+ */
+describe("money minor is a JSON number (mirrors strapi-oyl sanitizeMoney)", () => {
+  const php = (code: string): string =>
+    execFileSync("php", ["-r", `require '${money}'; ${code}`], {
+      encoding: "utf8",
+    })
+
+  it.skipIf(!hasPhp())("coerces a biginteger wire string to a number", () => {
+    const out = php(
+      `echo json_encode(\\App\\Support\\OylMoney::inWire(['recordId' => 'tx-1', 'amount' => ['minor' => '1234', 'currency' => 'USD', 'exponent' => 2]], 'amount'));`,
+    )
+    expect(JSON.parse(out)).toEqual({
+      recordId: "tx-1",
+      amount: { minor: 1234, currency: "USD", exponent: 2 },
+    })
+  })
+
+  it.skipIf(!hasPhp())("leaves a row without that component untouched", () => {
+    const out = php(
+      `echo json_encode(\\App\\Support\\OylMoney::inWire(['recordId' => 'tx-1'], 'amount'));`,
+    )
+    expect(JSON.parse(out)).toEqual({ recordId: "tx-1" })
+  })
+
+  it.skipIf(!hasPhp())("leaves a non-numeric minor alone", () => {
+    const out = php(
+      `echo json_encode(\\App\\Support\\OylMoney::inWire(['amount' => ['minor' => 'nope']], 'amount'));`,
+    )
+    expect(JSON.parse(out)).toEqual({ amount: { minor: "nope" } })
+  })
+
+  it("both money-bearing controllers coerce their component on the way out", () => {
+    const tx = readFileSync(txController, "utf8")
+    expect(tx).toContain("extends Generated")
+    expect(tx).toContain("OylMoney::inResponse(")
+    expect(tx).toContain("'amount'")
+    for (const m of ["index", "show", "store", "update"])
+      expect(tx, m).toContain(`parent::${m}(`)
+
+    const budget = readFileSync(budgetController, "utf8")
+    expect(budget).toContain("extends Generated")
+    expect(budget).toContain("OylMoney::inResponse(")
+    expect(budget).toContain("'limit'")
+    for (const m of ["index", "show", "store", "update"])
+      expect(budget, m).toContain(`parent::${m}(`)
+  })
+
+  it("the /bootstrap route coerces both money components too", () => {
+    const src = readFileSync(routes, "utf8")
+    expect(src).toContain("use App\\Support\\OylMoney;")
+    expect(src).toContain("Transaction::class => 'amount'")
+    expect(src).toContain("Budget::class => 'limit'")
+    expect(src).toContain("OylMoney::inWire(")
   })
 })

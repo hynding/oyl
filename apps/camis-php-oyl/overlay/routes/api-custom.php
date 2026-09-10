@@ -28,6 +28,7 @@ use App\Models\Goal;
 use App\Models\Measurement;
 use App\Models\Note;
 use App\Models\Transaction;
+use App\Support\OylMoney;
 use App\Support\StrapiComponents;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -73,16 +74,26 @@ Route::middleware(StrapiJwtGuard::class)->get('/bootstrap', function (Request $r
         ConsumableProduct::class => ConsumableProductSerializer::class,
     ];
 
+    // The OYL money coercion the collection's own controller applies (App\Support\OylMoney):
+    // `minor` leaves as a JSON number, matching strapi-oyl rather than stock Strapi.
+    $moneyFields = [
+        Transaction::class => 'amount',
+        Budget::class => 'limit',
+    ];
+
     $data = [];
     foreach ($collections as $path => $model) {
         $serializer = $serializers[$model];
+        $money = $moneyFields[$model] ?? null;
         $rows = $model::query()->forUser($user)->get();
         // Components live in Strapi's _cmps/component tables; the model trait loads them lazily
         // per row, so preload the whole page here (one query per component table per collection).
         StrapiComponents::load($rows, $model::COMPONENT_MAP);
         $data[$path] = $rows
             ->filter(fn (Model $m) => $user->can('view', $m))
-            ->map(fn (Model $m) => $serializer::toWire($m))
+            ->map(fn (Model $m) => $money === null
+                ? $serializer::toWire($m)
+                : OylMoney::inWire($serializer::toWire($m), $money))
             ->values()
             ->all();
     }
