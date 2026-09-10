@@ -54,8 +54,10 @@ deferrals. None blocks merge. The camis-side list lives in the camis repo at
 - The `$serializers` map in `overlay/routes/api-custom.php` is derivable from `$collections`
   via `class_basename`; kept explicit for IDE/static verifiability.
 - `/bootstrap` issues 11 unpaginated queries ~~plus per-row child lazy-loads~~ (components are
-  now preloaded with `StrapiComponents::load` per collection); the 11 unpaginated queries remain
-  (same cost model as the generated `index()`) — a camis-wide eager-loading follow-up.
+  now preloaded with `StrapiComponents::load` per collection, and the owner/creator relation
+  every per-row `can('view')` reads is eager-loaded from the `$owners` map, so the cost model
+  matches the generated `index()` again); the eleven unpaginated queries remain — paginating a
+  boot read is a camis-wide follow-up.
 
 ## e2e
 

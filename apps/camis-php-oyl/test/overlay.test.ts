@@ -61,12 +61,37 @@ const backedTypes = (ir: Ir): ContentType[] =>
 const backedEntries = (ir: Ir): [path: string, model: string][] =>
   backedTypes(ir).map((ct) => [restPath(ct), ct.name])
 
+/**
+ * The relation the IR declares from a type to `User` — `owner` on a personal type, `creator`
+ * on a catalog one. In the Strapi storage layout `record.ownerId`/`record.creatorId` resolve
+ * through a belongsToMany accessor, so every read of them costs a query unless the relation is
+ * eager-loaded; the generated `scoped()` loads exactly this relation, and /bootstrap must too.
+ */
+const userRelation = (ct: ContentType): string | undefined =>
+  ct.fields.find(
+    (f) =>
+      f.type === "relation" &&
+      f.target === "User" &&
+      (f.relationKind === "manyToOne" || f.relationKind === "oneToOne"),
+  )?.name
+
 /** Pull the `$collections = [ ... ];` literal's `'path' => Model::class` entries. */
 const collectionsLiteral = (src: string): Map<string, string> => {
   const m = src.match(/\$collections\s*=\s*\[([\s\S]*?)\n\s*\];/)
   if (!m) throw new Error("could not find a `$collections = [ ... ];` literal")
   const entries = new Map<string, string>()
   for (const em of m[1]!.matchAll(/'([\w-]+)'\s*=>\s*(\w+)::class/g)) {
+    entries.set(em[1]!, em[2]!)
+  }
+  return entries
+}
+
+/** Pull the `$owners = [ ... ];` literal's `Model::class => 'relation'` entries. */
+const ownersLiteral = (src: string): Map<string, string> => {
+  const m = src.match(/\$owners\s*=\s*\[([\s\S]*?)\n\s*\];/)
+  if (!m) throw new Error("could not find an `$owners = [ ... ];` literal")
+  const entries = new Map<string, string>()
+  for (const em of m[1]!.matchAll(/(\w+)::class\s*=>\s*'(\w+)'/g)) {
     entries.set(em[1]!, em[2]!)
   }
   return entries
@@ -102,12 +127,27 @@ describe("overlay PHP", () => {
         `${ct.name} (${key})`,
       ).toContain(key)
     }
+    // …and every one of them is eager-loaded on the relation the per-row `can('view')` reads,
+    // so /bootstrap keeps the generated index()'s cost model instead of one query per row.
+    const owners = ownersLiteral(src)
+    expect(
+      new Set(owners.keys()),
+      "an $owners entry for every $collections model",
+    ).toEqual(new Set(actual.values()))
+    for (const ct of backedTypes(ir)) {
+      expect(owners.get(ct.name), `${ct.name} eager-load relation`).toBe(
+        userRelation(ct),
+      )
+    }
+    expect(src).toContain("->with([$owners[$model]])")
     expect(src).toContain(
       "Route::middleware(StrapiJwtGuard::class)->get('/bootstrap'",
     )
     expect(src).not.toContain("auth:sanctum")
     expect(src).toContain("use App\\Http\\Middleware\\StrapiJwtGuard;")
-    expect(src).toContain("StrapiComponents::load($rows, $model::COMPONENT_MAP);")
+    expect(src).toContain(
+      "StrapiComponents::load($rows, $model::COMPONENT_MAP);",
+    )
     expect(src).toContain("Route::get('/google/config'")
   })
   it("the guard bites: an owned content type absent from $collections fails the comparison", () => {

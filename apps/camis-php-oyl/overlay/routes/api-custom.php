@@ -74,6 +74,24 @@ Route::middleware(StrapiJwtGuard::class)->get('/bootstrap', function (Request $r
         ConsumableProduct::class => ConsumableProductSerializer::class,
     ];
 
+    // The relation each row's `ownerId`/`creatorId` resolves through — one entry per
+    // $collections model, mirroring the `->with([...])` of the generated controller's
+    // scoped(). In the Strapi storage layout that id comes off a belongsToMany accessor, so
+    // without this eager load the per-row `can('view')` below costs one query per row.
+    $owners = [
+        Note::class => 'owner',
+        Consumption::class => 'owner',
+        Transaction::class => 'owner',
+        Measurement::class => 'owner',
+        ActivitySession::class => 'owner',
+        Account::class => 'owner',
+        Budget::class => 'owner',
+        Goal::class => 'owner',
+        Activity::class => 'creator',
+        Consumable::class => 'creator',
+        ConsumableProduct::class => 'creator',
+    ];
+
     // The OYL money coercion the collection's own controller applies (App\Support\OylMoney):
     // `minor` leaves as a JSON number, matching strapi-oyl rather than stock Strapi.
     $moneyFields = [
@@ -85,7 +103,7 @@ Route::middleware(StrapiJwtGuard::class)->get('/bootstrap', function (Request $r
     foreach ($collections as $path => $model) {
         $serializer = $serializers[$model];
         $money = $moneyFields[$model] ?? null;
-        $rows = $model::query()->forUser($user)->get();
+        $rows = $model::query()->forUser($user)->with([$owners[$model]])->get();
         // Components live in Strapi's _cmps/component tables; the model trait loads them lazily
         // per row, so preload the whole page here (one query per component table per collection).
         StrapiComponents::load($rows, $model::COMPONENT_MAP);
