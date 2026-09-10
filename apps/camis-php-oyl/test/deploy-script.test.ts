@@ -52,6 +52,20 @@ describe("deploy-dreamhost.sh", () => {
     expect(src).not.toContain("php artisan migrate")
     expect(src).not.toContain("RolePermissionSeeder")
   })
+  it("fails fast unless the remote laravel/.env carries a JWT_SECRET of at least 32 bytes, and never echoes it", () => {
+    const src = readFileSync(SCRIPT, "utf8")
+    expect(src).toContain("^JWT_SECRET=")
+    expect(src).toContain("-ge 32")
+    // …after the .env existence check and before anything expensive runs.
+    const envCheck = src.indexOf("[ -f .env ]")
+    const guard = src.indexOf("secret_len")
+    expect(envCheck, ".env existence check").toBeGreaterThan(-1)
+    expect(guard).toBeGreaterThan(envCheck)
+    expect(guard).toBeLessThan(src.indexOf("composer install"))
+    // The message points at the README rather than printing the secret.
+    expect(src).toContain("apps/camis-php-oyl/README.md")
+    expect(src).not.toMatch(/echo[^\n]*\$\{?secret/)
+  })
   it("clears the config cache before the schema check (rsync excludes bootstrap/cache, so the check would read the previous deploy's cached config)", () => {
     const src = readFileSync(SCRIPT, "utf8")
     const clear = src.indexOf("php artisan config:clear")

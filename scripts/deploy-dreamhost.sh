@@ -94,6 +94,11 @@ ssh "$DH_SSH" "APP_ROOT=$(printf %q "$APP_ROOT") bash -l -s" <<'REMOTE'
 set -euo pipefail
 cd "$APP_ROOT/laravel"
 [ -f .env ] || { echo "remote: laravel/.env missing — create it from apps/camis-php-oyl/.env.example first"; exit 1; }
+# The HS256 key is shared with the Strapi instance that owns this database; firebase/php-jwt
+# refuses anything shorter than 32 bytes, so a placeholder .env would 500 every signed request.
+# Length only — the value is never printed. Last assignment wins, as dotenv reads it.
+secret_len="$(awk '/^JWT_SECRET=/{v=$0; sub(/^JWT_SECRET=/, "", v); sub(/\r$/, "", v); gsub(/^"|"$/, "", v)} END{print length(v)}' .env)"
+[ "${secret_len:-0}" -ge 32 ] || { echo "remote: JWT_SECRET in laravel/.env must be the Strapi secret (>= 32 bytes) — see apps/camis-php-oyl/README.md Schema sync"; exit 1; }
 composer install --no-dev --optimize-autoloader --no-interaction
 # bootstrap/cache/ is rsync-excluded, so the previous deploy's config:cache is still on the
 # host: clear it or the check would read that stale config (e.g. the old database credentials).
