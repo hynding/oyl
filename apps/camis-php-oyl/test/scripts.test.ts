@@ -74,3 +74,16 @@ describe("e2e start-php-backend.mjs", () => {
     expect(src).not.toContain("SANCTUM_TOKEN_EXPIRATION")
   })
 })
+
+describe(".env.example", () => {
+  const src = read(".env.example")
+  it("carries the shared-database settings and no Sanctum leftovers", () => {
+    expect(src).toContain("JWT_SECRET=")
+    expect(src).toContain("CAMIS_EMAIL_CONFIRMATION=false")
+    expect(src).toContain("CACHE_STORE=file")
+    expect(src).toContain("SESSION_DRIVER=array")
+    expect(src).toContain("QUEUE_CONNECTION=sync")
+    expect(src).toContain("CAMIS_AUTH_THROTTLE_PER_MINUTE=")
+    expect(src).not.toContain("SANCTUM")
+  })
+})

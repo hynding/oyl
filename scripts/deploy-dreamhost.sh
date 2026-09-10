@@ -89,14 +89,15 @@ echo "==> Syncing laravel/ -> $DH_SSH:$APP_ROOT/laravel"
 ssh "$DH_SSH" "mkdir -p $(printf %q "$APP_ROOT")/laravel"
 rsync "${RSYNC_FLAGS[@]}" "$APP_DIR/laravel"/ "$DH_SSH:$APP_ROOT/laravel"/
 
-echo "==> Remote composer + migrate + seed + cache"
+echo "==> Remote composer + schema check + cache"
 ssh "$DH_SSH" "APP_ROOT=$(printf %q "$APP_ROOT") bash -l -s" <<'REMOTE'
 set -euo pipefail
 cd "$APP_ROOT/laravel"
 [ -f .env ] || { echo "remote: laravel/.env missing — create it from apps/camis-php-oyl/.env.example first"; exit 1; }
 composer install --no-dev --optimize-autoloader --no-interaction
-php artisan migrate --force
-php artisan db:seed --class=RolePermissionSeeder --force
+# Strapi owns the schema: this fails (listing every missing table/column) until strapi-oyl has
+# been booted against this MySQL database — see apps/camis-php-oyl/README.md "Schema sync".
+php artisan camis:strapi-schema-check
 php artisan config:cache
 cat DEPLOYED
 REMOTE

@@ -46,4 +46,10 @@ describe("deploy-dreamhost.sh", () => {
     expect(line).toContain("--exclude 'bootstrap/cache/'")
     expect(line).toContain("--exclude 'storage/app/'")
   })
+  it("verifies the Strapi-owned schema remotely instead of migrating or seeding", () => {
+    const src = readFileSync(SCRIPT, "utf8")
+    expect(src).toContain("php artisan camis:strapi-schema-check")
+    expect(src).not.toContain("php artisan migrate")
+    expect(src).not.toContain("RolePermissionSeeder")
+  })
 })
