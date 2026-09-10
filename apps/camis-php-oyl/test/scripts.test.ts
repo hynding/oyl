@@ -62,6 +62,23 @@ describe("e2e start-php-backend.mjs", () => {
     expect(src).not.toContain("migrate")
     expect(src).not.toContain("RolePermissionSeeder")
   })
+  it("fails fast when the Strapi child dies instead of hanging the health wait until Playwright times out", () => {
+    // A leftover Strapi on the e2e port makes the child exit on EADDRINUSE; the health wait
+    // would otherwise poll a port that will never answer 204 for its full timeout.
+    expect(src).toContain("const strapiExit = once(strapi, 'exit')")
+    expect(src).toContain("Promise.race(")
+    expect(src).toContain("await strapiExit")
+    // A killed child reports signalCode, not exitCode — both must count as gone.
+    expect(src).toContain("exitCode === null")
+    expect(src).toContain("signalCode === null")
+    // Signal handlers are in place before Strapi is spawned, so a Ctrl-C during its boot
+    // still kills it rather than orphaning it.
+    const sigterm = src.indexOf("process.on('SIGTERM'")
+    const spawnStrapi = src.indexOf("spawn(process.execPath")
+    expect(sigterm, "SIGTERM handler").toBeGreaterThan(-1)
+    expect(spawnStrapi, "strapi spawn").toBeGreaterThan(-1)
+    expect(sigterm).toBeLessThan(spawnStrapi)
+  })
   it("shares a JWT secret of at least 32 bytes with Strapi", () => {
     const m = src.match(/const JWT_SECRET = '([^']+)'/)
     expect(m).not.toBeNull()

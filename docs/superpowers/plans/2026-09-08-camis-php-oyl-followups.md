@@ -66,11 +66,13 @@ deferrals. None blocks merge. The camis-side list lives in the camis repo at
 - `start-php-backend.mjs` mixes `spawnSync`/`spawn` argument styles (cosmetic).
 - The e2e directory keeps single quotes / 100 columns rather than the root `.prettierrc`; a
   formatting sweep was deliberately left out of this work.
-- Parked hardening on the PHP e2e starter, not done in this work: capture Strapi's `exit`
+- ~~Parked hardening on the PHP e2e starter, not done in this work: capture Strapi's `exit`
   promise at spawn time and race it with the health wait in `start-php-backend.mjs` (a leftover
   Strapi on 1341 can otherwise hang the gate until Playwright's timeout); register
   `SIGTERM`/`SIGINT` before spawning Strapi; pin `start-backend.mjs`'s `JWT_SECRET ??=` with a
-  test.
+  test.~~ Done in the final fix wave (2026-09-09): the starter races `strapiExit` against the
+  health wait and fails in ~2s naming the port, registers both signal handlers before the
+  spawn, and `scripts.test.ts` pins all of it.
 
 ## camis-side (tracked in the camis follow-ups doc)
 

@@ -46,24 +46,52 @@ const waitFor = async (url, status, timeoutMs) => {
 }
 
 // 1. Strapi creates the schema and the roles.
+let strapi = null
+let server = null
+/** A child that has neither exited nor been killed (a killed one reports signalCode). */
+const live = (child) =>
+  child !== null && child.exitCode === null && child.signalCode === null
+const stopStrapi = () => {
+  if (live(strapi)) strapi.kill('SIGTERM')
+}
+// Registered before the spawn below: a signal arriving while Strapi is still booting must
+// kill whichever child is live rather than orphan it on the e2e port.
+const stopAll = (signal) => {
+  if (live(strapi)) strapi.kill(signal)
+  if (live(server)) server.kill(signal)
+}
+process.on('SIGTERM', () => stopAll('SIGTERM'))
+process.on('SIGINT', () => stopAll('SIGINT'))
+process.on('exit', stopStrapi)
+
 const strapiEnv = { ...process.env, JWT_SECRET }
-const strapi = spawn(process.execPath, [path.join(__dirname, 'start-backend.mjs')], {
+strapi = spawn(process.execPath, [path.join(__dirname, 'start-backend.mjs')], {
   env: strapiEnv,
   stdio: 'inherit',
 })
-const stopStrapi = () => {
-  if (strapi.exitCode === null) strapi.kill('SIGTERM')
-}
-process.on('exit', stopStrapi)
+const strapiExit = once(strapi, 'exit')
+// Raced against the health wait: a Strapi that dies during boot (EADDRINUSE from a leftover
+// process on the port is the usual cause) fails in seconds instead of polling a port that
+// will never answer until Playwright's own timeout fires.
+const strapiDied = strapiExit.then(([code, signal]) => {
+  throw new Error(
+    `[e2e] strapi exited (code ${code}, signal ${signal}) before answering /_health on port ${PORT} — is another process already listening on ${PORT}?`,
+  )
+})
+strapiDied.catch(() => {}) // the health check normally wins the race; this loser must not reject unhandled
+
 try {
-  await waitFor(`http://localhost:${PORT}/_health`, 204, 120_000)
+  await Promise.race([
+    waitFor(`http://localhost:${PORT}/_health`, 204, 120_000),
+    strapiDied,
+  ])
 } catch (err) {
   console.error(String(err))
   stopStrapi()
   process.exit(1)
 }
 stopStrapi()
-await once(strapi, 'exit')
+await strapiExit
 console.log('[e2e] strapi created the e2e database and stopped; starting php on it')
 
 // 2 + 3. PHP on the same file.
@@ -96,13 +124,11 @@ if (check.status !== 0) {
   process.exit(1)
 }
 
-const server = spawn('php', ['artisan', 'serve', '--host=127.0.0.1', `--port=${PORT}`], {
+server = spawn('php', ['artisan', 'serve', '--host=127.0.0.1', `--port=${PORT}`], {
   cwd: LARAVEL,
   env,
   stdio: 'inherit',
 })
-process.on('SIGTERM', () => server.kill('SIGTERM'))
-process.on('SIGINT', () => server.kill('SIGINT'))
 server.on('exit', (code) => process.exit(code ?? 0))
 console.log(
   `[e2e] php backend starting on http://localhost:${PORT} (db: apps/strapi-oyl/.tmp/e2e.db)`,
