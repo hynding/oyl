@@ -52,4 +52,12 @@ describe("deploy-dreamhost.sh", () => {
     expect(src).not.toContain("php artisan migrate")
     expect(src).not.toContain("RolePermissionSeeder")
   })
+  it("clears the config cache before the schema check (rsync excludes bootstrap/cache, so the check would read the previous deploy's cached config)", () => {
+    const src = readFileSync(SCRIPT, "utf8")
+    const clear = src.indexOf("php artisan config:clear")
+    const check = src.indexOf("php artisan camis:strapi-schema-check")
+    expect(clear, "config:clear is missing").toBeGreaterThan(-1)
+    expect(check).toBeGreaterThan(-1)
+    expect(clear).toBeLessThan(check)
+  })
 })

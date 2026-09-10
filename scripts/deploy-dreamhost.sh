@@ -95,6 +95,9 @@ set -euo pipefail
 cd "$APP_ROOT/laravel"
 [ -f .env ] || { echo "remote: laravel/.env missing — create it from apps/camis-php-oyl/.env.example first"; exit 1; }
 composer install --no-dev --optimize-autoloader --no-interaction
+# bootstrap/cache/ is rsync-excluded, so the previous deploy's config:cache is still on the
+# host: clear it or the check would read that stale config (e.g. the old database credentials).
+php artisan config:clear
 # Strapi owns the schema: this fails (listing every missing table/column) until strapi-oyl has
 # been booted against this MySQL database — see apps/camis-php-oyl/README.md "Schema sync".
 php artisan camis:strapi-schema-check
