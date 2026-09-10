@@ -24,6 +24,7 @@ describe("camis link", () => {
         target: string
         out: string
         apiStyle?: string
+        storageLayout?: string
         projectName?: string
       }[]
     }
@@ -37,6 +38,7 @@ describe("camis link", () => {
         target: "filament",
         out: "./laravel",
         apiStyle: "strapi",
+        storageLayout: "strapi",
         projectName: "oyl",
       },
     ])

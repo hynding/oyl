@@ -702,6 +702,10 @@
   "components": [
     {
       "name": "AdditionalNutrient",
+      "names": {
+        "collection": "components_nutrition_additional_nutrients",
+        "group": "nutrition"
+      },
       "fields": [
         {
           "type": "string",
@@ -717,6 +721,10 @@
     },
     {
       "name": "NutritionFacts",
+      "names": {
+        "collection": "components_nutrition_nutrition_facts",
+        "group": "nutrition"
+      },
       "fields": [
         {
           "type": "decimal",
@@ -798,6 +806,10 @@
     },
     {
       "name": "ServingSize",
+      "names": {
+        "collection": "components_nutrition_serving_sizes",
+        "group": "nutrition"
+      },
       "fields": [
         {
           "type": "decimal",
@@ -817,6 +829,10 @@
     },
     {
       "name": "Money",
+      "names": {
+        "collection": "components_finance_money",
+        "group": "finance"
+      },
       "fields": [
         {
           "type": "bigInteger",
@@ -834,6 +850,10 @@
     },
     {
       "name": "Quantity",
+      "names": {
+        "collection": "components_activity_quantities",
+        "group": "activity"
+      },
       "fields": [
         {
           "type": "float",

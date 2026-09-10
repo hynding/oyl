@@ -1,47 +1,78 @@
 #!/usr/bin/env node
 /**
  * pnpm php-app dev — serve the generated app on :1340 (the client's DEFAULT_API_BASE_URL)
- * with a dev SQLite. Never run together with `pnpm strapi-app develop` (same port).
- * First run migrates + seeds the role; `--fresh` wipes the database first.
+ * against the Strapi dev database (apps/strapi-oyl/.tmp/data.db). Strapi owns the schema: run
+ * `pnpm strapi-app develop` once (it creates the file, the tables and the roles), stop it, then
+ * run this. Never run both on :1340 at once. JWT_SECRET is read from apps/strapi-oyl/.env so a
+ * session minted by either backend works on the other.
  */
 import { spawn, spawnSync } from "node:child_process"
-import { existsSync, rmSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const PKG = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const LARAVEL = resolve(PKG, "laravel")
-const DB = resolve(LARAVEL, "database", "dev.sqlite")
+const STRAPI = resolve(PKG, "..", "strapi-oyl")
+const DB = resolve(STRAPI, ".tmp", "data.db")
 const PORT = 1340
-const env = {
-  ...process.env,
-  DB_CONNECTION: "sqlite",
-  DB_DATABASE: DB,
-  APP_ENV: "local",
+
+const strapiEnv = (name) => {
+  const file = resolve(STRAPI, ".env")
+  if (!existsSync(file)) return undefined
+  const line = readFileSync(file, "utf8")
+    .split("\n")
+    .find((l) => l.startsWith(`${name}=`))
+  return line
+    ?.slice(name.length + 1)
+    .trim()
+    .replace(/^["']|["']$/g, "")
 }
 
 if (!existsSync(resolve(LARAVEL, "artisan"))) {
   console.error("[php-app] laravel/ not built — run `pnpm php-app build` first")
   process.exit(1)
 }
-if (process.argv.includes("--fresh")) rmSync(DB, { force: true })
-const fresh = !existsSync(DB)
-if (fresh) {
-  writeFileSync(DB, "")
-  for (const args of [
-    ["migrate", "--force"],
-    ["db:seed", "--class=RolePermissionSeeder", "--force"],
-  ]) {
-    const r = spawnSync("php", ["artisan", ...args], {
-      cwd: LARAVEL,
-      env,
-      stdio: "inherit",
-    })
-    if (r.status !== 0) process.exit(r.status ?? 1)
-  }
+if (!existsSync(DB)) {
+  console.error(
+    "[php-app] apps/strapi-oyl/.tmp/data.db missing — run `pnpm strapi-app develop` once (Strapi creates the schema and roles), stop it, then retry",
+  )
+  process.exit(1)
 }
+const jwtSecret = strapiEnv("JWT_SECRET") ?? ""
+if (jwtSecret.length < 32) {
+  console.error(
+    "[php-app] apps/strapi-oyl/.env needs JWT_SECRET of at least 32 bytes (shared with this app; firebase/php-jwt refuses shorter HS256 keys)",
+  )
+  process.exit(1)
+}
+
+const env = {
+  ...process.env,
+  APP_ENV: "local",
+  DB_CONNECTION: "sqlite",
+  DB_DATABASE: DB,
+  JWT_SECRET: jwtSecret,
+  CAMIS_EMAIL_CONFIRMATION: "false",
+  CACHE_STORE: "file",
+  SESSION_DRIVER: "array",
+  QUEUE_CONNECTION: "sync",
+}
+
+const check = spawnSync("php", ["artisan", "camis:strapi-schema-check"], {
+  cwd: LARAVEL,
+  env,
+  stdio: "inherit",
+})
+if (check.status !== 0) {
+  console.error(
+    "[php-app] schema check failed — the Strapi dev database is missing tables; run `pnpm strapi-app develop` once after any schema change",
+  )
+  process.exit(check.status ?? 1)
+}
+
 console.log(
-  `[php-app] http://localhost:${PORT}/api  (db: laravel/database/dev.sqlite)`,
+  `[php-app] http://localhost:${PORT}/api  (db: apps/strapi-oyl/.tmp/data.db)`,
 )
 const server = spawn(
   "php",
