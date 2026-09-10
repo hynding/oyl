@@ -46,6 +46,16 @@ describe("dev.mjs", () => {
     expect(src).toContain('resolve(STRAPI, ".env")')
     expect(src).toContain("length < 32")
   })
+  it("reads that .env with dotenv semantics: last assignment wins, `export ` and a trailing comment tolerated", () => {
+    expect(src, "the last assignment wins").toContain("findLast(")
+    expect(src, "an `export ` prefix is part of the syntax").toContain(
+      "(?:export\\s+)?",
+    )
+    expect(
+      src,
+      "an unquoted trailing comment is not part of the value",
+    ).toContain("\\s+#")
+  })
 })
 
 describe("e2e start-php-backend.mjs", () => {

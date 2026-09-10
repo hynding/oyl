@@ -17,16 +17,22 @@ const STRAPI = resolve(PKG, "..", "strapi-oyl")
 const DB = resolve(STRAPI, ".tmp", "data.db")
 const PORT = 1340
 
+/**
+ * Read `name` out of apps/strapi-oyl/.env the way dotenv does: the LAST assignment wins, an
+ * `export ` prefix is part of the syntax, a quoted value ends at its closing quote, and an
+ * unquoted trailing ` # comment` is not part of the value.
+ */
 const strapiEnv = (name) => {
   const file = resolve(STRAPI, ".env")
   if (!existsSync(file)) return undefined
+  const assignment = new RegExp(String.raw`^\s*(?:export\s+)?${name}=`)
   const line = readFileSync(file, "utf8")
     .split("\n")
-    .find((l) => l.startsWith(`${name}=`))
-  return line
-    ?.slice(name.length + 1)
-    .trim()
-    .replace(/^["']|["']$/g, "")
+    .findLast((l) => assignment.test(l))
+  if (line === undefined) return undefined
+  const raw = line.replace(assignment, "").trim()
+  const quoted = raw.match(/^(["'])([\s\S]*?)\1/)
+  return quoted ? quoted[2] : raw.replace(/\s+#.*$/, "").trim()
 }
 
 if (!existsSync(resolve(LARAVEL, "artisan"))) {
