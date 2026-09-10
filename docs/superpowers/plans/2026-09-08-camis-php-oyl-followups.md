@@ -44,6 +44,11 @@ deferrals. None blocks merge. The camis-side list lives in the camis repo at
   `deploy-pi.sh`).
 - `pnpm php-app import` is shadowed by pnpm's `import` subcommand — use
   `pnpm php-app run import` (rename the script if it keeps biting).
+- The deploy's remote `JWT_SECRET` length gate (`scripts/deploy-dreamhost.sh`) strips only
+  double quotes and anchors on `^JWT_SECRET=`: a single-quoted secret is measured with its
+  quotes (a 30-byte value passes, then `firebase/php-jwt` rejects it at request time) and an
+  `export JWT_SECRET=` line fails the deploy. Widen the `awk` to `^[[:space:]]*(export[[:space:]]+)?JWT_SECRET=`
+  and `gsub(/^["']|["']$/, "", v)`. (Final re-review.)
 
 ## Overlay
 
@@ -58,6 +63,11 @@ deferrals. None blocks merge. The camis-side list lives in the camis repo at
   every per-row `can('view')` reads is eager-loaded from the `$owners` map, so the cost model
   matches the generated `index()` again); the eleven unpaginated queries remain — paginating a
   boot read is a camis-wide follow-up.
+- `OylMoney::inBody` confines the array round-trip to `data`, so `"meta": {}` survives, but an
+  empty JSON object _inside_ a data row would still flatten to `[]`. Unreachable today (the
+  generated controllers build bodies from PHP arrays); the comment in `OylMoney.php` overstates
+  the guarantee. Also pre-existing: `/bootstrap` answers `'meta' => []` where strapi-oyl answers
+  `meta: {}`. (Final re-review.)
 
 ## e2e
 
@@ -73,6 +83,10 @@ deferrals. None blocks merge. The camis-side list lives in the camis repo at
   test.~~ Done in the final fix wave (2026-09-09): the starter races `strapiExit` against the
   health wait and fails in ~2s naming the port, registers both signal handlers before the
   spawn, and `scripts.test.ts` pins all of it.
+- `start-php-backend.mjs`'s signal handlers now exist from the start but only kill live
+  children: a SIGTERM/SIGINT arriving during the schema check (between Strapi stopping and PHP
+  starting) is swallowed and the script goes on to serve. Have the handler `process.exit(1)`
+  after killing. (Final re-review.)
 
 ## camis-side (tracked in the camis follow-ups doc)
 
