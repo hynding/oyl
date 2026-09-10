@@ -47,3 +47,30 @@ describe("dev.mjs", () => {
     expect(src).toContain("length < 32")
   })
 })
+
+describe("e2e start-php-backend.mjs", () => {
+  const file = resolve(PKG, "..", "e2e-oyl", "scripts", "start-php-backend.mjs")
+  const src = readFileSync(file, "utf8")
+  it("parses", () => {
+    expect(() => execFileSync("node", ["--check", file])).not.toThrow()
+  })
+  it("boots Strapi first so it owns the schema, then serves PHP on that file", () => {
+    expect(src).toContain("start-backend.mjs")
+    expect(src).toContain("/_health`")
+    expect(src).toContain("'.tmp', 'e2e.db'")
+    expect(src).toContain("camis:strapi-schema-check")
+    expect(src).not.toContain("migrate")
+    expect(src).not.toContain("RolePermissionSeeder")
+  })
+  it("shares a JWT secret of at least 32 bytes with Strapi", () => {
+    const m = src.match(/const JWT_SECRET = '([^']+)'/)
+    expect(m).not.toBeNull()
+    expect(m![1].length).toBeGreaterThanOrEqual(32)
+  })
+  it("keeps Laravel-owned state out of the shared database", () => {
+    expect(src).toContain("CACHE_STORE: 'file'")
+    expect(src).toContain("SESSION_DRIVER: 'array'")
+    expect(src).toContain("QUEUE_CONNECTION: 'sync'")
+    expect(src).not.toContain("SANCTUM_TOKEN_EXPIRATION")
+  })
+})
