@@ -13,15 +13,18 @@ deferrals. None blocks merge. The camis-side list lives in the camis repo at
   `php artisan key:generate --force` once); point the API domain at `laravel/public`; confirm
   PHP 8.3+ with `intl`; make `storage/` and `bootstrap/cache/` writable; add `OYL_DH_SSH`,
   `OYL_DH_APP_ROOT`, `OYL_DH_SITE_URL` to the untracked root `.env`.
-- Deploy **before anyone registers**: the Strapi-style `username` migration adds a NOT NULL
-  unique column with no default and fails on a non-empty `users` table.
-- `SANCTUM_TOKEN_EXPIRATION` is a no-op until camis emits `env('SANCTUM_TOKEN_EXPIRATION')` in
+- ~~Deploy **before anyone registers**: the Strapi-style `username` migration adds a NOT NULL
+  unique column with no default and fails on a non-empty `users` table.~~ Moot since the Strapi
+  storage layout: Strapi owns the schema, there is no Laravel `username` migration.
+- ~~`SANCTUM_TOKEN_EXPIRATION` is a no-op until camis emits `env('SANCTUM_TOKEN_EXPIRATION')` in
   the scaffolded `config/sanctum.php` (camis follow-up); set `'expiration'` by hand on the host
-  meanwhile.
+  meanwhile.~~ Moot since the Strapi storage layout: Sanctum is gone.
 - `CAMIS_AUTH_THROTTLE_PER_MINUTE` (default 10) is baked by `config:cache`; login and register
   share one per-IP bucket until camis splits them into a named limiter.
 - `pnpm deploy:dreamhost --dry-run` has never been run against a real host (no credentials
   existed during development); expect to iterate once on the remote login shell's PATH.
+- Run the Strapi schema sync against the DreamHost MySQL (README "Schema sync") before
+  `pnpm deploy:dreamhost`; `JWT_SECRET` on the host must equal Strapi's and be ≥ 32 bytes.
 
 ## Package (`apps/camis-php-oyl`)
 
@@ -39,6 +42,8 @@ deferrals. None blocks merge. The camis-side list lives in the camis repo at
 - `shellcheck` was unavailable locally; the deploy script was checked with `bash -n` and by
   review only. The first `mkdir -p` over ssh runs under the remote default shell (mirrors
   `deploy-pi.sh`).
+- `pnpm php-app import` is shadowed by pnpm's `import` subcommand — use
+  `pnpm php-app run import` (rename the script if it keeps biting).
 
 ## Overlay
 
@@ -48,8 +53,9 @@ deferrals. None blocks merge. The camis-side list lives in the camis repo at
   could violate the invariant.
 - The `$serializers` map in `overlay/routes/api-custom.php` is derivable from `$collections`
   via `class_basename`; kept explicit for IDE/static verifiability.
-- `/bootstrap` issues 11 unpaginated queries plus per-row child lazy-loads (same cost model as
-  the generated `index()`); a camis-wide eager-loading follow-up.
+- `/bootstrap` issues 11 unpaginated queries ~~plus per-row child lazy-loads~~ (components are
+  now preloaded with `StrapiComponents::load` per collection); the 11 unpaginated queries remain
+  (same cost model as the generated `index()`) — a camis-wide eager-loading follow-up.
 
 ## e2e
 
@@ -58,10 +64,18 @@ deferrals. None blocks merge. The camis-side list lives in the camis repo at
 - `start-php-backend.mjs` mixes `spawnSync`/`spawn` argument styles (cosmetic).
 - The e2e directory keeps single quotes / 100 columns rather than the root `.prettierrc`; a
   formatting sweep was deliberately left out of this work.
+- Parked hardening on the PHP e2e starter, not done in this work: capture Strapi's `exit`
+  promise at spawn time and race it with the health wait in `start-php-backend.mjs` (a leftover
+  Strapi on 1341 can otherwise hang the gate until Playwright's timeout); register
+  `SIGTERM`/`SIGINT` before spawning Strapi; pin `start-backend.mjs`'s `JWT_SECRET ??=` with a
+  test.
 
 ## camis-side (tracked in the camis follow-ups doc)
 
 - `camis import` drops Strapi `private: true` (e.g. `GoogleAccount.refreshToken`); moot here
   because `GoogleAccount` has no grant.
-- Scaffolded `config/sanctum.php` ignores `SANCTUM_TOKEN_EXPIRATION`.
+- ~~Scaffolded `config/sanctum.php` ignores `SANCTUM_TOKEN_EXPIRATION`.~~ Moot since the Strapi
+  storage layout: Sanctum is gone.
 - Login and register share one throttle bucket; `route:cache` bakes the rate.
+- The generated `DEPLOY.md` does not mention `CACHE_STORE=file`/`SESSION_DRIVER=array`/
+  `QUEUE_CONNECTION=sync` (camis follow-up); this package's `.env.example` carries them.
