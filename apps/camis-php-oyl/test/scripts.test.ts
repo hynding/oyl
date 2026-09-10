@@ -92,6 +92,16 @@ describe("e2e start-php-backend.mjs", () => {
   })
 })
 
+describe("e2e start-backend.mjs", () => {
+  const src = readFileSync(
+    resolve(PKG, "..", "e2e-oyl", "scripts", "start-backend.mjs"),
+    "utf8",
+  )
+  it("defers to the JWT_SECRET the PHP starter sets, so both backends sign with the same key", () => {
+    expect(src).toContain("process.env.JWT_SECRET ??=")
+  })
+})
+
 describe(".env.example", () => {
   const src = read(".env.example")
   it("carries the shared-database settings and no Sanctum leftovers", () => {
@@ -102,5 +112,18 @@ describe(".env.example", () => {
     expect(src).toContain("QUEUE_CONNECTION=sync")
     expect(src).toContain("CAMIS_AUTH_THROTTLE_PER_MINUTE=")
     expect(src).not.toContain("SANCTUM")
+  })
+  it("carries a JWT_SECRET placeholder of at least 32 characters", () => {
+    // A copied .env must not fail the deploy's >= 32-byte gate (or firebase/php-jwt at
+    // request time) merely because the placeholder is shorter than a real Strapi secret.
+    const line = src
+      .split("\n")
+      .findLast((l) => l.trim().startsWith("JWT_SECRET="))
+    expect(line, "a JWT_SECRET= line").toBeDefined()
+    const value = line!
+      .trim()
+      .slice("JWT_SECRET=".length)
+      .replace(/^["']|["']$/g, "")
+    expect(value.length).toBeGreaterThanOrEqual(32)
   })
 })
