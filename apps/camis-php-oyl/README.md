@@ -58,10 +58,17 @@ DATABASE_NAME=oyl DATABASE_USERNAME=oyl DATABASE_PASSWORD='…' DATABASE_SSL=fal
 JWT_SECRET='<the same value as laravel/.env on the host>' pnpm develop
 ```
 
+Strapi refuses to boot without its other secrets — `APP_KEYS`, `ADMIN_JWT_SECRET`,
+`API_TOKEN_SALT`, `TRANSFER_TOKEN_SALT` and `ENCRYPTION_KEY`. On a developer machine they come
+from `apps/strapi-oyl/.env`, which `pnpm develop` loads, so only the `DATABASE_*` values and
+`JWT_SECRET` above have to be given on the command line; the values themselves never reach the
+PHP app, which shares `JWT_SECRET` only.
+
 DreamHost only accepts remote MySQL connections from hosts allowed in the panel (Databases →
-the database's "Allowable Hosts"); add your IP for the sync or run the command from a host
-inside DreamHost. `pnpm deploy:dreamhost` then runs `php artisan camis:strapi-schema-check` on
-the host and stops with the list of missing tables if the sync was skipped.
+the database's "Allowable Hosts"); add your IP for the sync — shared hosting has no Node build
+environment, so this always runs from your machine. `pnpm deploy:dreamhost` then runs
+`php artisan camis:strapi-schema-check` on the host and stops with the list of missing tables
+if the sync was skipped.
 
 ## DreamHost one-time setup
 
