@@ -11,7 +11,7 @@ deferrals. None blocks merge. The camis-side list lives in the camis repo at
 - Create the MySQL database in the DreamHost panel; write `laravel/.env` on the host from
   `apps/camis-php-oyl/.env.example` (it now carries `APP_KEY=`; run
   `php artisan key:generate --force` once); point the API domain at `laravel/public`; confirm
-  PHP 8.3+ with `intl`; make `storage/` and `bootstrap/cache/` writable; add `OYL_DH_SSH`,
+  PHP 8.3+; make `storage/` and `bootstrap/cache/` writable; add `OYL_DH_SSH`,
   `OYL_DH_APP_ROOT`, `OYL_DH_SITE_URL` to the untracked root `.env`.
 - ~~Deploy **before anyone registers**: the Strapi-style `username` migration adds a NOT NULL
   unique column with no default and fails on a non-empty `users` table.~~ Moot since the Strapi
