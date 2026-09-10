@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 use Illuminate\Http\JsonResponse;
+use stdClass;
 
 /**
  * OYL rule (mirrors apps/strapi-oyl/src/utils/finance-money.ts): the `finance.money` component's
@@ -43,22 +44,37 @@ final class OylMoney
     }
 
     /**
-     * The same coercion over a generated controller's answer, whose `data` is either one row
-     * (show/store/update) or a list of them (index). A 204 or any non-array body is returned
-     * untouched, so `destroy()` can be wrapped harmlessly.
+     * The same coercion over a decoded response body, whose `data` is either one row
+     * (show/store/update) or a list of them (index). A body without an array `data` — a 204, an
+     * error envelope — is returned untouched, so `destroy()` can be wrapped harmlessly.
      */
-    public static function inResponse(JsonResponse $response, string $field): JsonResponse
+    public static function inBody(array $body, string $field): array
     {
-        $body = $response->getData(true);
-
-        if (! is_array($body) || ! array_key_exists('data', $body) || ! is_array($body['data'])) {
-            return $response;
+        if (! array_key_exists('data', $body) || ! is_array($body['data'])) {
+            return $body;
         }
 
         $data = $body['data'];
         $body['data'] = array_is_list($data)
             ? array_map(fn ($row) => is_array($row) ? self::inWire($row, $field) : $row, $data)
             : self::inWire($data, $field);
+
+        return $body;
+    }
+
+    /** `inBody` over a generated controller's answer. */
+    public static function inResponse(JsonResponse $response, string $field): JsonResponse
+    {
+        $body = $response->getData(false);
+
+        if (! $body instanceof stdClass || ! property_exists($body, 'data')) {
+            return $response;
+        }
+
+        // Only `data` is written back, onto the object-decoded body: re-encoding the whole
+        // array-decoded body would render an empty JSON object elsewhere in it (`"meta": {}`,
+        // which Strapi answers on show/store/update) as `[]`.
+        $body->data = self::inBody($response->getData(true), $field)['data'];
 
         return $response->setData($body);
     }

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 import { entitiesByKind } from "@oyl/all-of-oyl"
@@ -35,6 +35,11 @@ const hasPhp = (): boolean => {
     return false
   }
 }
+
+/** The generated app carries composer's autoloader; it is git-ignored, so tests that need
+ * a real `Illuminate\Http\JsonResponse` skip when `pnpm php-app build` has not been run. */
+const autoload = resolve(PKG, "laravel", "vendor", "autoload.php")
+const hasLaravel = (): boolean => existsSync(autoload)
 
 const PERSONAL = new Set<string>(entitiesByKind("personal"))
 const CATALOG = new Set<string>(entitiesByKind("catalog"))
@@ -226,6 +231,62 @@ describe("money minor is a JSON number (mirrors strapi-oyl sanitizeMoney)", () =
     )
     expect(JSON.parse(out)).toEqual({ amount: { minor: "nope" } })
   })
+
+  it.skipIf(!hasPhp())("rewrites every row of a list body", () => {
+    const out = php(
+      `echo json_encode(\\App\\Support\\OylMoney::inBody(['data' => [['recordId' => 'tx-1', 'amount' => ['minor' => '10']], ['recordId' => 'tx-2', 'amount' => ['minor' => '20']]]], 'amount'));`,
+    )
+    expect(JSON.parse(out)).toEqual({
+      data: [
+        { recordId: "tx-1", amount: { minor: 10 } },
+        { recordId: "tx-2", amount: { minor: 20 } },
+      ],
+    })
+  })
+
+  it.skipIf(!hasPhp())("rewrites a single-row body", () => {
+    const out = php(
+      `echo json_encode(\\App\\Support\\OylMoney::inBody(['data' => ['recordId' => 'tx-1', 'amount' => ['minor' => '1234']]], 'amount'));`,
+    )
+    expect(JSON.parse(out)).toEqual({
+      data: { recordId: "tx-1", amount: { minor: 1234 } },
+    })
+  })
+
+  it.skipIf(!hasPhp())(
+    "leaves a body whose data is not an array untouched",
+    () => {
+      const nulled = php(
+        `echo json_encode(\\App\\Support\\OylMoney::inBody(['data' => null, 'meta' => []], 'amount'));`,
+      )
+      expect(JSON.parse(nulled)).toEqual({ data: null, meta: [] })
+      const dataless = php(
+        `echo json_encode(\\App\\Support\\OylMoney::inBody(['error' => ['status' => 404]], 'amount'));`,
+      )
+      expect(JSON.parse(dataless)).toEqual({ error: { status: 404 } })
+    },
+  )
+
+  it.skipIf(!hasPhp() || !hasLaravel())(
+    "inResponse rewrites data without flattening an empty JSON object elsewhere in the body",
+    () => {
+      const out = execFileSync(
+        "php",
+        [
+          "-r",
+          `require '${autoload}'; require '${money}'; ` +
+            `$r = new Illuminate\\Http\\JsonResponse(json_decode('{"data":{"recordId":"tx-1","amount":{"minor":"1234"}},"meta":{}}')); ` +
+            `echo \\App\\Support\\OylMoney::inResponse($r, 'amount')->getContent();`,
+        ],
+        { encoding: "utf8" },
+      )
+      expect(out).toContain('"minor":1234')
+      // `"meta": {}` must stay an object: a whole-body getData(true)/setData round-trip
+      // renders it as `[]`, which is not what Strapi answers.
+      expect(out).toContain('"meta":{}')
+      expect(out).not.toContain('"meta":[]')
+    },
+  )
 
   it("both money-bearing controllers coerce their component on the way out", () => {
     const tx = readFileSync(txController, "utf8")
