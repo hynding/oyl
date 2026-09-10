@@ -45,7 +45,7 @@ pnpm vanilla test        # Vitest (happy-dom) on the app
 pnpm e2e                 # Playwright e2e (auto-starts app on 8042 + backend on 1341)
 pnpm deploy:pi           # deploy committed HEAD to the production Pi (config: OYL_PI_* in untracked root .env; --dry-run to preview)
 pnpm ocari <image…>      # parse receipt/document images → named copy + JSON sidecar (needs local Ollama)
-pnpm php-app import      # strapi-oyl schemas → camis.json + roles.json (commit both)
+pnpm php-app run import  # strapi-oyl schemas → camis.json + roles.json (commit both)
 pnpm php-app build       # scaffold laravel/ if missing, then camis build
 pnpm php-app dev         # PHP backend on 1340 (never with strapi-app develop)
 E2E_BACKEND=php pnpm e2e # browser suite against the PHP backend (Strapi-compatibility gate)
