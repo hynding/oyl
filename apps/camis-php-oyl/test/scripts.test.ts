@@ -126,9 +126,10 @@ describe(".env.example", () => {
   it("carries a JWT_SECRET placeholder of at least 32 characters", () => {
     // A copied .env must not fail the deploy's >= 32-byte gate (or firebase/php-jwt at
     // request time) merely because the placeholder is shorter than a real Strapi secret.
-    const line = src
+    const assignments = src
       .split("\n")
-      .findLast((l) => l.trim().startsWith("JWT_SECRET="))
+      .filter((l) => l.trim().startsWith("JWT_SECRET="))
+    const line = assignments.at(-1)
     expect(line, "a JWT_SECRET= line").toBeDefined()
     const value = line!
       .trim()
