@@ -5,6 +5,7 @@ declare(strict_types=1);
 // Hand-written OYL routes. camis mirrors this file from overlay/ on every build; it is
 // required inside the generated StrapiErrors group, so errors here carry the Strapi envelope.
 
+use App\Http\Middleware\StrapiJwtGuard;
 use App\Http\Serializers\AccountSerializer;
 use App\Http\Serializers\ActivitySerializer;
 use App\Http\Serializers\ActivitySessionSerializer;
@@ -27,6 +28,7 @@ use App\Models\Goal;
 use App\Models\Measurement;
 use App\Models\Note;
 use App\Models\Transaction;
+use App\Support\StrapiComponents;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -39,9 +41,10 @@ use Illuminate\Support\Facades\Route;
  * decode identically whichever path fetched them. Unlike index(), this closure does not
  * run the class-level `viewAny` check — every grant that reads a type also permits viewAny
  * today, so this is a no-op in practice; if a role-gated type is ever added, add
- * `Gate::authorize('viewAny', $model)` per collection above.
+ * `Gate::authorize('viewAny', $model)` per collection above. Guarded by the same
+ * `StrapiJwtGuard` as the generated routes.
  */
-Route::middleware('auth:sanctum')->get('/bootstrap', function (Request $request) {
+Route::middleware(StrapiJwtGuard::class)->get('/bootstrap', function (Request $request) {
     $user = $request->user();
     $collections = [
         'notes' => Note::class,
@@ -73,9 +76,11 @@ Route::middleware('auth:sanctum')->get('/bootstrap', function (Request $request)
     $data = [];
     foreach ($collections as $path => $model) {
         $serializer = $serializers[$model];
-        $data[$path] = $model::query()
-            ->forUser($user)
-            ->get()
+        $rows = $model::query()->forUser($user)->get();
+        // Components live in Strapi's _cmps/component tables; the model trait loads them lazily
+        // per row, so preload the whole page here (one query per component table per collection).
+        StrapiComponents::load($rows, $model::COMPONENT_MAP);
+        $data[$path] = $rows
             ->filter(fn (Model $m) => $user->can('view', $m))
             ->map(fn (Model $m) => $serializer::toWire($m))
             ->values()

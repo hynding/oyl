@@ -93,7 +93,12 @@ describe("overlay PHP", () => {
         `${ct.name} (${key})`,
       ).toContain(key)
     }
-    expect(src).toContain("Route::middleware('auth:sanctum')->get('/bootstrap'")
+    expect(src).toContain(
+      "Route::middleware(StrapiJwtGuard::class)->get('/bootstrap'",
+    )
+    expect(src).not.toContain("auth:sanctum")
+    expect(src).toContain("use App\\Http\\Middleware\\StrapiJwtGuard;")
+    expect(src).toContain("StrapiComponents::load($rows, $model::COMPONENT_MAP);")
     expect(src).toContain("Route::get('/google/config'")
   })
   it("the guard bites: an owned content type absent from $collections fails the comparison", () => {
