@@ -1,6 +1,6 @@
 # DreamHost CI Deploy — Design
 
-**Date:** 2026-09-29
+**Date:** 2026-09-29 (revised 2026-09-30 after review)
 **Status:** Approved design; not yet implemented
 
 ## Purpose
@@ -31,6 +31,7 @@ repository's secrets/variables. This document uses `<app-domain>`, `<api-domain>
 | Who pushes | only the repo owner → unconditional deploy on push; plain repository secrets, no GitHub environment approval |
 | Transport | GitHub-hosted runner → DreamHost over SSH with a deploy key (DreamHost has no Node toolchain, so all builds run on the runner) |
 | `JWT_SECRET` | rotated to a fresh ≥ 32-byte value in the host's `laravel/.env`. `firebase/php-jwt` 7.x enforces the RFC 7518 §3.2 minimum on both sign and verify, so the Pi's 22-byte Strapi secret cannot be carried over. Sessions are invalidated once at cutover (they would be anyway) |
+| Laravel dependency drift | **accepted for now** (see Risks): `laravel/` incl. `composer.lock` is regenerated per deploy, so the PHP dependency set is whatever `^12.0` resolves that day. Follow-up: commit a `composer.lock` copied in by `scripts/build.mjs` |
 
 ## Current state (what this builds on)
 
@@ -42,13 +43,21 @@ repository's secrets/variables. This document uses `<app-domain>`, `<api-domain>
   the Pi deploy. Removed by this work.
 - `apps/vanilla-oyl/src/storage/config.js` `defaultApiBaseUrl(hostname)`: `app.X` →
   `https://api.X/api`, any other non-local host → same-origin `/api`. Neither rule maps
-  `<app-domain>` to `<api-domain>`.
+  `<app-domain>` to `<api-domain>`. Callers: `src/main.js` lines 66, 70, 82, 142 (`getApiBaseUrl`)
+  and 257–258, 370–371 (both functions, feeding `oyl-connection`'s placeholder / "was:" text).
 - `apps/camis-php-oyl` links `@camis/cli` from the sibling checkout `../../../camis`
-  (public repo `hynding/camis`). CI has to clone it beside the workspace.
-- No `.github/workflows/` exists; this is the repo's first CI.
+  (public repo `hynding/camis`). CI has to clone it beside the workspace; `pnpm-lock.yaml`
+  already records the link, so `--frozen-lockfile` works once the target exists.
+- No `.github/workflows/` exists; this is the repo's first CI. Root `package.json` pins
+  pnpm (`packageManager`) but not Node; Strapi allows `<=22.x` and camis requires `>=22`,
+  so Node 22 is the only intersection.
+- `apps/vanilla-oyl/vendor/` is gitignored (CI must run `build:lib`); `src/` holds 94
+  co-located `*.test.js` files (the Pi publish shipped them; this one must not).
 - CORS: the generated Laravel app has no `config/cors.php`, so the framework default allows
-  any origin on `api/*`; the JWT travels in the `Authorization` header, not a cookie. The
-  cross-origin `E2E_BACKEND=php pnpm e2e` run already exercises this. No CORS work.
+  any origin on `api/*` without credentials; the JWT travels in the `Authorization` header.
+  The cross-origin `E2E_BACKEND=php pnpm e2e` run already exercises this. No CORS work.
+- `apps/strapi-oyl/.strapi-updater.json` is tracked but rewritten by every `strapi build`
+  / `develop`, so it trips any "dirty tree" check.
 
 ## Constraints
 
@@ -61,13 +70,16 @@ repository's secrets/variables. This document uses `<app-domain>`, `<api-domain>
   *before* pushing — the deploy fails otherwise, by design.
 - **Shared scripts.** The workflow and `pnpm deploy:dreamhost` must run the same publish
   scripts; nothing deploy-relevant lives only in YAML.
-- **Strict host-key checking** for SSH from the runner (`known_hosts` pinned).
+- **Non-interactive SSH.** Every `ssh` and `rsync -e ssh` uses `-o BatchMode=yes` (CI has
+  no tty; a prompt would hang the job) and strict host-key checking against a pinned
+  `known_hosts`. Preflight and remote body both run under `bash -l` so they see the same
+  per-user toolchain (DreamHost selects the CLI PHP via `~/.bash_profile`).
 
 ## 1. Topology
 
 ```
-push to master ──► GitHub Actions (ubuntu-latest)
-                     ├─ gate: pnpm test + typecheck
+push to master ──► GitHub Actions (ubuntu-latest, Node 22, PHP 8.3)
+                     ├─ gate: strapi build → pnpm test → pnpm typecheck
                      ├─ www:  build all-of-oyl → vendor → stage → rsync ─► ~/domains/<…>/www          (https://<app-domain>)
                      └─ api:  camis build → rsync laravel/ → ssh: composer/artisan ─► ~/domains/<…>/camis/laravel
                                                                                        └─ public/ ◄── https://<api-domain> (panel web dir)
@@ -79,13 +91,18 @@ DreamHost MySQL  oyl_cms_strapi_dev  ◄── camis-php-oyl (prod)   ◄── 
 **Trigger:** `push` to `master`; `workflow_dispatch` for a manual re-run of HEAD.
 **Concurrency:** group `deploy`, `cancel-in-progress: false` — two pushes queue rather than
 race an rsync.
-**Runner:** `ubuntu-latest`. Node from `package.json#engines`/`packageManager` via
-`pnpm/action-setup` + `actions/setup-node` (pnpm store cached). PHP 8.3 + composer via
-`shivammathur/setup-php` (composer cache dir cached).
+**Runner:** `ubuntu-latest`. Node **22** — pinned in root `package.json#engines.node`
+(`"22.x"`, added by this work) and read by `actions/setup-node` (`node-version: 22`; the
+workflow test asserts both agree). pnpm via `pnpm/action-setup` from `packageManager`
+(store cached). PHP 8.3 + composer via `shivammathur/setup-php` **before the gate** (the
+camis-php-oyl overlay tests `skipIf(!hasPhp())`; with PHP present they run). Composer
+cache dir cached.
 
-One job, `deploy`, with conditional steps (one install, one camis clone, sequential targets):
+One job, `deploy`, with conditional steps (one install, one camis clone, sequential targets).
+The gate runs on every push to `master`, including docs-only pushes that deploy nothing;
+accepted for a single-pusher repo.
 
-1. `actions/checkout` (`fetch-depth: 2`).
+1. `actions/checkout` (`fetch-depth: 2`; `dorny/paths-filter` deepens as needed).
 2. `dorny/paths-filter` → outputs `www` and `api`:
    - `www`: `packages/all-of-oyl/**`, `apps/vanilla-oyl/**`, `pnpm-lock.yaml`,
      `scripts/dreamhost/publish-www.sh`, `.github/workflows/deploy.yml`
@@ -93,14 +110,20 @@ One job, `deploy`, with conditional steps (one install, one camis clone, sequent
      `apps/strapi-oyl/src/components/**`, `apps/camis-php-oyl/**`, `pnpm-lock.yaml`,
      `scripts/dreamhost/publish-api.sh`, `.github/workflows/deploy.yml`
    - `workflow_dispatch` forces both to `true`.
-3. Clone `hynding/camis` at `env.CAMIS_REF` (a full SHA, bumped deliberately in a commit
-   that says why) into `${{ github.workspace }}/../camis`; `pnpm install --frozen-lockfile`
-   there. The link `@camis/cli` → `../../../camis/packages/cli` then resolves exactly as on
-   a developer machine.
-4. `pnpm install --frozen-lockfile` (workspace).
+3. Clone `hynding/camis` at `env.CAMIS_REF` (a full 40-hex SHA, bumped deliberately in a
+   commit that says why) into `${{ github.workspace }}/../camis` — a writable sibling of
+   the checkout (`/home/runner/work/<repo>/camis`). `actions/checkout` cannot write outside
+   the workspace, so: `git init && git fetch --depth 1 origin "$CAMIS_REF" && git checkout
+   FETCH_HEAD`. Then `pnpm install --frozen-lockfile` there (camis' CLI registers `tsx` from
+   its own `node_modules`; the camis-php-oyl `cli.test.ts` and `ir.test.ts` run it). The
+   link `@camis/cli` → `../../../camis/packages/cli` then resolves exactly as on a
+   developer machine.
+4. `pnpm install --frozen-lockfile` (workspace). `onnxruntime-node` / `ppu-paddle-ocr`
+   (ocari) load natively at import time in `cli.test.ts`; linux-x64 prebuilts exist and root
+   `supportedArchitectures` includes linux.
 5. `pnpm strapi-app build` (strapi tests run from `dist/`; typecheck needs the generated
-   content-type types). The strapi test bootstrap self-provisions throwaway `APP_KEYS`,
-   `JWT_SECRET`, sqlite — no CI secrets needed for the gate.
+   content-type types). The strapi test bootstrap self-provisions throwaway secrets and
+   sqlite on port 0 — no CI secrets needed for the gate.
 6. **Gate:** `pnpm test`, then `pnpm typecheck`. Any failure stops the job before SSH.
 7. `webfactory/ssh-agent` with `secrets.DH_SSH_KEY`; write `secrets.DH_KNOWN_HOSTS` to
    `~/.ssh/known_hosts` (only if `www || api`).
@@ -125,43 +148,53 @@ scripts/
 **`publish-www.sh`** — inputs (environment only): `DH_SSH` (`user@host`), `DH_WWW_ROOT`
 (relative to the SSH user's home), `DH_API_BASE` (e.g. `https://<api-domain>/api`),
 optional `DH_SITE_URL`, optional `DH_CSP_HEADER` (default `Content-Security-Policy`; set
-`Content-Security-Policy-Report-Only` for a first deploy). Flag `--dry-run`.
+`Content-Security-Policy-Report-Only` for a first deploy), optional `DH_WWW_SRC` (source
+app dir, default `apps/vanilla-oyl`; the test seam). Flag `--dry-run`.
 
-1. Preflight: required vars present; `apps/vanilla-oyl/vendor/all-of-oyl/index.js` exists
+1. Preflight: required vars present; `$DH_WWW_SRC/vendor/all-of-oyl/index.js` exists
    (i.e. `build:lib` ran); ssh reachable (`BatchMode=yes`, `ConnectTimeout=8`).
-2. Stage (`mktemp -d`, trap-cleaned): copy exactly `index.html`, `src/`, `styles/`,
-   `vendor/` from `apps/vanilla-oyl/` (the four root-absolute asset roots; tests, configs and
-   `package.json` never ship).
+2. Stage (`mktemp -d`, trap-cleaned): `rsync -a --exclude '*.test.js'` of exactly
+   `index.html`, `src/`, `styles/`, `vendor/` from `$DH_WWW_SRC/` (the four root-absolute
+   asset roots; co-located tests, configs and `package.json` never ship).
 3. Inject: set the `content` of `<meta name="oyl-api-base">` in the staged `index.html` to
    `$DH_API_BASE` (node one-liner; fails if the tag is missing).
 4. Render `.htaccess` into the stage with `node apps/vanilla-oyl/scripts/render-htaccess.mjs
    --html <staged index.html> --api-origin <origin of DH_API_BASE> --csp-header $DH_CSP_HEADER`.
 5. Write `DEPLOYED` (`sha=`, `deployed_utc=`) into the stage.
-6. `rsync -a --delete --exclude '.well-known/'` stage/ → `$DH_SSH:$DH_WWW_ROOT/`
-   (`-n -i` under `--dry-run`, then exit 0).
+6. `rsync -a --delete --exclude '.well-known/' -e 'ssh -o BatchMode=yes'` stage/ →
+   `$DH_SSH:$DH_WWW_ROOT/` (`-n -i` under `--dry-run`, then exit 0).
 7. Health (if `DH_SITE_URL`): `GET $DH_SITE_URL/` → 200; `GET $DH_SITE_URL/journal` → 200
    whose body contains `type="importmap"` (proves the SPA fallback); `GET
-   $DH_SITE_URL/vendor/does-not-exist.js` → 404 (proves the fallback is scoped).
+   $DH_SITE_URL/vendor/does-not-exist.js` → 404 (proves the fallback is scoped);
+   `GET $DH_SITE_URL/DEPLOYED` → 403 (denied by `.htaccess`).
 
 **`publish-api.sh`** — inputs: `DH_SSH`, `DH_API_ROOT` (relative to home; `laravel/` is
 created under it), optional `DH_API_URL`. Flag `--dry-run`. Body = today's
-`deploy-dreamhost.sh` from "Preflight: ssh" onward, unchanged in behaviour: requires
-`laravel/artisan`; writes `laravel/DEPLOYED`; rsync flags and excludes as today; the remote
-heredoc keeps the `.env` presence check, the ≥ 32-byte `JWT_SECRET` guard (length only,
-never echoed), `composer install --no-dev --optimize-autoloader`, `config:clear`,
-`camis:strapi-schema-check`, `config:cache`, `cat DEPLOYED`; then `GET $DH_API_URL/api/_health`
-→ 204.
+`deploy-dreamhost.sh` from "Preflight: ssh" onward, with two changes: the preflight runs
+`bash -l -c 'command -v php composer'` (login shell, same toolchain as the remote body) and
+every ssh/rsync call carries `BatchMode=yes`. Otherwise unchanged in behaviour: requires
+`laravel/artisan`; writes `laravel/DEPLOYED`; the `RSYNC_FLAGS=(` array with today's
+excludes (`vendor/`, `node_modules/`, `.env`, `database/*.sqlite`, `storage/logs/`,
+`storage/framework/cache/`, `bootstrap/cache/`, `storage/app/`); the remote heredoc keeps
+the `.env` presence check, the ≥ 32-byte `JWT_SECRET` guard (length only, never echoed,
+message pointing at `apps/camis-php-oyl/README.md`), `composer install --no-dev
+--optimize-autoloader`, `config:clear`, `camis:strapi-schema-check`, `config:cache`,
+`cat DEPLOYED`; then `GET $DH_API_URL/api/_health` → 204.
 
 **`deploy-dreamhost.sh`** (wrapper) — reads `OYL_DH_SSH`, `OYL_DH_WWW_ROOT`,
 `OYL_DH_API_ROOT`, `OYL_DH_API_BASE`, `OYL_DH_SITE_URL`, `OYL_DH_API_URL`,
 `OYL_DH_CSP_HEADER` from the environment or specific keys of the root `.env` (never
-sourced wholesale), maps them to `DH_*`, refuses a dirty tree, builds (`pnpm vanilla
-build:lib`, `pnpm php-app build`), and calls the publish scripts. Flags: `--dry-run`,
-`--only www|api`. Missing `OYL_DH_SSH` prints the exact `.env` lines to add.
-`OYL_DH_APP_ROOT` is renamed to `OYL_DH_API_ROOT` (never used in production; no compat).
+sourced wholesale), maps them to `DH_*`, refuses a dirty tree (`git status --porcelain`
+before any publish call), builds (`pnpm vanilla build:lib`, `pnpm php-app build`), and
+calls the publish scripts. Flags: `--dry-run`, `--only www|api`. Missing `OYL_DH_SSH`
+prints the exact `.env` lines to add. `OYL_DH_APP_ROOT` is renamed to `OYL_DH_API_ROOT`
+(never used in production; no compat). `apps/camis-php-oyl/package.json#scripts.deploy`
+becomes `bash ../../scripts/deploy-dreamhost.sh --only api`.
 
-**Removed:** `scripts/deploy-pi.sh`, root script `deploy:pi`, and the Pi spec is marked
-superseded (kept as history).
+**Removed:** `scripts/deploy-pi.sh`, root script `deploy:pi`, and the Pi spec's status line
+flips to "Superseded 2026-09 by the DreamHost CI deploy spec" (file kept as history).
+`apps/strapi-oyl/.strapi-updater.json` is untracked (`git rm --cached` + gitignore) so a
+`strapi build` no longer dirties the tree.
 
 ## 4. Frontend on Apache
 
@@ -170,26 +203,39 @@ to the importmap. `config.js`:
 
 ```js
 export function defaultApiBaseUrl(hostname, metaBase) {
-  if (metaBase) return normalizeBaseUrl(metaBase)
+  const meta = normalizeBaseUrl(metaBase ?? '')
+  if (meta) return meta                       // whitespace-only content falls through
   // …existing rules unchanged: local → DEFAULT_API_BASE_URL; app.X → api.X; else same-origin /api
 }
 export function getApiBaseUrl(storage, hostname, metaBase) { … stored || defaultApiBaseUrl(hostname, metaBase) }
 ```
 
-The boot wiring reads the meta once (`document.querySelector('meta[name="oyl-api-base"]')`
-`?.content`) and passes it down; an empty `content` (dev, tests, any other host) means "use
-the hostname rules", so nothing else changes. A stored Status → Connection override still
-wins. The `app.`→`api.` rule stays for other deployments.
+`main.js` reads the meta once at boot (`document.querySelector('meta[name="oyl-api-base"]')`
+`?.content`), computes `apiBase = getApiBaseUrl(storage, host, metaBase)` and `apiDefault =
+defaultApiBaseUrl(host, metaBase)` once, and uses those at all seven call sites (lines 66,
+70, 82, 142, 257–258, 370–371) — so the Connection panel's placeholder and "was:" text show
+the injected default, not `https://<app-domain>/api`. An empty `content` (dev, tests, any
+other host) means "use the hostname rules", so nothing else changes. A stored
+Status → Connection override still wins (e2e sets it in localStorage; unaffected). The
+`app.`→`api.` rule stays for other deployments. The `config.js` docstring drops its
+reference to `log/PI_SERVER_SETUP.md`.
 
-**`.htaccess` template** — `apps/vanilla-oyl/deploy/htaccess.template`, rendered by
+No vanilla test or e2e spec parses `index.html` from disk, so the new element is inert
+outside production.
+
+**`.htaccess` template** — `apps/vanilla-oyl/deploy/htaccess.template` (the `deploy/` dir
+is tracked and is not one of the four shipped roots), rendered by
 `apps/vanilla-oyl/scripts/render-htaccess.mjs` (placeholders `__CSP_HEADER__`,
 `__CSP_SCRIPT_HASHES__`, `__API_ORIGIN__`; rendering fails on any leftover placeholder):
 
-- `Options -MultiViews -Indexes`.
+- `Options -MultiViews -Indexes`. (DreamHost grants `AllowOverride` for `Options`,
+  `RewriteRule` and `Header` in `.htaccess`.)
 - SPA fallback scoped like the Pi's Caddy config: rewrite to `/index.html` only when the
   request is not an existing file/directory **and** does not start with `/src/`,
   `/styles/` or `/vendor/`, so a missing asset is a real 404 (the http-server dev proxy
   gotcha in CLAUDE.md does not repeat in production).
+- `<Files DEPLOYED>Require all denied</Files>` — the marker is for the operator over SSH,
+  not the public.
 - Caching: `index.html` → `Cache-Control: no-cache`; everything else →
   `Cache-Control: max-age=0, must-revalidate` (assets are not content-hashed; ETags do the
   work).
@@ -198,16 +244,27 @@ wins. The `app.`→`api.` rule stays for other deployments.
   'self' 'unsafe-inline'; connect-src 'self' __API_ORIGIN__; img-src 'self' data:; font-src
   'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'`,
   `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`,
-  `X-Frame-Options: DENY`. `style-src 'unsafe-inline'` stays (shadow-DOM components inject
-  styles). `https://www.googleapis.com` is dropped from `connect-src`: the PHP backend
-  answers `/google/config` with `configured: false`, so the Drive client never runs.
+  `X-Frame-Options: DENY`. `style-src 'unsafe-inline'` is kept as belt-and-braces: the
+  components use `adoptedStyleSheets` and CSSOM property sets, which CSP does not govern,
+  and `src/` has no `style=` attributes, `eval` or `new Function`; the report-only phase
+  can show whether it is droppable. `https://www.googleapis.com` is dropped from
+  `connect-src`: every `fetch(` in the app and the shared lib targets the API base, and the
+  Drive client's only other origin is reachable only when `/google/config` reports
+  configured, which the PHP backend never does.
 
-**CSP hashes** — `apps/vanilla-oyl/scripts/csp-hashes.mjs` ports the Pi's `oyl-csp.sh`
-extraction to Node: every inline `<script>` without `src` (the anti-FOUC IIFE and the
-importmap), body hashed exactly as the browser parses it, in document order, emitted as
-`'sha256-…'` tokens. `render-htaccess.mjs` runs it against the **staged** `index.html`
-(after meta injection — the meta is not a script, so hashes don't depend on it, but staging
-order is still: copy → inject → render).
+**CSP hashes** — pure, DOM-free modules with JSDoc types, so `pnpm vanilla typecheck`
+(`types: []`, no `@types/node`) covers them and their tests need no `node:` imports:
+
+- `apps/vanilla-oyl/deploy/csp-hashes.js` → `hashInlineScripts(html): Promise<string[]>`
+  (every inline `<script>` without `src`, body hashed exactly as the browser parses it, in
+  document order, via `globalThis.crypto.subtle`, emitted as `'sha256-…'` tokens).
+- `apps/vanilla-oyl/deploy/render-htaccess.js` → `renderHtaccess(template, { header,
+  hashes, apiOrigin }): string`.
+- `apps/vanilla-oyl/scripts/render-htaccess.mjs` is the thin CLI wrapper doing the file IO.
+- `tsconfig.json#include` and the vitest include gain `deploy/**/*.js`.
+
+Staging order stays copy → inject → render (the meta is not a script, so the hashes do
+not depend on it, but the rendered file must sit beside the final `index.html`).
 
 ## 5. Secrets and variables
 
@@ -232,34 +289,40 @@ GitHub repository **variables**:
 
 The root `.env` mirrors them as `OYL_DH_*` for `pnpm deploy:dreamhost`. The host's
 `laravel/.env` is created once by hand from the corrected local
-`apps/camis-php-oyl/.env` (Laravel keys only: `APP_*`, `DB_*` pointing at
-`oyl_cms_strapi_dev`, the rotated `JWT_SECRET`, `CAMIS_*`, the file/array/sync drivers) and
-is never shipped (rsync-excluded, as today). `apps/camis-php-oyl/.env.example` is unchanged.
+`apps/camis-php-oyl/.env` (Laravel keys only: `APP_*` incl. the existing `APP_KEY`, `DB_*`
+pointing at `oyl_cms_strapi_dev`, the rotated `JWT_SECRET`, `CAMIS_*`, the file/array/sync
+drivers) and is never shipped (rsync-excluded, as today). `apps/camis-php-oyl/.env.example`
+is unchanged.
 
 ## 6. Cutover checklist (operator, in order)
 
 1. **DreamHost panel:** `<app-domain>` → web directory `~/domains/<…>/www`, "remove www"
-   redirect, HTTPS on; `<api-domain>` → web directory `~/domains/<…>/camis/laravel/public`,
-   PHP 8.3, HTTPS on. Confirm the developer Mac's IP is in the MySQL "Allowable Hosts" (for
-   future schema syncs; the web server is allowed by default).
-2. **Deploy key:** generate a keypair for CI only; add the public key to the DreamHost
+   redirect, HTTPS on; `<api-domain>` → web directory `~/domains/<…>/camis/laravel/public`
+   (Laravel's stock `public/.htaccess` assumes it is the docroot), domain PHP 8.3, HTTPS
+   on. Confirm the developer Mac's IP is in the MySQL "Allowable Hosts" (for future schema
+   syncs; the web server is allowed by default).
+2. **SSH user toolchain:** set the SSH user's CLI PHP to 8.3 in `~/.bash_profile`
+   (DreamHost's per-user PATH mechanism) and install/verify composer; check with
+   `ssh <user>@<host> 'bash -l -c "php -v; composer -V"'`.
+3. **Deploy key:** generate a keypair for CI only; add the public key to the DreamHost
    user's `authorized_keys`; `ssh-keyscan` the host. Fill the secrets and variables of §5.
-3. **Host `laravel/.env`:** `mkdir -p ~/domains/<…>/camis/laravel`, upload the Laravel
-   half of the corrected local env file (it already carries an `APP_KEY`, so no
-   `key:generate` is needed). Create `laravel/storage/` and `laravel/bootstrap/cache/`
-   writable by the PHP user. The publish script requires this file to exist before it runs
-   composer, so this step precedes the first deploy.
-4. **Root `.env`:** add the `OYL_DH_*` mirror; run `pnpm deploy:dreamhost --dry-run` from the
+4. **Host `laravel/` skeleton:** `mkdir -p ~/domains/<…>/camis/laravel/{bootstrap/cache,storage/logs,storage/framework/cache,storage/app}`
+   — exactly the rsync-excluded directories, which rsync therefore never creates; without
+   `bootstrap/cache/` composer's `package:discover` fails and without `storage/logs/` the
+   first log write 500s. Make them writable by the PHP user. Upload the Laravel half of the
+   corrected local env file as `laravel/.env` (it already carries an `APP_KEY`, so no
+   `key:generate`). The publish script requires this file before it runs composer.
+5. **Root `.env`:** add the `OYL_DH_*` mirror; run `pnpm deploy:dreamhost --dry-run` from the
    Mac to see the delta and prove SSH.
-5. **First deploy:** merge the implementation branch to `master`. Watch the Action: gate,
+6. **First deploy:** merge the implementation branch to `master`. Watch the Action: gate,
    both publishes, both health checks. First deploy uses `DH_CSP_HEADER=
    Content-Security-Policy-Report-Only`; after a clean browser console on the smoke test,
    unset the variable and re-run via `workflow_dispatch` to enforce.
-6. **Smoke test** on `https://<app-domain>`: sign in with an existing account (fresh sign-in,
+7. **Smoke test** on `https://<app-domain>`: sign in with an existing account (fresh sign-in,
    since `JWT_SECRET` rotated), open the journal, reload a deep link such as `/journal`,
    make one write (a note) and confirm it persists across reload; browser console has no
-   CSP violations.
-7. **Pi decommission:** `systemctl disable --now cloudflared`; `pm2 delete strapi`,
+   CSP violations; response headers show the CSP and `nosniff` (proves `mod_headers`).
+8. **Pi decommission:** `systemctl disable --now cloudflared`; `pm2 delete strapi`,
    `pm2 save`; `systemctl disable --now caddy postgresql` (Postgres is idle already);
    remove the `oyl.app` and `api.`/`app.` tunnel routes in Cloudflare; keep a copy of
    `/etc/strapi/strapi.env` for the Strapi secrets used by future schema syncs. Add a
@@ -271,64 +334,86 @@ earlier checkout. rsync `--delete` makes both converge.
 ## 7. Testing
 
 Guards live in `apps/camis-php-oyl/test/` (already the home of the deploy/build script
-tests) and `apps/vanilla-oyl/test/`:
+tests) and in `apps/vanilla-oyl` (co-located `*.test.js`):
 
-- **`publish-api.test.ts`** (from today's `deploy-script.test.ts`): `bash -n`; refuses
-  without `DH_SSH`/`DH_API_ROOT` and names them; rejects unknown args; rsync excludes
-  `bootstrap/cache/` and `storage/app/`; runs `camis:strapi-schema-check`, never `migrate`
-  or the seeder; the `JWT_SECRET` guard sits after the `.env` check and before `composer
-  install` and never echoes the value; `config:clear` precedes the schema check.
+- **`publish-api.test.ts`** replaces `deploy-script.test.ts` (which asserts on the old
+  single script and the renamed `OYL_DH_APP_ROOT`; it cannot coexist): `bash -n`; refuses
+  without `DH_SSH`/`DH_API_ROOT` and names them; rejects unknown args; the `RSYNC_FLAGS=(`
+  line excludes `bootstrap/cache/` and `storage/app/`; runs `camis:strapi-schema-check`,
+  never `migrate` or the seeder; the `JWT_SECRET` guard sits after the `.env` check and
+  before `composer install` and never echoes the value; `config:clear` precedes the schema
+  check; every `ssh`/`rsync -e` carries `BatchMode=yes`; the preflight uses `bash -l`.
 - **`publish-www.test.ts`**: `bash -n`; refuses without `DH_SSH`/`DH_WWW_ROOT`/
-  `DH_API_BASE`; with a fake `ssh` and `rsync` on `PATH` and `--dry-run`, the staged tree
-  contains exactly `index.html`, `src/`, `styles/`, `vendor/`, `.htaccess`, `DEPLOYED`, the
-  meta carries `DH_API_BASE`, and the rsync invocation includes `--delete` and
-  `--exclude '.well-known/'`.
+  `DH_API_BASE`. Behavioural run: a tmp fixture app (tiny `index.html` with the meta and
+  two inline scripts, `src/a.js`, `src/a.test.js`, `styles/x.css`,
+  `vendor/all-of-oyl/index.js`) passed via `DH_WWW_SRC`, fake `ssh` and `rsync`
+  executables first on `PATH`; the fake `rsync` records its argv and a `find` listing plus
+  the staged `index.html` and `.htaccess` to a capture file before the script's trap cleans
+  the stage. Assert: staged tree is exactly `index.html`, `src/a.js`, `styles/x.css`,
+  `vendor/…`, `.htaccess`, `DEPLOYED` (no `*.test.js`); the meta carries `DH_API_BASE`;
+  `.htaccess` has two `sha256-` tokens and the API origin; the rsync argv includes
+  `--delete`, `--exclude .well-known/` and `BatchMode=yes`.
 - **`deploy-dreamhost.test.ts`**: wrapper parses; missing `OYL_DH_SSH` lists every key;
-  `--only` validation; dirty-tree refusal.
+  `--only` validation; static assert that `git status --porcelain` appears before the first
+  `publish-` call (the check itself is not runnable without dirtying the real repo).
 - **`workflow.test.ts`**: reads `.github/workflows/deploy.yml` as text (no YAML
   dependency added): triggers are `push` to `master` and `workflow_dispatch` only; the gate
-  steps (`pnpm test`, `pnpm typecheck`) appear before the ssh-agent step; both path filters
-  list `packages/all-of-oyl/**`; `CAMIS_REF` is a 40-hex SHA; no `StrictHostKeyChecking=no`.
-- **`csp-hashes.test.js`** (vanilla): two inline scripts in a fixture → two `sha256-`
-  tokens in order; a `<script src>` is ignored; matches a known vector.
-- **`render-htaccess.test.js`**: rendered output has the scoped SPA rewrite, the
-  `Cache-Control` rules, the CSP with the given header name, the API origin in
-  `connect-src`, and no `__PLACEHOLDER__` left.
-- **`config.test.js`** (vanilla, extend): `metaBase` wins over hostname rules; empty meta
-  falls through; stored override still wins over meta.
+  steps (`pnpm test`, `pnpm typecheck`) appear before the ssh-agent step; `setup-php`
+  appears before the gate; both path filters list `packages/all-of-oyl/**`; `CAMIS_REF` is
+  a 40-hex SHA; `node-version` matches root `engines.node`; no `StrictHostKeyChecking=no`.
+- **`deploy/csp-hashes.test.js`** (vanilla): two inline scripts in a fixture → two
+  `sha256-` tokens in order; a `<script src>` is ignored; matches a known vector.
+- **`deploy/render-htaccess.test.js`**: rendered output has the scoped SPA rewrite, the
+  `DEPLOYED` deny, the `Cache-Control` rules, the CSP with the given header name, the API
+  origin in `connect-src`, and no `__PLACEHOLDER__` left.
+- **`src/storage/config.test.js`** (extend): `metaBase` wins over hostname rules;
+  empty and whitespace-only meta fall through; stored override still wins over meta.
 - **e2e:** `pnpm e2e` once locally before merge (the meta seam is the only app-facing
   change; the empty-meta path is what e2e exercises). No new spec: no new screen or route.
 - **Manual:** the §6 smoke test.
 
 ## 8. Docs and cleanup
 
-- `CLAUDE.md`: replace the Pi rows (`deploy:pi`, `OYL_PI_*`) with the DreamHost rows and a
-  "CI deploys `master` to DreamHost" note; the "Adding a content type" gotcha keeps its
-  "schema sync before deploy" sentence (now: before *pushing*).
-- `apps/camis-php-oyl/README.md`: CI section, `CAMIS_REF` bump rule, the two-target layout.
+- `CLAUDE.md`: replace the Pi rows (`deploy:pi`, `OYL_PI_*`, lines 46/52) with the
+  DreamHost rows and a "CI deploys `master` to DreamHost" note; the "Adding a content type"
+  gotcha (line 105) says "schema sync before *pushing*".
+- `apps/camis-php-oyl/README.md`: rewrite "DreamHost one-time setup" to match §5/§6 (no
+  `key:generate`, `OYL_DH_API_ROOT`, the new key list), add the CI section and the
+  `CAMIS_REF` bump rule, update the `pnpm php-app deploy` line.
 - `apps/vanilla-oyl`: short `deploy/README.md` on the meta seam and `.htaccess` rendering.
-- `TODO.md`: drop the "deploy-pi hardening follow-ups" block.
+- `TODO.md`: drop the "deploy-pi hardening follow-ups" block (BatchMode is done here).
+- Pi spec status line flipped to superseded; `packages/ocari-oyl/src/config.ts` comment
+  "(deploy-pi pattern)" reworded (optional, cosmetic).
 - Memory: Pi note → "decommissioned for OYL; hosts Ocari".
 
 ## Out of scope
 
 - Ocari on the Pi (own spec: storage, Ollama, the "Pi text-only engine").
 - Running the e2e suite in CI.
-- Google sign-in / Drive on DreamHost (the PHP backend reports it unconfigured).
+- Google sign-in / Drive on DreamHost (the PHP backend reports it unconfigured). Enabling
+  it later needs a `config/cors.php` with the explicit app origin and
+  `supports_credentials`, because `google-store.js` fetches with `credentials: 'include'`,
+  which the wildcard default rejects.
 - `oyl.app`.
 - A GitHub environment with required approval (single pusher).
 - Auto-rollback, blue/green, deploy locking beyond the concurrency group.
+- Committing a Laravel `composer.lock` (follow-up; see Risks).
 
 ## Risks
 
 - **`mod_headers` unavailable** on the DreamHost domain → the `<IfModule>` block silently
-  drops the security headers. The smoke test checks response headers; if absent, open a
+  drops the security headers. Smoke test step 7 checks response headers; if absent, open a
   DreamHost ticket or fall back to a PHP front controller for `index.html` (not planned).
+- **Laravel dependency drift:** `laravel/` (with `composer.lock`) is regenerated by
+  `composer create-project` on every api deploy, so the PHP dependency set is re-resolved
+  from `^12.0` each time and "committed HEAD" does not fully pin the PHP half. Accepted for
+  now; follow-up: commit `apps/camis-php-oyl/composer.lock` and have `scripts/build.mjs`
+  copy it into `laravel/` after scaffold.
 - **camis scaffold time** (`composer create-project` on a cold runner) → a few minutes on
   the first run; the composer cache shortens later runs. Acceptable for a single-pusher repo.
-- **Native modules in `pnpm test`** (`onnxruntime-node` for ocari) on `ubuntu-latest` — the
-  ocari tests fake the engines, but the install must succeed; if it doesn't, the gate scopes
-  `pnpm test` to the deployable packages and this spec is amended.
+- **Native modules in `pnpm test`** (`onnxruntime-node` / `ppu-paddle-ocr` load at import in
+  ocari's `cli.test.ts`) on `ubuntu-latest` — linux-x64 prebuilts exist; if they fail to
+  load, the gate scopes `pnpm test` to the deployable packages and this spec is amended.
 - **Schema drift**: a push that changes a Strapi schema without a prior Mac-side sync fails
   the api deploy at `camis:strapi-schema-check` while the www deploy has already shipped.
   Acceptable: the app tolerates a backend one schema behind for reads, and the fix is the
