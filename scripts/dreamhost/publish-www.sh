@@ -84,7 +84,7 @@ node -e '
   const html = fs.readFileSync(file, "utf8")
   const re = /<meta name="oyl-api-base" content="[^"]*"\s*\/?>/
   if (!re.test(html)) { console.error("publish-www: meta tag not found during injection"); process.exit(1) }
-  fs.writeFileSync(file, html.replace(re, `<meta name="oyl-api-base" content="${base}" />`))
+  fs.writeFileSync(file, html.replace(re, () => `<meta name="oyl-api-base" content="${base}" />`))
 ' "$STAGE/index.html" "$DH_API_BASE"
 
 API_ORIGIN="$(node -e 'console.log(new URL(process.argv[1]).origin)' "$DH_API_BASE")"

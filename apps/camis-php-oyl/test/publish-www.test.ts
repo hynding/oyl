@@ -99,6 +99,14 @@ describe("scripts/dreamhost/publish-www.sh", () => {
     expect(argv.some((a) => a.includes("BatchMode=yes"))).toBe(true)
     expect(argv.at(-1)).toBe("x@y:www/")
   })
+  it("injects DH_API_BASE literally, even when it contains $-replacement patterns", () => {
+    const base = "https://api.example.test/api/v$&1"
+    const res = run([], { ...good(), DH_API_BASE: base, DH_WWW_SRC: fixture })
+    expect(res.status, res.stderr).toBe(0)
+    const html = readFileSync(join(capture, "index.html"), "utf8")
+    expect(html).toContain(`<meta name="oyl-api-base" content="${base}" />`)
+    expect(html.split('<meta name="oyl-api-base"').length - 1).toBe(1)
+  })
   it("an empty DH_CSP_HEADER (unset GitHub variable) still renders the enforcing header; report-only is honoured", () => {
     let res = run([], { ...good(), DH_WWW_SRC: fixture, DH_CSP_HEADER: "" })
     expect(res.status, res.stderr).toBe(0)
