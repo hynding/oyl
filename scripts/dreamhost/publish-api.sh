@@ -44,13 +44,15 @@ SHORT="$(git -C "$REPO_ROOT" rev-parse --short HEAD)"
 # Login shell on purpose: DreamHost selects the per-user CLI PHP through ~/.bash_profile, and
 # the remote body below runs under bash -l too — both stages must see the same toolchain.
 echo "==> Preflight: ssh $DH_SSH"
-ssh "${SSH_OPTS[@]}" "$DH_SSH" 'bash -l -c "command -v php composer >/dev/null"' \
+# Two separate lookups: `command -v php composer` succeeds when only one of them exists.
+ssh "${SSH_OPTS[@]}" "$DH_SSH" 'bash -l -c "command -v php >/dev/null && command -v composer >/dev/null"' \
   || { echo "publish-api: cannot ssh to $DH_SSH, or php/composer missing from the login-shell PATH." >&2; exit 1; }
 
 printf 'sha=%s\ndeployed_utc=%s\n' "$(git -C "$REPO_ROOT" rev-parse HEAD)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$APP_DIR/laravel/DEPLOYED"
 
 # vendor/ is installed on the host (platform-matched); .env and the sqlite files never ship.
-RSYNC_FLAGS=(-a --delete -e 'ssh -o BatchMode=yes' --exclude vendor/ --exclude node_modules/ --exclude '.env' --exclude 'database/*.sqlite' --exclude 'storage/logs/' --exclude 'storage/framework/cache/' --exclude 'bootstrap/cache/' --exclude 'storage/app/')
+# public/.well-known/ is DreamHost's (certificate validation in the api docroot); protect it from --delete.
+RSYNC_FLAGS=(-a --delete -e 'ssh -o BatchMode=yes' --exclude vendor/ --exclude node_modules/ --exclude '.env' --exclude 'database/*.sqlite' --exclude 'storage/logs/' --exclude 'storage/framework/cache/' --exclude 'bootstrap/cache/' --exclude 'storage/app/' --exclude 'public/.well-known/')
 
 if [[ $DRY_RUN -eq 1 ]]; then
   echo "==> DRY RUN: rsync delta ($SHORT -> $DH_SSH:$DH_API_ROOT/laravel); nothing will change"
@@ -73,6 +75,8 @@ cd "$APP_ROOT/laravel"
 # Length only — the value is never printed. Last assignment wins, as dotenv reads it.
 secret_len="$(awk '/^JWT_SECRET=/{v=$0; sub(/^JWT_SECRET=/, "", v); sub(/\r$/, "", v); gsub(/^"|"$/, "", v)} END{print length(v)}' .env)"
 [ "${secret_len:-0}" -ge 32 ] || { echo "remote: JWT_SECRET in laravel/.env must be >= 32 bytes — see apps/camis-php-oyl/README.md"; exit 1; }
+# The runtime dirs are rsync-excluded, so a first deploy has none of them: recreate (no-op later).
+mkdir -p bootstrap/cache storage/logs storage/framework/cache storage/app storage/framework/sessions storage/framework/views
 composer install --no-dev --optimize-autoloader --no-interaction
 # bootstrap/cache/ is rsync-excluded, so the previous deploy's config:cache is still on the
 # host: clear it or the check would read that stale config (e.g. the old database credentials).
@@ -86,7 +90,7 @@ REMOTE
 
 if [[ -n "$DH_API_URL" ]]; then
   echo "==> Health: $DH_API_URL/api/_health"
-  code="$(curl -s -o /dev/null -w '%{http_code}' "$DH_API_URL/api/_health" || true)"
+  code="$(curl -s --max-time 20 -o /dev/null -w '%{http_code}' "$DH_API_URL/api/_health" || true)"
   [[ "$code" == "204" ]] || { echo "publish-api: health check returned HTTP $code." >&2; exit 1; }
   echo "api is up."
 fi
