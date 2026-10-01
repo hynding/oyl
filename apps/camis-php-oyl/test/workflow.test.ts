@@ -24,6 +24,7 @@ function runBlockLeaksSecret(text: string): boolean {
       }
       continue
     }
+    if (line.trim() === "") continue
     const indent = /^(\s*)/.exec(line)![1].length
     if (indent <= runIndent) {
       inRun = false
@@ -38,6 +39,41 @@ function runBlockLeaksSecret(text: string): boolean {
   }
   return false
 }
+
+describe("runBlockLeaksSecret", () => {
+  it("detects a secret after a blank line inside a run: | block", () => {
+    const sample = [
+      "      - name: Something",
+      "        run: |",
+      "          echo start",
+      "",
+      "          echo ${{ secrets.NOPE }}",
+    ].join("\n")
+    expect(runBlockLeaksSecret(sample)).toBe(true)
+  })
+  it("ignores a secret that appears only in a step-level env:, outside any run: block", () => {
+    const sample = [
+      "      - name: Something",
+      "        env:",
+      "          TOKEN: ${{ secrets.NOPE }}",
+      "        run: |",
+      "          echo hi",
+    ].join("\n")
+    expect(runBlockLeaksSecret(sample)).toBe(false)
+  })
+  it("still closes the block at the next dedented step, not leaking a later with: secret", () => {
+    const sample = [
+      "      - name: Something",
+      "        run: |",
+      "          echo hi",
+      "      - name: Next step",
+      "        uses: foo/bar@0000000000000000000000000000000000000000",
+      "        with:",
+      "          token: ${{ secrets.X }}",
+    ].join("\n")
+    expect(runBlockLeaksSecret(sample)).toBe(false)
+  })
+})
 
 describe(".github/workflows/deploy.yml", () => {
   it("deploys on push to master and on manual dispatch only", () => {
