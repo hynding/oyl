@@ -2,7 +2,11 @@
 // 'sha256-…' source expressions. Used by scripts/render-htaccess.mjs at publish time and
 // unit-tested here; it must not import node:* (apps/vanilla-oyl typechecks with types: []).
 
-const INLINE_SCRIPT = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g
+// Matches <script> tags with attributes, handling quoted > inside attribute values.
+// Capture group 1: attributes string; group 2: body.
+const SCRIPT_TAG = /<script\b((?:[^>"']|"[^"]*"|'[^']*')*)>([\s\S]*?)<\/script>/gi
+// Matches a real src= attribute (not data-src= or similar) in an attributes string.
+const HAS_SRC = /(^|\s)src\s*=/i
 
 /** @param {Uint8Array} bytes @returns {string} */
 function toBase64(bytes) {
@@ -20,8 +24,10 @@ function toBase64(bytes) {
 export async function hashInlineScripts(html) {
   /** @type {string[]} */
   const out = []
-  for (const m of html.matchAll(INLINE_SCRIPT)) {
-    const body = /** @type {string} */ (m[1])
+  for (const m of html.matchAll(SCRIPT_TAG)) {
+    const attrs = m[1] ?? ''
+    if (HAS_SRC.test(attrs)) continue
+    const body = /** @type {string} */ (m[2])
     const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(body))
     out.push(`sha256-${toBase64(new Uint8Array(digest))}`)
   }

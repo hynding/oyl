@@ -27,4 +27,24 @@ describe('hashInlineScripts', () => {
   it('returns [] when there is no inline script', async () => {
     expect(await hashInlineScripts('<html><script src="/a.js"></script></html>')).toEqual([])
   })
+
+  it('tolerates quoted > inside attribute values', async () => {
+    const [hash1] = await hashInlineScripts('<script data-foo="a>b">x</script>')
+    const [hash2] = await hashInlineScripts('<script>x</script>')
+    expect(hash1).toBe(hash2)
+  })
+
+  it('distinguishes data-src from src attribute', async () => {
+    const [dataHash] = await hashInlineScripts('<script data-src="/x.js">x</script>')
+    const [withXHash] = await hashInlineScripts('<script>x</script>')
+    const noHash = await hashInlineScripts('<script src="/x.js"></script>')
+    expect(dataHash).toBe(withXHash)
+    expect(noHash).toEqual([])
+  })
+
+  it('is case-insensitive for script tags', async () => {
+    const [hash1] = await hashInlineScripts('<SCRIPT>x</SCRIPT>')
+    const [hash2] = await hashInlineScripts('<script>x</script>')
+    expect(hash1).toBe(hash2)
+  })
 })
