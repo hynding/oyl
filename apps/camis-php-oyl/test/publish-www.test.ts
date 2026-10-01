@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process"
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
@@ -120,6 +120,112 @@ describe("scripts/dreamhost/publish-www.sh", () => {
     expect(res.status, res.stderr).toBe(0)
     expect(readFileSync(join(capture, "argv"), "utf8").split("\n")).toContain("-n")
     expect(res.stdout).toContain("DRY RUN")
+  })
+  describe("root-path guard", () => {
+    for (const bad of [".", "./", "/home/u/www", "~/www", "~", "..", "../www", "domains/../www", "domains/x/.."]) {
+      it(`refuses DH_WWW_ROOT=${JSON.stringify(bad)} (rsync --delete would hit the wrong tree)`, () => {
+        const res = run(["--dry-run"], { ...good(), DH_WWW_ROOT: bad, DH_WWW_SRC: fixture })
+        expect(res.status).toBe(1)
+        expect(res.stderr).toContain("publish-www: DH_WWW_ROOT")
+        expect(existsSync(join(capture, "argv")), "rsync must not run").toBe(false)
+      })
+    }
+    it("refuses a DH_API_ROOT nested under DH_WWW_ROOT, or equal to it, and names both", () => {
+      for (const [www, api] of [["domains/x", "domains/x/camis"], ["domains/x/www/api", "domains/x/www"], ["domains/x/www", "domains/x/www/"]]) {
+        const res = run(["--dry-run"], { ...good(), DH_WWW_ROOT: www, DH_API_ROOT: api, DH_WWW_SRC: fixture })
+        expect(res.status, `${www} vs ${api}`).toBe(1)
+        expect(res.stderr).toContain("DH_WWW_ROOT")
+        expect(res.stderr).toContain("DH_API_ROOT")
+      }
+    })
+    it("accepts sibling roots that only share a string prefix", () => {
+      for (const [www, api] of [["domains/x/www", "domains/x/camis"], ["domains/x/www", "domains/x/www2"]]) {
+        const res = run(["--dry-run"], { ...good(), DH_WWW_ROOT: www, DH_API_ROOT: api, DH_WWW_SRC: fixture })
+        expect(res.status, res.stderr).toBe(0)
+      }
+    })
+  })
+  describe("first-deploy guard", () => {
+    const failingCheckSsh = () => writeExec(join(bin, "ssh"), [
+      "#!/usr/bin/env bash",
+      "printf '%s\\n' \"$@\" >> \"$FAKE_CAPTURE/ssh\"",
+      "[[ \"${@: -1}\" == true ]] && exit 0",
+      "exit 1",
+      "",
+    ].join("\n"))
+    it("stops before rsync when the remote root is neither a previous deploy nor empty, and names the override", () => {
+      failingCheckSsh()
+      const res = run([], { ...good(), DH_WWW_SRC: fixture })
+      expect(res.status).toBe(1)
+      expect(res.stderr).toContain("DH_FIRST_DEPLOY=1")
+      expect(existsSync(join(capture, "argv")), "rsync must not run").toBe(false)
+      const sshLog = readFileSync(join(capture, "ssh"), "utf8")
+      expect(sshLog).toContain("bash -l -c")
+      expect(sshLog).toContain("DEPLOYED")
+      expect(sshLog).toContain(".well-known")
+    })
+    it("DH_FIRST_DEPLOY=1 overrides it for a genuinely new root", () => {
+      failingCheckSsh()
+      const res = run([], { ...good(), DH_WWW_SRC: fixture, DH_FIRST_DEPLOY: "1" })
+      expect(res.status, res.stderr).toBe(0)
+      expect(existsSync(join(capture, "argv"))).toBe(true)
+    })
+    it("is skipped under --dry-run (which mutates nothing)", () => {
+      failingCheckSsh()
+      const res = run(["--dry-run"], { ...good(), DH_WWW_SRC: fixture })
+      expect(res.status, res.stderr).toBe(0)
+    })
+    // The remote check itself, run for real against a local "home" (ssh fake executes it there).
+    it("the remote check passes for a missing root, a previous deploy, or only .well-known, and fails otherwise (root quoted)", () => {
+      const home = join(tmp, "home")
+      mkdirSync(home)
+      writeExec(join(bin, "ssh"), `#!/usr/bin/env bash\ncd "${home}" && exec /bin/bash -c "\${@: -1}"\n`)
+      const deploy = () => run([], { ...good(), DH_WWW_ROOT: "my site", DH_WWW_SRC: fixture })
+      expect(deploy().status, "missing root").toBe(0)
+      mkdirSync(join(home, "my site", ".well-known"), { recursive: true })
+      expect(deploy().status, "only .well-known").toBe(0)
+      writeFileSync(join(home, "my site", "index.html"), "someone else's site")
+      expect(deploy().status, "foreign content").toBe(1)
+      writeFileSync(join(home, "my site", "DEPLOYED"), "sha=x\n")
+      expect(deploy().status, "previous deploy").toBe(0)
+    })
+  })
+  describe("health checks", () => {
+    // Fake curl answering like a healthy host; insists on --max-time (no unbounded hang in CI).
+    const fakeCurl = () => writeExec(join(bin, "curl"), [
+      "#!/usr/bin/env bash",
+      "[[ \" $* \" == *\" --max-time 20 \"* ]] || { echo 'curl without --max-time 20' >&2; exit 99; }",
+      "url=\"${@: -1}\"",
+      "if [[ \" $* \" == *\" -sI \"* ]]; then printf '%s' \"$FAKE_HEADERS\"; exit 0; fi",
+      "case \"$url\" in",
+      "  */journal) printf '%s\\n%s' '<script type=\"importmap\">' \"${FAKE_JOURNAL_CODE:-200}\" ;;",
+      "  */vendor/does-not-exist.js) printf 404 ;;",
+      "  */DEPLOYED) printf 403 ;;",
+      "  */) printf 200 ;;",
+      "esac",
+      "",
+    ].join("\n"))
+    const site = { DH_SITE_URL: "https://app.example.test" }
+    const nosniff = "HTTP/2 200\r\nX-Content-Type-Options: nosniff\r\ncontent-type: text/html\r\n\r\n"
+    it("passes on a healthy host (header match is case-insensitive) with every curl time-bounded", () => {
+      fakeCurl()
+      const res = run([], { ...good(), ...site, DH_WWW_SRC: fixture, FAKE_HEADERS: nosniff })
+      expect(res.status, res.stderr).toBe(0)
+      expect(res.stdout).toContain("site is up")
+    })
+    it("fails naming mod_headers when the nosniff header is absent (the .htaccess headers block is inert)", () => {
+      fakeCurl()
+      const res = run([], { ...good(), ...site, DH_WWW_SRC: fixture, FAKE_HEADERS: "HTTP/2 200\r\ncontent-type: text/html\r\n\r\n" })
+      expect(res.status).toBe(1)
+      expect(res.stderr).toContain("mod_headers")
+    })
+    it("reports the observed status when the /journal deep link fails", () => {
+      fakeCurl()
+      const res = run([], { ...good(), ...site, DH_WWW_SRC: fixture, FAKE_HEADERS: nosniff, FAKE_JOURNAL_CODE: "500" })
+      expect(res.status).toBe(1)
+      expect(res.stderr).toContain("/journal")
+      expect(res.stderr).toContain("500")
+    })
   })
   it("never weakens host-key checking", () => {
     expect(src()).not.toContain("StrictHostKeyChecking=no")

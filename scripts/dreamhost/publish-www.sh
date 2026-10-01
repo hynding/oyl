@@ -9,6 +9,8 @@
 #   DH_API_BASE    https://<api-domain>/api — injected into index.html; its origin feeds CSP (required)
 #   DH_SITE_URL    https://<app-domain> — enables the external health checks (optional)
 #   DH_CSP_HEADER  Content-Security-Policy (default) | Content-Security-Policy-Report-Only
+#   DH_API_ROOT    the api's root (optional) — refused if it overlaps DH_WWW_ROOT (--delete)
+#   DH_FIRST_DEPLOY=1  publish into a root that is neither empty nor a previous deploy (once)
 #   DH_WWW_SRC     app source dir (default apps/vanilla-oyl; a test seam)
 #
 # Usage: publish-www.sh [--dry-run]
@@ -28,7 +30,7 @@ if [[ $# -gt 0 ]]; then
 fi
 
 DH_SSH="${DH_SSH:-}"; DH_WWW_ROOT="${DH_WWW_ROOT:-}"; DH_API_BASE="${DH_API_BASE:-}"
-DH_SITE_URL="${DH_SITE_URL:-}"
+DH_SITE_URL="${DH_SITE_URL:-}"; DH_API_ROOT="${DH_API_ROOT:-}"; DH_FIRST_DEPLOY="${DH_FIRST_DEPLOY:-}"
 CSP_HEADER="${DH_CSP_HEADER:-Content-Security-Policy}"
 SRC="${DH_WWW_SRC:-$REPO_ROOT/apps/vanilla-oyl}"
 missing=()
@@ -38,6 +40,22 @@ if [[ -z "$DH_API_BASE" ]]; then missing+=(DH_API_BASE); fi
 if [[ ${#missing[@]} -gt 0 ]]; then
   echo "publish-www: missing required environment: ${missing[*]} (optional: DH_SITE_URL, DH_CSP_HEADER, DH_WWW_SRC)." >&2
   exit 1
+fi
+# rsync --delete mirrors into DH_WWW_ROOT: it must be a real subdirectory of the SSH user's
+# home, never the home itself, an absolute/~ path, or anything that climbs out with '..'.
+www_trim="$DH_WWW_ROOT"
+while [[ "$www_trim" == */ && "$www_trim" != / ]]; do www_trim="${www_trim%/}"; done
+if [[ "$www_trim" == "." || "$www_trim" == /* || "$www_trim" == "~"* || "/$www_trim/" == */../* ]]; then
+  echo "publish-www: DH_WWW_ROOT '$DH_WWW_ROOT' must be a subdirectory relative to the SSH user's home (not '.', absolute, ~, or containing '..')." >&2
+  exit 1
+fi
+if [[ -n "$DH_API_ROOT" ]]; then
+  api_trim="$DH_API_ROOT"
+  while [[ "$api_trim" == */ && "$api_trim" != / ]]; do api_trim="${api_trim%/}"; done
+  if [[ "$www_trim/" == "$api_trim/"* || "$api_trim/" == "$www_trim/"* ]]; then
+    echo "publish-www: DH_WWW_ROOT '$DH_WWW_ROOT' and DH_API_ROOT '$DH_API_ROOT' overlap — rsync --delete into one would wipe the other." >&2
+    exit 1
+  fi
 fi
 url_re="^https?://[^[:space:]\"'<>]+\$"
 if [[ ! "$DH_API_BASE" =~ $url_re ]]; then
@@ -104,21 +122,37 @@ if [[ $DRY_RUN -eq 1 ]]; then
   exit 0
 fi
 
+# First-deploy guard: only --delete into a root that a previous deploy wrote (DEPLOYED), or that
+# is missing / empty apart from DreamHost's .well-known — never over some other site's files.
+if [[ "$DH_FIRST_DEPLOY" == "1" ]]; then
+  echo "==> DH_FIRST_DEPLOY=1: skipping the first-deploy guard for $DH_WWW_ROOT"
+else
+  root_check="d=$(printf %q "$DH_WWW_ROOT"); [ ! -e \"\$d\" ] || [ -f \"\$d/DEPLOYED\" ] || [ -z \"\$(ls -A \"\$d\" | grep -vxF .well-known)\" ]"
+  ssh "${SSH_OPTS[@]}" "$DH_SSH" "bash -l -c $(printf %q "$root_check")" || {
+    echo "publish-www: $DH_SSH:$DH_WWW_ROOT has files but no DEPLOYED marker — it looks like an unexpected directory, and rsync --delete would wipe it. Check DH_WWW_ROOT; if this genuinely is the new app root, re-run once with DH_FIRST_DEPLOY=1." >&2
+    exit 1
+  }
+fi
+
 echo "==> Syncing -> $DH_SSH:$DH_WWW_ROOT"
 rsync "${RSYNC_FLAGS[@]}" "$STAGE"/ "$DH_SSH:$DH_WWW_ROOT"/
 
 if [[ -n "$DH_SITE_URL" ]]; then
   echo "==> Health: $DH_SITE_URL"
-  code="$(curl -s -o /dev/null -w '%{http_code}' "$DH_SITE_URL/" || true)"
+  code="$(curl -s --max-time 20 -o /dev/null -w '%{http_code}' "$DH_SITE_URL/" || true)"
   [[ "$code" == "200" ]] || { echo "publish-www: GET / returned HTTP $code." >&2; exit 1; }
-  body="$(curl -s -w '\n%{http_code}' "$DH_SITE_URL/journal" || true)"
-  [[ "${body##*$'\n'}" == "200" && "$body" == *'type="importmap"'* ]] \
-    || { echo "publish-www: deep link /journal did not serve index.html (SPA fallback broken)." >&2; exit 1; }
-  code="$(curl -s -o /dev/null -w '%{http_code}' "$DH_SITE_URL/vendor/does-not-exist.js" || true)"
+  body="$(curl -s --max-time 20 -w '\n%{http_code}' "$DH_SITE_URL/journal" || true)"
+  code="${body##*$'\n'}"
+  [[ "$code" == "200" && "$body" == *'type="importmap"'* ]] \
+    || { echo "publish-www: deep link /journal returned HTTP $code without index.html (SPA fallback broken)." >&2; exit 1; }
+  code="$(curl -s --max-time 20 -o /dev/null -w '%{http_code}' "$DH_SITE_URL/vendor/does-not-exist.js" || true)"
   [[ "$code" == "404" ]] || { echo "publish-www: missing asset returned HTTP $code, expected 404 (fallback not scoped)." >&2; exit 1; }
-  code="$(curl -s -o /dev/null -w '%{http_code}' "$DH_SITE_URL/DEPLOYED" || true)"
+  code="$(curl -s --max-time 20 -o /dev/null -w '%{http_code}' "$DH_SITE_URL/DEPLOYED" || true)"
   [[ "$code" == "403" ]] || { echo "publish-www: /DEPLOYED returned HTTP $code, expected 403." >&2; exit 1; }
-  echo "site is up; SPA fallback scoped; DEPLOYED denied."
+  headers="$(curl -sI --max-time 20 "$DH_SITE_URL/" || true)"
+  grep -qi 'x-content-type-options: *nosniff' <<<"$headers" \
+    || { echo "publish-www: GET / lacks X-Content-Type-Options: nosniff — mod_headers is off, so the CSP and security headers in .htaccess are not being sent." >&2; exit 1; }
+  echo "site is up; SPA fallback scoped; DEPLOYED denied; security headers sent."
 fi
 
 echo "==> Published $SHORT to $DH_SSH:$DH_WWW_ROOT."
