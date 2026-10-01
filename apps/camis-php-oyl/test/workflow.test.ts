@@ -115,6 +115,26 @@ describe(".github/workflows/deploy.yml", () => {
     expect(i("run: pnpm typecheck")).toBeLessThan(i("webfactory/ssh-agent"))
     expect(i("webfactory/ssh-agent")).toBeLessThan(i("bash scripts/dreamhost/publish-api.sh"))
   })
+  it("builds both targets after the gate and before the deploy key is loaded (no build code runs with the key in the agent)", () => {
+    const i = (s: string) => { const k = yml.indexOf(s); expect(k, s).toBeGreaterThan(-1); return k }
+    expect(i("run: pnpm typecheck")).toBeLessThan(i("run: pnpm php-app build"))
+    expect(i("run: pnpm php-app build")).toBeLessThan(i("run: pnpm vanilla build:lib"))
+    expect(i("run: pnpm php-app build")).toBeLessThan(i("webfactory/ssh-agent"))
+    expect(i("run: pnpm vanilla build:lib")).toBeLessThan(i("webfactory/ssh-agent"))
+    expect(i("webfactory/ssh-agent")).toBeLessThan(i("name: Pin the DreamHost host key"))
+    expect(i("name: Pin the DreamHost host key")).toBeLessThan(i("name: Publish api"))
+    expect(i("name: Publish api")).toBeLessThan(i("name: Publish www"))
+    // The publish steps only publish: no build re-runs after the key is loaded.
+    const afterKey = yml.slice(i("webfactory/ssh-agent"))
+    expect(afterKey).not.toContain("pnpm php-app build")
+    expect(afterKey).not.toContain("pnpm vanilla build:lib")
+    expect(afterKey).toContain("run: bash scripts/dreamhost/publish-api.sh")
+    expect(afterKey).toContain("run: bash scripts/dreamhost/publish-www.sh")
+  })
+  it("does not persist the checkout token into .git/config, and bounds the job", () => {
+    expect(yml).toMatch(/uses: actions\/checkout@[0-9a-f]{40}[^\n]*\n\s+with:\n\s+persist-credentials: false\n/)
+    expect(yml).toMatch(/^    timeout-minutes: 30$/m)
+  })
   it("deploys both targets on every run, api before www", () => {
     const i = (s: string) => { const k = yml.indexOf(s); expect(k, s).toBeGreaterThan(-1); return k }
     expect(i("bash scripts/dreamhost/publish-api.sh")).toBeLessThan(i("bash scripts/dreamhost/publish-www.sh"))
@@ -133,5 +153,10 @@ describe(".github/workflows/deploy.yml", () => {
       expect(yml, v).toMatch(new RegExp(`${v}: \\$\\{\\{ (secrets|vars)\\.${v} \\}\\}`))
     }
     expect(yml).not.toMatch(/OYL_DH_/)
+  })
+  it("gives publish-www the api root (overlap guard) and the first-deploy override", () => {
+    const www = yml.slice(yml.indexOf("name: Publish www"), yml.indexOf("name: Summary"))
+    expect(www).toContain("DH_API_ROOT: ${{ vars.DH_API_ROOT }}")
+    expect(www).toContain("DH_FIRST_DEPLOY: ${{ vars.DH_FIRST_DEPLOY }}")
   })
 })

@@ -23,8 +23,11 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -64,6 +67,11 @@ jobs:
       - run: pnpm test
       - run: pnpm typecheck
 
+      # Both builds run BEFORE the deploy key is loaded: no third-party build code (pnpm/composer
+      # dependencies, camis) ever runs while the key sits in the ssh-agent.
+      - run: pnpm php-app build
+      - run: pnpm vanilla build:lib
+
       # Always run: deploys are idempotent and cancel-in-progress:false means a superseded
       # or failed run's per-push diff is unreliable — every run deploys both targets.
       - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
@@ -85,9 +93,7 @@ jobs:
           DH_SSH: ${{ secrets.DH_SSH }}
           DH_API_ROOT: ${{ vars.DH_API_ROOT }}
           DH_API_URL: ${{ vars.DH_API_URL }}
-        run: |
-          pnpm php-app build
-          bash scripts/dreamhost/publish-api.sh
+        run: bash scripts/dreamhost/publish-api.sh
 
       - name: Publish www (static app)
         env:
@@ -96,9 +102,11 @@ jobs:
           DH_API_BASE: ${{ vars.DH_API_BASE }}
           DH_SITE_URL: ${{ vars.DH_SITE_URL }}
           DH_CSP_HEADER: ${{ vars.DH_CSP_HEADER }}
-        run: |
-          pnpm vanilla build:lib
-          bash scripts/dreamhost/publish-www.sh
+          # publish-www refuses a DH_WWW_ROOT that overlaps the api root (rsync --delete).
+          DH_API_ROOT: ${{ vars.DH_API_ROOT }}
+          # Set to 1 for the very first run into a brand-new web dir only; delete it afterwards.
+          DH_FIRST_DEPLOY: ${{ vars.DH_FIRST_DEPLOY }}
+        run: bash scripts/dreamhost/publish-www.sh
 
       - if: always()
         name: Summary
