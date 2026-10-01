@@ -32,8 +32,9 @@ describe(".github/workflows/deploy.yml", () => {
     expect(i("run: pnpm strapi-app build")).toBeLessThan(i("run: pnpm test"))
     expect(i("run: pnpm test")).toBeLessThan(i("run: pnpm typecheck"))
     expect(i("run: pnpm typecheck")).toBeLessThan(i("webfactory/ssh-agent"))
-    expect(i("webfactory/ssh-agent")).toBeLessThan(i("publish-www.sh"))
-    expect(i("webfactory/ssh-agent")).toBeLessThan(i("publish-api.sh"))
+    expect(i("webfactory/ssh-agent")).toBeLessThan(i("bash scripts/dreamhost/publish-www.sh"))
+    expect(i("webfactory/ssh-agent")).toBeLessThan(i("bash scripts/dreamhost/publish-api.sh"))
+    expect(i("dorny/paths-filter")).toBeLessThan(i("run: pnpm test"))
   })
   it("path filters: the shared core triggers both targets; each target's publish script and the workflow itself are included", () => {
     const www = yml.slice(yml.indexOf("www:\n"), yml.indexOf("api:\n"))
@@ -55,6 +56,7 @@ describe(".github/workflows/deploy.yml", () => {
     expect(yml).toContain("known_hosts")
     expect(yml).not.toContain("StrictHostKeyChecking=no")
     expect(yml).not.toMatch(/echo[^\n]*secrets\.DH_SSH_KEY/)
+    expect(yml).toMatch(/- if: steps\.targets\.outputs\.www == 'true' \|\| steps\.targets\.outputs\.api == 'true'\n\s+uses: webfactory\/ssh-agent/)
   })
   it("maps every DH_* input the publish scripts read", () => {
     for (const v of ["DH_SSH", "DH_WWW_ROOT", "DH_API_ROOT", "DH_API_BASE", "DH_SITE_URL", "DH_API_URL", "DH_CSP_HEADER"]) {

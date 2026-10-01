@@ -25,6 +25,38 @@ jobs:
         with:
           fetch-depth: 2
 
+      - id: changes
+        if: github.event_name == 'push'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            www:
+              - 'packages/all-of-oyl/**'
+              - 'apps/vanilla-oyl/**'
+              - 'pnpm-lock.yaml'
+              - 'scripts/dreamhost/publish-www.sh'
+              - '.github/workflows/deploy.yml'
+            api:
+              - 'packages/all-of-oyl/**'
+              - 'apps/strapi-oyl/src/api/**'
+              - 'apps/strapi-oyl/src/components/**'
+              - 'apps/camis-php-oyl/**'
+              - 'pnpm-lock.yaml'
+              - 'scripts/dreamhost/publish-api.sh'
+              - '.github/workflows/deploy.yml'
+
+      - id: targets
+        name: Decide targets (manual runs deploy both)
+        env:
+          EVENT: ${{ github.event_name }}
+          WWW: ${{ steps.changes.outputs.www }}
+          API: ${{ steps.changes.outputs.api }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then WWW=true; API=true; fi
+          echo "www=$WWW" >> "$GITHUB_OUTPUT"
+          echo "api=$API" >> "$GITHUB_OUTPUT"
+          echo "targets: www=$WWW api=$API"
+
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -61,51 +93,19 @@ jobs:
       - run: pnpm test
       - run: pnpm typecheck
 
-      # Load the deploy key and pin the host key unconditionally (cheap, and the targets
-      # decision below needs to run after the gate anyway) — only the publish steps are gated.
-      - uses: webfactory/ssh-agent@v0.9.0
+      - if: steps.targets.outputs.www == 'true' || steps.targets.outputs.api == 'true'
+        uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.DH_SSH_KEY }}
 
-      - name: Pin the DreamHost host key
+      - if: steps.targets.outputs.www == 'true' || steps.targets.outputs.api == 'true'
+        name: Pin the DreamHost host key
         env:
           KNOWN_HOSTS: ${{ secrets.DH_KNOWN_HOSTS }}
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           printf '%s\n' "$KNOWN_HOSTS" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
-
-      - id: changes
-        if: github.event_name == 'push'
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            www:
-              - 'packages/all-of-oyl/**'
-              - 'apps/vanilla-oyl/**'
-              - 'pnpm-lock.yaml'
-              - 'scripts/dreamhost/publish-www.sh'
-              - '.github/workflows/deploy.yml'
-            api:
-              - 'packages/all-of-oyl/**'
-              - 'apps/strapi-oyl/src/api/**'
-              - 'apps/strapi-oyl/src/components/**'
-              - 'apps/camis-php-oyl/**'
-              - 'pnpm-lock.yaml'
-              - 'scripts/dreamhost/publish-api.sh'
-              - '.github/workflows/deploy.yml'
-
-      - id: targets
-        name: Decide targets (manual runs deploy both)
-        env:
-          EVENT: ${{ github.event_name }}
-          WWW: ${{ steps.changes.outputs.www }}
-          API: ${{ steps.changes.outputs.api }}
-        run: |
-          if [ "$EVENT" = workflow_dispatch ]; then WWW=true; API=true; fi
-          echo "www=$WWW" >> "$GITHUB_OUTPUT"
-          echo "api=$API" >> "$GITHUB_OUTPUT"
-          echo "targets: www=$WWW api=$API"
 
       - if: steps.targets.outputs.www == 'true'
         name: Publish www (static app)
