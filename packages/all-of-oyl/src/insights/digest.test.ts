@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { Id } from '../core/id.js'
 import { digestOf } from './digest.js'
 
+const goalId = Id.of('00000000-0000-4000-8000-000000000001')
+
 const goal = (met: boolean | undefined) => ({
-  goalId: 'g',
+  goalId,
   progress: { current: 0, target: 1, ratio: 0, ...(met === undefined ? {} : { met }), paused: false, empty: false },
   streak: 99, // per-goal period streak — must NOT leak into Digest.streak
 })
