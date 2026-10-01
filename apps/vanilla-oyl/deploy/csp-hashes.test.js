@@ -24,6 +24,14 @@ describe('hashInlineScripts', () => {
     expect(a).not.toBe(b)
   })
 
+  it('normalises CRLF to LF before hashing, as the browser does when parsing', async () => {
+    const lf = '<head>\n<script>\n  a()\n  b()\n</script>\n</head>'
+    const crlf = lf.replace(/\n/g, '\r\n')
+    const [lfHash] = await hashInlineScripts(lf)
+    const [crlfHash] = await hashInlineScripts(crlf)
+    expect(crlfHash).toBe(lfHash)
+  })
+
   it('returns [] when there is no inline script', async () => {
     expect(await hashInlineScripts('<html><script src="/a.js"></script></html>')).toEqual([])
   })

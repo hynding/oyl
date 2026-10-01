@@ -36,6 +36,12 @@ describe('scripts/render-htaccess.mjs against the real index.html + template', (
     expect(text).toContain('Require all denied')
     expect(text).toContain('Header always set Cache-Control "no-cache"')
     expect(text).toContain('max-age=0, must-revalidate')
+    // HSTS for the app host only: no includeSubDomains/preload (other subdomains are not ours to pin).
+    expect(text).toContain('Header always set Strict-Transport-Security "max-age=31536000"')
+    expect(text).not.toMatch(/includeSubDomains|preload/)
+    const hsts = text.indexOf('Strict-Transport-Security')
+    expect(hsts).toBeGreaterThan(text.indexOf('<IfModule mod_headers.c>'))
+    expect(hsts).toBeLessThan(text.indexOf('</IfModule>', text.indexOf('<IfModule mod_headers.c>')))
     expect(text).not.toMatch(/__[A-Z_]+__/)
     expect(text).not.toContain('googleapis')
   })

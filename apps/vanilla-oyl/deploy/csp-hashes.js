@@ -17,14 +17,15 @@ function toBase64(bytes) {
 
 /**
  * One `sha256-<base64>` token per inline `<script>` (no `src`), in document order, hashing the
- * exact text between the tags.
+ * exact text between the tags — after CRLF→LF, which the HTML parser applies before the browser
+ * hashes (a CRLF checkout would otherwise produce hashes no browser matches).
  * @param {string} html
  * @returns {Promise<string[]>}
  */
 export async function hashInlineScripts(html) {
   /** @type {string[]} */
   const out = []
-  for (const m of html.matchAll(SCRIPT_TAG)) {
+  for (const m of html.replace(/\r\n/g, '\n').matchAll(SCRIPT_TAG)) {
     const attrs = m[1] ?? ''
     const names = attrs.replace(/"[^"]*"|'[^']*'/g, '""')
     if (HAS_SRC.test(names)) continue

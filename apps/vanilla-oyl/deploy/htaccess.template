@@ -20,6 +20,8 @@ Options -MultiViews -Indexes
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set X-Frame-Options "DENY"
+  # HSTS for this host only: sibling subdomains are not ours to pin, so no subdomain/list directives.
+  Header always set Strict-Transport-Security "max-age=31536000"
   # style-src keeps 'unsafe-inline' as belt-and-braces (components use adoptedStyleSheets, which
   # CSP does not govern). connect-src is the API origin only; Google is unconfigured on PHP.
   Header always set __CSP_HEADER__ "default-src 'self'; script-src 'self' __CSP_SCRIPT_HASHES__; style-src 'self' 'unsafe-inline'; connect-src 'self' __API_ORIGIN__; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
