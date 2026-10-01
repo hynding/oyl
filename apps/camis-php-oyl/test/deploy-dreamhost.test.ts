@@ -40,6 +40,18 @@ describe("scripts/deploy-dreamhost.sh (local wrapper)", () => {
     expect(s).not.toContain("rsync ")
     expect(s).not.toContain("composer install")
   })
+  it("builds both targets before publishing either, then publishes api before www", () => {
+    const s = src()
+    const api = s.indexOf('bash "$REPO_ROOT/scripts/dreamhost/publish-api.sh"')
+    const www = s.indexOf('bash "$REPO_ROOT/scripts/dreamhost/publish-www.sh"')
+    expect(api).toBeGreaterThan(-1)
+    expect(www).toBeGreaterThan(api)
+    const apiBuild = s.indexOf("pnpm php-app build")
+    const wwwBuild = s.indexOf("pnpm vanilla build:lib")
+    expect(apiBuild).toBeGreaterThan(-1)
+    expect(wwwBuild).toBeGreaterThan(apiBuild)
+    expect(wwwBuild).toBeLessThan(Math.min(api, www))
+  })
   it("never sources .env wholesale", () => {
     expect(src()).not.toMatch(/^\s*(source|\.)\s+.*\.env/m)
   })
@@ -106,62 +118,60 @@ exit 0
     }
   })
 
-  it("builds and delegates to publish-www when tree is clean and --only www", () => {
+  // Hermetic clean-tree runs: fake git (clean), pnpm (records argv), rsync (no-op) and an ssh
+  // that fails at once, so each publish script stops at its preflight without touching the network.
+  const cleanRun = (args: string[]) => {
     tmpDir = mkdtempSync("/tmp/deploy-dreamhost-")
     fakebin = resolve(tmpDir, "bin")
     fakeCapture = resolve(tmpDir, "capture")
     mkdirSync(fakebin)
-
-    // Create fake git script: reports clean tree
-    const gitScript = `#!/bin/bash
+    mkdirSync(fakeCapture)
+    writeFileSync(resolve(fakebin, "git"), `#!/bin/bash
 if [[ "$*" == "status --porcelain" ]]; then
   exit 0
-elif [[ "$*" == "rev-parse --short HEAD" ]]; then
+elif [[ "$*" == *"rev-parse --short HEAD" ]]; then
   printf 'abc1234'
   exit 0
 fi
 exit 0
-`
-    writeFileSync(resolve(fakebin, "git"), gitScript, { mode: 0o755 })
-
-    // Create fake pnpm script: capture argv and succeed
-    const pnpmScript = `#!/bin/bash
-mkdir -p "$(dirname "$FAKE_CAPTURE/pnpm")"
-printf '%s\n' "$@" >> "$FAKE_CAPTURE/pnpm"
-exit 0
-`
-    writeFileSync(resolve(fakebin, "pnpm"), pnpmScript, { mode: 0o755 })
-
-    const res = spawnSync("bash", [SCRIPT, "--dry-run", "--only", "www"], {
+`, { mode: 0o755 })
+    writeFileSync(resolve(fakebin, "pnpm"), `#!/bin/bash\nprintf '%s\\n' "$*" >> "$FAKE_CAPTURE/pnpm"\nexit 0\n`, { mode: 0o755 })
+    writeFileSync(resolve(fakebin, "ssh"), "#!/bin/bash\nexit 1\n", { mode: 0o755 })
+    writeFileSync(resolve(fakebin, "rsync"), "#!/bin/bash\nexit 0\n", { mode: 0o755 })
+    const res = spawnSync("bash", [SCRIPT, ...args], {
       env: {
         PATH: `${fakebin}:${process.env.PATH ?? ""}`,
         HOME: "/nonexistent",
         FAKE_CAPTURE: fakeCapture,
         OYL_DH_SSH: "x@y",
-        OYL_DH_WWW_ROOT: "www",
-        OYL_DH_API_ROOT: "camis",
-        OYL_DH_API_BASE: "https://api.example.test/api"
+        OYL_DH_WWW_ROOT: "domains/x/www",
+        OYL_DH_API_ROOT: "domains/x/camis",
+        OYL_DH_API_BASE: "https://api.example.test/api",
       },
-      encoding: "utf8"
+      encoding: "utf8",
     })
+    const pnpm = readFileSync(resolve(fakeCapture, "pnpm"), "utf8")
+    return { res, out: res.stdout + res.stderr, pnpm }
+  }
 
-    // The build should have run (and pnpm should be in capture file)
-    try {
-      const captureFile = resolve(fakeCapture, "pnpm")
-      const pnpmOutput = readFileSync(captureFile, "utf8")
-      expect(pnpmOutput).toContain("vanilla")
-      expect(pnpmOutput).toContain("build:lib")
-    } catch (e: any) {
-      if (e.code === "ENOENT") {
-        throw new Error("pnpm should have been called during build, but capture file does not exist")
-      }
-      throw e
-    }
-
-    // The publish-www delegate should have been invoked
-    // It will fail (exit status non-zero) due to missing vendor files or ssh unreachable
+  it("on a clean tree builds api then www, then publishes api first (its failure stops www)", () => {
+    const { res, out, pnpm } = cleanRun(["--dry-run"])
+    expect(pnpm).toContain("php-app build")
+    expect(pnpm).toContain("vanilla build:lib")
+    expect(pnpm.indexOf("php-app build")).toBeLessThan(pnpm.indexOf("vanilla build:lib"))
     expect(res.status).not.toBe(0)
-    const combined = res.stderr + res.stdout
-    expect(combined).toContain("publish-www")
+    const api = out.indexOf("publish-api")
+    expect(api).toBeGreaterThan(-1)
+    const www = out.indexOf("publish-www")
+    if (www !== -1) expect(www).toBeGreaterThan(api)
+  })
+
+  it("--only www builds and publishes www alone", () => {
+    const { res, out, pnpm } = cleanRun(["--dry-run", "--only", "www"])
+    expect(pnpm).toContain("vanilla build:lib")
+    expect(pnpm).not.toContain("php-app build")
+    expect(res.status).not.toBe(0)
+    expect(out).toContain("publish-www")
+    expect(out).not.toContain("publish-api")
   })
 })

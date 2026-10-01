@@ -79,16 +79,24 @@ fi
 FLAGS=()
 [[ $DRY_RUN -eq 1 ]] && FLAGS+=(--dry-run)
 
-if [[ $DO_WWW -eq 1 ]]; then
-  echo "==> Building the static app (all-of-oyl dist → vendor)"
-  pnpm vanilla build:lib >/dev/null
-  bash "$REPO_ROOT/scripts/dreamhost/publish-www.sh" "${FLAGS[@]+"${FLAGS[@]}"}"
-fi
-
+# Build everything first (a build failure publishes nothing), then publish api before www, as
+# CI does: an additive api change is safe for the old frontend, and a failed api publish
+# (e.g. the remote schema check) stops the frontend from shipping.
 if [[ $DO_API -eq 1 ]]; then
   echo "==> Building laravel/ from HEAD"
   pnpm php-app build >/dev/null
+fi
+if [[ $DO_WWW -eq 1 ]]; then
+  echo "==> Building the static app (all-of-oyl dist → vendor)"
+  pnpm vanilla build:lib >/dev/null
+fi
+
+# DH_API_ROOT is exported above, so publish-www also gets it (its root-overlap guard).
+if [[ $DO_API -eq 1 ]]; then
   bash "$REPO_ROOT/scripts/dreamhost/publish-api.sh" "${FLAGS[@]+"${FLAGS[@]}"}"
+fi
+if [[ $DO_WWW -eq 1 ]]; then
+  bash "$REPO_ROOT/scripts/dreamhost/publish-www.sh" "${FLAGS[@]+"${FLAGS[@]}"}"
 fi
 
 echo "==> Done ($(git rev-parse --short HEAD))."
