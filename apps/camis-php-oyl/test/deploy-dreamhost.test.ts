@@ -1,7 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process"
-import { readFileSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdtempSync, mkdirSync, rmSync } from "node:fs"
 import { resolve } from "node:path"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, afterEach } from "vitest"
 
 const SCRIPT = resolve(__dirname, "..", "..", "..", "scripts", "deploy-dreamhost.sh")
 const src = () => readFileSync(SCRIPT, "utf8")
@@ -42,5 +42,126 @@ describe("scripts/deploy-dreamhost.sh (local wrapper)", () => {
   })
   it("never sources .env wholesale", () => {
     expect(src()).not.toMatch(/^\s*(source|\.)\s+.*\.env/m)
+  })
+})
+
+describe("scripts/deploy-dreamhost.sh (behavioural)", () => {
+  let tmpDir: string
+  let fakebin: string
+  let fakeCapture: string
+
+  afterEach(() => {
+    if (tmpDir) rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it("refuses to run when git status reports a dirty tree (before building)", () => {
+    tmpDir = mkdtempSync("/tmp/deploy-dreamhost-")
+    fakebin = resolve(tmpDir, "bin")
+    fakeCapture = resolve(tmpDir, "capture")
+    mkdirSync(fakebin)
+
+    // Create fake git script: reports dirty tree
+    const gitScript = `#!/bin/bash
+if [[ "$*" == "status --porcelain" ]]; then
+  printf ' M some/file\n'
+  exit 0
+elif [[ "$*" == "rev-parse --short HEAD" ]]; then
+  printf 'abc1234'
+  exit 0
+fi
+exit 0
+`
+    writeFileSync(resolve(fakebin, "git"), gitScript, { mode: 0o755 })
+
+    // Create fake pnpm script: capture argv
+    const pnpmScript = `#!/bin/bash
+mkdir -p "$(dirname "$FAKE_CAPTURE/pnpm")"
+printf '%s\n' "$@" >> "$FAKE_CAPTURE/pnpm"
+exit 0
+`
+    writeFileSync(resolve(fakebin, "pnpm"), pnpmScript, { mode: 0o755 })
+
+    const res = spawnSync("bash", [SCRIPT, "--dry-run"], {
+      env: {
+        PATH: `${fakebin}:${process.env.PATH ?? ""}`,
+        HOME: "/nonexistent",
+        FAKE_CAPTURE: fakeCapture,
+        OYL_DH_SSH: "x@y",
+        OYL_DH_WWW_ROOT: "www",
+        OYL_DH_API_ROOT: "camis",
+        OYL_DH_API_BASE: "https://api.example.test/api"
+      },
+      encoding: "utf8"
+    })
+
+    expect(res.status).toBe(1)
+    expect(res.stderr).toContain("dirty")
+    const captureFile = resolve(fakeCapture, "pnpm")
+    try {
+      readFileSync(captureFile, "utf8")
+      throw new Error("pnpm should not have been called (no build should run on dirty tree)")
+    } catch (e: any) {
+      if (e.code !== "ENOENT") throw e
+      // Expected: file does not exist
+    }
+  })
+
+  it("builds and delegates to publish-www when tree is clean and --only www", () => {
+    tmpDir = mkdtempSync("/tmp/deploy-dreamhost-")
+    fakebin = resolve(tmpDir, "bin")
+    fakeCapture = resolve(tmpDir, "capture")
+    mkdirSync(fakebin)
+
+    // Create fake git script: reports clean tree
+    const gitScript = `#!/bin/bash
+if [[ "$*" == "status --porcelain" ]]; then
+  exit 0
+elif [[ "$*" == "rev-parse --short HEAD" ]]; then
+  printf 'abc1234'
+  exit 0
+fi
+exit 0
+`
+    writeFileSync(resolve(fakebin, "git"), gitScript, { mode: 0o755 })
+
+    // Create fake pnpm script: capture argv and succeed
+    const pnpmScript = `#!/bin/bash
+mkdir -p "$(dirname "$FAKE_CAPTURE/pnpm")"
+printf '%s\n' "$@" >> "$FAKE_CAPTURE/pnpm"
+exit 0
+`
+    writeFileSync(resolve(fakebin, "pnpm"), pnpmScript, { mode: 0o755 })
+
+    const res = spawnSync("bash", [SCRIPT, "--dry-run", "--only", "www"], {
+      env: {
+        PATH: `${fakebin}:${process.env.PATH ?? ""}`,
+        HOME: "/nonexistent",
+        FAKE_CAPTURE: fakeCapture,
+        OYL_DH_SSH: "x@y",
+        OYL_DH_WWW_ROOT: "www",
+        OYL_DH_API_ROOT: "camis",
+        OYL_DH_API_BASE: "https://api.example.test/api"
+      },
+      encoding: "utf8"
+    })
+
+    // The build should have run (and pnpm should be in capture file)
+    try {
+      const captureFile = resolve(fakeCapture, "pnpm")
+      const pnpmOutput = readFileSync(captureFile, "utf8")
+      expect(pnpmOutput).toContain("vanilla")
+      expect(pnpmOutput).toContain("build:lib")
+    } catch (e: any) {
+      if (e.code === "ENOENT") {
+        throw new Error("pnpm should have been called during build, but capture file does not exist")
+      }
+      throw e
+    }
+
+    // The publish-www delegate should have been invoked
+    // It will fail (exit status non-zero) due to missing vendor files or ssh unreachable
+    expect(res.status).not.toBe(0)
+    const combined = res.stderr + res.stdout
+    expect(combined).toContain("publish-www")
   })
 })
