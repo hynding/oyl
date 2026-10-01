@@ -1,0 +1,143 @@
+name: Deploy to DreamHost
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# Two pushes queue; never cancel a deploy mid-rsync.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  # hynding/camis commit that apps/camis-php-oyl links @camis/cli from. Bump deliberately, in a
+  # commit that says why; CI fetches this exact SHA (branch names / short SHAs cannot be fetched).
+  CAMIS_REF: e78a6a6aaa1aa1d74a057b1dce811e8853fc1493
+  # Strapi allows <=22.x and camis needs >=22 — see root package.json#engines.node.
+  NODE_VERSION: '22'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      # PHP before the gate: camis-php-oyl's overlay tests run `php -l` when PHP is present.
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+          extensions: pdo_sqlite, pdo_mysql, mbstring, openssl
+
+      - name: Composer cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ runner.os }}-${{ env.CAMIS_REF }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Clone camis at CAMIS_REF (sibling of the checkout, where the workspace link points)
+        run: |
+          set -euo pipefail
+          dir="$GITHUB_WORKSPACE/../camis"
+          mkdir -p "$dir" && cd "$dir"
+          git init -q
+          git remote add origin https://github.com/hynding/camis.git
+          git fetch --depth 1 origin "$CAMIS_REF"
+          git checkout -q FETCH_HEAD
+          pnpm install --frozen-lockfile
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm strapi-app build
+      - run: pnpm test
+      - run: pnpm typecheck
+
+      # Load the deploy key and pin the host key unconditionally (cheap, and the targets
+      # decision below needs to run after the gate anyway) — only the publish steps are gated.
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DH_SSH_KEY }}
+
+      - name: Pin the DreamHost host key
+        env:
+          KNOWN_HOSTS: ${{ secrets.DH_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - id: changes
+        if: github.event_name == 'push'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            www:
+              - 'packages/all-of-oyl/**'
+              - 'apps/vanilla-oyl/**'
+              - 'pnpm-lock.yaml'
+              - 'scripts/dreamhost/publish-www.sh'
+              - '.github/workflows/deploy.yml'
+            api:
+              - 'packages/all-of-oyl/**'
+              - 'apps/strapi-oyl/src/api/**'
+              - 'apps/strapi-oyl/src/components/**'
+              - 'apps/camis-php-oyl/**'
+              - 'pnpm-lock.yaml'
+              - 'scripts/dreamhost/publish-api.sh'
+              - '.github/workflows/deploy.yml'
+
+      - id: targets
+        name: Decide targets (manual runs deploy both)
+        env:
+          EVENT: ${{ github.event_name }}
+          WWW: ${{ steps.changes.outputs.www }}
+          API: ${{ steps.changes.outputs.api }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then WWW=true; API=true; fi
+          echo "www=$WWW" >> "$GITHUB_OUTPUT"
+          echo "api=$API" >> "$GITHUB_OUTPUT"
+          echo "targets: www=$WWW api=$API"
+
+      - if: steps.targets.outputs.www == 'true'
+        name: Publish www (static app)
+        env:
+          DH_SSH: ${{ secrets.DH_SSH }}
+          DH_WWW_ROOT: ${{ vars.DH_WWW_ROOT }}
+          DH_API_BASE: ${{ vars.DH_API_BASE }}
+          DH_SITE_URL: ${{ vars.DH_SITE_URL }}
+          DH_CSP_HEADER: ${{ vars.DH_CSP_HEADER }}
+        run: |
+          pnpm vanilla build:lib
+          bash scripts/dreamhost/publish-www.sh
+
+      - if: steps.targets.outputs.api == 'true'
+        name: Publish api (camis-php-oyl)
+        env:
+          DH_SSH: ${{ secrets.DH_SSH }}
+          DH_API_ROOT: ${{ vars.DH_API_ROOT }}
+          DH_API_URL: ${{ vars.DH_API_URL }}
+        run: |
+          pnpm php-app build
+          bash scripts/dreamhost/publish-api.sh
+
+      - if: always()
+        name: Summary
+        env:
+          WWW: ${{ steps.targets.outputs.www }}
+          API: ${{ steps.targets.outputs.api }}
+        run: |
+          {
+            echo "## Deploy ${GITHUB_SHA::7}"
+            echo "- www: ${WWW:-false}"
+            echo "- api: ${API:-false}"
+            echo "- status: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"
