@@ -26,7 +26,8 @@ export async function hashInlineScripts(html) {
   const out = []
   for (const m of html.matchAll(SCRIPT_TAG)) {
     const attrs = m[1] ?? ''
-    if (HAS_SRC.test(attrs)) continue
+    const names = attrs.replace(/"[^"]*"|'[^']*'/g, '""')
+    if (HAS_SRC.test(names)) continue
     const body = /** @type {string} */ (m[2])
     const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(body))
     out.push(`sha256-${toBase64(new Uint8Array(digest))}`)

@@ -47,4 +47,12 @@ describe('hashInlineScripts', () => {
     const [hash2] = await hashInlineScripts('<script>x</script>')
     expect(hash1).toBe(hash2)
   })
+
+  it('ignores src= inside quoted attribute values', async () => {
+    const [quotedHash] = await hashInlineScripts('<script data-log="tracking src= enabled">x</script>')
+    const [plainHash] = await hashInlineScripts('<script>x</script>')
+    expect(quotedHash).toBe(plainHash)
+    const noHash = await hashInlineScripts('<script data-a="b" src="/x.js"></script>')
+    expect(noHash).toEqual([])
+  })
 })
