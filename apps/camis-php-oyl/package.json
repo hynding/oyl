@@ -9,7 +9,7 @@
     "roles": "tsx scripts/generate-roles.ts",
     "build": "node scripts/build.mjs",
     "dev": "node scripts/dev.mjs",
-    "deploy": "bash ../../scripts/deploy-dreamhost.sh",
+    "deploy": "bash ../../scripts/deploy-dreamhost.sh --only api",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
