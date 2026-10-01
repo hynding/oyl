@@ -86,4 +86,27 @@ describe('host-derived defaults', () => {
     expect(getApiBaseUrl(storage, 'app.example.com')).toBe('http://x/api')
     expect(getStorageMode(storage, 'app.example.com')).toBe('local')
   })
+
+  it('a deploy-injected meta base wins over every hostname rule', () => {
+    expect(defaultApiBaseUrl('example.com', 'https://api.example.test/api')).toBe('https://api.example.test/api')
+    expect(defaultApiBaseUrl('app.example.com', 'https://api.example.test/api')).toBe('https://api.example.test/api')
+    expect(defaultApiBaseUrl('localhost', 'https://api.example.test/api')).toBe('https://api.example.test/api')
+  })
+
+  it('normalizes the meta base (trailing slash, whitespace)', () => {
+    expect(defaultApiBaseUrl('example.com', ' https://api.example.test/api/ ')).toBe('https://api.example.test/api')
+  })
+
+  it('an empty or whitespace-only meta base falls through to the hostname rules', () => {
+    expect(defaultApiBaseUrl('example.com', '')).toBe('https://example.com/api')
+    expect(defaultApiBaseUrl('example.com', '   ')).toBe('https://example.com/api')
+    expect(defaultApiBaseUrl('localhost', undefined)).toBe(DEFAULT_API_BASE_URL)
+  })
+
+  it('a stored override still beats the meta base', () => {
+    const storage = fakeStorage()
+    expect(getApiBaseUrl(storage, 'example.com', 'https://api.example.test/api')).toBe('https://api.example.test/api')
+    setApiBaseUrl(storage, 'http://x/api')
+    expect(getApiBaseUrl(storage, 'example.com', 'https://api.example.test/api')).toBe('http://x/api')
+  })
 })

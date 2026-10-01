@@ -9,14 +9,16 @@ function isLocalHost(hostname) {
 }
 
 /**
- * Default API base URL for the app's own hostname. On a local host (or when unknown) this is
- * the dev backend. In production the app is served from `app.<domain>` and the API from
- * `api.<domain>` (see log/PI_SERVER_SETUP.md), so swap a leading `app.` label for `api.` on the
- * same https origin; any other production host falls back to same-origin `/api`. Always
- * overridable via Status → Connection.
- * @param {string} [hostname] @returns {string}
+ * Default API base URL. Precedence: a deploy-injected `metaBase` (the `content` of
+ * `<meta name="oyl-api-base">` in index.html, filled by scripts/dreamhost/publish-www.sh) wins
+ * when non-empty; otherwise the app's own hostname decides: a local host uses the dev backend,
+ * an `app.<domain>` host swaps the label for `api.` on the same https origin, and any other host
+ * falls back to same-origin `/api`. Always overridable via Status → Connection.
+ * @param {string} [hostname] @param {string} [metaBase] @returns {string}
  */
-export function defaultApiBaseUrl(hostname) {
+export function defaultApiBaseUrl(hostname, metaBase) {
+  const meta = normalizeBaseUrl(metaBase ?? '')
+  if (meta) return meta
   if (isLocalHost(hostname)) return DEFAULT_API_BASE_URL
   const host = /** @type {string} */ (hostname)
   const apiHost = host.startsWith('app.') ? 'api.' + host.slice(4) : host
@@ -35,9 +37,9 @@ export function defaultStorageMode(_hostname) {
   return 'remote'
 }
 
-/** Backend base URL: stored override, else host-derived default. @param {{ getItem(k: string): string | null }} storage @param {string} [hostname] @returns {string} */
-export function getApiBaseUrl(storage, hostname) {
-  return storage.getItem(API_BASE_URL_KEY) || defaultApiBaseUrl(hostname)
+/** Backend base URL: stored override, else the host/meta default. @param {{ getItem(k: string): string | null }} storage @param {string} [hostname] @param {string} [metaBase] @returns {string} */
+export function getApiBaseUrl(storage, hostname, metaBase) {
+  return storage.getItem(API_BASE_URL_KEY) || defaultApiBaseUrl(hostname, metaBase)
 }
 
 /** Storage mode: explicit stored choice, else host-derived default. @param {{ getItem(k: string): string | null }} storage @param {string} [hostname] @returns {'local'|'remote'} */
