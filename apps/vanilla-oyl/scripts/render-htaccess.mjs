@@ -14,7 +14,16 @@ for (let i = 0; i < argv.length; i += 2) {
     console.error(`render-htaccess: bad argument '${k ?? ''}'`)
     process.exit(2)
   }
-  args.set(k.slice(2), v)
+  if (v.startsWith('--')) {
+    console.error(`render-htaccess: ${k} needs a value`)
+    process.exit(2)
+  }
+  const name = k.slice(2)
+  if (args.has(name)) {
+    console.error(`render-htaccess: duplicate argument --${name}`)
+    process.exit(2)
+  }
+  args.set(name, v)
 }
 for (const k of ['html', 'api-origin', 'out']) {
   if (!args.get(k)) { console.error(`render-htaccess: --${k} is required`); process.exit(2) }

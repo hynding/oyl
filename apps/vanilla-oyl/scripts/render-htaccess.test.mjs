@@ -49,4 +49,22 @@ describe('scripts/render-htaccess.mjs against the real index.html + template', (
     expect(() => render([])).toThrow()
     expect(() => render(['--api-origin', 'https://api.example.test/api'])).toThrow(/origin/)
   })
+
+  it('rejects a flag given as a value instead of a missing value silently shifting the rest of the pairs', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'htaccess-'))
+    const out = join(dir, '.htaccess')
+    try {
+      expect(() =>
+        execFileSync('node', [CLI, '--api-origin', '--out', out, '--html', INDEX], { stdio: 'pipe' })
+      ).toThrow(/--api-origin needs a value/)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects a repeated flag', () => {
+    expect(() =>
+      render(['--api-origin', 'https://api.example.test', '--api-origin', 'https://other.example.test'])
+    ).toThrow(/duplicate argument --api-origin/)
+  })
 })
