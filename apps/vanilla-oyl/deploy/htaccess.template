@@ -1,0 +1,33 @@
+# Rendered by apps/vanilla-oyl/scripts/render-htaccess.mjs at publish time. Do not edit on the host.
+Options -MultiViews -Indexes
+
+# Deploy marker is for the operator over SSH, not the public.
+<Files "DEPLOYED">
+  Require all denied
+</Files>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # History-API SPA fallback, scoped: unknown paths serve index.html, but the asset roots stay
+  # real 404s (a typo'd /vendor/… must not come back as 200 HTML).
+  RewriteCond %{REQUEST_URI} !^/(src|styles|vendor)/
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ /index.html [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "DENY"
+  # style-src keeps 'unsafe-inline' as belt-and-braces (components use adoptedStyleSheets, which
+  # CSP does not govern). connect-src is the API origin only; Google is unconfigured on PHP.
+  Header always set __CSP_HEADER__ "default-src 'self'; script-src 'self' __CSP_SCRIPT_HASHES__; style-src 'self' 'unsafe-inline'; connect-src 'self' __API_ORIGIN__; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+  # Assets are not content-hashed: always revalidate. Never cache the shell.
+  <FilesMatch "\.(js|css)$">
+    Header always set Cache-Control "max-age=0, must-revalidate"
+  </FilesMatch>
+  <Files "index.html">
+    Header always set Cache-Control "no-cache"
+  </Files>
+</IfModule>
