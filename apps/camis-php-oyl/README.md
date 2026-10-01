@@ -75,32 +75,47 @@ if the sync was skipped.
 Values below are placeholders; the real ones live in the untracked root `.env` (`OYL_DH_*`)
 and in the GitHub repository's secrets/variables — never in tracked files.
 
-1. **Panel:** point the API domain's web directory at `~/<api-root>/laravel/public`
+1. **Panel (app):** point the app domain's web directory at `~/<www-root>`, choose the
+   "remove www" redirect, and turn HTTPS on.
+2. **Panel (api):** point the API domain's web directory at `~/<api-root>/laravel/public`
    (Laravel's `public/.htaccess` assumes it is the docroot) and set the domain to PHP 8.3 with
    HTTPS. Set the SSH user's CLI PHP to 8.3 as well (`~/.bash_profile` PATH) and install
    composer; verify with `ssh <user>@<host> 'bash -l -c "php -v; composer -V"'` — the publish
    script preflights exactly that.
-2. **MySQL:** the database is the one strapi-oyl already runs against (shared schema,
+3. **MySQL:** the database is the one strapi-oyl already runs against (shared schema,
    `storageLayout: "strapi"`). Add your developer IP to its "Allowable Hosts" for schema syncs;
    the web server is allowed by default.
-3. **Skeleton + env:** `mkdir -p ~/<api-root>/laravel/{bootstrap/cache,storage/logs,storage/framework/cache,storage/app}`
-   (these are the rsync-excluded directories, so the deploy never creates them; without
-   `bootstrap/cache/` composer's `package:discover` fails) and make them writable by the PHP
-   user. Create `laravel/.env` from `.env.example`: `DB_*` for that database, `APP_KEY`
-   (generate one locally with `php artisan key:generate --show` or reuse your dev value),
+4. **Skeleton + env:** `mkdir -p ~/<api-root>/laravel/{bootstrap/cache,storage/logs,storage/framework/cache,storage/app}`
+   (these are the rsync-excluded directories; the publish script also recreates them before
+   `composer install`, whose `package:discover` fails without `bootstrap/cache/`) and make
+   them writable by the PHP user. Create `laravel/.env` from `.env.example`: `DB_*` for that
+   database, `APP_KEY` (generate one locally with `php artisan key:generate --show` or reuse your dev value),
    and `JWT_SECRET` — **at least 32 bytes** (`openssl rand -base64 48`); firebase/php-jwt
    refuses shorter HS256 keys, so Strapi's default short secret cannot be reused. Give the
    same value to Strapi for future schema syncs.
-4. **Deploy key:** a CI-only keypair; public half in the SSH user's `~/.ssh/authorized_keys`.
+5. **Deploy key:** a CI-only keypair; public half in the SSH user's `~/.ssh/authorized_keys`.
    `ssh-keyscan <host>` for the pinned host key.
-5. **GitHub:** secrets `DH_SSH_KEY`, `DH_KNOWN_HOSTS`, `DH_SSH`; variables `DH_WWW_ROOT`,
+6. **GitHub:** secrets `DH_SSH_KEY`, `DH_KNOWN_HOSTS`, `DH_SSH`; variables `DH_WWW_ROOT`,
    `DH_API_ROOT`, `DH_API_BASE`, `DH_SITE_URL`, `DH_API_URL`, and `DH_CSP_HEADER=Content-Security-Policy-Report-Only`
-   for the first deploy (unset it afterwards and re-run via *Run workflow*).
-6. **Local mirror:** `OYL_DH_SSH`, `OYL_DH_WWW_ROOT`, `OYL_DH_API_ROOT`, `OYL_DH_API_BASE`,
-   `OYL_DH_SITE_URL`, `OYL_DH_API_URL` in the root `.env`; `pnpm deploy:dreamhost --dry-run`
-   shows the rsync delta and proves SSH.
-7. Changing `CAMIS_AUTH_THROTTLE_PER_MINUTE` on the host requires `php artisan config:cache`
+   for the first deploy (unset it afterwards and re-run via *Run workflow*). The www publish
+   refuses (before `rsync --delete`) a web directory that has files but no `DEPLOYED` marker
+   from a previous deploy — DreamHost may seed a brand-new domain's directory with a
+   placeholder page. For the very first CI run into a brand-new www directory set the
+   variable `DH_FIRST_DEPLOY=1`, then delete it; or do that first www publish from the Mac
+   with `DH_FIRST_DEPLOY=1 pnpm deploy:dreamhost --only www`.
+7. **Local mirror:** `OYL_DH_SSH`, `OYL_DH_WWW_ROOT`, `OYL_DH_API_ROOT`, `OYL_DH_API_BASE`,
+   `OYL_DH_SITE_URL`, `OYL_DH_API_URL`, and optionally `OYL_DH_CSP_HEADER`, in the root `.env`;
+   `pnpm deploy:dreamhost --dry-run` shows the rsync delta and proves SSH.
+8. Changing `CAMIS_AUTH_THROTTLE_PER_MINUTE` on the host requires `php artisan config:cache`
    (the publish script runs it).
+
+Notes:
+
+- Never deploy a commit older than the merge that introduced this DreamHost deploy with
+  `pnpm deploy:dreamhost`: older trees lack the `oyl-api-base` meta seam and the rendered
+  `.htaccess`, so the app would call the wrong API and lose its SPA fallback and headers.
+- If DreamHost moves the account to another server, re-run `ssh-keyscan <host>` and update
+  the `DH_KNOWN_HOSTS` secret, or every deploy fails host-key verification.
 
 ## CI
 
@@ -110,5 +125,8 @@ and in the GitHub repository's secrets/variables — never in tracked files.
 are idempotent, so every push to `master` and every manual *Run workflow* ships both; a failed
 api publish stops the www publish). To take a newer camis: `git -C ../camis rev-parse HEAD`,
 confirm it is pushed, set `CAMIS_REF`, and say why in the commit. A Strapi schema change needs
-the "Schema sync" above **before** the push, or the api publish stops at
-`camis:strapi-schema-check`.
+the "Schema sync" above **before** the push. Without it the api publish fails at
+`camis:strapi-schema-check` — but only after it has uploaded the new code and run
+`composer install`, so the new api code is already live against the old schema; www is not
+published. Fix it with the Mac-side schema sync and then a re-run (*Run workflow*), or revert
+the commit.

@@ -94,7 +94,9 @@ DreamHost MySQL  oyl_cms_strapi_dev  ◄── camis-php-oyl (prod)   ◄── 
 > targets after the gate, **api first, then www** (an additive api is safe for the old client;
 > a failed api publish stops the www publish). Third-party actions are pinned by commit SHA
 > and the job runs with `permissions: contents: read`. Steps 2, 7–9 below describe the
-> original design.
+> original design. After the whole-branch review: both builds run before the deploy key is
+> loaded (no third-party build code runs with the key in the agent); publish-www has a
+> `DH_FIRST_DEPLOY` first-deploy guard and a root-path guard; the `.htaccess` sends HSTS.
 
 **Trigger:** `push` to `master`; `workflow_dispatch` for a manual re-run of HEAD.
 **Concurrency:** group `deploy`, `cancel-in-progress: false` — two pushes queue rather than
@@ -423,6 +425,12 @@ tests) and in `apps/vanilla-oyl` (co-located `*.test.js`):
   ocari's `cli.test.ts`) on `ubuntu-latest` — linux-x64 prebuilts exist; if they fail to
   load, the gate scopes `pnpm test` to the deployable packages and this spec is amended.
 - **Schema drift**: a push that changes a Strapi schema without a prior Mac-side sync fails
-  the api deploy at `camis:strapi-schema-check` while the www deploy has already shipped.
-  Acceptable: the app tolerates a backend one schema behind for reads, and the fix is the
-  documented sync + `workflow_dispatch`.
+  the api deploy at `camis:strapi-schema-check`. The api is published first and the check
+  runs after the upload and `composer install`, so the new api code is live against the old
+  schema, and www is not published. Acceptable: the fix is the documented sync +
+  `workflow_dispatch` (or a revert).
+- **`rsync --delete` into the wrong directory** (a mistyped `DH_WWW_ROOT`, or a web directory
+  holding another site): publish-www refuses `.`, absolute, `~` and `..` roots and a root
+  overlapping `DH_API_ROOT`, and before the real push requires the remote root to be missing,
+  empty apart from `.well-known`, or a previous deploy (`DEPLOYED`). `DH_FIRST_DEPLOY=1`
+  overrides that check once for a genuinely new root.
