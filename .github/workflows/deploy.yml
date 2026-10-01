@@ -10,6 +10,9 @@ concurrency:
   group: deploy
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 env:
   # hynding/camis commit that apps/camis-php-oyl links @camis/cli from. Bump deliberately, in a
   # commit that says why; CI fetches this exact SHA (branch names / short SHAs cannot be fetched).
@@ -21,61 +24,29 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - id: changes
-        if: github.event_name == 'push'
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            www:
-              - 'packages/all-of-oyl/**'
-              - 'apps/vanilla-oyl/**'
-              - 'pnpm-lock.yaml'
-              - 'scripts/dreamhost/publish-www.sh'
-              - '.github/workflows/deploy.yml'
-            api:
-              - 'packages/all-of-oyl/**'
-              - 'apps/strapi-oyl/src/api/**'
-              - 'apps/strapi-oyl/src/components/**'
-              - 'apps/camis-php-oyl/**'
-              - 'pnpm-lock.yaml'
-              - 'scripts/dreamhost/publish-api.sh'
-              - '.github/workflows/deploy.yml'
-
-      - id: targets
-        name: Decide targets (manual runs deploy both)
-        env:
-          EVENT: ${{ github.event_name }}
-          WWW: ${{ steps.changes.outputs.www }}
-          API: ${{ steps.changes.outputs.api }}
-        run: |
-          if [ "$EVENT" = workflow_dispatch ]; then WWW=true; API=true; fi
-          echo "www=$WWW" >> "$GITHUB_OUTPUT"
-          echo "api=$API" >> "$GITHUB_OUTPUT"
-          echo "targets: www=$WWW api=$API"
-
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
       # PHP before the gate: camis-php-oyl's overlay tests run `php -l` when PHP is present.
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: '8.3'
           tools: composer
           extensions: pdo_sqlite, pdo_mysql, mbstring, openssl
 
       - name: Composer cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/composer
-          key: composer-${{ runner.os }}-${{ env.CAMIS_REF }}
-          restore-keys: composer-${{ runner.os }}-
+          key: composer-${{ runner.os }}-${{ env.CAMIS_REF }}-${{ github.run_id }}
+          restore-keys: |
+            composer-${{ runner.os }}-${{ env.CAMIS_REF }}-
+            composer-${{ runner.os }}-
 
       - name: Clone camis at CAMIS_REF (sibling of the checkout, where the workspace link points)
         run: |
@@ -93,13 +64,13 @@ jobs:
       - run: pnpm test
       - run: pnpm typecheck
 
-      - if: steps.targets.outputs.www == 'true' || steps.targets.outputs.api == 'true'
-        uses: webfactory/ssh-agent@v0.9.0
+      # Always run: deploys are idempotent and cancel-in-progress:false means a superseded
+      # or failed run's per-push diff is unreliable — every run deploys both targets.
+      - uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
         with:
           ssh-private-key: ${{ secrets.DH_SSH_KEY }}
 
-      - if: steps.targets.outputs.www == 'true' || steps.targets.outputs.api == 'true'
-        name: Pin the DreamHost host key
+      - name: Pin the DreamHost host key
         env:
           KNOWN_HOSTS: ${{ secrets.DH_KNOWN_HOSTS }}
         run: |
@@ -107,8 +78,18 @@ jobs:
           printf '%s\n' "$KNOWN_HOSTS" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      - if: steps.targets.outputs.www == 'true'
-        name: Publish www (static app)
+      # api first: an additive api change is safe to serve to the old frontend, and a failed
+      # api deploy (e.g. the remote schema check) must stop the frontend from shipping.
+      - name: Publish api (camis-php-oyl)
+        env:
+          DH_SSH: ${{ secrets.DH_SSH }}
+          DH_API_ROOT: ${{ vars.DH_API_ROOT }}
+          DH_API_URL: ${{ vars.DH_API_URL }}
+        run: |
+          pnpm php-app build
+          bash scripts/dreamhost/publish-api.sh
+
+      - name: Publish www (static app)
         env:
           DH_SSH: ${{ secrets.DH_SSH }}
           DH_WWW_ROOT: ${{ vars.DH_WWW_ROOT }}
@@ -119,25 +100,10 @@ jobs:
           pnpm vanilla build:lib
           bash scripts/dreamhost/publish-www.sh
 
-      - if: steps.targets.outputs.api == 'true'
-        name: Publish api (camis-php-oyl)
-        env:
-          DH_SSH: ${{ secrets.DH_SSH }}
-          DH_API_ROOT: ${{ vars.DH_API_ROOT }}
-          DH_API_URL: ${{ vars.DH_API_URL }}
-        run: |
-          pnpm php-app build
-          bash scripts/dreamhost/publish-api.sh
-
       - if: always()
         name: Summary
-        env:
-          WWW: ${{ steps.targets.outputs.www }}
-          API: ${{ steps.targets.outputs.api }}
         run: |
           {
             echo "## Deploy ${GITHUB_SHA::7}"
-            echo "- www: ${WWW:-false}"
-            echo "- api: ${API:-false}"
             echo "- status: ${{ job.status }}"
           } >> "$GITHUB_STEP_SUMMARY"
