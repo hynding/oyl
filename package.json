@@ -14,7 +14,6 @@
     "dev": "node scripts/dev.mjs",
     "dev:watch": "node scripts/dev.mjs --watch",
     "dev:fresh": "node scripts/dev.mjs --fresh --watch",
-    "deploy:pi": "bash scripts/deploy-pi.sh",
     "test": "pnpm --filter './packages/*' --filter './apps/*' --if-present test",
     "lint": "pnpm --filter './packages/*' --filter './apps/*' --if-present lint",
     "typecheck": "pnpm --filter './packages/*' --filter './apps/*' --if-present typecheck"

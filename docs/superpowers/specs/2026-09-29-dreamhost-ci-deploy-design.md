@@ -88,6 +88,14 @@ DreamHost MySQL  oyl_cms_strapi_dev  ◄── camis-php-oyl (prod)   ◄── 
 
 ## 2. Workflow — `.github/workflows/deploy.yml`
 
+> **Revised during implementation (2026-10-01):** the path filter (`dorny/paths-filter`) and
+> the `www`/`api` outputs were dropped — a superseded or failed run could silently leave a
+> change undeployed. Every push to `master` and every `workflow_dispatch` now deploys **both**
+> targets after the gate, **api first, then www** (an additive api is safe for the old client;
+> a failed api publish stops the www publish). Third-party actions are pinned by commit SHA
+> and the job runs with `permissions: contents: read`. Steps 2, 7–9 below describe the
+> original design.
+
 **Trigger:** `push` to `master`; `workflow_dispatch` for a manual re-run of HEAD.
 **Concurrency:** group `deploy`, `cancel-in-progress: false` — two pushes queue rather than
 race an rsync.
