@@ -1,7 +1,7 @@
 # Pi Deploy Script — Design
 
 **Date:** 2026-07-20
-**Status:** Implemented 2026-07-20; first production deploy verified
+**Status:** Superseded 2026-09 by `2026-09-29-dreamhost-ci-deploy-design.md` (the Pi no longer hosts OYL); kept as history
 
 ## Purpose
 

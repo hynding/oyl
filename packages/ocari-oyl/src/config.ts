@@ -32,7 +32,7 @@ export interface ConfigInputs {
   dotenv: string
 }
 
-/** Extract one KEY=value from .env text (deploy-pi pattern): last wins, CR and one layer of matching quotes stripped. */
+/** Extract one KEY=value from .env text (last assignment wins; CR and one layer of matching quotes stripped). */
 function dotenvKey(dotenv: string, key: string): string | undefined {
   let found: string | undefined
   for (const line of dotenv.split('\n')) {

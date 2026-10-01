@@ -63,11 +63,15 @@ async function boot() {
   const layoutState = createLayoutState(storage)
   const routeState = createRouteState(window)
   const host = window.location.hostname
-  const authState = createAuthState(storage, { baseUrl: getApiBaseUrl(storage, host), fetch: window.fetch.bind(window) })
+  // Deploy-injected API base (see index.html <meta name="oyl-api-base">); '' means hostname rules.
+  const metaBase = /** @type {HTMLMetaElement | null} */ (document.querySelector('meta[name="oyl-api-base"]'))?.content ?? ''
+  const apiBase = getApiBaseUrl(storage, host, metaBase)
+  const apiDefault = defaultApiBaseUrl(host, metaBase)
+  const authState = createAuthState(storage, { baseUrl: apiBase, fetch: window.fetch.bind(window) })
   const noticeState = createNoticeState()
   const mode = getStorageMode(storage, host)
 
-  const googleStore = createGoogleStore({ baseUrl: getApiBaseUrl(storage, host), fetch: window.fetch.bind(window), getToken: authState.getToken })
+  const googleStore = createGoogleStore({ baseUrl: apiBase, fetch: window.fetch.bind(window), getToken: authState.getToken })
   const googleLoginHref = signal(/** @type {{ href: string } | null} */ (null))
   // OAuth return: adopt #google=<jwt> / surface #google_error=<code> BEFORE the login guard
   // runs below, so a fragment-delivered session wins over the "no session → /login" redirect.
@@ -79,7 +83,7 @@ async function boot() {
   // and start the flusher. The server is the source of truth; writes enqueue to the outbox
   // and flush when online (on the `online` event and after each enqueue).
   const api = createApiClient({
-    baseUrl: getApiBaseUrl(storage, host),
+    baseUrl: apiBase,
     fetch: window.fetch.bind(window),
     getToken: authState.getToken,
     onAuthError: () => authState.logout(),
@@ -139,7 +143,7 @@ async function boot() {
   void googleStore.probe().then(() => {
     const state = googleStore.connection.get().state
     const unconfigured = state === 'unconfigured' || state === 'unknown'
-    googleLoginHref.set(unconfigured ? null : { href: `${getApiBaseUrl(storage, host)}/google/connect?mode=login` })
+    googleLoginHref.set(unconfigured ? null : { href: `${apiBase}/google/connect?mode=login` })
     // Only hit /google/status when probe() found Google actually configured — an unconfigured
     // backend 501s that route, and the browser logs its own console.error for ANY non-2xx
     // fetch regardless of how gracefully the app handles the response, which would fail the
@@ -254,8 +258,8 @@ async function boot() {
       const panel = /** @type {import('./components/oyl-status-panel.js').OylStatusPanel} */ (document.createElement('oyl-status-panel'))
       panel.connection = {
         mode,
-        apiBaseUrl: getApiBaseUrl(storage, host),
-        defaultApiBaseUrl: defaultApiBaseUrl(host),
+        apiBaseUrl: apiBase,
+        defaultApiBaseUrl: apiDefault,
         onApply: (m, url) => { setStorageMode(storage, m); setApiBaseUrl(storage, url); location.reload() },
       }
       // Sync/migration sections are deferred to the connection-UI reshape (Sub-project D);
@@ -367,8 +371,8 @@ async function boot() {
       }
       page.connection = {
         mode,
-        apiBaseUrl: getApiBaseUrl(storage, host),
-        defaultApiBaseUrl: defaultApiBaseUrl(host),
+        apiBaseUrl: apiBase,
+        defaultApiBaseUrl: apiDefault,
         onApply: (m, url) => { setStorageMode(storage, m); setApiBaseUrl(storage, url); location.reload() },
       }
       page.google = {
