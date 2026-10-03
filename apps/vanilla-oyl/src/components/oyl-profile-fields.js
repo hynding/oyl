@@ -105,8 +105,11 @@ export class OylProfileFields extends OylElement {
     const zones = typeof (/** @type {any} */ (Intl).supportedValuesOf) === 'function'
       ? /** @type {string[]} */ (/** @type {any} */ (Intl).supportedValuesOf('timeZone')) : null
     if (!zones) return this._input('timezone', 'text', 'Timezone (IANA)', val)
-    const s = this._select('timezone', 'Timezone', zones.map((z) => [z, z]), zones.includes(val) ? val : (zones[0] ?? ''))
-    return s
+    // supportedValuesOf lists canonical IANA zones only: it omits "UTC" and aliases such as
+    // "Asia/Calcutta". Keep such a value as its own option rather than silently selecting
+    // zones[0], which would rewrite the user's timezone on the next save.
+    const options = val && !zones.includes(val) ? [val, ...zones] : zones
+    return this._select('timezone', 'Timezone', options.map((z) => [z, z]), val || (zones[0] ?? ''))
   }
   /** Gender = a select plus an "Other" self-describe text input revealed when "Other" is chosen. @param {string} val @returns {HTMLElement} */
   _genderControl(val) {

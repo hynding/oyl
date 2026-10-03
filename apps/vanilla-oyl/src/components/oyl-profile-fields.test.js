@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll, vi } from 'vitest'
+import { describe, expect, it, beforeAll, afterEach, vi } from 'vitest'
 import { defineProfileFields } from './oyl-profile-fields.js'
 
 beforeAll(() => defineProfileFields())
@@ -17,6 +17,43 @@ describe('<oyl-profile-fields>', () => {
     const tz = el.shadowRoot.querySelector('[name="timezone"]')
     expect(tz.value).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone)
     el.remove()
+  })
+
+  describe('timezones missing from Intl.supportedValuesOf (it omits "UTC")', () => {
+    /** Pin both the zone list and the system tz so the behaviour is machine-independent. @param {string} systemTz */
+    function stubIntl(systemTz) {
+      const real = Intl.DateTimeFormat.prototype.resolvedOptions
+      vi.spyOn(/** @type {any} */ (Intl), 'supportedValuesOf').mockReturnValue(['Africa/Abidjan', 'America/Los_Angeles'])
+      vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(
+        /** @this {Intl.DateTimeFormat} */ function () { return { ...real.call(this), timeZone: systemTz } },
+      )
+    }
+    afterEach(() => { vi.restoreAllMocks() })
+
+    it('keeps a UTC system tz instead of falling back to the first listed zone', () => {
+      stubIntl('UTC')
+      const el = mount()
+      const tz = el.shadowRoot.querySelector('[name="timezone"]')
+      expect(tz.value).toBe('UTC')
+      el.remove()
+    })
+
+    it('keeps a saved timezone the list does not contain, so saving does not rewrite it', () => {
+      stubIntl('America/Los_Angeles')
+      const el = mount({ timezone: 'Asia/Calcutta' })
+      const tz = el.shadowRoot.querySelector('[name="timezone"]')
+      expect(tz.value).toBe('Asia/Calcutta')
+      expect(el.getValues().timezone).toBe('Asia/Calcutta')
+      el.remove()
+    })
+
+    it('still offers every listed zone after the kept one', () => {
+      stubIntl('UTC')
+      const el = mount()
+      const values = [...el.shadowRoot.querySelectorAll('[name="timezone"] option')].map((o) => o.value)
+      expect(values).toEqual(['UTC', 'Africa/Abidjan', 'America/Los_Angeles'])
+      el.remove()
+    })
   })
 
   it('getValues returns canonical metric values', () => {
