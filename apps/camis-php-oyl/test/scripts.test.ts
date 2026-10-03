@@ -26,7 +26,9 @@ describe("build.mjs", () => {
     expect(pin, "PROD_PHP constant").not.toBeNull()
     expect(src).toContain('"platform.php"')
     expect(src).toContain('"update"')
-    expect(src.indexOf('"platform.php"')).toBeLessThan(src.indexOf('run(["build"])'))
+    // After camis build: composer update runs package:discover, which boots Laravel and needs the
+    // generated routes — on a fresh scaffold (CI) they only exist once camis build has run.
+    expect(src.indexOf('"platform.php"')).toBeGreaterThan(src.indexOf('run(["build"])'))
     // CI builds and tests on the same PHP the pin names.
     const workflow = readFileSync(resolve(PKG, "..", "..", ".github", "workflows", "deploy.yml"), "utf8")
     expect(workflow).toContain(`php-version: '${pin![1]}'`)

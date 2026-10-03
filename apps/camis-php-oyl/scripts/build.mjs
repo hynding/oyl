@@ -45,6 +45,10 @@ if (!existsSync(COMPOSER_JSON)) {
   run(["scaffold", "filament", "./laravel", "--storage", "strapi"])
 }
 
+run(["build"])
+
+// After camis build: composer update fires package:discover, which boots Laravel and needs the
+// routes camis generates (a fresh scaffold has none yet).
 const composer = (args) => {
   const res = spawnSync("composer", [...args, "--no-interaction"], { cwd: LARAVEL, stdio: "inherit" })
   if (res.status !== 0) process.exit(res.status ?? 1)
@@ -55,5 +59,4 @@ if (pinned !== PROD_PHP) {
   composer(["config", "platform.php", PROD_PHP])
   composer(["update", "--no-audit"])
 }
-run(["build"])
 console.log("[php-app] built laravel/ (generated + overlay)")
