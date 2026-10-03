@@ -38,6 +38,8 @@ beforeEach(() => {
     "printf '%s\\n' \"$@\" > \"$FAKE_CAPTURE/argv\"",
     "src=\"${@: -2:1}\"",
     "( cd \"$src\" && find . -type f | sort ) > \"$FAKE_CAPTURE/files\"",
+    "ls -ld \"$src\" | cut -c1-10 > \"$FAKE_CAPTURE/rootmode\"",
+    "ls -l \"$src/index.html\" | cut -c1-10 > \"$FAKE_CAPTURE/filemode\"",
     "cp \"$src/index.html\" \"$FAKE_CAPTURE/index.html\"",
     "cp \"$src/.htaccess\" \"$FAKE_CAPTURE/htaccess\"",
     "exit 0",
@@ -226,6 +228,15 @@ describe("scripts/dreamhost/publish-www.sh", () => {
       expect(res.stderr).toContain("/journal")
       expect(res.stderr).toContain("500")
     })
+  })
+  it("ships a web root Apache can read (mktemp -d is 700, and rsync -a copies the stage root's mode onto the web root)", () => {
+    chmodSync(join(fixture, "index.html"), 0o600)
+    const res = run([], { ...good(), DH_WWW_SRC: fixture })
+    expect(res.status, res.stderr).toBe(0)
+    expect(readFileSync(join(capture, "rootmode"), "utf8").trim()).toBe("drwxr-xr-x")
+    expect(readFileSync(join(capture, "filemode"), "utf8").trim()).toBe("-rw-r--r--")
+    // Portable: macOS openrsync rejects --chmod, so the stage is normalised instead.
+    expect(readFileSync(join(capture, "argv"), "utf8")).not.toContain("--chmod")
   })
   it("never weakens host-key checking", () => {
     expect(src()).not.toContain("StrictHostKeyChecking=no")

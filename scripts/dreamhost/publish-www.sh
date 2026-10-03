@@ -112,6 +112,11 @@ node "$REPO_ROOT/apps/vanilla-oyl/scripts/render-htaccess.mjs" \
 
 printf 'sha=%s\ndeployed_utc=%s\n' "$(git -C "$REPO_ROOT" rev-parse HEAD)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STAGE/DEPLOYED"
 
+# rsync -a copies modes, including the stage root's onto the web root. mktemp -d is 0700, which
+# leaves Apache unable to read anything ("Server unable to read htaccess file" -> 403), so make
+# the whole stage world-readable first. (Not rsync --chmod: macOS openrsync rejects it.)
+chmod -R u=rwX,go=rX "$STAGE"
+
 # .well-known/ is DreamHost's (certificate validation); protect it from --delete.
 RSYNC_FLAGS=(-a --delete --exclude '.well-known/' -e 'ssh -o BatchMode=yes')
 
