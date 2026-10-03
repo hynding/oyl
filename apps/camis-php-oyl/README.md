@@ -18,7 +18,8 @@ time.
 
 ```bash
 pnpm php-app run import   # strapi-oyl schemas → camis.json, then roles.json
-pnpm php-app build        # scaffold laravel/ if missing, then camis build (+ overlay)
+pnpm php-app build        # scaffold laravel/ if missing, pin composer platform php (PROD_PHP in
+                          # scripts/build.mjs = the DreamHost PHP), then camis build (+ overlay)
 pnpm php-app dev           # serve on :1340 against apps/strapi-oyl/.tmp/data.db (run
                            # `pnpm strapi-app develop` once first; never both at once)
 pnpm php-app test          # generator drift + overlay lint tests
@@ -116,6 +117,12 @@ Notes:
   `.htaccess`, so the app would call the wrong API and lose its SPA fallback and headers.
 - If DreamHost moves the account to another server, re-run `ssh-keyscan <host>` and update
   the `DH_KNOWN_HOSTS` secret, or every deploy fails host-key verification.
+
+**PHP version.** DreamHost runs PHP 8.3 (web and CLI), and CI builds with `php-version: '8.3'`.
+`scripts/build.mjs` pins composer's `platform.php` to `PROD_PHP`, so `composer.lock` resolves for the
+host even when the build machine runs a newer PHP. To move the host to a newer PHP, change the
+domain's PHP in the panel, the PATH line in `~/.bash_profile`, `PROD_PHP`, and the workflow's
+`php-version` together (a test keeps the last two in step).
 
 ## CI
 

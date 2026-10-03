@@ -14,6 +14,10 @@ import { fileURLToPath } from "node:url"
 const PKG = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const LARAVEL = resolve(PKG, "laravel")
 const COMPOSER_JSON = resolve(LARAVEL, "composer.json")
+// The PHP that DreamHost runs (web and CLI) and that CI builds with. composer.lock is resolved
+// against this, not the build machine's PHP: a Mac on 8.4 would otherwise lock Symfony 8.1
+// (php >= 8.4.1), which `composer install` on the host refuses.
+const PROD_PHP = "8.3.0"
 
 const run = (args, opts = {}) => {
   const res = spawnSync("pnpm", ["exec", "camis", ...args], {
@@ -39,6 +43,17 @@ if (!existsSync(COMPOSER_JSON)) {
     "[php-app] laravel/ missing — scaffolding (composer create-project; takes a few minutes)",
   )
   run(["scaffold", "filament", "./laravel", "--storage", "strapi"])
+}
+
+const composer = (args) => {
+  const res = spawnSync("composer", [...args, "--no-interaction"], { cwd: LARAVEL, stdio: "inherit" })
+  if (res.status !== 0) process.exit(res.status ?? 1)
+}
+const pinned = JSON.parse(readFileSync(COMPOSER_JSON, "utf8")).config?.platform?.php
+if (pinned !== PROD_PHP) {
+  console.log(`[php-app] pinning composer platform php ${PROD_PHP} (the production PHP) and re-resolving composer.lock`)
+  composer(["config", "platform.php", PROD_PHP])
+  composer(["update", "--no-audit"])
 }
 run(["build"])
 console.log("[php-app] built laravel/ (generated + overlay)")

@@ -21,6 +21,16 @@ describe("build.mjs", () => {
     expect(src).toContain('"firebase/php-jwt"')
     expect(src).toContain("rmSync(LARAVEL")
   })
+  it("pins composer's platform php to the DreamHost runtime before building, so a newer local PHP cannot produce a lock the host cannot install", () => {
+    const pin = /const PROD_PHP = "(\d+\.\d+)\.\d+"/.exec(src)
+    expect(pin, "PROD_PHP constant").not.toBeNull()
+    expect(src).toContain('"platform.php"')
+    expect(src).toContain('"update"')
+    expect(src.indexOf('"platform.php"')).toBeLessThan(src.indexOf('run(["build"])'))
+    // CI builds and tests on the same PHP the pin names.
+    const workflow = readFileSync(resolve(PKG, "..", "..", ".github", "workflows", "deploy.yml"), "utf8")
+    expect(workflow).toContain(`php-version: '${pin![1]}'`)
+  })
 })
 
 describe("dev.mjs", () => {
