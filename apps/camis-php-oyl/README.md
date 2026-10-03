@@ -65,11 +65,32 @@ from `apps/strapi-oyl/.env`, which `pnpm develop` loads, so only the `DATABASE_*
 `JWT_SECRET` above have to be given on the command line; the values themselves never reach the
 PHP app, which shares `JWT_SECRET` only.
 
-DreamHost only accepts remote MySQL connections from hosts allowed in the panel (Databases →
-the database's "Allowable Hosts"); add your IP for the sync — shared hosting has no Node build
-environment, so this always runs from your machine. `pnpm deploy:dreamhost` then runs
-`php artisan camis:strapi-schema-check` on the host and stops with the list of missing tables
-if the sync was skipped.
+DreamHost's MySQL rejects connections from your home IP unless it is in the database's
+"Allowable Hosts", but it accepts the DreamHost servers themselves. So reach it through an SSH
+tunnel from the shell account instead of opening the database to your IP:
+
+```bash
+ssh -f -N -L 127.0.0.1:13306:<db-host>:3306 <user>@<dreamhost-server>   # stays in the background
+# then run the Strapi boot above with DATABASE_HOST=127.0.0.1 DATABASE_PORT=13306
+# DATABASE_SSL=true DATABASE_SSL_REJECT_UNAUTHORIZED=false (DreamHost's MySQL certificate is
+# self-signed for its internal name), and stop the tunnel afterwards:
+pkill -f 'ssh .*-L 127.0.0.1:13306:'
+```
+
+`pnpm strapi-app build` followed by `pnpm --filter @oyl/strapi-oyl-app exec strapi start`
+works as well as `pnpm develop` and is faster; either way, stop it once it logs "Strapi
+started successfully". If you pass values by hand, strip any quotes the env file wraps them in:
+MySQL's option files and Laravel's loader strip single quotes, a shell variable does not.
+
+Back up first; the shell account can dump the database without a tunnel:
+`mysqldump --single-transaction --no-tablespaces <db> | gzip > ~/backups/<db>-$(date -u +%Y%m%dT%H%M%SZ).sql.gz`.
+
+The publish then runs `php artisan camis:strapi-schema-check` on the host and stops with the
+list of missing tables if the sync was skipped.
+
+**Retired Strapi instances must stay off.** A Strapi running older code against this database
+(for example the Raspberry Pi's, if it boots again) treats tables it does not know as removed
+and drops them on start. Stop it before it can boot (`pm2 delete strapi && pm2 save`).
 
 ## DreamHost one-time setup
 
