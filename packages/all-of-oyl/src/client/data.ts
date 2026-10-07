@@ -1,43 +1,54 @@
-import { review, Transaction } from '@oyl/all-of-oyl'
-import { signal } from '@oyl/all-of-oyl/client'
-import { makeRepositories, collectionCounts, decodeBootstrap } from '../storage/bootstrap.js'
-import { readSchemaState } from '@oyl/all-of-oyl/client'
-import { createJournalStore } from '@oyl/all-of-oyl/client'
-import { createPlannerStore } from '@oyl/all-of-oyl/client'
-import { createVaultStore } from '@oyl/all-of-oyl/client'
-import { createGoalsStore } from '@oyl/all-of-oyl/client'
-import { createBudgetsStore } from '@oyl/all-of-oyl/client'
-import { createAccountsStore } from '@oyl/all-of-oyl/client'
-import { createConsumablesStore } from '@oyl/all-of-oyl/client'
-import { createConsumableProductsStore } from '@oyl/all-of-oyl/client'
-import { defaultTimezone } from '@oyl/all-of-oyl/client'
+import { review, Transaction } from '../index.js'
+import type { ApiClient, BootstrapPayload, Connectivity, WriteOutbox, LifeArea, Activity, Project, DayRange, Review, Id, DayKey, SubscriptionCharge } from '../index.js'
+import type { EnumerableStorage, StorageEstimate, StorageEstimator } from './ports.js'
+import { signal } from './reactive/signal.js'
+import { makeRepositories, collectionCounts, decodeBootstrap } from './storage/bootstrap.js'
+import type { Repositories } from './storage/bootstrap.js'
+import { readSchemaState } from './storage/schema.js'
+import type { SchemaState } from './storage/schema.js'
+import { defaultTimezone } from './storage/clock.js'
+import { createJournalStore } from './stores/journal.js'
+import { createPlannerStore } from './stores/planner.js'
+import { createVaultStore } from './stores/vault.js'
+import { createGoalsStore } from './stores/goals.js'
+import { createBudgetsStore } from './stores/budgets.js'
+import { createAccountsStore } from './stores/accounts.js'
+import { createConsumablesStore } from './stores/consumables.js'
+import { createConsumableProductsStore } from './stores/consumable-products.js'
 
-/** @typedef {import('@oyl/all-of-oyl/client').SchemaState} SchemaState */
-/** @typedef {ReturnType<typeof import('./theme.js').createThemeState>} ThemeState */
-/** @typedef {{ getItem(k: string): string | null, setItem(k: string, v: string): void, key(i: number): string | null, length: number }} AppStorage */
+export interface DataStateOptions {
+  api?: ApiClient
+  connectivity?: Connectivity
+  repos?: Repositories
+  outbox?: WriteOutbox
+  timezone?: string
+  bootstrap?: () => Promise<BootstrapPayload | undefined>
+  /** Outbox mutation ids when repos are built here (browser: crypto.randomUUID). */
+  newId?: () => string
+  /** Best-effort quota probe for Status diagnostics (browser: navigator.storage.estimate). */
+  estimateStorage?: StorageEstimator
+  /** Build marker echoed by readDiagnostics(). */
+  build?: string
+}
 
 /**
  * App data state: online-first repositories over real storage + reactive diagnostics the
  * Status screen reads. refresh() re-reads everything (boot, seed, multi-tab). The server is
  * the source of truth; writes enqueue to the outbox and the app's flusher drains them.
- * @param {AppStorage & import('@oyl/all-of-oyl').StorageLike} storage
- * @param {ThemeState} themeState
- * @param {{
- *   api?: import('@oyl/all-of-oyl').ApiClient,
- *   connectivity?: import('@oyl/all-of-oyl').Connectivity,
- *   repos?: ReturnType<typeof makeRepositories>['repos'],
- *   outbox?: import('@oyl/all-of-oyl').WriteOutbox,
- *   timezone?: string,
- *   bootstrap?: () => Promise<import('@oyl/all-of-oyl').BootstrapPayload | undefined>,
- * }} [opts]
  */
-export function createDataState(storage, themeState, opts = {}) {
+export function createDataState<TTheme = unknown>(
+  storage: Pick<EnumerableStorage, 'getItem' | 'setItem' | 'key' | 'length'>,
+  themeState: { settings: { get(): TTheme } },
+  opts: DataStateOptions = {},
+) {
   const built = opts.repos
     ? { repos: opts.repos, outbox: opts.outbox }
     : makeRepositories(storage, {
         ...(opts.api ? { api: opts.api } : {}),
         ...(opts.connectivity ? { connectivity: opts.connectivity } : {}),
+        ...(opts.newId ? { newId: opts.newId } : {}),
       })
+  const estimateStorage: StorageEstimator = opts.estimateStorage ?? (async () => null)
   const { repos } = built
   const outbox = opts.outbox ?? built.outbox
   const reposByKind = {
@@ -60,24 +71,26 @@ export function createDataState(storage, themeState, opts = {}) {
    * Cheap pending-writes indicator derived from the outbox. It is a snapshot read on
    * refresh()/refreshPending() — not a live subscription — which is enough for the
    * Status surface until the sync UI reshape (Sub-project D).
-   * @type {import('@oyl/all-of-oyl/client').Signal<number>}
    */
-  const pending = signal(outbox ? outbox.size() : 0)
+  const pending = signal<number>(outbox ? outbox.size() : 0)
   /** Re-read the outbox size into the pending signal. */
   function refreshPending() { pending.set(outbox ? outbox.size() : 0) }
 
-  /** @type {readonly import('@oyl/all-of-oyl').LifeArea[]} */
-  let lifeAreas = []
-  /** @type {readonly import('@oyl/all-of-oyl').Activity[]} */
-  let activities = []
-  /** @type {readonly import('@oyl/all-of-oyl').Project[]} */
-  let projects = []
-  /** @type {import('@oyl/all-of-oyl/client').Signal<Record<string, number>>} */
-  const counts = signal(/** @type {Record<string, number>} */ ({}))
-  /** @type {import('@oyl/all-of-oyl/client').Signal<SchemaState>} */
-  const schema = signal(readSchemaState(storage))
-  /** @type {import('@oyl/all-of-oyl/client').Signal<{ usage: number, quota: number } | null>} */
-  const storageEstimate = signal(/** @type {{ usage: number, quota: number } | null} */ (null))
+  let lifeAreas: readonly LifeArea[] = []
+  let activities: readonly Activity[] = []
+  let projects: readonly Project[] = []
+  const counts = signal<Record<string, number>>({})
+  const schema = signal<SchemaState>(readSchemaState(storage))
+  const storageEstimate = signal<StorageEstimate | null>(null)
+
+  /** Best-effort; a rejecting probe reports null and never fails refresh(). */
+  async function readStorageEstimate(): Promise<StorageEstimate | null> {
+    try {
+      return await estimateStorage()
+    } catch {
+      return null
+    }
+  }
 
   async function refresh() {
     schema.set(readSchemaState(storage))
@@ -114,7 +127,7 @@ export function createDataState(storage, themeState, opts = {}) {
     const results = await Promise.allSettled(tasks)
     const failure = results.find((r) => r.status === 'rejected')
     if (failure && failure.status === 'rejected') throw failure.reason
-    const val = (/** @type {number} */ i) => /** @type {any} */ (results[i]).value
+    const val = (i: number) => (results[i] as any).value
     lifeAreas = val(8); activities = val(9); projects = val(10)
     storageEstimate.set(val(11)); counts.set(val(12))
     refreshPending()
@@ -127,7 +140,7 @@ export function createDataState(storage, themeState, opts = {}) {
       schema: 'version' in s ? { status: s.status, version: s.version } : { status: s.status },
       counts: counts.get(),
       theme: themeState.settings.get(),
-      build: /** @type {any} */ (globalThis).__OYL_LIB_BUILD__ ?? 'dev',
+      build: opts.build ?? 'dev',
       storage: storageEstimate.get(),
     }
   }
@@ -137,9 +150,8 @@ export function createDataState(storage, themeState, opts = {}) {
    * each touch their revision, so a reactive reader (the insights screen) re-runs on any change.
    * The activities/areas/projects catalogs feed the life-wheel (review().areas); they reload in
    * refresh() alongside the hydrates, so a catalog change always coincides with a tracked revision.
-   * @param {import('@oyl/all-of-oyl').DayRange} range @returns {import('@oyl/all-of-oyl').Review}
    */
-  function reviewOn(range) {
+  function reviewOn(range: DayRange): Review {
     return review({
       journal: journal.peek(),
       planner: planner.peek(),
@@ -157,11 +169,8 @@ export function createDataState(storage, themeState, opts = {}) {
    * Insights). Orchestration lives here so vaultStore/journalStore stay decoupled. The
    * Transaction is mapped purely from the charge (charge.on is the day paid, not the past
    * due date — overdue renewals post dated today).
-   * @param {import('@oyl/all-of-oyl').Id} id
-   * @param {import('@oyl/all-of-oyl').DayKey} on
-   * @returns {Promise<import('@oyl/all-of-oyl').SubscriptionCharge | undefined>}
    */
-  async function renewSubscription(id, on) {
+  async function renewSubscription(id: Id, on: DayKey): Promise<SubscriptionCharge | undefined> {
     const charge = await vault.renew(id, on)
     if (charge) {
       await journal.add(new Transaction({
@@ -178,20 +187,4 @@ export function createDataState(storage, themeState, opts = {}) {
   return { repos, counts, schema, refresh, readDiagnostics, journal, planner, vault, goals, reviewOn, budgets, renewSubscription, accounts, consumables, consumableProducts, pending, refreshPending }
 }
 
-/**
- * Best-effort localStorage/quota usage via the Storage API. Returns null when the API
- * is unavailable (older browsers, test envs) or fails — never throws.
- * @returns {Promise<{ usage: number, quota: number } | null>}
- */
-async function readStorageEstimate() {
-  try {
-    const nav = /** @type {Navigator | undefined} */ (globalThis.navigator)
-    if (nav?.storage?.estimate) {
-      const { usage, quota } = await nav.storage.estimate()
-      return { usage: usage ?? 0, quota: quota ?? 0 }
-    }
-  } catch {
-    // ignore — diagnostics are best-effort
-  }
-  return null
-}
+export type DataState = ReturnType<typeof createDataState>

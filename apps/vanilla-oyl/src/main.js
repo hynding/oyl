@@ -4,10 +4,11 @@ import { createThemeApplier } from './theme/theme-manager.js'
 import { createThemeState } from './state/theme.js'
 import { createLayoutState } from './state/layout.js'
 import { createRouteState } from './state/route.js'
-import { createDataState } from './state/data.js'
+import { createDataState } from '@oyl/all-of-oyl/client'
 import { createAuthState, googleErrorMessage } from './state/auth.js'
 import { createGoogleStore } from '@oyl/all-of-oyl/client'
 import { seedAccount } from './storage/seed.js'
+import { browserDataPorts } from './storage/browser-ports.js'
 import { exportData, importData } from './storage/backup.js'
 import { isOylKey, SETTINGS_KEY, AUTH_KEY, TZ_RELOADED_KEY, OUTBOX_KEY } from '@oyl/all-of-oyl/client'
 import { getApiBaseUrl, getStorageMode, setApiBaseUrl, setStorageMode, defaultApiBaseUrl } from '@oyl/all-of-oyl/client'
@@ -29,7 +30,7 @@ import { defineNotice } from './components/oyl-notice.js'
 import { createApiClient, DayKey, entitiesByKind } from '@oyl/all-of-oyl'
 import { createBrowserConnectivity } from '@oyl/all-of-oyl/client'
 import { debounce } from './lib/debounce.js'
-import { makeRepositories } from './storage/bootstrap.js'
+import { makeRepositories } from '@oyl/all-of-oyl/client'
 import { createProfileStore, resolveTimezone } from '@oyl/all-of-oyl/client'
 import { shouldRedirectToLogin, tzNeedsReload } from './state/auth-guard.js'
 import { defineLogin } from './components/oyl-login.js'
@@ -89,14 +90,15 @@ async function boot() {
     onAuthError: () => authState.logout(),
   })
   const connectivity = createBrowserConnectivity(window)
-  const { repos, outbox, flush } = makeRepositories(storage, { api, connectivity })
+  const ports = browserDataPorts(globalThis)
+  const { repos, outbox, flush } = makeRepositories(storage, { api, connectivity, newId: ports.newId })
   const profileStore = createProfileStore(repos, storage)
   await profileStore.load()
   const browserTz = defaultTimezone()
   const tz = resolveTimezone(profileStore.profile.get(), browserTz)
   // refresh() boots from ONE GET /bootstrap (all collections in a single round trip);
   // it falls back to per-collection reads if the backend lacks the endpoint.
-  const dataState = createDataState(storage, themeState, { repos, outbox, timezone: tz, bootstrap: () => api.bootstrap() })
+  const dataState = createDataState(storage, themeState, { repos, outbox, timezone: tz, bootstrap: () => api.bootstrap(), estimateStorage: ports.estimateStorage, build: ports.build })
 
   // Theme applied reactively (the inline head script already set the first paint).
   // Cross-fades theme switches via the View Transitions API (instant at boot,

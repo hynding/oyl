@@ -7,15 +7,15 @@ import {
   createCatalogClient,
   alwaysOnline,
   strapiRowToShape,
-} from '@oyl/all-of-oyl'
-import { OUTBOX_KEY, READ_CACHE_KEY } from '@oyl/all-of-oyl/client'
-import { now } from '@oyl/all-of-oyl/client'
+} from '../../index.js'
+import type { ApiClient, BootstrapPayload, CatalogClient, Connectivity, Repository, WriteOutbox } from '../../index.js'
+import type { StorageLike } from '../ports.js'
+import { OUTBOX_KEY, READ_CACHE_KEY } from './keys.js'
+import { now } from './clock.js'
 
-/**
- * @typedef {keyof typeof COLLECTIONS} CollectionName
- * @typedef {Record<CollectionName, import('@oyl/all-of-oyl').Repository<any>>} Repositories
- * @typedef {Partial<Record<CollectionName, import('@oyl/all-of-oyl').CatalogClient<any>>>} Catalogs
- */
+export type CollectionName = keyof typeof COLLECTIONS
+export type Repositories = Record<CollectionName, Repository<any>>
+export type Catalogs = Partial<Record<CollectionName, CatalogClient<any>>>
 
 /** Read-cache bounds — recent list reads only; durable writes live in the outbox. */
 const READ_CACHE_MAX_ENTRIES = 64
@@ -24,9 +24,8 @@ const READ_CACHE_TTL_MS = 5 * 60_000
 /**
  * Manifest collection → Strapi REST plural path. The flusher routes by this map.
  * Keys mirror COLLECTIONS exactly (exhaustive Record<CollectionName, string>).
- * @type {Record<CollectionName, string>}
  */
-export const PATH_BY_COLLECTION = {
+export const PATH_BY_COLLECTION: Record<CollectionName, string> = {
   users: 'users',
   lifeAreas: 'life-areas',
   activities: 'activities',
@@ -58,9 +57,8 @@ export const PATH_BY_COLLECTION = {
  * can parse the shape (each calls `parseEntryBase(shape, expectedKind)` which requires
  * the `kind` field). Documentation / forward-compat only — only BACKED collections are
  * wired to a real server repo in this phase.
- * @type {Partial<Record<CollectionName, string>>}
  */
-export const ROW_KIND_BY_COLLECTION = {
+export const ROW_KIND_BY_COLLECTION: Partial<Record<CollectionName, string>> = {
   notes: 'note',
   consumptions: 'consumption',
   transactions: 'transaction',
@@ -71,21 +69,18 @@ export const ROW_KIND_BY_COLLECTION = {
 /**
  * Collections that have a live Strapi backend in this phase.
  * Others get `emptyRepo()` so their stores boot without hitting nonexistent endpoints.
- * @type {Set<CollectionName>}
  */
-const BACKED = new Set(/** @type {CollectionName[]} */ (['notes', 'consumptions', 'accounts', 'transactions', 'budgets', 'measurements', 'activitySessions', 'goals']))
+const BACKED = new Set<CollectionName>(['notes', 'consumptions', 'accounts', 'transactions', 'budgets', 'measurements', 'activitySessions', 'goals'])
 
 /**
  * Catalog collections with a live Strapi backend. `lifeAreas` has no content-type yet,
  * so it gets a no-network client — a live one would 404 `/api/life-areas` on every boot.
- * @type {Set<CollectionName>}
  */
-export const CATALOG_BACKED = new Set(/** @type {CollectionName[]} */ (['activities', 'consumables', 'consumableProducts']))
+export const CATALOG_BACKED = new Set<CollectionName>(['activities', 'consumables', 'consumableProducts'])
 
-/** A UUID source for outbox mutation ids. @returns {string} */
-function newId() {
-  const c = /** @type {{ randomUUID?: () => string } | undefined} */ (globalThis.crypto)
-  return c?.randomUUID ? c.randomUUID() : `m-${Date.now()}-${Math.random().toString(36).slice(2)}`
+/** ES-only outbox mutation id (the browser passes crypto.randomUUID via makeRepositories' `newId`). */
+export function fallbackId(): string {
+  return `m-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
 /**
@@ -98,26 +93,23 @@ function newId() {
  * (no client surface yet). `repos` is keyed by COLLECTIONS so existing stores consume it
  * unchanged (it's `Repository`-shaped).
  *
- * @param {import('@oyl/all-of-oyl').StorageLike} storage
- * @param {{
- *   api?: import('@oyl/all-of-oyl').ApiClient,
- *   connectivity?: import('@oyl/all-of-oyl').Connectivity,
- * }} [opts]
- * @returns {{
- *   repos: Repositories,
- *   catalogs: Catalogs,
- *   outbox: import('@oyl/all-of-oyl').WriteOutbox,
- *   flush: () => Promise<void>,
- * }}
  */
-export function makeRepositories(storage, opts = {}) {
+export function makeRepositories(
+  storage: StorageLike,
+  opts: { api?: ApiClient, connectivity?: Connectivity, newId?: () => string } = {},
+): {
+  repos: Repositories
+  catalogs: Catalogs
+  outbox: WriteOutbox
+  flush: () => Promise<void>
+} {
   const api = opts.api ?? noopApi()
   const connectivity = opts.connectivity ?? alwaysOnline()
+  const newId = opts.newId ?? fallbackId
   // Same-tab flush: the `storage` event doesn't fire in the writing tab, so wire the
   // outbox's onEnqueue to the (late-bound, online-gated, re-entrancy-guarded) flusher.
   // Any same-tab write thus flushes promptly without waiting for reload/online.
-  /** @type {() => Promise<void>} */
-  let flush = async () => {}
+  let flush: () => Promise<void> = async () => {}
   const outbox = createWriteOutbox(storage, OUTBOX_KEY, now, newId, () => { void flush().catch(() => {}) })
   const cache = createReadCache(storage, READ_CACHE_KEY, {
     maxEntries: READ_CACHE_MAX_ENTRIES,
@@ -125,13 +117,13 @@ export function makeRepositories(storage, opts = {}) {
     now: () => now().getTime(),
   })
 
-  const repos = /** @type {Repositories} */ ({})
+  const repos = {} as Repositories
   for (const name of entitiesByKind('personal')) {
     if (BACKED.has(name)) {
       const rowKind = ROW_KIND_BY_COLLECTION[name]
       repos[name] = createServerPersonalRepository({
         path: PATH_BY_COLLECTION[name],
-        codec: /** @type {any} */ (COLLECTIONS[name]),
+        codec: COLLECTIONS[name] as any,
         api,
         outbox,
         cache,
@@ -142,12 +134,12 @@ export function makeRepositories(storage, opts = {}) {
     }
   }
 
-  const catalogs = /** @type {Catalogs} */ ({})
+  const catalogs: Catalogs = {}
   for (const name of entitiesByKind('catalog')) {
     const client = CATALOG_BACKED.has(name)
       ? createCatalogClient({
           path: PATH_BY_COLLECTION[name],
-          codec: /** @type {any} */ (COLLECTIONS[name]),
+          codec: COLLECTIONS[name] as any,
           api,
           outbox,
         })
@@ -173,12 +165,8 @@ export function makeRepositories(storage, opts = {}) {
  * POSTing saves / DELETEing removes via the ApiClient and ack-ing each on success. It
  * stops at the first failure so order is preserved and the failed op is retried on the
  * next flush (online event or subsequent enqueue). Offline → no-op.
- * @param {import('@oyl/all-of-oyl').WriteOutbox} outbox
- * @param {import('@oyl/all-of-oyl').ApiClient} api
- * @param {import('@oyl/all-of-oyl').Connectivity} connectivity
- * @returns {() => Promise<void>}
  */
-export function createFlusher(outbox, api, connectivity) {
+export function createFlusher(outbox: WriteOutbox, api: ApiClient, connectivity: Connectivity): () => Promise<void> {
   let draining = false
   let requestedMidDrain = false
   return async function flush() {
@@ -198,12 +186,12 @@ export function createFlusher(outbox, api, connectivity) {
         for (const m of outbox.peekAll()) {
           try {
             if (m.op === 'delete') {
-              const id = String(/** @type {{ id?: unknown }} */ (m.payload)?.id ?? '')
+              const id = String((m.payload as { id?: unknown })?.id ?? '')
               await api.remove(m.entity, id)
             } else {
               // Saves PUT to /<path>/<domainId> — the backend upserts by recordId (the
               // domain id), so a create-then-edit round-trip reconciles to one row.
-              const id = String(/** @type {{ id?: unknown }} */ (m.payload)?.id ?? '')
+              const id = String((m.payload as { id?: unknown })?.id ?? '')
               await api.update(m.entity, id, m.payload)
             }
             outbox.ack(m.id)
@@ -226,10 +214,8 @@ export function createFlusher(outbox, api, connectivity) {
  * A `Repository`-shaped read facade over a CatalogClient. Reads delegate to the client;
  * writes route through the client's outbox-backed create (delete is a no-op — catalog
  * entries are admin-managed). Lets catalog collections sit in the COLLECTIONS-keyed repos.
- * @param {import('@oyl/all-of-oyl').CatalogClient<any>} client
- * @returns {import('@oyl/all-of-oyl').Repository<any>}
  */
-function catalogRepoAdapter(client) {
+function catalogRepoAdapter(client: CatalogClient<any>): Repository<any> {
   return {
     list: () => client.list(),
     get: (id) => client.get(id),
@@ -244,9 +230,8 @@ function catalogRepoAdapter(client) {
  * A no-network CatalogClient for catalog collections with no backend yet. `create` is a
  * no-op (NOT an enqueue): the flusher stops at the first failure, so a mutation against
  * a nonexistent route would 404 forever and wedge the outbox drain.
- * @returns {import('@oyl/all-of-oyl').CatalogClient<any>}
  */
-function emptyCatalogClient() {
+function emptyCatalogClient(): CatalogClient<any> {
   return {
     search: async () => [],
     list: async () => [],
@@ -255,8 +240,8 @@ function emptyCatalogClient() {
   }
 }
 
-/** An empty Repository for entities with no backend client yet. @returns {import('@oyl/all-of-oyl').Repository<any>} */
-function emptyRepo() {
+/** An empty Repository for entities with no backend client yet. */
+function emptyRepo(): Repository<any> {
   return {
     list: async () => [],
     get: async () => undefined,
@@ -267,8 +252,8 @@ function emptyRepo() {
   }
 }
 
-/** A do-nothing ApiClient for boot before/without a configured backend. @returns {import('@oyl/all-of-oyl').ApiClient} */
-function noopApi() {
+/** A do-nothing ApiClient for boot before/without a configured backend. */
+function noopApi(): ApiClient {
   return {
     find: async () => ({ data: [], meta: {} }),
     findOne: async () => undefined,
@@ -284,16 +269,14 @@ function noopApi() {
  * lists keyed by CollectionName. Rows decode exactly like the per-collection read paths:
  * `strapiRowToShape` normalization + per-kind injection for Entry-derived collections.
  * Collections absent from the payload decode to [] so stores and counts read uniformly.
- * @param {import('@oyl/all-of-oyl').BootstrapPayload} payload
- * @returns {Record<CollectionName, any[]>}
  */
-export function decodeBootstrap(payload) {
-  const out = /** @type {Record<CollectionName, any[]>} */ ({})
-  for (const name of /** @type {CollectionName[]} */ (Object.keys(COLLECTIONS))) {
+export function decodeBootstrap(payload: BootstrapPayload): Record<CollectionName, any[]> {
+  const out = {} as Record<CollectionName, any[]>
+  for (const name of Object.keys(COLLECTIONS) as CollectionName[]) {
     const rows = payload[PATH_BY_COLLECTION[name]]
     const rowKind = ROW_KIND_BY_COLLECTION[name]
     out[name] = Array.isArray(rows)
-      ? rows.map((row) => /** @type {any} */ (COLLECTIONS[name]).fromJSON(
+      ? rows.map((row) => (COLLECTIONS[name] as any).fromJSON(
           strapiRowToShape(row, rowKind !== undefined ? { kind: rowKind } : undefined),
         ))
       : []
@@ -303,12 +286,10 @@ export function decodeBootstrap(payload) {
 
 /**
  * Live (non-deleted) record count per collection.
- * @param {Repositories} repos @returns {Promise<Record<string, number>>}
  */
-export async function collectionCounts(repos) {
-  /** @type {Record<string, number>} */
-  const counts = {}
-  for (const name of /** @type {CollectionName[]} */ (Object.keys(repos))) {
+export async function collectionCounts(repos: Repositories): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {}
+  for (const name of Object.keys(repos) as CollectionName[]) {
     counts[name] = (await repos[name].list()).length
   }
   return counts

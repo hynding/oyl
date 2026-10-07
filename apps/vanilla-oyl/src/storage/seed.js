@@ -9,7 +9,7 @@ import { COLLECTIONS, makeSeed } from '@oyl/all-of-oyl'
  * users, lifeAreas, projects, dayPlans, connections, grants. Wire them here when
  * they gain stores — the seed dataset already carries them.
  *
- * @typedef {ReturnType<typeof import('../state/data.js').createDataState>} DataState
+ * @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createDataState>} DataState
  * @typedef {Partial<Record<keyof typeof COLLECTIONS, unknown[]>>} Dataset
  */
 

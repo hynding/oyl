@@ -1,27 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
-import { makeRepositories, createFlusher, PATH_BY_COLLECTION } from './bootstrap.js'
-import { Note, Consumption, Consumable, Transaction, Account, Budget, Money, Measurement, ActivitySession, Quantity, Id, Goal, entitiesByKind, manualConnectivity } from '@oyl/all-of-oyl'
-import { OUTBOX_KEY } from '@oyl/all-of-oyl/client'
+import { makeRepositories, createFlusher, PATH_BY_COLLECTION, fallbackId } from './bootstrap.js'
+import { Note, Consumption, Consumable, Transaction, Account, Budget, Money, Measurement, ActivitySession, Quantity, Id, Goal, entitiesByKind, manualConnectivity } from '../../index.js'
+import type { ApiClient } from '../../index.js'
+import { OUTBOX_KEY } from './keys.js'
+import { memoryStorage } from './memory-storage-fake.js'
 
-function fakeStorage() {
-  const m = new Map()
-  return {
-    /** @param {string} k */
-    getItem: (k) => m.get(k) ?? null,
-    /** @param {string} k @param {string} v */
-    setItem: (k, v) => void m.set(k, v),
-    /** @param {string} k */
-    removeItem: (k) => void m.delete(k),
-    /** @param {number} i */
-    key: (i) => [...m.keys()][i] ?? null,
-    get length() { return m.size },
-  }
-}
+const fakeStorage = () => memoryStorage()
 
-/** @returns {import('@oyl/all-of-oyl').ApiClient & { calls: any[] }} */
-function fakeApi() {
-  /** @type {any[]} */
-  const calls = []
+function fakeApi(): ApiClient & { calls: any[] } {
+  const calls: any[] = []
   return {
     calls,
     find: async (path) => { calls.push({ op: 'find', path }); return { data: [], meta: {} } },
@@ -35,7 +22,7 @@ function fakeApi() {
 
 describe('makeRepositories (online-first)', () => {
   it('builds a server personal repo per personal entity and a catalog client per catalog entity', () => {
-    const { repos, catalogs } = makeRepositories(/** @type {any} */ (fakeStorage()), { api: fakeApi() })
+    const { repos, catalogs } = makeRepositories(fakeStorage() as any, { api: fakeApi() })
     for (const name of entitiesByKind('personal')) {
       expect(typeof repos[name]?.list).toBe('function')
       expect(typeof repos[name]?.save).toBe('function')
@@ -50,7 +37,7 @@ describe('makeRepositories (online-first)', () => {
   // network (a live client would 404 /api/life-areas on every refresh).
   it('lifeAreas (unbacked catalog) reads resolve empty without any network call', async () => {
     const api = fakeApi()
-    const { repos, catalogs } = makeRepositories(/** @type {any} */ (fakeStorage()), { api })
+    const { repos, catalogs } = makeRepositories(fakeStorage() as any, { api })
     await expect(repos.lifeAreas.list()).resolves.toEqual([])
     await expect(catalogs.lifeAreas?.list()).resolves.toEqual([])
     await expect(catalogs.lifeAreas?.search('x')).resolves.toEqual([])
@@ -61,8 +48,8 @@ describe('makeRepositories (online-first)', () => {
   // failure, so a forever-404 mutation would wedge the whole outbox drain.
   it('lifeAreas (unbacked catalog) create does not enqueue to the outbox', async () => {
     const storage = fakeStorage()
-    const { catalogs, outbox } = makeRepositories(/** @type {any} */ (storage), { api: fakeApi() })
-    catalogs.lifeAreas?.create(/** @type {any} */ ({ id: 'la-1', name: 'Health' }))
+    const { catalogs, outbox } = makeRepositories(storage as any, { api: fakeApi() })
+    catalogs.lifeAreas?.create({ id: 'la-1', name: 'Health' } as any)
     expect(outbox.size()).toBe(0)
   })
 
@@ -70,9 +57,9 @@ describe('makeRepositories (online-first)', () => {
     const storage = fakeStorage()
     const api = fakeApi()
     // Offline: the save path itself only enqueues; the flusher (not save) hits the network.
-    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    const { repos } = makeRepositories(storage as any, { api, connectivity: manualConnectivity(false) })
     await repos.notes.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' }))
-    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    const outbox = JSON.parse(storage.getItem(OUTBOX_KEY) as string)
     expect(outbox).toHaveLength(1)
     expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.notes, op: 'save' })
     expect(api.calls).toHaveLength(0) // writes never hit the network directly
@@ -82,9 +69,9 @@ describe('makeRepositories (online-first)', () => {
     const storage = fakeStorage()
     const api = fakeApi()
     const consumable = new Consumable({ name: 'Oats', facts: { calories: 150, protein: 5, totalCarbohydrate: 27, totalFat: 3 } })
-    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    const { repos } = makeRepositories(storage as any, { api, connectivity: manualConnectivity(false) })
     await repos.consumptions.save(new Consumption({ occurredAt: new Date('2026-06-10T16:00:00Z'), consumable: { id: consumable.id, nutrients: consumable.facts } }))
-    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    const outbox = JSON.parse(storage.getItem(OUTBOX_KEY) as string)
     expect(outbox).toHaveLength(1)
     expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.consumptions, op: 'save' })
     expect(api.calls).toHaveLength(0)
@@ -103,7 +90,7 @@ describe('makeRepositories (online-first)', () => {
       nutrients: { calories: 150 },
     }
     api.find = async () => ({ data: [row], meta: {} })
-    const { repos } = makeRepositories(/** @type {any} */ (fakeStorage()), { api, connectivity: manualConnectivity(false) })
+    const { repos } = makeRepositories(fakeStorage() as any, { api, connectivity: manualConnectivity(false) })
     const list = await repos.consumptions.list()
     expect(list).toHaveLength(1)
     expect(list[0]).toBeInstanceOf(Consumption)
@@ -128,7 +115,7 @@ describe('makeRepositories (online-first)', () => {
       accountId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
     }
     api.find = async () => ({ data: [row], meta: {} })
-    const { repos } = makeRepositories(/** @type {any} */ (fakeStorage()), { api, connectivity: manualConnectivity(false) })
+    const { repos } = makeRepositories(fakeStorage() as any, { api, connectivity: manualConnectivity(false) })
     const list = await repos.transactions.list()
     expect(list).toHaveLength(1)
     expect(list[0]).toBeInstanceOf(Transaction)
@@ -139,9 +126,9 @@ describe('makeRepositories (online-first)', () => {
   it('accounts save enqueues to the outbox (no network)', async () => {
     const storage = fakeStorage()
     const api = fakeApi()
-    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    const { repos } = makeRepositories(storage as any, { api, connectivity: manualConnectivity(false) })
     await repos.accounts.save(new Account({ name: 'Checking', currency: 'USD' }))
-    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    const outbox = JSON.parse(storage.getItem(OUTBOX_KEY) as string)
     expect(outbox).toHaveLength(1)
     expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.accounts, op: 'save' })
     expect(api.calls).toHaveLength(0)
@@ -150,9 +137,9 @@ describe('makeRepositories (online-first)', () => {
   it('budgets save enqueues to the outbox (no network)', async () => {
     const storage = fakeStorage()
     const api = fakeApi()
-    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    const { repos } = makeRepositories(storage as any, { api, connectivity: manualConnectivity(false) })
     await repos.budgets.save(new Budget({ category: 'groceries', limit: Money.of(10000, 'USD', 2) }))
-    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    const outbox = JSON.parse(storage.getItem(OUTBOX_KEY) as string)
     expect(outbox).toHaveLength(1)
     expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.budgets, op: 'save' })
     expect(api.calls).toHaveLength(0)
@@ -175,7 +162,7 @@ describe('makeRepositories (online-first)', () => {
       quantities: [{ amount: 30, unit: 'minutes' }, { amount: 5, unit: 'km' }],
     }
     api.find = async () => ({ data: [row], meta: {} })
-    const { repos } = makeRepositories(/** @type {any} */ (fakeStorage()), { api, connectivity: manualConnectivity(false) })
+    const { repos } = makeRepositories(fakeStorage() as any, { api, connectivity: manualConnectivity(false) })
     const list = await repos.activitySessions.list()
     expect(list).toHaveLength(1)
     expect(list[0]).toBeInstanceOf(ActivitySession)
@@ -191,9 +178,9 @@ describe('makeRepositories (online-first)', () => {
   it('activitySessions save enqueues to the outbox (no network)', async () => {
     const storage = fakeStorage()
     const api = fakeApi()
-    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    const { repos } = makeRepositories(storage as any, { api, connectivity: manualConnectivity(false) })
     await repos.activitySessions.save(new ActivitySession({ occurredAt: new Date('2026-06-10T16:00:00Z'), activity: { id: Id.create(), slug: 'run' }, quantities: [Quantity.of(30, 'minutes')] }))
-    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    const outbox = JSON.parse(storage.getItem(OUTBOX_KEY) as string)
     expect(outbox).toHaveLength(1)
     expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.activitySessions, op: 'save' })
     expect(api.calls).toHaveLength(0)
@@ -214,7 +201,7 @@ describe('makeRepositories (online-first)', () => {
       value: 82.5,
     }
     api.find = async () => ({ data: [row], meta: {} })
-    const { repos } = makeRepositories(/** @type {any} */ (fakeStorage()), { api, connectivity: manualConnectivity(false) })
+    const { repos } = makeRepositories(fakeStorage() as any, { api, connectivity: manualConnectivity(false) })
     const list = await repos.measurements.list()
     expect(list).toHaveLength(1)
     expect(list[0]).toBeInstanceOf(Measurement)
@@ -226,9 +213,9 @@ describe('makeRepositories (online-first)', () => {
   it('measurements save enqueues to the outbox (no network)', async () => {
     const storage = fakeStorage()
     const api = fakeApi()
-    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    const { repos } = makeRepositories(storage as any, { api, connectivity: manualConnectivity(false) })
     await repos.measurements.save(new Measurement({ occurredAt: new Date('2026-06-10T16:00:00Z'), metric: 'body.weight_kg', value: 82.5 }))
-    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    const outbox = JSON.parse(storage.getItem(OUTBOX_KEY) as string)
     expect(outbox).toHaveLength(1)
     expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.measurements, op: 'save' })
     expect(api.calls).toHaveLength(0)
@@ -253,7 +240,7 @@ describe('makeRepositories (online-first)', () => {
       pauses: [{ from: '2026-03-01', to: '2026-03-05' }],
     }
     api.find = async () => ({ data: [row], meta: {} })
-    const { repos } = makeRepositories(/** @type {any} */ (fakeStorage()), { api, connectivity: manualConnectivity(false) })
+    const { repos } = makeRepositories(fakeStorage() as any, { api, connectivity: manualConnectivity(false) })
     const list = await repos.goals.list()
     expect(list).toHaveLength(1)
     expect(list[0]).toBeInstanceOf(Goal)
@@ -268,9 +255,9 @@ describe('makeRepositories (online-first)', () => {
   it('goals save enqueues to the outbox (no network)', async () => {
     const storage = fakeStorage()
     const api = fakeApi()
-    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    const { repos } = makeRepositories(storage as any, { api, connectivity: manualConnectivity(false) })
     await repos.goals.save(new Goal({ metric: 'activity.run.minutes', target: 100, direction: 'atLeast', period: 'week' }))
-    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    const outbox = JSON.parse(storage.getItem(OUTBOX_KEY) as string)
     expect(outbox).toHaveLength(1)
     expect(outbox[0]).toMatchObject({ entity: PATH_BY_COLLECTION.goals, op: 'save' })
     expect(api.calls).toHaveLength(0)
@@ -279,37 +266,37 @@ describe('makeRepositories (online-first)', () => {
   it('flush() drains the outbox via api.update (PUT by domain id) when online, then acks', async () => {
     const storage = fakeStorage()
     const api = fakeApi()
-    const { repos, flush } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(true) })
+    const { repos, flush } = makeRepositories(storage as any, { api, connectivity: manualConnectivity(true) })
     const note = new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' })
     await repos.notes.save(note)
     await flush()
     expect(api.calls).toHaveLength(1)
     // save → PUT /<path>/<domainId> (upsert), NOT POST. The id is the domain id.
     expect(api.calls[0]).toMatchObject({ op: 'update', path: PATH_BY_COLLECTION.notes, id: note.id })
-    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    const outbox = JSON.parse(storage.getItem(OUTBOX_KEY) as string)
     expect(outbox).toHaveLength(0) // acked
   })
 
   it('a same-tab enqueue while online flushes promptly without an explicit flush() call', async () => {
     const storage = fakeStorage()
     const api = fakeApi()
-    const { repos } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(true) })
+    const { repos } = makeRepositories(storage as any, { api, connectivity: manualConnectivity(true) })
     const note = new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' })
     await repos.notes.save(note) // enqueue → onEnqueue → flush (no external trigger)
     await Promise.resolve() // let the fire-and-forget flush settle
     expect(api.calls).toHaveLength(1)
     expect(api.calls[0]).toMatchObject({ op: 'update', path: PATH_BY_COLLECTION.notes, id: note.id })
-    expect(JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))).toHaveLength(0) // acked
+    expect(JSON.parse(storage.getItem(OUTBOX_KEY) as string)).toHaveLength(0) // acked
   })
 
   it('flush() is a no-op when offline (outbox retained)', async () => {
     const storage = fakeStorage()
     const api = fakeApi()
-    const { repos, flush } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
+    const { repos, flush } = makeRepositories(storage as any, { api, connectivity: manualConnectivity(false) })
     await repos.notes.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' }))
     await flush()
     expect(api.calls).toHaveLength(0)
-    const outbox = JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))
+    const outbox = JSON.parse(storage.getItem(OUTBOX_KEY) as string)
     expect(outbox).toHaveLength(1)
   })
 
@@ -317,29 +304,40 @@ describe('makeRepositories (online-first)', () => {
     const storage = fakeStorage()
     const api = fakeApi()
     let fail = true
-    api.update = vi.fn(async (path, id, data) => {
+    api.update = vi.fn(async (path: string, id: string, data: unknown) => {
       if (fail) throw new Error('boom')
       api.calls.push({ op: 'update', path, id, data })
       return data
     })
-    const { repos, flush } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(true) })
+    const { repos, flush } = makeRepositories(storage as any, { api, connectivity: manualConnectivity(true) })
     await repos.notes.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'a' }))
     await flush()
-    expect(JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))).toHaveLength(1) // retained
+    expect(JSON.parse(storage.getItem(OUTBOX_KEY) as string)).toHaveLength(1) // retained
     fail = false
     await flush()
-    expect(JSON.parse(/** @type {string} */ (storage.getItem(OUTBOX_KEY)))).toHaveLength(0) // drained
+    expect(JSON.parse(storage.getItem(OUTBOX_KEY) as string)).toHaveLength(0) // drained
+  })
+
+  it('mints outbox mutation ids from the injected newId', async () => {
+    const storage = fakeStorage()
+    const { repos } = makeRepositories(storage as any, { api: fakeApi(), connectivity: manualConnectivity(false), newId: () => 'mutation-1' })
+    await repos.notes.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' }))
+    const outbox = JSON.parse(storage.getItem(OUTBOX_KEY) as string)
+    expect(outbox[0].id).toBe('mutation-1')
+  })
+
+  it('fallbackId has the m-<time>-<rand> shape', () => {
+    expect(fallbackId()).toMatch(/^m-\d+-[a-z0-9]+$/)
   })
 })
 
 describe('createFlusher', () => {
   it('routes delete mutations to api.remove with the payload id', async () => {
     const api = fakeApi()
-    /** @type {any} */
-    const outbox = {
+    const outbox: any = {
       _q: [{ id: 'm1', entity: 'notes', op: 'delete', payload: { id: 'rec-1' }, baseUpdatedAt: null, enqueuedAt: '' }],
       peekAll() { return this._q.slice() },
-      ack(/** @type {string} */ id) { this._q = this._q.filter((/** @type {any} */ m) => m.id !== id) },
+      ack(id: string) { this._q = this._q.filter((m: any) => m.id !== id) },
       enqueue() { throw new Error('unused') },
       size() { return this._q.length },
     }
@@ -352,23 +350,20 @@ describe('createFlusher', () => {
   it('an op enqueued mid-drain is flushed by the same drain (no stranded writes)', async () => {
     // Regression: a quick save-then-delete enqueues the delete while the save's drain is
     // in flight; the re-entrant flush() call must schedule another pass, not drop it.
-    /** @type {(v?: unknown) => void} */
-    let releaseFirstPut = () => {}
+    let releaseFirstPut: (v?: unknown) => void = () => {}
     const gate = new Promise((r) => { releaseFirstPut = r })
-    /** @type {any[]} */
-    const calls = []
-    const api = /** @type {any} */ ({
-      update: async (/** @type {string} */ path, /** @type {string} */ id) => {
+    const calls: any[] = []
+    const api: any = {
+      update: async (path: string, id: string) => {
         calls.push({ op: 'update', path, id })
         if (calls.length === 1) await gate
       },
-      remove: async (/** @type {string} */ path, /** @type {string} */ id) => { calls.push({ op: 'remove', path, id }) },
-    })
-    /** @type {any} */
-    const outbox = {
+      remove: async (path: string, id: string) => { calls.push({ op: 'remove', path, id }) },
+    }
+    const outbox: any = {
       _q: [{ id: 'm1', entity: 'notes', op: 'save', payload: { id: 'rec-1' }, baseUpdatedAt: null, enqueuedAt: '' }],
       peekAll() { return this._q.slice() },
-      ack(/** @type {string} */ id) { this._q = this._q.filter((/** @type {any} */ m) => m.id !== id) },
+      ack(id: string) { this._q = this._q.filter((m: any) => m.id !== id) },
       enqueue() { throw new Error('unused') },
       size() { return this._q.length },
     }

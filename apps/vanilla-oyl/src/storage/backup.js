@@ -11,7 +11,7 @@ import { loadDataset } from './seed.js'
  *
  * @typedef {{ schemaVersion: number, exportedAt: string, settings: unknown,
  *   collections: Record<string, unknown[]> }} BackupDoc
- * @typedef {ReturnType<typeof import('../state/data.js').createDataState>} DataState
+ * @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createDataState>} DataState
  */
 /** @typedef {{ getItem(k: string): string | null, setItem(k: string, v: string): void }} AppStorage */
 

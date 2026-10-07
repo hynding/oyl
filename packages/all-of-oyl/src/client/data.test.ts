@@ -1,52 +1,40 @@
 import { describe, expect, it } from 'vitest'
-import { Note, Measurement, Goal, DayKey, Task, periodWindowOf, Subscription, Cadence, Money, Account, manualConnectivity, COLLECTIONS, InMemoryRepository, makeSeed } from '@oyl/all-of-oyl'
-import { createThemeState } from './theme.js'
+import { Note, Measurement, Goal, DayKey, Task, periodWindowOf, Subscription, Cadence, Money, Account, manualConnectivity, COLLECTIONS, InMemoryRepository, makeSeed } from '../index.js'
 import { createDataState } from './data.js'
-import { defaultTimezone } from '@oyl/all-of-oyl/client'
+import { themeStub } from './data-fake.js'
+import { makeRepositories } from './storage/bootstrap.js'
+import { defaultTimezone } from './storage/clock.js'
+import { memoryStorage } from './storage/memory-storage-fake.js'
 
 /**
  * A COLLECTIONS-keyed map of conformant in-memory repos — used to exercise store/round-trip
  * logic without a server. The online-first server repos (noop api in tests) don't round-trip
  * save→list locally; the store logic under test is Repository-shaped, so an InMemoryRepository
  * is the right test double.
- * @returns {any}
  */
-function inMemoryRepos() {
-  /** @type {any} */
-  const repos = {}
+function inMemoryRepos(): any {
+  const repos: any = {}
   for (const name of Object.keys(COLLECTIONS)) repos[name] = new InMemoryRepository()
   return repos
 }
 
-/** Hydrate a COLLECTIONS-keyed in-memory repos map from the canonical seed shapes. @returns {Promise<any>} */
-async function reposFromSeed() {
+/** Hydrate a COLLECTIONS-keyed in-memory repos map from the canonical seed shapes. */
+async function reposFromSeed(): Promise<any> {
   const repos = inMemoryRepos()
-  const seed = /** @type {Record<string, unknown[]>} */ (/** @type {unknown} */ (makeSeed()))
+  const seed = makeSeed() as unknown as Record<string, unknown[]>
   for (const name of Object.keys(COLLECTIONS)) {
-    const codec = /** @type {any} */ (COLLECTIONS[/** @type {keyof typeof COLLECTIONS} */ (name)])
+    const codec = COLLECTIONS[name as keyof typeof COLLECTIONS] as any
     for (const shape of seed[name] ?? []) await repos[name].save(codec.fromJSON(shape))
   }
   return repos
 }
 
-/** @param {Record<string,string>} [seed] */
-function fakeStorage(seed = {}) {
-  const map = new Map(Object.entries(seed))
-  return {
-    /** @param {string} k */ getItem: (k) => map.get(k) ?? null,
-    /** @param {string} k @param {string} v */ setItem: (k, v) => void map.set(k, v),
-    /** @param {string} k */ removeItem: (k) => void map.delete(k),
-    /** @param {number} i */ key: (i) => [...map.keys()][i] ?? null,
-    get length() {
-      return map.size
-    },
-  }
-}
+const fakeStorage = (seed: Record<string, string> = {}) => memoryStorage(seed)
 
 describe('data state', () => {
   it('refresh populates schema + counts; readDiagnostics composes them', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage))
+    const ds = createDataState(storage, themeStub())
     await ds.refresh()
     expect(ds.schema.get().status).toBe('fresh')
     expect(ds.counts.get()).toBeTypeOf('object')
@@ -58,7 +46,7 @@ describe('data state', () => {
 
   it('exposes a journal store hydrated from the entries repo on refresh', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage), { repos: inMemoryRepos() })
+    const ds = createDataState(storage, themeStub(), { repos: inMemoryRepos() })
     const iso = '2026-06-10T16:00:00Z'
     await ds.repos.notes.save(new Note({ occurredAt: new Date(iso), text: 'hi' }))
     await ds.refresh()
@@ -68,52 +56,42 @@ describe('data state', () => {
 
   it('exposes a planner store hydrated from the plans repo on refresh', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage), { repos: inMemoryRepos() })
+    const ds = createDataState(storage, themeStub(), { repos: inMemoryRepos() })
     const due = DayKey.of('2026-06-16')
-    await ds.repos.plans.save(/** @type {any} */ (new Task({ title: 'plan it', due })))
+    await ds.repos.plans.save(new Task({ title: 'plan it', due }) as any)
     await ds.refresh()
     expect(ds.planner.agendaFor(due)).toHaveLength(1)
   })
 
   it('readDiagnostics includes a storage estimate when the Storage API is available', async () => {
-    const original = Object.getOwnPropertyDescriptor(globalThis.navigator, 'storage')
-    Object.defineProperty(globalThis.navigator, 'storage', {
-      configurable: true,
-      value: { estimate: async () => ({ usage: 1234, quota: 5_000_000 }) },
-    })
-    try {
-      const storage = fakeStorage()
-      const ds = createDataState(storage, createThemeState(storage))
-      await ds.refresh()
-      expect(ds.readDiagnostics().storage).toEqual({ usage: 1234, quota: 5_000_000 })
-    } finally {
-      if (original) Object.defineProperty(globalThis.navigator, 'storage', original)
-      else Reflect.deleteProperty(globalThis.navigator, 'storage')
-    }
+    const storage = fakeStorage()
+    const ds = createDataState(storage, themeStub(), { estimateStorage: async () => ({ usage: 1234, quota: 5_000_000 }) })
+    await ds.refresh()
+    expect(ds.readDiagnostics().storage).toEqual({ usage: 1234, quota: 5_000_000 })
   })
 
   it('exposes a vault store', () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage))
+    const ds = createDataState(storage, themeStub())
     expect(typeof ds.vault.hydrate).toBe('function')
     expect(typeof ds.vault.upcoming).toBe('function')
   })
 
   it('exposes a goals store', () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage))
+    const ds = createDataState(storage, themeStub())
     expect(typeof ds.goals.all).toBe('function')
   })
 
   it('exposes a budgets store', () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage))
+    const ds = createDataState(storage, themeStub())
     expect(typeof ds.budgets.all).toBe('function')
   })
 
   it('exposes an accounts store hydrated by refresh', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage), { repos: inMemoryRepos() })
+    const ds = createDataState(storage, themeStub(), { repos: inMemoryRepos() })
     await ds.repos.accounts.save(new Account({ name: 'Checking', currency: 'USD' }))
     await ds.refresh()
     expect(ds.accounts.all().map((a) => a.name)).toContain('Checking')
@@ -121,7 +99,7 @@ describe('data state', () => {
 
   it('reviewOn composes a review for a period', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage), { repos: inMemoryRepos() })
+    const ds = createDataState(storage, themeStub(), { repos: inMemoryRepos() })
     const iso = '2026-06-10T16:00:00Z'
     await ds.repos.goals.save(new Goal({ name: 'Sleep', metric: 'sleep.hours', target: 7, direction: 'atLeast', period: 'day' }))
     await ds.repos.measurements.save(new Measurement({ occurredAt: new Date(iso), metric: 'sleep.hours', value: 7 }))
@@ -134,21 +112,15 @@ describe('data state', () => {
   })
 
   it('readDiagnostics storage is null when the Storage API is unavailable', async () => {
-    const original = Object.getOwnPropertyDescriptor(globalThis.navigator, 'storage')
-    Reflect.deleteProperty(globalThis.navigator, 'storage')
-    try {
-      const storage = fakeStorage()
-      const ds = createDataState(storage, createThemeState(storage))
-      await ds.refresh()
-      expect(ds.readDiagnostics().storage).toBeNull()
-    } finally {
-      if (original) Object.defineProperty(globalThis.navigator, 'storage', original)
-    }
+    const storage = fakeStorage()
+    const ds = createDataState(storage, themeStub())
+    await ds.refresh()
+    expect(ds.readDiagnostics().storage).toBeNull()
   })
 
   it('reviewOn includes named life areas from the loaded catalogs', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage), { repos: await reposFromSeed() })
+    const ds = createDataState(storage, themeStub(), { repos: await reposFromSeed() })
     await ds.refresh()
     const day = DayKey.from(new Date(), defaultTimezone())
     const r = ds.reviewOn(periodWindowOf('month', day))
@@ -157,16 +129,15 @@ describe('data state', () => {
 
   it('reads through the api client when one is provided', async () => {
     let called = false
-    /** @type {any} */
-    const api = {
+    const api: any = {
       find: async () => { called = true; return { data: [], meta: {} } },
       findOne: async () => undefined,
-      create: async (/** @type {any} */ _p, /** @type {any} */ d) => d,
-      update: async (/** @type {any} */ _p, /** @type {any} */ _i, /** @type {any} */ d) => d,
+      create: async (_p: any, d: any) => d,
+      update: async (_p: any, _i: any, d: any) => d,
       remove: async () => {},
     }
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage), { api, connectivity: manualConnectivity(true) })
+    const ds = createDataState(storage, themeStub(), { api, connectivity: manualConnectivity(true) })
     await ds.refresh()
     expect(called).toBe(true) // the journal/catalog hydrate hit api.find
   })
@@ -174,7 +145,7 @@ describe('data state', () => {
   it('exposes a pending signal derived from the outbox (grows on save)', async () => {
     const storage = fakeStorage()
     // Offline so the enqueue is retained (online would flush-on-enqueue and drain it).
-    const ds = createDataState(storage, createThemeState(storage), { connectivity: manualConnectivity(false) })
+    const ds = createDataState(storage, themeStub(), { connectivity: manualConnectivity(false) })
     expect(ds.pending.get()).toBe(0)
     await ds.repos.notes.save(new Note({ occurredAt: new Date('2026-06-10T16:00:00Z'), text: 'hi' }))
     ds.refreshPending()
@@ -188,13 +159,12 @@ describe('refresh via one bootstrap payload (request consolidation)', () => {
   const noteRow = { id: 1, recordId: '22222222-2222-4222-8222-222222222222', occurredAt: '2026-06-10T16:00:00.000Z', text: 'from payload' }
   const activityRow = { id: 2, recordId: '33333333-3333-4333-8333-333333333333', name: 'Running', slug: 'running', visibility: 'public' }
 
-  /** @param {() => Promise<any>} bootstrap @returns {any} */
-  function apiWith(bootstrap) {
+  function apiWith(bootstrap: () => Promise<any>): any {
     return {
       find: async () => { throw new Error('per-collection read must not happen when the payload is served') },
       findOne: async () => undefined,
-      create: async (/** @type {any} */ _p, /** @type {any} */ d) => d,
-      update: async (/** @type {any} */ _p, /** @type {any} */ _i, /** @type {any} */ d) => d,
+      create: async (_p: any, d: any) => d,
+      update: async (_p: any, _i: any, d: any) => d,
       remove: async () => {},
       bootstrap,
     }
@@ -202,10 +172,9 @@ describe('refresh via one bootstrap payload (request consolidation)', () => {
 
   it('hydrates stores, catalogs and counts from the payload with zero per-collection reads', async () => {
     const storage = fakeStorage()
-    const { makeRepositories } = await import('../storage/bootstrap.js')
     const api = apiWith(async () => ({ notes: [noteRow], activities: [activityRow] }))
-    const { repos, outbox } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
-    const ds = createDataState(storage, createThemeState(storage), { repos, outbox, bootstrap: () => api.bootstrap() })
+    const { repos, outbox } = makeRepositories(storage, { api, connectivity: manualConnectivity(false) })
+    const ds = createDataState(storage, themeStub(), { repos, outbox, bootstrap: () => api.bootstrap() })
     await ds.refresh()
 
     const day = DayKey.from(new Date('2026-06-10T16:00:00.000Z'), defaultTimezone())
@@ -217,13 +186,11 @@ describe('refresh via one bootstrap payload (request consolidation)', () => {
 
   it('falls back to per-collection reads when bootstrap() returns undefined (older backend)', async () => {
     const storage = fakeStorage()
-    const { makeRepositories } = await import('../storage/bootstrap.js')
     let finds = 0
-    /** @type {any} */
-    const api = apiWith(async () => undefined)
+    const api: any = apiWith(async () => undefined)
     api.find = async () => { finds += 1; return { data: [], meta: {} } }
-    const { repos, outbox } = makeRepositories(/** @type {any} */ (storage), { api, connectivity: manualConnectivity(false) })
-    const ds = createDataState(storage, createThemeState(storage), { repos, outbox, bootstrap: () => api.bootstrap() })
+    const { repos, outbox } = makeRepositories(storage, { api, connectivity: manualConnectivity(false) })
+    const ds = createDataState(storage, themeStub(), { repos, outbox, bootstrap: () => api.bootstrap() })
     await ds.refresh()
     expect(finds).toBeGreaterThan(0)
   })
@@ -232,7 +199,7 @@ describe('refresh via one bootstrap payload (request consolidation)', () => {
 describe('renewSubscription (subscription→transaction seam)', () => {
   it('posts the charge as an expense transaction in the current month', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage), { repos: inMemoryRepos() })
+    const ds = createDataState(storage, themeStub(), { repos: inMemoryRepos() })
     const today = DayKey.from(new Date(), defaultTimezone())
     const sub = new Subscription({
       name: 'Netflix',
@@ -256,11 +223,11 @@ describe('renewSubscription (subscription→transaction seam)', () => {
 
   it('does nothing for an unknown subscription id', async () => {
     const storage = fakeStorage()
-    const ds = createDataState(storage, createThemeState(storage))
+    const ds = createDataState(storage, themeStub())
     const today = DayKey.from(new Date(), defaultTimezone())
     await ds.refresh()
 
-    const charge = await ds.renewSubscription(/** @type {any} */ ('nope'), today)
+    const charge = await ds.renewSubscription('nope' as any, today)
 
     expect(charge).toBeUndefined()
     expect(ds.journal.transactionsIn(periodWindowOf('month', today))).toHaveLength(0)
@@ -270,13 +237,25 @@ describe('renewSubscription (subscription→transaction seam)', () => {
 describe('createDataState injected repos + timezone', () => {
   it('uses injected repos and the provided timezone for the journal store', async () => {
     const storage = fakeStorage()
-    const { makeRepositories } = await import('../storage/bootstrap.js')
     const { repos, outbox } = makeRepositories(storage)
-    const ds = createDataState(storage, createThemeState(storage), { repos, outbox, timezone: 'Asia/Tokyo' })
+    const ds = createDataState(storage, themeStub(), { repos, outbox, timezone: 'Asia/Tokyo' })
     expect(ds.repos).toBe(repos)
     // A note added at this instant lands on the Tokyo civil day.
     await ds.journal.add(new Note({ text: 'hi', occurredAt: new Date('2026-06-17T16:00:00Z') }))
     const tokyoDay = DayKey.from(new Date('2026-06-17T16:00:00Z'), 'Asia/Tokyo')
     expect(ds.journal.entriesOn(tokyoDay).length).toBe(1)
+  })
+})
+
+describe('createDataState injected diagnostics ports', () => {
+  it('reports the injected build marker, defaulting to dev', async () => {
+    expect(createDataState(fakeStorage(), themeStub()).readDiagnostics().build).toBe('dev')
+    expect(createDataState(fakeStorage(), themeStub(), { build: 'abc123' }).readDiagnostics().build).toBe('abc123')
+  })
+
+  it('a rejecting estimateStorage still refreshes and reports storage: null', async () => {
+    const ds = createDataState(fakeStorage(), themeStub(), { estimateStorage: async () => { throw new Error('quota api exploded') } })
+    await expect(ds.refresh()).resolves.toBeUndefined()
+    expect(ds.readDiagnostics().storage).toBeNull()
   })
 })
