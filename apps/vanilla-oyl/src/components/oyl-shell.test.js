@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { defineShell, OylShell } from './oyl-shell.js'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { byId } from '../layouts/layout-catalog.js'
 
 beforeAll(() => defineShell())
@@ -42,7 +42,7 @@ describe('oyl-shell', () => {
 
   it('reacts to layout signal changes and keeps baseStyles + baseSheet adopted', async () => {
     const shell = mount('classic')
-    const sig = /** @type {import('../lib/reactive/signal.js').Signal<string>} */ (shell.layoutSignal)
+    const sig = /** @type {import('@oyl/all-of-oyl/client').Signal<string>} */ (shell.layoutSignal)
     sig.set('wide')
     await Promise.resolve() // effects re-run on a microtask batch (internals.js schedule)
     expect(shell.getAttribute('layout')).toBe('wide')
@@ -62,7 +62,7 @@ describe('oyl-shell', () => {
     shell.append(nav) // slotted AFTER the layout applied — slotchange must catch it
     await Promise.resolve()
     expect(nav.getAttribute('orientation')).toBe('vertical')
-    const sig = /** @type {import('../lib/reactive/signal.js').Signal<string>} */ (shell.layoutSignal)
+    const sig = /** @type {import('@oyl/all-of-oyl/client').Signal<string>} */ (shell.layoutSignal)
     sig.set('classic')
     await Promise.resolve() // effects re-run on a microtask batch
     expect(nav.getAttribute('orientation')).toBe('horizontal')
@@ -88,7 +88,7 @@ describe('oyl-shell', () => {
     shell.append(deck)
     await Promise.resolve()
     expect(deck.getAttribute('mode')).toBe('band')
-    const sig = /** @type {import('../lib/reactive/signal.js').Signal<string>} */ (shell.layoutSignal)
+    const sig = /** @type {import('@oyl/all-of-oyl/client').Signal<string>} */ (shell.layoutSignal)
     sig.set('focus')
     await Promise.resolve()
     expect(deck.hasAttribute('mode')).toBe(false)

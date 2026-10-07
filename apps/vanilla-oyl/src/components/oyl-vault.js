@@ -1,6 +1,6 @@
 import { DayKey, DayRange } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { sheet } from './sheet.js'
 import { now } from '../storage/clock.js'
 import { dueInLabel, formatMoney, monthlyTotalLabel } from '@oyl/all-of-oyl/format'
@@ -47,7 +47,7 @@ export class OylVault extends OylElement {
     this.tz = 'UTC'
     /** @type {(id: import('@oyl/all-of-oyl').Id, on: import('@oyl/all-of-oyl').DayKey) => Promise<unknown>} */
     this.renew = async () => undefined
-    /** @type {import('../lib/reactive/signal.js').Signal<number>} */
+    /** @type {import('@oyl/all-of-oyl/client').Signal<number>} */
     this._horizon = /** @type {any} */ (undefined)
   }
 

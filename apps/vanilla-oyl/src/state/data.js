@@ -1,5 +1,5 @@
 import { review, Transaction } from '@oyl/all-of-oyl'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { makeRepositories, collectionCounts, decodeBootstrap } from '../storage/bootstrap.js'
 import { readSchemaState } from '../storage/schema.js'
 import { createJournalStore } from './journal-store.js'
@@ -60,7 +60,7 @@ export function createDataState(storage, themeState, opts = {}) {
    * Cheap pending-writes indicator derived from the outbox. It is a snapshot read on
    * refresh()/refreshPending() — not a live subscription — which is enough for the
    * Status surface until the sync UI reshape (Sub-project D).
-   * @type {import('../lib/reactive/signal.js').Signal<number>}
+   * @type {import('@oyl/all-of-oyl/client').Signal<number>}
    */
   const pending = signal(outbox ? outbox.size() : 0)
   /** Re-read the outbox size into the pending signal. */
@@ -72,11 +72,11 @@ export function createDataState(storage, themeState, opts = {}) {
   let activities = []
   /** @type {readonly import('@oyl/all-of-oyl').Project[]} */
   let projects = []
-  /** @type {import('../lib/reactive/signal.js').Signal<Record<string, number>>} */
+  /** @type {import('@oyl/all-of-oyl/client').Signal<Record<string, number>>} */
   const counts = signal(/** @type {Record<string, number>} */ ({}))
-  /** @type {import('../lib/reactive/signal.js').Signal<SchemaState>} */
+  /** @type {import('@oyl/all-of-oyl/client').Signal<SchemaState>} */
   const schema = signal(readSchemaState(storage))
-  /** @type {import('../lib/reactive/signal.js').Signal<{ usage: number, quota: number } | null>} */
+  /** @type {import('@oyl/all-of-oyl/client').Signal<{ usage: number, quota: number } | null>} */
   const storageEstimate = signal(/** @type {{ usage: number, quota: number } | null} */ (null))
 
   async function refresh() {

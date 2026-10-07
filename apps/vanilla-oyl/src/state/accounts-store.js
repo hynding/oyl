@@ -1,4 +1,4 @@
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 
 /** @typedef {import('@oyl/all-of-oyl').Account} Account */
 /** @typedef {import('@oyl/all-of-oyl').Id} Id */

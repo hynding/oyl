@@ -1,4 +1,4 @@
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { User } from '@oyl/all-of-oyl'
 import { PROFILE_ID_KEY } from '../storage/keys.js'
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { InMemoryRepository, Note, Consumption, Measurement, Goal, Transaction, Budget, Money, DayKey, DayRange, Account, ActivitySession, Quantity, Id } from '@oyl/all-of-oyl'
 import { createJournalStore } from './journal-store.js'
-import { effect } from '../lib/reactive/effect.js'
+import { effect } from '@oyl/all-of-oyl/client'
 
 /** @typedef {import('@oyl/all-of-oyl').Entry} Entry */
 

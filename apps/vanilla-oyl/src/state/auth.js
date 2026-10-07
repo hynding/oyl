@@ -1,4 +1,4 @@
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { AUTH_KEY } from '../storage/keys.js'
 
 /** @typedef {{ id: number, username: string, email: string }} AuthUser */

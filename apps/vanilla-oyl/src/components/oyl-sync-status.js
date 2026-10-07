@@ -20,7 +20,7 @@ export class OylSyncStatus extends OylElement {
   static styles = [styles]
   constructor() {
     super()
-    /** @type {import('../lib/reactive/signal.js').Signal<SyncState | null> | null} */
+    /** @type {import('@oyl/all-of-oyl/client').Signal<SyncState | null> | null} */
     this.syncState = null
   }
   render() {

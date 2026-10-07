@@ -1,24 +1,16 @@
 import { getActiveObserver, schedule } from './internals.js'
 
-/**
- * @template T
- * @typedef {object} Signal
- * @property {() => T} get  Read the value; auto-tracks if called inside an effect/computed.
- * @property {(value: T) => void} set  Write the value; notifies dependents if changed.
- */
+export interface Signal<T> {
+  /** Read the value; auto-tracks if called inside an effect/computed. */
+  get(): T
+  /** Write the value; notifies dependents if changed. */
+  set(value: T): void
+}
 
-/**
- * Create a writable reactive value.
- * @template T
- * @param {T} initial
- * @param {(a: T, b: T) => boolean} [equals]  defaults to Object.is
- * @returns {Signal<T>}
- */
-export function signal(initial, equals = Object.is) {
+/** Create a writable reactive value. `equals` defaults to Object.is. */
+export function signal<T>(initial: T, equals: (a: T, b: T) => boolean = Object.is): Signal<T> {
   let value = initial
-  /** @type {Set<any>} */
-  const subs = new Set()
-
+  const subs = new Set<any>()
   return {
     get() {
       const obs = getActiveObserver()

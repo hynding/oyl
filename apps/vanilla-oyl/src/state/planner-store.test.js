@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { InMemoryRepository, LocalStorageRepository, COLLECTIONS, Task, Cadence, DayKey } from '@oyl/all-of-oyl'
 import { createPlannerStore } from './planner-store.js'
-import { effect } from '../lib/reactive/effect.js'
+import { effect } from '@oyl/all-of-oyl/client'
 
 /** @typedef {import('@oyl/all-of-oyl').Plan} Plan */
 /** @typedef {import('@oyl/all-of-oyl').Repository<Plan>} PlansRepo */

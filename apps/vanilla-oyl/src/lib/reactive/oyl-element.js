@@ -1,4 +1,4 @@
-import { effect } from './effect.js'
+import { effect } from '@oyl/all-of-oyl/client'
 
 /**
  * Shared shadow-DOM base rules (reset.css only reaches the light DOM):

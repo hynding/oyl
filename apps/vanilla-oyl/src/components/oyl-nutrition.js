@@ -1,7 +1,7 @@
 import { DayKey, sumNutrients } from '@oyl/all-of-oyl'
 import { formatNutrients, relativeDayLabel, formatDayHeading, formatClockTime } from '@oyl/all-of-oyl/format'
 import { OylElement } from '../lib/reactive/oyl-element.js'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { sheet } from './sheet.js'
 import { now } from '../storage/clock.js'
 import { defineNutritionComposer } from './oyl-nutrition-composer.js'
@@ -59,7 +59,7 @@ export class OylNutrition extends OylElement {
     this.consumableProducts = undefined
     /** @type {string} */
     this.tz = 'UTC'
-    /** @type {import('../lib/reactive/signal.js').Signal<DayKey>} */
+    /** @type {import('@oyl/all-of-oyl/client').Signal<DayKey>} */
     this._day = /** @type {any} */ (undefined)
   }
 

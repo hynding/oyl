@@ -34,8 +34,7 @@ describe('effect', () => {
     const toggle = signal(true)
     const a = signal('a')
     const b = signal('b')
-    /** @type {string[]} */
-    const seen = []
+    const seen: string[] = []
     effect(() => seen.push(toggle.get() ? a.get() : b.get()))
     toggle.set(false)
     await Promise.resolve()
@@ -51,5 +50,21 @@ describe('effect', () => {
         n.set(n.get() + 1)
       })
     }).toThrow(/cycle/i)
+  })
+
+  it('aborts a non-settling update loop with console.error instead of hanging', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const a = signal(0)
+      const b = signal(0)
+      // Two effects ping-pong: each writes the signal the other reads, so the batch never settles.
+      const stop1 = effect(() => { b.set(a.get() + 1) })
+      const stop2 = effect(() => { a.set(b.get() + 1) })
+      await new Promise((r) => setTimeout(r, 0))
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('aborting update loop'))
+      stop1(); stop2()
+    } finally {
+      error.mockRestore()
+    }
   })
 })

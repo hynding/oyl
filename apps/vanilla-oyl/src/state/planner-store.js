@@ -1,5 +1,5 @@
 import { Planner } from '@oyl/all-of-oyl'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 
 /** @typedef {import('@oyl/all-of-oyl').Plan} Plan */
 /** @typedef {import('@oyl/all-of-oyl').Task} Task */

@@ -1,26 +1,18 @@
-import { getActiveObserver, track, schedule } from './internals.js'
+import { getActiveObserver, track, schedule, type Source } from './internals.js'
 
 /**
  * A lazily-evaluated, cached derived value. Recomputes on read only when a source has
  * changed since the last computation; propagates invalidation to its own subscribers
  * (marking subscriber computeds stale and scheduling subscriber effects).
- * @template T
- * @param {() => T} fn
- * @param {(a: T, b: T) => boolean} [equals]  defaults to Object.is
- * @returns {{ get: () => T }}
  */
-export function computed(fn, equals = Object.is) {
-  /** @type {T} */
-  let value
+export function computed<T>(fn: () => T, equals: (a: T, b: T) => boolean = Object.is): { get: () => T } {
+  let value: T
   let stale = true
-  /** @type {Set<any>} */
-  const subs = new Set()
-  /** @type {Set<{ _subs: Set<object> }>} */
-  let sources = new Set()
+  const subs = new Set<any>()
+  let sources = new Set<Source>()
 
   const node = {
-    /** @param {{ _subs: Set<object> }} src */
-    _addSource(src) {
+    _addSource(src: Source) {
       sources.add(src)
     },
     // A source changed: become stale and propagate to our own subscribers.

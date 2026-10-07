@@ -1,4 +1,4 @@
-import { track } from './internals.js'
+import { track, type Source } from './internals.js'
 
 /**
  * Run `fn` now and re-run it (batched on a microtask) whenever a signal/computed it
@@ -7,18 +7,14 @@ import { track } from './internals.js'
  * Cycle detection assumes read-before-write: an effect that reads then writes the same
  * signal throws synchronously; an effect that writes a signal before reading it is not
  * detected (it simply won't react to that write).
- * @param {() => void} fn
- * @returns {() => void} dispose
  */
-export function effect(fn) {
+export function effect(fn: () => void): () => void {
   let disposed = false
   let running = false
-  /** @type {Set<{ _subs: Set<object> }>} */
-  let sources = new Set()
+  let sources = new Set<Source>()
 
   const runner = {
-    /** @param {{ _subs: Set<object> }} src */
-    _addSource(src) {
+    _addSource(src: Source) {
       sources.add(src)
     },
     _run() {

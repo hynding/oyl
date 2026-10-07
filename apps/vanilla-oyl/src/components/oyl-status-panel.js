@@ -39,7 +39,7 @@ export class OylStatusPanel extends OylElement {
     this.actions = {}
     /** @type {import('./oyl-connection.js').ConnectionConfig | null} */
     this.connection = null
-    /** @type {{ state: import('../lib/reactive/signal.js').Signal<SyncState | null>, onResync: () => void, onRetryFailed?: () => void, onDiscardFailed?: () => void } | null} */
+    /** @type {{ state: import('@oyl/all-of-oyl/client').Signal<SyncState | null>, onResync: () => void, onRetryFailed?: () => void, onDiscardFailed?: () => void } | null} */
     this.sync = null
     /** @type {{ count: number, onUpload: () => void } | null} */
     this.migration = null

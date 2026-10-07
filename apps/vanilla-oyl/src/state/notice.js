@@ -1,4 +1,4 @@
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 
 /** A single transient app notice (boot/sync errors). */
 export function createNoticeState() {

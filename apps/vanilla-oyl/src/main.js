@@ -1,5 +1,5 @@
-import { effect } from './lib/reactive/effect.js'
-import { signal } from './lib/reactive/signal.js'
+import { effect } from '@oyl/all-of-oyl/client'
+import { signal } from '@oyl/all-of-oyl/client'
 import { createThemeApplier } from './theme/theme-manager.js'
 import { createThemeState } from './state/theme.js'
 import { createLayoutState } from './state/layout.js'

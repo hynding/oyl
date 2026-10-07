@@ -12,8 +12,7 @@ describe('signal', () => {
 
   it('notifies a tracking effect on change', async () => {
     const count = signal(0)
-    /** @type {number[]} */
-    const seen = []
+    const seen: number[] = []
     effect(() => seen.push(count.get()))
     count.set(1)
     await Promise.resolve()

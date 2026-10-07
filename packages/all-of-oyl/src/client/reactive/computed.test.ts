@@ -26,8 +26,7 @@ describe('computed', () => {
   it('drives a dependent effect when its sources change', async () => {
     const a = signal(1)
     const triple = computed(() => a.get() * 3)
-    /** @type {number[]} */
-    const seen = []
+    const seen: number[] = []
     effect(() => seen.push(triple.get()))
     a.set(2)
     await Promise.resolve()

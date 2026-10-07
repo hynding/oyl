@@ -2,7 +2,7 @@ import { Transaction, Money } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 import { now } from '../storage/clock.js'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 
 /** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
 /** @typedef {ReturnType<typeof import('../state/accounts-store.js').createAccountsStore>} AccountsStore */
@@ -37,7 +37,7 @@ export class OylFinanceComposer extends OylElement {
     this.onAdded = () => {}
     /** @type {AccountsStore} */
     this.accounts = /** @type {AccountsStore} */ (/** @type {unknown} */ (undefined))
-    this._direction = /** @type {import('../lib/reactive/signal.js').Signal<'expense' | 'income'>} */ (signal('expense'))
+    this._direction = /** @type {import('@oyl/all-of-oyl/client').Signal<'expense' | 'income'>} */ (signal('expense'))
   }
 
   render() {

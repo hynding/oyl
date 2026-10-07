@@ -12,7 +12,7 @@ export class OylAccountMenu extends OylElement {
   static styles = [styles]
   constructor() {
     super()
-    /** @type {import('../lib/reactive/signal.js').Signal<any>} */
+    /** @type {import('@oyl/all-of-oyl/client').Signal<any>} */
     this.session = /** @type {any} */ (undefined)
     /** @type {() => void} */ this.onLogout = () => {}
   }

@@ -1,4 +1,4 @@
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { SETTINGS_KEY } from '../storage/keys.js'
 import { readRawSettings } from '../storage/settings.js'
 import { DEFAULT_SETTINGS, nextSettings } from '../theme/theme-manager.js'

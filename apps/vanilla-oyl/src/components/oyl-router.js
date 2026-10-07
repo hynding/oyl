@@ -1,6 +1,6 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 
-/** @typedef {import('../lib/reactive/signal.js').Signal<string>} RouteSignal */
+/** @typedef {import('@oyl/all-of-oyl/client').Signal<string>} RouteSignal */
 /** @typedef {Record<string, () => Node>} Routes */
 
 export class OylRouter extends OylElement {

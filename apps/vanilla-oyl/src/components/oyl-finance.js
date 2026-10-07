@@ -9,7 +9,7 @@ import { defineBudgetForm } from './oyl-budget-form.js'
 import { defineBudgetRow } from './oyl-budget-row.js'
 import { defineAccountForm } from './oyl-account-form.js'
 import { accountSpendLabel } from '../account/format.js'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 
 /** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
 /** @typedef {ReturnType<typeof import('../state/budgets-store.js').createBudgetsStore>} BudgetsStore */
@@ -41,7 +41,7 @@ export class OylFinance extends OylElement {
     this.budgets = /** @type {BudgetsStore} */ (/** @type {unknown} */ (undefined))
     /** @type {AccountsStore} */
     this.accounts = /** @type {AccountsStore} */ (/** @type {unknown} */ (undefined))
-    this._filter = /** @type {import('../lib/reactive/signal.js').Signal<string>} */ (signal(''))
+    this._filter = /** @type {import('@oyl/all-of-oyl/client').Signal<string>} */ (signal(''))
   }
 
   render() {
