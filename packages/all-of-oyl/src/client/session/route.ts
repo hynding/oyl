@@ -1,14 +1,26 @@
-import { signal } from '@oyl/all-of-oyl/client'
-import { interceptLinks } from './link-interceptor.js'
+import { signal, type Signal } from '../reactive/signal.js'
+import type { RouteWindow } from '../ports.js'
+
+export type Navigate = (path: string, opts?: { replace?: boolean }) => void
+
+export interface RouteOptions {
+  /** Install app-level link interception (vanilla: delegated anchor clicks); returns its disposer. */
+  interceptLinks?: (navigate: Navigate) => () => void
+}
+
+export interface RouteState {
+  route: Signal<string>
+  navigate: Navigate
+  start(): void
+  stop(): void
+}
 
 /**
  * Extract the active route name from a URL pathname. Strips any query/hash and
  * a leading slash, then returns the first path segment — the seam where nested
  * routes (`/journal/:date`) slot in later — defaulting to `'status'`.
- * @param {string} pathname
- * @returns {string}
  */
-export function parsePath(pathname) {
+export function parsePath(pathname: string): string {
   const path = pathname.replace(/[?#].*$/, '').replace(/^\//, '')
   return path.split('/')[0] || 'status'
 }
@@ -16,18 +28,17 @@ export function parsePath(pathname) {
 /**
  * A route signal fed by the History API. Call start() once at boot; returns the
  * signal, an imperative navigate(), and a stop() for teardown (tests).
- * @param {Window} win
  */
-export function createRouteState(win = window) {
+export function createRouteState(win: RouteWindow, opts: RouteOptions = {}): RouteState {
   const route = signal(parsePath(win.location.pathname))
   const onPop = () => route.set(parsePath(win.location.pathname))
 
   /**
-   * @param {string} path  `pathname` + optional `?search` to navigate to
-   * @param {{ replace?: boolean }} [opts]  pass `replace: true` to use replaceState (no history growth)
+   * `path` is the `pathname` + optional `?search` to navigate to.
+   * Pass `replace: true` to use replaceState (no history growth).
    */
-  const navigate = (path, { replace = false } = {}) => {
-    const url = new URL(path, win.location.origin)
+  const navigate: Navigate = (path, { replace = false } = {}) => {
+    const url = new win.URL(path, win.location.origin)
     // Reconstruct the full path with search parameters
     const fullPath = url.pathname + url.search
     // Only skip if both pathname and search are identical
@@ -37,8 +48,7 @@ export function createRouteState(win = window) {
     route.set(parsePath(url.pathname))
   }
 
-  /** @type {() => void} */
-  let stopLinks = () => {}
+  let stopLinks: () => void = () => {}
 
   return {
     route,
@@ -52,7 +62,7 @@ export function createRouteState(win = window) {
         route.set('status')
       }
       win.addEventListener('popstate', onPop)
-      stopLinks = interceptLinks(win, navigate)
+      stopLinks = opts.interceptLinks ? opts.interceptLinks(navigate) : () => {}
     },
     stop() {
       win.removeEventListener('popstate', onPop)

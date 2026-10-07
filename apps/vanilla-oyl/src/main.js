@@ -3,9 +3,10 @@ import { signal } from '@oyl/all-of-oyl/client'
 import { createThemeApplier } from './theme/theme-manager.js'
 import { createThemeState } from './state/theme.js'
 import { createLayoutState } from './state/layout.js'
-import { createRouteState } from './state/route.js'
+import { createRouteState } from '@oyl/all-of-oyl/client'
+import { interceptLinks } from './state/link-interceptor.js'
 import { createDataState } from '@oyl/all-of-oyl/client'
-import { createAuthState, googleErrorMessage } from './state/auth.js'
+import { createAuthState, googleErrorMessage } from '@oyl/all-of-oyl/client'
 import { createGoogleStore } from '@oyl/all-of-oyl/client'
 import { seedAccount } from './storage/seed.js'
 import { browserDataPorts } from './storage/browser-ports.js'
@@ -32,7 +33,7 @@ import { createBrowserConnectivity } from '@oyl/all-of-oyl/client'
 import { debounce } from './lib/debounce.js'
 import { makeRepositories } from '@oyl/all-of-oyl/client'
 import { createProfileStore, resolveTimezone } from '@oyl/all-of-oyl/client'
-import { shouldRedirectToLogin, tzNeedsReload } from './state/auth-guard.js'
+import { shouldRedirectToLogin, tzNeedsReload } from '@oyl/all-of-oyl/client'
 import { defineLogin } from './components/oyl-login.js'
 import { defineRegister } from './components/oyl-register.js'
 import { defineProfile } from './components/oyl-profile.js'
@@ -62,7 +63,7 @@ async function boot() {
 
   const themeState = createThemeState(storage)
   const layoutState = createLayoutState(storage)
-  const routeState = createRouteState(window)
+  const routeState = createRouteState(window, { interceptLinks: (navigate) => interceptLinks(window, navigate) })
   const host = window.location.hostname
   // Deploy-injected API base (see index.html <meta name="oyl-api-base">); '' means hostname rules.
   const metaBase = /** @type {HTMLMetaElement | null} */ (document.querySelector('meta[name="oyl-api-base"]'))?.content ?? ''

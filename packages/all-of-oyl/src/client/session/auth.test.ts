@@ -1,30 +1,28 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createAuthState, googleErrorMessage } from './auth.js'
-import { AUTH_KEY } from '@oyl/all-of-oyl/client'
+import { AUTH_KEY } from '../storage/keys.js'
+import type { FetchFn } from '../ports.js'
 
-/** @param {Record<string,string>} [seed] */
-function fakeStorage(seed = {}) {
+function fakeStorage(seed: Record<string, string> = {}) {
   const m = new Map(Object.entries(seed))
   return {
-    /** @param {string} k */ getItem: (k) => m.get(k) ?? null,
-    /** @param {string} k @param {string} v */ setItem: (k, v) => void m.set(k, v),
-    /** @param {string} k */ removeItem: (k) => void m.delete(k),
+    getItem: (k: string) => m.get(k) ?? null,
+    setItem: (k: string, v: string) => void m.set(k, v),
+    removeItem: (k: string) => void m.delete(k),
     _map: m,
   }
 }
 
-/** @param {string} [jwt] @param {{ id: number, username: string, email: string }} [user] @returns {typeof globalThis.fetch} */
-const okFetch = (jwt = 'jwt-1', user = { id: 1, username: 'a', email: 'a@x.dev' }) =>
-  /** @type {any} */ (vi.fn(async () => new Response(JSON.stringify({ jwt, user }), { status: 200 })))
+const okFetch = (jwt = 'jwt-1', user = { id: 1, username: 'a', email: 'a@x.dev' }): FetchFn =>
+  vi.fn(async () => new Response(JSON.stringify({ jwt, user }), { status: 200 })) as any
 
-/** @param {number} [status] @param {string} [message] @returns {typeof globalThis.fetch} */
-const errFetch = (status = 400, message = 'Invalid identifier or password') =>
-  /** @type {any} */ (vi.fn(async () => new Response(JSON.stringify({ error: { message } }), { status })))
+const errFetch = (status = 400, message = 'Invalid identifier or password'): FetchFn =>
+  vi.fn(async () => new Response(JSON.stringify({ error: { message } }), { status })) as any
 
 describe('createAuthState', () => {
   it('login posts to /auth/local, sets session, persists, and getToken returns the jwt', async () => {
     const storage = fakeStorage()
-    const fetch = /** @type {any} */ (okFetch())
+    const fetch = okFetch() as any
     const auth = createAuthState(storage, { baseUrl: 'http://x/api', fetch })
     const user = await auth.login('a', 'pw')
     expect(user.username).toBe('a')
@@ -32,11 +30,11 @@ describe('createAuthState', () => {
     expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ identifier: 'a', password: 'pw' })
     expect(auth.session.get()?.token).toBe('jwt-1')
     expect(await auth.getToken()).toBe('jwt-1')
-    expect(JSON.parse(/** @type {string} */ (storage._map.get(AUTH_KEY))).token).toBe('jwt-1')
+    expect(JSON.parse(storage._map.get(AUTH_KEY) as string).token).toBe('jwt-1')
   })
 
   it('register posts to /auth/local/register', async () => {
-    const fetch = /** @type {any} */ (okFetch())
+    const fetch = okFetch() as any
     const auth = createAuthState(fakeStorage(), { baseUrl: 'http://x/api', fetch })
     await auth.register('a', 'a@x.dev', 'pw')
     expect(String(fetch.mock.calls[0][0])).toBe('http://x/api/auth/local/register')
@@ -65,22 +63,21 @@ describe('createAuthState', () => {
 })
 
 describe('adoptTokenFromHash', () => {
-  /** @param {string} hash */
-  const fakeWindow = (hash) => {
-    const calls = /** @type {string[]} */ ([])
+  const fakeWindow = (hash: string) => {
+    const calls: string[] = []
     return {
-      win: { location: { hash, pathname: '/login', search: '' }, history: { replaceState: (/** @type {any} */ _a, /** @type {string} */ _b, /** @type {string} */ url) => calls.push(url) } },
+      win: { location: { hash, pathname: '/login', search: '' }, history: { replaceState: (_a: unknown, _b: string, url: string) => { calls.push(url) } } },
       calls,
     }
   }
 
   it('adopts #google=<jwt>: fetches /users/me, persists the session, cleans the hash', async () => {
     const storage = fakeStorage()
-    const fetch = /** @type {any} */ (vi.fn(async (/** @type {string} */ url) => {
+    const fetch = vi.fn(async (url: string) => {
       expect(url).toBe('http://api.test/api/users/me')
       return { ok: true, status: 200, json: async () => ({ id: 7, username: 'g', email: 'g@gmail.test' }) }
-    }))
-    const auth = createAuthState(storage, { baseUrl: 'http://api.test/api', fetch: /** @type {any} */ (fetch) })
+    }) as any
+    const auth = createAuthState(storage, { baseUrl: 'http://api.test/api', fetch })
     const { win, calls } = fakeWindow('#google=jwt-abc')
     const result = await auth.adoptTokenFromHash(win)
     expect(result).toEqual({ adopted: true, error: null })
@@ -91,7 +88,7 @@ describe('adoptTokenFromHash', () => {
 
   it('surfaces #google_error=<code> and cleans the hash without touching the session', async () => {
     const storage = fakeStorage()
-    const auth = createAuthState(storage, { baseUrl: 'http://api.test/api', fetch: /** @type {any} */ (vi.fn()) })
+    const auth = createAuthState(storage, { baseUrl: 'http://api.test/api', fetch: vi.fn() as any })
     const { win, calls } = fakeWindow('#google_error=account_exists')
     const result = await auth.adoptTokenFromHash(win)
     expect(result).toEqual({ adopted: false, error: 'account_exists' })
@@ -100,7 +97,7 @@ describe('adoptTokenFromHash', () => {
   })
 
   it('is a no-op on an unrelated hash', async () => {
-    const auth = createAuthState(fakeStorage(), { baseUrl: 'http://api.test/api', fetch: /** @type {any} */ (vi.fn()) })
+    const auth = createAuthState(fakeStorage(), { baseUrl: 'http://api.test/api', fetch: vi.fn() as any })
     const { win, calls } = fakeWindow('#section-2')
     expect(await auth.adoptTokenFromHash(win)).toEqual({ adopted: false, error: null })
     expect(calls).toEqual([])
@@ -108,7 +105,7 @@ describe('adoptTokenFromHash', () => {
 
   it('a rejected token cleans the hash and reports a session error', async () => {
     const fetch = vi.fn(async () => ({ ok: false, status: 401, json: async () => ({}) }))
-    const auth = createAuthState(fakeStorage(), { baseUrl: 'http://api.test/api', fetch: /** @type {any} */ (fetch) })
+    const auth = createAuthState(fakeStorage(), { baseUrl: 'http://api.test/api', fetch: fetch as any })
     const { win } = fakeWindow('#google=bad')
     expect(await auth.adoptTokenFromHash(win)).toEqual({ adopted: false, error: 'session' })
     expect(auth.session.get()).toBeNull()

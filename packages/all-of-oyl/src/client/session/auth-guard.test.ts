@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { User } from '@oyl/all-of-oyl'
+import { User } from '../../index.js'
 import { shouldRedirectToLogin, tzNeedsReload } from './auth-guard.js'
 
 const session = { token: 't', user: { id: 1, username: 'a', email: 'a@b.c' } }
