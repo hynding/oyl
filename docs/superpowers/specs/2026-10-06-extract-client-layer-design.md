@@ -1,7 +1,7 @@
 # Extract the Client Layer into `@oyl/all-of-oyl/client` — Design
 
 **Date:** 2026-10-06
-**Status:** Approved design; not yet implemented
+**Status:** Implemented on branch refactor/extract-client-layer (plan: docs/superpowers/plans/2026-10-06-extract-client-layer.md)
 **Program:** Stencil front-end (`apps/stencil-oyl`) — sub-project 0 of the program below
 
 ## Purpose
@@ -60,8 +60,7 @@ History-API route state is reused rather than adopting `@stencil/router`.
 - `state/theme.js`, `state/layout.js`, `theme/*`, `layouts/*`: the redesign replaces them, so
   sharing them would freeze the old design system into the core.
 - `lib/debounce.js`, `widgets/sample-data.js`.
-- `storage/backup.js`, reduced to the *download* (anchor click via `document`); it imports
-  serialize/parse from `@oyl/all-of-oyl/client`.
+- the backup *download* helper in `main.js` (anchor click via `URL.createObjectURL`).
 
 ## Module layout and public surface
 
@@ -237,8 +236,15 @@ above are genuinely new tests written before their code.
 
 - `apps/vanilla-oyl/src/lib/reactive/` contains only `oyl-element.js` (+ test);
   `apps/vanilla-oyl/src/state/` contains only `link-interceptor`, `theme`, `layout` (+ tests);
-  `apps/vanilla-oyl/src/storage/` contains only `browser-ports.js` and the download-only
-  `backup.js` (+ tests).
+  `apps/vanilla-oyl/src/storage/` contains only `browser-ports.js` (+ test).
 - All verification gates are green, and the e2e suite passes with no spec changes.
 - `@oyl/all-of-oyl/client` is importable from strict TS (source) and from the browser build
   (`dist/client/index.js` via importmap).
+
+## Amendments during planning
+
+1. **`backup.js` moves whole.** The download (`URL.createObjectURL` anchor click) lives in vanilla's `main.js`, not in `storage/backup.js`, which is DOM-free. vanilla's `src/storage/` therefore ends with only `browser-ports.js` (+ test).
+2. **`createDataState`'s `themeState` becomes a structural port.** `data.js` takes vanilla's `ThemeState` only to echo `themeState.settings.get()` in `readDiagnostics()`. Theme state stays in vanilla, so `data.ts` types it as `{ settings: { get(): TTheme } }` (generic `TTheme`).
+3. **The `interceptLinks` option is a thunk over `navigate` only:** `interceptLinks?: (navigate: Navigate) => () => void`. Passing route's `RouteWindow` to vanilla's `interceptLinks(win: Window, …)` would fail `strictFunctionTypes`. vanilla passes `(nav) => interceptLinks(window, nav)`.
+4. **Host globals `queueMicrotask` and `console`** (used by `reactive/internals`) are declared module-locally, following the existing precedent in `core/id.ts` (`declare const crypto: …`). They are ECMAScript-host APIs present in every runtime, not DOM, so they are not injected.
+5. **`seed.ts`'s `remapIds` default id source becomes core `Id.create()`** (which is `crypto.randomUUID()` via `core/id.ts`). The behavior is identical, with no new global probe.
