@@ -1,40 +1,40 @@
-import { COLLECTIONS, DayRange } from '@oyl/all-of-oyl'
-import { CURRENT_SCHEMA_VERSION } from '@oyl/all-of-oyl/client'
-import { SETTINGS_KEY } from '@oyl/all-of-oyl/client'
-import { now } from '@oyl/all-of-oyl/client'
+import { COLLECTIONS, DayRange } from '../../index.js'
+import type { StorageLike } from '../ports.js'
+import type { DataState } from '../data.js'
+import { CURRENT_SCHEMA_VERSION } from './schema.js'
+import { SETTINGS_KEY } from './keys.js'
+import { now } from './clock.js'
 import { loadDataset } from './seed.js'
 
 /**
  * Account backup over the hydrated stores (online-first): export serializes what the
  * signed-in account actually holds; import validates then loads through the same
  * store paths as seeding, so restored data flows into the outbox → server.
- *
- * @typedef {{ schemaVersion: number, exportedAt: string, settings: unknown,
- *   collections: Record<string, unknown[]> }} BackupDoc
- * @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createDataState>} DataState
  */
-/** @typedef {{ getItem(k: string): string | null, setItem(k: string, v: string): void }} AppStorage */
+export type BackupDoc = {
+  schemaVersion: number
+  exportedAt: string
+  settings: unknown
+  collections: Record<string, unknown[]>
+}
+type AppStorage = Pick<StorageLike, 'getItem'>
 
 /** Journal entry kind → its collection key in the backup document. */
-const COLLECTION_BY_KIND = /** @type {Record<string, string>} */ ({
+const COLLECTION_BY_KIND = ({
   'note': 'notes',
   'measurement': 'measurements',
   'consumption': 'consumptions',
   'transaction': 'transactions',
   'activity-session': 'activitySessions',
-})
+} as Record<string, string>)
 
 /**
  * Capture the account's data as a single portable document (toJSON wire shapes —
  * the same format `loadDataset` accepts, so an export is always re-importable).
  * Collections without a store surface yet export as [] (documented in seed.js).
- * @param {AppStorage} storage
- * @param {DataState} dataState
- * @returns {BackupDoc}
  */
-export function exportData(storage, dataState) {
-  /** @type {Record<string, unknown[]>} */
-  const collections = {}
+export function exportData(storage: AppStorage, dataState: DataState): BackupDoc {
+  const collections: Record<string, unknown[]> = {}
   for (const name of Object.keys(COLLECTIONS)) collections[name] = []
 
   const journal = dataState.journal.peek()
@@ -71,12 +71,9 @@ export function exportData(storage, dataState) {
  * throw), then load it into the account through the stores. Loading nothing on any
  * validation failure. Existing records with the same ids are upserted server-side,
  * so re-importing your own backup is effectively idempotent.
- * @param {DataState} dataState
- * @param {string} json
- * @returns {Promise<{ added: number, skipped: number }>}
  */
-export async function importData(dataState, json) {
-  const doc = /** @type {BackupDoc} */ (JSON.parse(json))
+export async function importData(dataState: DataState, json: string): Promise<{ added: number, skipped: number }> {
+  const doc = JSON.parse(json) as BackupDoc
   if (typeof doc !== 'object' || doc === null || typeof doc.collections !== 'object') {
     throw new Error('backup: not a valid OYL export')
   }
@@ -85,8 +82,8 @@ export async function importData(dataState, json) {
   }
   // Validate everything BEFORE loading: revive each shape via its codec (throws on bad).
   for (const name of Object.keys(COLLECTIONS)) {
-    const codec = /** @type {any} */ (COLLECTIONS[/** @type {keyof typeof COLLECTIONS} */ (name)])
+    const codec = COLLECTIONS[name as keyof typeof COLLECTIONS] as any
     for (const shape of doc.collections[name] ?? []) codec.fromJSON(shape)
   }
-  return loadDataset(dataState, /** @type {any} */ (doc.collections))
+  return loadDataset(dataState, doc.collections as any)
 }
