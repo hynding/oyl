@@ -36,7 +36,7 @@ use Illuminate\Support\Facades\Route;
 
 /**
  * One boot read: every backed collection in scope for the signed-in user, keyed by the
- * REST plural path the client routes by (apps/vanilla-oyl/src/storage/bootstrap.js
+ * REST plural path the client routes by (packages/all-of-oyl/src/client/storage/bootstrap.ts
  * PATH_BY_COLLECTION). Rows go through the same `forUser` scope, the same per-row
  * `can('view')` check, and the same serializer as each collection's own index(), so they
  * decode identically whichever path fetched them. Unlike index(), this closure does not

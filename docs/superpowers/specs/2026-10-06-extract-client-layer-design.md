@@ -47,7 +47,7 @@ History-API route state is reused rather than adopting `@stencil/router`.
 | `lib/reactive/{signal,computed,effect,internals}.js` | `reactive/*.ts` |
 | `storage/{keys,clock,config,settings,schema,connectivity,lock}.js` | `storage/*.ts` |
 | `storage/{bootstrap,seed}.js` | `storage/*.ts` |
-| `storage/backup.js` (serialize/parse only) | `storage/backup.ts` |
+| `storage/backup.js` — whole module; see Amendment 1 | `storage/backup.ts` |
 | `state/{journal,planner,vault,goals,budgets,accounts,consumables,consumable-products,profile,google}-store.js` | `stores/<name>.ts` (drop `-store` suffix) |
 | `state/notice.js` | `stores/notice.ts` |
 | `state/{auth,auth-guard,route}.js` | `session/*.ts` |
@@ -124,13 +124,13 @@ existing core ports where they exist.
 and calls vanilla's `interceptLinks(win, navigate)` inside `start()`. It becomes:
 
 ```ts
-createRouteState(win: RouteWindow, opts?: { interceptLinks?: (win: RouteWindow, navigate: Navigate) => () => void })
+createRouteState(win: RouteWindow, opts?: { interceptLinks?: (navigate: Navigate) => () => void })
 ```
 
 - `win` is required (no `window` default).
 - `URL` is taken from `win.URL` (browsers expose `window.URL`), so URL semantics are
   unchanged and no path parsing is hand-rolled.
-- `interceptLinks` defaults to a no-op; vanilla passes its existing `link-interceptor.js`.
+- `interceptLinks` defaults to a no-op; vanilla passes `(navigate) => interceptLinks(window, navigate)` over its existing `link-interceptor.js` (see Amendment 3).
 
 ### Defaults vs. required
 
@@ -229,7 +229,7 @@ above are genuinely new tests written before their code.
 | Two reactive-core instances, so screens silently stop updating | Core moves as one unit (commit 2); single-instance guardrail test; e2e at commit 2 |
 | Moved tests dropped or weakened | Baseline count before commit 1; tests move verbatim except for the listed mechanical changes |
 | A happy-dom-dependent test hides a real DOM dependency | Tests run in node env in all-of-oyl, so a DOM need fails and gets a port, never a polyfill |
-| Inline-importmap CSP hash drift | Confirm `scripts/dreamhost/publish-www.sh` computes the hash from `index.html` at publish time (its existing deploy-script tests, plus `pnpm deploy:dreamhost --dry-run --only www`) |
+| Inline-importmap CSP hash drift | Confirm `scripts/dreamhost/publish-www.sh` computes the hash from `index.html` at publish time (its existing deploy-script tests, plus `pnpm deploy:dreamhost --dry-run --only www`) — not run (it connects to production); verified instead by reading publish-www.sh → render-htaccess.mjs → deploy/csp-hashes.js, which hash index.html's inline scripts at publish time |
 | Docker image build | `Dockerfile.app` copies package manifests; confirm `docker compose build vanilla` still succeeds after the `exports` change |
 
 ## Success criteria

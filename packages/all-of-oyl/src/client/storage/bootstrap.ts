@@ -8,12 +8,12 @@ import {
   alwaysOnline,
   strapiRowToShape,
 } from '../../index.js'
-import type { ApiClient, BootstrapPayload, CatalogClient, Connectivity, Repository, WriteOutbox } from '../../index.js'
+import type { ApiClient, BootstrapPayload, CollectionName, CatalogClient, Connectivity, Repository, WriteOutbox } from '../../index.js'
 import type { StorageLike } from '../ports.js'
 import { OUTBOX_KEY, READ_CACHE_KEY } from './keys.js'
 import { now } from './clock.js'
 
-export type CollectionName = keyof typeof COLLECTIONS
+export type { CollectionName }
 export type Repositories = Record<CollectionName, Repository<any>>
 export type Catalogs = Partial<Record<CollectionName, CatalogClient<any>>>
 

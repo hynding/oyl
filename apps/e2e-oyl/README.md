@@ -38,7 +38,7 @@ cold start — or run it yourself if the server is already up.
   assert with unique names, never counts.
 - **Backed vs unbacked**: only notes, consumptions, accounts, transactions, budgets,
   measurements, activity-sessions, and goals are server-backed (`BACKED` in
-  `apps/vanilla-oyl/src/storage/bootstrap.js`). Assert persistence across `page.reload()`
+  `packages/all-of-oyl/src/client/storage/bootstrap.ts`). Assert persistence across `page.reload()`
   ONLY for backed collections (use `awaitOutboxDrained(page)` first). Planner/vault/users
   are in-session only until they gain backends — when they do, add round-trip tests.
 - **Both projects run every spec**: desktop (1280×800) and mobile (Pixel 7). Guard
