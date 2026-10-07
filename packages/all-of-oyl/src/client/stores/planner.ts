@@ -1,11 +1,8 @@
-import { Planner } from '@oyl/all-of-oyl'
-import { signal } from '@oyl/all-of-oyl/client'
+import { Planner } from '../../index.js'
+import type { Plan, Task, Id, DayKey, Repository } from '../../index.js'
+import { signal } from '../reactive/signal.js'
 
-/** @typedef {import('@oyl/all-of-oyl').Plan} Plan */
-/** @typedef {import('@oyl/all-of-oyl').Task} Task */
-/** @typedef {import('@oyl/all-of-oyl').Id} Id */
-/** @typedef {import('@oyl/all-of-oyl').DayKey} DayKey */
-/** @typedef {import('@oyl/all-of-oyl').Repository<Plan>} PlansRepo */
+type PlansRepo = Repository<Plan>
 
 /**
  * App-level reactive wrapper over the plans Repository + the domain Planner.
@@ -13,9 +10,8 @@ import { signal } from '@oyl/all-of-oyl/client'
  * domain op, persist the affected plan(s), then re-hydrate to resync meta/revision —
  * rolling back to the persisted state if a save fails. The domain Planner stays a
  * plain stateful aggregate.
- * @param {PlansRepo} plansRepo
  */
-export function createPlannerStore(plansRepo) {
+export function createPlannerStore(plansRepo: PlansRepo) {
   let planner = new Planner()
   let n = 0
   const revision = signal(0)
@@ -31,14 +27,13 @@ export function createPlannerStore(plansRepo) {
     revision,
     hydrate,
 
-    /** Live Planner aggregate for read-only insights — touches revision. @returns {Planner} */
-    peek() {
+    /** Live Planner aggregate for read-only insights — touches revision. */
+    peek(): Planner {
       revision.get()
       return planner
     },
 
-    /** @param {Plan} plan @returns {Promise<Plan>} */
-    async add(plan) {
+    async add(plan: Plan) {
       const saved = await plansRepo.save(plan)
       planner.add(saved)
       revision.set((n += 1))
@@ -49,13 +44,11 @@ export function createPlannerStore(plansRepo) {
      * Complete a plan; recurring tasks respawn a successor (domain). The completed plan
      * and any successor are persisted ATOMICALLY via saveMany (both or neither). On a save
      * failure we re-hydrate (rollback to the persisted truth) and rethrow.
-     * @param {Id} id @param {DayKey} on @returns {Promise<Task | undefined>}
      */
-    async complete(id, on) {
+    async complete(id: Id, on: DayKey): Promise<Task | undefined> {
       const successor = planner.complete(id, on)
       const completed = planner.get(id)
-      /** @type {Plan[]} */
-      const batch = []
+      const batch: Plan[] = []
       if (completed) batch.push(completed)
       if (successor) batch.push(successor)
       try {
@@ -70,8 +63,7 @@ export function createPlannerStore(plansRepo) {
       return successor
     },
 
-    /** @param {Id} id */
-    async cancel(id) {
+    async cancel(id: Id) {
       const plan = planner.get(id)
       if (!plan) return
       plan.cancel()
@@ -84,33 +76,28 @@ export function createPlannerStore(plansRepo) {
       revision.set((n += 1))
     },
 
-    /** @param {Id} id */
-    async remove(id) {
+    async remove(id: Id) {
       await plansRepo.delete(id)
       planner.remove(id)
       revision.set((n += 1))
     },
 
-    /** @param {DayKey} day @returns {readonly Plan[]} */
-    agendaFor(day) {
+    agendaFor(day: DayKey): readonly Plan[] {
       revision.get()
       return planner.agendaFor(day)
     },
 
-    /** @param {DayKey} day @returns {readonly Plan[]} */
-    overdue(day) {
+    overdue(day: DayKey): readonly Plan[] {
       revision.get()
       return planner.overdue(day)
     },
 
-    /** @param {DayKey} day @returns {readonly Plan[]} */
-    canceledOn(day) {
+    canceledOn(day: DayKey): readonly Plan[] {
       revision.get()
       return planner.all().filter((p) => p.status === 'canceled' && p.due !== undefined && p.due.equals(day))
     },
 
-    /** @param {Id} id @returns {Plan | undefined} */
-    get(id) {
+    get(id: Id): Plan | undefined {
       revision.get()
       return planner.get(id)
     },

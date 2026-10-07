@@ -7,9 +7,9 @@ import { now } from '@oyl/all-of-oyl/client'
 import { defineNutritionComposer } from './oyl-nutrition-composer.js'
 import { defineConsumableForm } from './oyl-consumable-form.js'
 
-/** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
-/** @typedef {ReturnType<typeof import('../state/consumables-store.js').createConsumablesStore>} ConsumablesStore */
-/** @typedef {ReturnType<typeof import('../state/consumable-products-store.js').createConsumableProductsStore>} ConsumableProductsStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createJournalStore>} JournalStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createConsumablesStore>} ConsumablesStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createConsumableProductsStore>} ConsumableProductsStore */
 
 /**
  * Row meta for a logged consumption: per-serving nutrients, plus a scaled

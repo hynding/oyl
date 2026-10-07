@@ -1,13 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryRepository, Budget, Money } from '@oyl/all-of-oyl'
-import { createBudgetsStore } from './budgets-store.js'
+import { InMemoryRepository, Budget, Money } from '../../index.js'
+import { createBudgetsStore } from './budgets.js'
 
-/** @param {string} [cat] @returns {Budget} */
-const budget = (cat = 'groceries') => new Budget({ category: cat, limit: Money.of(220000, 'USD', 2) })
+const budget = (cat = 'groceries'): Budget => new Budget({ category: cat, limit: Money.of(220000, 'USD', 2) })
 
 describe('createBudgetsStore', () => {
   it('add persists and reflects in all(); remove deletes', async () => {
-    const repo = /** @type {any} */ (new InMemoryRepository())
+    const repo = (new InMemoryRepository() as any)
     const store = createBudgetsStore(repo)
     const saved = await store.add(budget())
     expect(store.all()).toHaveLength(1)
@@ -17,7 +16,7 @@ describe('createBudgetsStore', () => {
   })
 
   it('hydrate rebuilds from the repo', async () => {
-    const repo = /** @type {any} */ (new InMemoryRepository())
+    const repo = (new InMemoryRepository() as any)
     await repo.save(budget('dining'))
     const store = createBudgetsStore(repo)
     expect(store.all()).toHaveLength(0)

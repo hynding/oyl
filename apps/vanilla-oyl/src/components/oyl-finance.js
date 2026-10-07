@@ -11,9 +11,9 @@ import { defineAccountForm } from './oyl-account-form.js'
 import { accountSpendLabel } from '../account/format.js'
 import { signal } from '@oyl/all-of-oyl/client'
 
-/** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
-/** @typedef {ReturnType<typeof import('../state/budgets-store.js').createBudgetsStore>} BudgetsStore */
-/** @typedef {ReturnType<typeof import('../state/accounts-store.js').createAccountsStore>} AccountsStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createJournalStore>} JournalStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createBudgetsStore>} BudgetsStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createAccountsStore>} AccountsStore */
 
 const styles = sheet(`
   :host { display: block; }

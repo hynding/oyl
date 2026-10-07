@@ -2,7 +2,7 @@ import { GiftIdea, Id } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 
-/** @typedef {ReturnType<typeof import('../state/vault-store.js').createVaultStore>} VaultStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createVaultStore>} VaultStore */
 
 const styles = sheet(`
   form { display: grid; grid-template-columns: 1fr auto auto; gap: .5rem; align-items: start; }

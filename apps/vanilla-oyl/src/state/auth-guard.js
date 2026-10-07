@@ -1,4 +1,4 @@
-import { resolveTimezone } from './profile-store.js'
+import { resolveTimezone } from '@oyl/all-of-oyl/client'
 
 /** Force the login page only in Remote mode with no session (never while on an auth page). @param {'local'|'remote'} mode @param {object|null} session @param {string} route @returns {boolean} */
 export function shouldRedirectToLogin(mode, session, route) {

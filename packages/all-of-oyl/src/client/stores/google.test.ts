@@ -1,14 +1,13 @@
 import { describe, it, expect, vi } from 'vitest'
-import { createGoogleStore } from './google-store.js'
+import { createGoogleStore } from './google.js'
 
-/** @param {Array<{ status: number, body?: any }>} responses */
-function fakeFetch(responses) {
-  const calls = /** @type {any[]} */ ([])
-  const fetch = /** @type {any} */ (vi.fn(async (/** @type {string} */ url, /** @type {any} */ init) => {
+function fakeFetch(responses: Array<{ status: number, body?: any }>) {
+  const calls = ([] as any[])
+  const fetch = (vi.fn(async (url: string, init: any) => {
     calls.push({ url, init })
     const next = responses.shift() ?? { status: 500 }
     return { status: next.status, ok: next.status < 300, json: async () => next.body ?? {} }
-  }))
+  }) as any)
   return { fetch, calls }
 }
 

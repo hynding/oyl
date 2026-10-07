@@ -1,22 +1,20 @@
-import { signal } from '@oyl/all-of-oyl/client'
+import type { Consumable, Repository } from '../../index.js'
+import { signal } from '../reactive/signal.js'
 
-/** @typedef {import('@oyl/all-of-oyl').Consumable} Consumable */
-/** @typedef {import('@oyl/all-of-oyl').Repository<Consumable>} ConsumablesRepo */
+type ConsumablesRepo = Repository<Consumable>
 
 /**
  * App-level reactive wrapper over the consumables Repository — the catalog of domain Consumables.
  * Add is persist-first; catalog-item delete/update is a deferred backend capability
  * (Sub-project B/D), so there is no remove() here yet.
- * @param {ConsumablesRepo} consumablesRepo
  */
-export function createConsumablesStore(consumablesRepo) {
-  /** @type {Consumable[]} */
-  let consumables = []
+export function createConsumablesStore(consumablesRepo: ConsumablesRepo) {
+  let consumables: Consumable[] = []
   let n = 0
   const revision = signal(0)
 
-  /** @param {readonly Consumable[]} [preloaded]  Bootstrap-payload lists skip the repo read. */
-  async function hydrate(preloaded) {
+  /** Bootstrap-payload lists skip the repo read. */
+  async function hydrate(preloaded?: readonly Consumable[]) {
     consumables = preloaded ? [...preloaded] : [...(await consumablesRepo.list())]
     revision.set((n += 1))
   }
@@ -24,15 +22,13 @@ export function createConsumablesStore(consumablesRepo) {
   return {
     revision,
     hydrate,
-    /** @param {Consumable} c @returns {Promise<Consumable>} */
-    async add(c) {
+    async add(c: Consumable) {
       const saved = await consumablesRepo.save(c)
       consumables = [...consumables, saved]
       revision.set((n += 1))
       return saved
     },
-    /** @returns {readonly Consumable[]} */
-    all() {
+    all(): readonly Consumable[] {
       revision.get()
       return [...consumables]
     },

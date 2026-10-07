@@ -4,7 +4,7 @@ import { signal } from '@oyl/all-of-oyl/client'
 import { sheet } from './sheet.js'
 import { now } from '@oyl/all-of-oyl/client'
 
-/** @typedef {ReturnType<typeof import('../state/vault-store.js').createVaultStore>} VaultStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createVaultStore>} VaultStore */
 
 const CURRENCIES = ['USD', 'EUR', 'GBP']
 const CADENCE_UNITS = ['days', 'weeks', 'months', 'years']

@@ -1,25 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryRepository, LocalStorageRepository, COLLECTIONS, Task, Cadence, DayKey } from '@oyl/all-of-oyl'
-import { createPlannerStore } from './planner-store.js'
-import { effect } from '@oyl/all-of-oyl/client'
+import type { Plan, Repository } from '../../index.js'
+import { InMemoryRepository, LocalStorageRepository, COLLECTIONS, Task, Cadence, DayKey } from '../../index.js'
+import { createPlannerStore } from './planner.js'
+import { effect } from '../reactive/effect.js'
 
-/** @typedef {import('@oyl/all-of-oyl').Plan} Plan */
-/** @typedef {import('@oyl/all-of-oyl').Repository<Plan>} PlansRepo */
+type PlansRepo = Repository<Plan>
 
 /** A cloning plans repo over an in-memory map; `fail()` makes subsequent writes throw. */
 function setup() {
   const map = new Map()
   let failWrites = false
   const storage = {
-    /** @param {string} k */ getItem: (k) => map.get(k) ?? null,
-    /** @param {string} k @param {string} v */ setItem: (k, v) => {
+    getItem: (k: string) => map.get(k) ?? null,
+    setItem: (k: string, v: string) => {
       if (failWrites) throw new Error('quota')
       map.set(k, v)
     },
   }
-  const repo = /** @type {PlansRepo} */ (
-    /** @type {unknown} */ (new LocalStorageRepository(storage, 'oyl/data/plans', /** @type {any} */ (COLLECTIONS.plans)))
-  )
+  const repo = new LocalStorageRepository(storage, 'oyl/data/plans', COLLECTIONS.plans as any) as unknown as PlansRepo
   return { repo, fail: () => { failWrites = true } }
 }
 
@@ -46,18 +44,18 @@ describe('createPlannerStore', () => {
     const successor = await store.complete(t.id, DUE)
     expect(store.get(t.id)?.status).toBe('done')
     expect(successor?.status).toBe('open')
-    expect(store.get(/** @type {Task} */ (successor).id)).toBeDefined()
+    expect(store.get((successor as Task).id)).toBeDefined()
     expect(await repo.list()).toHaveLength(2)
   })
 
   it('complete keeps the day agenda when the repo is an enqueue-only stub (online-first)', async () => {
     // plans are not yet backed: the repo saves-as-no-op and lists empty. A success-path
     // re-hydrate would erase the completed plan (and its successor) from the screen.
-    const stub = /** @type {PlansRepo} */ (/** @type {unknown} */ ({
+    const stub = ({
       list: async () => [], get: async () => undefined,
-      save: async (/** @type {unknown} */ p) => p, saveMany: async (/** @type {unknown[]} */ ps) => ps,
+      save: async (p: unknown) => p, saveMany: async (ps: unknown[]) => ps,
       delete: async () => {}, purge: async () => {},
-    }))
+    } as unknown as PlansRepo)
     const store = createPlannerStore(stub)
     const t = task('Water', { cadence: Cadence.of(1, 'weeks') })
     await store.add(t)
@@ -65,8 +63,8 @@ describe('createPlannerStore', () => {
     expect(store.get(t.id)?.status).toBe('done')
     expect(successor?.status).toBe('open')
     expect(store.agendaFor(DUE).length).toBeGreaterThan(0)
-    await store.cancel(/** @type {Task} */ (successor).id)
-    expect(store.get(/** @type {Task} */ (successor).id)?.status).toBe('canceled')
+    await store.cancel((successor as Task).id)
+    expect(store.get((successor as Task).id)?.status).toBe('canceled')
   })
 
   it('persist-first rollback: a failing save on complete restores the open state', async () => {
@@ -83,15 +81,13 @@ describe('createPlannerStore', () => {
     const map = new Map()
     let writeCount = 0
     const storage = {
-      /** @param {string} k */ getItem: (k) => map.get(k) ?? null,
-      /** @param {string} k @param {string} v */ setItem: (k, v) => {
+      getItem: (k: string) => map.get(k) ?? null,
+      setItem: (k: string, v: string) => {
         if (writeCount++ >= 1) throw new Error('quota') // fail every write after the first (the add)
         map.set(k, v)
       },
     }
-    const repo = /** @type {PlansRepo} */ (
-      /** @type {unknown} */ (new LocalStorageRepository(storage, 'oyl/data/plans', /** @type {any} */ (COLLECTIONS.plans)))
-    )
+    const repo = new LocalStorageRepository(storage, 'oyl/data/plans', COLLECTIONS.plans as any) as unknown as PlansRepo
     const store = createPlannerStore(repo)
     const t = task('Water', { cadence: Cadence.of(1, 'weeks') })
     await store.add(t) // write #0 → persisted
@@ -104,22 +100,22 @@ describe('createPlannerStore', () => {
     const map = new Map()
     let writes = 0
     const storage = {
-      /** @param {string} k */ getItem: (k) => map.get(k) ?? null,
-      /** @param {string} k @param {string} v */ setItem: (k, v) => {
+      getItem: (k: string) => map.get(k) ?? null,
+      setItem: (k: string, v: string) => {
         writes += 1
         map.set(k, v)
       },
     }
-    const repo = /** @type {any} */ (new LocalStorageRepository(storage, 'oyl/data/plans', /** @type {any} */ (COLLECTIONS.plans)))
+    const repo = (new LocalStorageRepository(storage, 'oyl/data/plans', COLLECTIONS.plans as any) as any)
     const store = createPlannerStore(repo)
     await store.add(task('Water', { cadence: Cadence.of(1, 'weeks') }))
     const writesBefore = writes
     const t = store.agendaFor(DUE)[0]
-    const successor = await store.complete(/** @type {any} */ (t).id, DUE)
+    const successor = await store.complete((t as any).id, DUE)
     // exactly one storage write during complete → atomic batch (two-save would be 2)
     expect(writes - writesBefore).toBe(1)
     // and BOTH plans persisted: original is done, successor is open
-    expect(store.get(/** @type {any} */ (t).id)?.status).toBe('done')
+    expect(store.get((t as any).id)?.status).toBe('done')
     expect(successor?.status).toBe('open')
     expect(await repo.list()).toHaveLength(2)
   })
@@ -155,7 +151,7 @@ describe('createPlannerStore', () => {
   it('an effect reading agendaFor re-runs when a mutation bumps revision', async () => {
     const { repo } = setup()
     const store = createPlannerStore(repo)
-    const seen = /** @type {number[]} */ ([])
+    const seen = [] as number[]
     effect(() => seen.push(store.agendaFor(DUE).length))
     await store.add(task())
     await Promise.resolve()
@@ -163,7 +159,7 @@ describe('createPlannerStore', () => {
   })
 
   it('peek exposes the live Planner aggregate', async () => {
-    const store = createPlannerStore(/** @type {any} */ (new InMemoryRepository()))
+    const store = createPlannerStore((new InMemoryRepository() as any))
     await store.add(new Task({ title: 'x', due: DayKey.of('2026-06-16') }))
     expect(store.peek().all()).toHaveLength(1)
   })

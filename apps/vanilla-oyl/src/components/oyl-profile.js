@@ -29,7 +29,7 @@ export class OylProfile extends OylElement {
     /** @type {{ state: import('@oyl/all-of-oyl/client').Signal<any>, onResync: () => void } | null} */ this.sync = null
     /** @type {{ mode: 'local'|'remote', canUploadLocal: boolean, onExport: () => void, onImport: () => void, onUploadLocal: () => void } | null} */ this.dataActions = null
     /** @type {string} */ this.today = ''
-    /** @type {{ connection: import('@oyl/all-of-oyl/client').Signal<import('../state/google-store.js').GoogleConnection>, onConnect: () => void, onDisconnect: () => void } | null} */ this.google = null
+    /** @type {{ connection: import('@oyl/all-of-oyl/client').Signal<import('@oyl/all-of-oyl/client').GoogleConnection>, onConnect: () => void, onDisconnect: () => void } | null} */ this.google = null
   }
   render() {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)

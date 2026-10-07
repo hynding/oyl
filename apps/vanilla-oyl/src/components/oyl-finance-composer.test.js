@@ -2,7 +2,7 @@ import { describe, expect, it, beforeAll } from 'vitest'
 import { Transaction } from '@oyl/all-of-oyl'
 import { InMemoryRepository, Account } from '@oyl/all-of-oyl'
 import { defineFinanceComposer } from './oyl-finance-composer.js'
-import { createAccountsStore } from '../state/accounts-store.js'
+import { createAccountsStore } from '@oyl/all-of-oyl/client'
 
 beforeAll(() => defineFinanceComposer())
 /** @param {{ add?: (e: any) => Promise<any> }} store @param {any} [accounts] */

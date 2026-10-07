@@ -7,7 +7,7 @@ import { relativeDayLabel, formatDayHeading } from '@oyl/all-of-oyl/format'
 import { defineLogForm } from './oyl-log-form.js'
 import { defineEntryRow } from './oyl-entry-row.js'
 
-/** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createJournalStore>} JournalStore */
 
 const styles = sheet(`
   :host { display: block; }

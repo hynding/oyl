@@ -1,13 +1,13 @@
 import { describe, expect, it, beforeAll } from 'vitest'
 import { InMemoryRepository, Consumable, Consumption } from '@oyl/all-of-oyl'
-import { createJournalStore } from '../state/journal-store.js'
-import { createConsumablesStore } from '../state/consumables-store.js'
+import { createJournalStore } from '@oyl/all-of-oyl/client'
+import { createConsumablesStore } from '@oyl/all-of-oyl/client'
 import { defineNutrition } from './oyl-nutrition.js'
 
 beforeAll(() => defineNutrition())
 const settle = () => new Promise((r) => setTimeout(r, 0))
 
-/** @returns {import('../state/journal-store.js').ReposByKind} */
+/** @returns {import('@oyl/all-of-oyl/client').ReposByKind} */
 function makeReposByKind() {
   return {
     'note': /** @type {any} */ (new InMemoryRepository()),

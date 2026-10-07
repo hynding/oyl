@@ -10,7 +10,7 @@ import { defineSubscriptionRow } from './oyl-subscription-row.js'
 import { defineContactRow } from './oyl-contact-row.js'
 import { defineGiftIdeaForm } from './oyl-gift-idea-form.js'
 
-/** @typedef {ReturnType<typeof import('../state/vault-store.js').createVaultStore>} VaultStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createVaultStore>} VaultStore */
 
 const HORIZONS = /** @type {ReadonlyArray<readonly [number, string]>} */ ([
   [30, 'Next 30 days'],

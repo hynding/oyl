@@ -4,8 +4,8 @@ import { sheet } from './sheet.js'
 import { now } from '@oyl/all-of-oyl/client'
 import { signal } from '@oyl/all-of-oyl/client'
 
-/** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
-/** @typedef {ReturnType<typeof import('../state/accounts-store.js').createAccountsStore>} AccountsStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createJournalStore>} JournalStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createAccountsStore>} AccountsStore */
 
 const CURRENCIES = ['USD', 'EUR', 'GBP']
 const EXPENSE_CATEGORIES = ['groceries', 'dining', 'transport', 'utilities', 'entertainment', 'other']

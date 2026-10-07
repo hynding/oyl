@@ -5,8 +5,8 @@ import { now } from '@oyl/all-of-oyl/client'
 import { defineGoalComposer } from './oyl-goal-composer.js'
 import { defineGoalRow } from './oyl-goal-row.js'
 
-/** @typedef {ReturnType<typeof import('../state/goals-store.js').createGoalsStore>} GoalsStore */
-/** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createGoalsStore>} GoalsStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createJournalStore>} JournalStore */
 
 const styles = sheet(`
   :host { display: block; }

@@ -1,25 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryRepository, Note, Consumption, Measurement, Goal, Transaction, Budget, Money, DayKey, DayRange, Account, ActivitySession, Quantity, Id } from '@oyl/all-of-oyl'
-import { createJournalStore } from './journal-store.js'
-import { effect } from '@oyl/all-of-oyl/client'
-
-/** @typedef {import('@oyl/all-of-oyl').Entry} Entry */
+import type { Entry } from '../../index.js'
+import { InMemoryRepository, Note, Consumption, Measurement, Goal, Transaction, Budget, Money, DayKey, DayRange, Account, ActivitySession, Quantity, Id } from '../../index.js'
+import { createJournalStore } from './journal.js'
+import { effect } from '../reactive/effect.js'
 
 const TZ = 'America/New_York'
 const ISO = '2026-06-10T16:00:00Z' // 12:00 EDT → June 10 in TZ
 const dayOf = () => DayKey.from(new Date(ISO), TZ)
 const aNote = (text = 'hello') => new Note({ occurredAt: new Date(ISO), text })
 
-/**
- * Build a per-kind repo map with a separate InMemoryRepository for each entry kind.
- * @returns {{ reposByKind: import('./journal-store.js').ReposByKind, noteRepo: InMemoryRepository<Entry>, consumptionRepo: InMemoryRepository<Entry>, transactionRepo: InMemoryRepository<Entry>, measurementRepo: InMemoryRepository<Entry>, activitySessionRepo: InMemoryRepository<Entry> }}
- */
-function makeReposByKind() {
-  const noteRepo = /** @type {InMemoryRepository<Entry>} */ (new InMemoryRepository())
-  const consumptionRepo = /** @type {InMemoryRepository<Entry>} */ (new InMemoryRepository())
-  const transactionRepo = /** @type {InMemoryRepository<Entry>} */ (new InMemoryRepository())
-  const measurementRepo = /** @type {InMemoryRepository<Entry>} */ (new InMemoryRepository())
-  const activitySessionRepo = /** @type {InMemoryRepository<Entry>} */ (new InMemoryRepository())
+/** Build a per-kind repo map with a separate InMemoryRepository for each entry kind. */
+function makeReposByKind(): { reposByKind: Parameters<typeof createJournalStore>[0], noteRepo: InMemoryRepository<Entry>, consumptionRepo: InMemoryRepository<Entry>, transactionRepo: InMemoryRepository<Entry>, measurementRepo: InMemoryRepository<Entry>, activitySessionRepo: InMemoryRepository<Entry> } {
+  const noteRepo = new InMemoryRepository() as InMemoryRepository<Entry>
+  const consumptionRepo = new InMemoryRepository() as InMemoryRepository<Entry>
+  const transactionRepo = new InMemoryRepository() as InMemoryRepository<Entry>
+  const measurementRepo = new InMemoryRepository() as InMemoryRepository<Entry>
+  const activitySessionRepo = new InMemoryRepository() as InMemoryRepository<Entry>
   const reposByKind = {
     'note': noteRepo,
     'consumption': consumptionRepo,
@@ -51,7 +47,7 @@ describe('createJournalStore', () => {
       purge: async () => {},
     }
     const { reposByKind } = makeReposByKind()
-    const reposByKindWithFail = { ...reposByKind, 'note': /** @type {any} */ (failingRepo) }
+    const reposByKindWithFail = { ...reposByKind, 'note': (failingRepo as any) }
     const store = createJournalStore(reposByKindWithFail, TZ)
     await expect(store.add(aNote())).rejects.toThrow('quota')
     expect(store.entriesOn(dayOf())).toHaveLength(0)
@@ -79,7 +75,7 @@ describe('createJournalStore', () => {
   it('an effect reading entriesOn re-runs when a mutation bumps revision', async () => {
     const { reposByKind } = makeReposByKind()
     const store = createJournalStore(reposByKind, TZ)
-    const seen = /** @type {number[]} */ ([])
+    const seen = [] as number[]
     effect(() => seen.push(store.entriesOn(dayOf()).length))
     await store.add(aNote())
     await Promise.resolve()
@@ -204,7 +200,7 @@ describe('createJournalStore', () => {
     expect(txs).toHaveLength(1)
     expect(txs[0]?.amount.minor).toBe(-1500)
     expect(txs[0]?.direction).toBe('expense')
-    const persisted = /** @type {Transaction[]} */ (await transactionRepo.list())
+    const persisted = (await transactionRepo.list() as Transaction[])
     expect(persisted).toHaveLength(1)
     expect(persisted[0]?.amount.minor).toBe(-1500)
   })
@@ -225,7 +221,7 @@ describe('createJournalStore', () => {
   it('add throws for unknown entry kind before mutating the journal', async () => {
     const { reposByKind } = makeReposByKind()
     const store = createJournalStore(reposByKind, TZ)
-    const unknown = /** @type {any} */ ({ kind: 'bogus-kind', id: { value: 'x' }, occurredAt: new Date(ISO) })
+    const unknown = ({ kind: 'bogus-kind', id: { value: 'x' }, occurredAt: new Date(ISO) } as any)
     await expect(store.add(unknown)).rejects.toThrow('unknown entry kind: bogus-kind')
     expect(store.entriesOn(dayOf())).toHaveLength(0)
   })

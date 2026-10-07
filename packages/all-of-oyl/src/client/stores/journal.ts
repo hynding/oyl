@@ -1,35 +1,25 @@
-import { Journal, Transaction, Consumption, sumNutrients } from '@oyl/all-of-oyl'
-import { signal } from '@oyl/all-of-oyl/client'
+import { Journal, Transaction, Consumption, sumNutrients } from '../../index.js'
+import type { Entry, Id, DayKey, DayRange, Money, Goal, GoalProgress, Budget, Account, Nutrients, Repository } from '../../index.js'
+import { signal } from '../reactive/signal.js'
 
-/** @typedef {import('@oyl/all-of-oyl').Entry} Entry */
-/** @typedef {import('@oyl/all-of-oyl').Id} Id */
-/** @typedef {import('@oyl/all-of-oyl').DayKey} DayKey */
-/** @typedef {import('@oyl/all-of-oyl').DayRange} DayRange */
-/** @typedef {import('@oyl/all-of-oyl').Money} Money */
-/** @typedef {import('@oyl/all-of-oyl').Goal} Goal */
-/** @typedef {import('@oyl/all-of-oyl').GoalProgress} GoalProgress */
-/** @typedef {import('@oyl/all-of-oyl').Budget} Budget */
-/** @typedef {import('@oyl/all-of-oyl').Account} Account */
-/** @typedef {import('@oyl/all-of-oyl').Nutrients} Nutrients */
-/** @typedef {Record<string, import('@oyl/all-of-oyl').Repository<Entry>>} ReposByKind */
+export type ReposByKind = Record<string, Repository<Entry>>
 
 /**
  * App-level reactive wrapper over per-kind entry Repositories + an in-memory domain Journal.
  * Persist-first surgical writes; a `revision` signal makes reads reactive. The domain
  * Journal stays a plain aggregate. Full re-hydrate only on boot/seed/import/multi-tab.
- * @param {ReposByKind} reposByKind  Object keyed by entry-kind string (e.g. 'note', 'consumption', …) to its Repository.
- * @param {string} tz  IANA timezone
+ * @param reposByKind  Object keyed by entry-kind string (e.g. 'note', 'consumption', …) to its Repository.
+ * @param tz  IANA timezone
  */
-export function createJournalStore(reposByKind, tz) {
+export function createJournalStore(reposByKind: ReposByKind, tz: string) {
   let journal = new Journal(tz)
   let n = 0
   const revision = signal(0)
 
   /** Store-local index: entry id.value → entry.kind for routing remove() without changing the lib. */
-  const kindById = new Map()
+  const kindById = new Map<string, string>()
 
-  /** @param {DayKey} day @returns {Consumption[]} */
-  const consumptionsOnDay = (day) => /** @type {Consumption[]} */ (journal.entriesOn(day).filter((e) => e instanceof Consumption))
+  const consumptionsOnDay = (day: DayKey): Consumption[] => journal.entriesOn(day).filter((e) => e instanceof Consumption) as Consumption[]
 
   return {
     revision,
@@ -40,9 +30,8 @@ export function createJournalStore(reposByKind, tz) {
      * aggregate diverges repo and aggregate: the repo save succeeds but `journal.add`
      * then throws DUPLICATE_ID — so don't feed back an entry obtained from `entriesOn`;
      * create a new one. Throws a clear error for unknown entry kinds before any mutation.
-     * @param {Entry} entry @returns {Promise<Entry>}
      */
-    async add(entry) {
+    async add(entry: Entry): Promise<Entry> {
       const repo = reposByKind[entry.kind]
       if (!repo) throw new Error(`unknown entry kind: ${entry.kind}`)
       const saved = await repo.save(entry)
@@ -55,9 +44,8 @@ export function createJournalStore(reposByKind, tz) {
     /**
      * Soft-delete an entry and drop it from the aggregate (idempotent).
      * Routes the delete to the kind-specific repo by looking up the id in the store-local index.
-     * @param {Id} id
      */
-    async remove(id) {
+    async remove(id: Id) {
       const kind = kindById.get(id)
       if (kind === undefined) return // id unknown — already removed or never added; stay idempotent
       const repo = reposByKind[kind]
@@ -68,56 +56,56 @@ export function createJournalStore(reposByKind, tz) {
       revision.set((n += 1))
     },
 
-    /** The day's entries (auto-tracks revision). @param {DayKey} day @returns {readonly Entry[]} */
-    entriesOn(day) {
+    /** The day's entries (auto-tracks revision). */
+    entriesOn(day: DayKey): readonly Entry[] {
       revision.get()
       return journal.entriesOn(day)
     },
 
-    /** Current-period progress of a goal at `day`, judged against journal entries (auto-tracks revision). @param {Goal} goal @param {DayKey} day @returns {GoalProgress} */
-    progressOf(goal, day) {
+    /** Current-period progress of a goal at `day`, judged against journal entries (auto-tracks revision). */
+    progressOf(goal: Goal, day: DayKey): GoalProgress {
       revision.get()
       return goal.progressOn(journal, day)
     },
 
-    /** Live Journal aggregate for read-only insights — touches revision. @returns {Journal} */
-    peek() {
+    /** Live Journal aggregate for read-only insights — touches revision. */
+    peek(): Journal {
       revision.get()
       return journal
     },
 
-    /** Transactions whose day falls in `range`, for the finance ledger (auto-tracks revision). @param {DayRange} range @returns {readonly Transaction[]} */
-    transactionsIn(range) {
+    /** Transactions whose day falls in `range`, for the finance ledger (auto-tracks revision). */
+    transactionsIn(range: DayRange): readonly Transaction[] {
       revision.get()
-      return /** @type {Transaction[]} */ (journal.entriesIn(range).filter((e) => e instanceof Transaction))
+      return journal.entriesIn(range).filter((e) => e instanceof Transaction) as Transaction[]
     },
 
-    /** The day's consumptions (auto-tracks revision). @param {DayKey} day @returns {readonly Consumption[]} */
-    consumptionsOn(day) {
+    /** The day's consumptions (auto-tracks revision). */
+    consumptionsOn(day: DayKey): readonly Consumption[] {
       revision.get()
       return consumptionsOnDay(day)
     },
 
-    /** Summed nutrient totals for the day's consumptions (reactive). @param {DayKey} day @returns {Nutrients} */
-    dailyNutrients(day) {
+    /** Summed nutrient totals for the day's consumptions (reactive). */
+    dailyNutrients(day: DayKey): Nutrients {
       revision.get()
       return sumNutrients(consumptionsOnDay(day))
     },
 
-    /** Budget progress + spent (Money) for the month containing `day` (reactive). @param {Budget} budget @param {DayKey} day @returns {{ progress: GoalProgress, spent: Money }} */
-    budgetStatus(budget, day) {
+    /** Budget progress + spent (Money) for the month containing `day` (reactive). */
+    budgetStatus(budget: Budget, day: DayKey): { progress: GoalProgress, spent: Money } {
       revision.get()
       return { progress: budget.progressOn(journal, day), spent: budget.spent(journal, day) }
     },
 
-    /** This-month expense total for `account` (Money in the account's currency; reactive). @param {Account} account @param {DayKey} day @returns {Money} */
-    accountSpend(account, day) {
+    /** This-month expense total for `account` (Money in the account's currency; reactive). */
+    accountSpend(account: Account, day: DayKey): Money {
       revision.get()
       return account.spentIn(journal, day)
     },
 
-    /** All-time balance for `account`: income minus expense over recorded transactions (Money in the account's currency; reactive). Net-of-recorded. @param {Account} account @returns {Money} */
-    accountBalance(account) {
+    /** All-time balance for `account`: income minus expense over recorded transactions (Money in the account's currency; reactive). Net-of-recorded. */
+    accountBalance(account: Account): Money {
       revision.get()
       return account.balanceIn(journal)
     },
@@ -130,15 +118,13 @@ export function createJournalStore(reposByKind, tz) {
     /**
      * Rebuild the aggregate. With `preloadedByKind` (the one-request bootstrap payload,
      * keyed by entry kind) no repo reads happen; otherwise each kind repo is listed.
-     * @param {Record<string, readonly Entry[]>} [preloadedByKind]
      */
-    async hydrate(preloadedByKind) {
+    async hydrate(preloadedByKind?: Record<string, readonly Entry[]>) {
       const results = preloadedByKind
         ? Object.keys(reposByKind).map((k) => preloadedByKind[k] ?? [])
         : await Promise.all(Object.values(reposByKind).map((r) => r.list()))
       const fresh = new Journal(tz)
-      /** @type {Map<string, string>} */
-      const freshKindById = new Map()
+      const freshKindById = new Map<string, string>()
       for (const entries of results) {
         for (const e of entries) {
           fresh.add(e)

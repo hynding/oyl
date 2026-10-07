@@ -1,14 +1,14 @@
 import { describe, expect, it, beforeAll } from 'vitest'
 import { InMemoryRepository, Consumable, ConsumableProduct, DayKey } from '@oyl/all-of-oyl'
-import { createJournalStore } from '../state/journal-store.js'
-import { createConsumablesStore } from '../state/consumables-store.js'
-import { createConsumableProductsStore } from '../state/consumable-products-store.js'
+import { createJournalStore } from '@oyl/all-of-oyl/client'
+import { createConsumablesStore } from '@oyl/all-of-oyl/client'
+import { createConsumableProductsStore } from '@oyl/all-of-oyl/client'
 import { defineNutritionComposer } from './oyl-nutrition-composer.js'
 
 beforeAll(() => defineNutritionComposer())
 const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone
 
-/** @returns {import('../state/journal-store.js').ReposByKind} */
+/** @returns {import('@oyl/all-of-oyl/client').ReposByKind} */
 function makeReposByKind() {
   return {
     'note': /** @type {any} */ (new InMemoryRepository()),

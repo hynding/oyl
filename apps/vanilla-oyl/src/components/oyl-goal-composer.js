@@ -3,7 +3,7 @@ import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 import { metricUnit } from '../goal/format.js'
 
-/** @typedef {ReturnType<typeof import('../state/goals-store.js').createGoalsStore>} GoalsStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createGoalsStore>} GoalsStore */
 
 const PRESETS = [
   { label: 'Sleep (hours)', metric: 'sleep.hours', direction: 'atLeast', aggregation: 'sum', period: 'day' },

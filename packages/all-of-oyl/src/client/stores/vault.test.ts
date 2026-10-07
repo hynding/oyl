@@ -1,15 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { InMemoryRepository, Document, Possession, Subscription, Cadence, Money, DayKey, DayRange, Contact, GiftIdea } from '@oyl/all-of-oyl'
-import { createVaultStore } from './vault-store.js'
+import { InMemoryRepository, Document, Possession, Subscription, Cadence, Money, DayKey, DayRange, Contact, GiftIdea } from '../../index.js'
+import { createVaultStore } from './vault.js'
 
 const today = DayKey.of('2026-06-13')
 const range = DayRange.of(today, today.addDays(90))
 
-/** @param {string} [name] @param {Record<string, unknown>} [opts] */
-const contact = (name = 'Sam', opts = {}) => new Contact({ name, ...opts })
+const contact = (name = 'Sam', opts: Record<string, unknown> = {}) => new Contact({ name, ...opts })
 
-/** @param {Record<string, unknown>} [opts] */
-const sub = (opts = {}) => new Subscription({
+const sub = (opts: Record<string, unknown> = {}) => new Subscription({
   name: 'Netflix', amount: Money.of(1399, 'USD', 2), cadence: Cadence.of(1, 'months'),
   anchor: today, category: 'entertainment', ...opts,
 })
@@ -17,11 +15,11 @@ const sub = (opts = {}) => new Subscription({
 /** Five in-memory repositories, the shape createVaultStore expects. */
 function repos() {
   return {
-    documents: /** @type {any} */ (new InMemoryRepository()),
-    possessions: /** @type {any} */ (new InMemoryRepository()),
-    subscriptions: /** @type {any} */ (new InMemoryRepository()),
-    contacts: /** @type {any} */ (new InMemoryRepository()),
-    giftIdeas: /** @type {any} */ (new InMemoryRepository()),
+    documents: (new InMemoryRepository() as any),
+    possessions: (new InMemoryRepository() as any),
+    subscriptions: (new InMemoryRepository() as any),
+    contacts: (new InMemoryRepository() as any),
+    giftIdeas: (new InMemoryRepository() as any),
   }
 }
 
@@ -83,10 +81,10 @@ describe('createVaultStore', () => {
     const r = repos()
     const store = createVaultStore(r)
     const saved = await store.addSubscription(sub())
-    const before = /** @type {import('@oyl/all-of-oyl').DayKey} */ (saved.nextDueOn(today)) // never renewed → pending = anchor (today)
+    const before = (saved.nextDueOn(today) as import('../../index.js').DayKey) // never renewed → pending = anchor (today)
     await store.renew(saved.id, today)
-    const renewed = /** @type {import('@oyl/all-of-oyl').Subscription} */ (store.subscriptions()[0])
-    const after = /** @type {import('@oyl/all-of-oyl').DayKey} */ (renewed.nextDueOn(today))
+    const renewed = (store.subscriptions()[0] as import('../../index.js').Subscription)
+    const after = (renewed.nextDueOn(today) as import('../../index.js').DayKey)
     expect(after.compare(before)).toBeGreaterThan(0)
   })
 
@@ -94,11 +92,11 @@ describe('createVaultStore', () => {
     // vault collections are not yet backed: their repos save-as-no-op and list empty.
     // A success-path re-hydrate would wipe the whole in-session vault after a renew.
     const r = repos()
-    r.subscriptions = /** @type {any} */ ({
+    r.subscriptions = ({
       list: async () => [], get: async () => undefined,
-      save: async (/** @type {unknown} */ s) => s, saveMany: async (/** @type {unknown[]} */ i) => i,
+      save: async (s: unknown) => s, saveMany: async (i: unknown[]) => i,
       delete: async () => {}, purge: async () => {},
-    })
+    } as any)
     const store = createVaultStore(r)
     const saved = await store.addSubscription(sub())
     const charge = await store.renew(saved.id, today)
@@ -138,7 +136,7 @@ describe('createVaultStore', () => {
     const store = createVaultStore(r)
     const saved = await store.addContact(contact('Sam', { lastContactedOn: today.addDays(-30) }))
     await store.recordContact(saved.id, today)
-    const c = /** @type {Contact} */ (store.contacts()[0])
+    const c = (store.contacts()[0] as Contact)
     expect(c.staleness(today)).toBe(0)
   })
 

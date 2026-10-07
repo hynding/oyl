@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeAll } from 'vitest'
 import { InMemoryRepository } from '@oyl/all-of-oyl'
-import { createConsumablesStore } from '../state/consumables-store.js'
+import { createConsumablesStore } from '@oyl/all-of-oyl/client'
 import { defineConsumableForm } from './oyl-consumable-form.js'
 
 beforeAll(() => defineConsumableForm())

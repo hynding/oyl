@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeAll } from 'vitest'
 import { LocalStorageRepository, COLLECTIONS, Task, DayKey } from '@oyl/all-of-oyl'
-import { createPlannerStore } from '../state/planner-store.js'
+import { createPlannerStore } from '@oyl/all-of-oyl/client'
 import { definePlanner } from './oyl-planner.js'
 import { now } from '@oyl/all-of-oyl/client'
 

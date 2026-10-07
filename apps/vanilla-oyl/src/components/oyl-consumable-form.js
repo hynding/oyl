@@ -2,7 +2,7 @@ import { Consumable, toSlug } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 
-/** @typedef {ReturnType<typeof import('../state/consumables-store.js').createConsumablesStore>} ConsumablesStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createConsumablesStore>} ConsumablesStore */
 /** @typedef {import('@oyl/all-of-oyl').Nutrients} Nutrients */
 /** @typedef {import('@oyl/all-of-oyl').NutritionAmounts} NutritionAmounts */
 

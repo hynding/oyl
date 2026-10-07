@@ -7,7 +7,7 @@ import { relativeDayLabel, formatDayHeading } from '@oyl/all-of-oyl/format'
 import { definePlanComposer } from './oyl-plan-composer.js'
 import { definePlanRow } from './oyl-plan-row.js'
 
-/** @typedef {ReturnType<typeof import('../state/planner-store.js').createPlannerStore>} PlannerStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createPlannerStore>} PlannerStore */
 /** @typedef {import('@oyl/all-of-oyl').Plan} Plan */
 /** @typedef {import('@oyl/all-of-oyl').Id} Id */
 
