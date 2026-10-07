@@ -1,6 +1,6 @@
 import { signal } from '@oyl/all-of-oyl/client'
 import { User } from '@oyl/all-of-oyl'
-import { PROFILE_ID_KEY } from '../storage/keys.js'
+import { PROFILE_ID_KEY } from '@oyl/all-of-oyl/client'
 
 /** @typedef {Partial<{ displayName: string, timezone: string, defaultCurrency: string, units: 'metric'|'imperial', birthday: string, weightKg: number, heightCm: number, gender: string, location: string }>} ProfilePatch */
 

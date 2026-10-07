@@ -8,8 +8,8 @@ import {
   alwaysOnline,
   strapiRowToShape,
 } from '@oyl/all-of-oyl'
-import { OUTBOX_KEY, READ_CACHE_KEY } from './keys.js'
-import { now } from './clock.js'
+import { OUTBOX_KEY, READ_CACHE_KEY } from '@oyl/all-of-oyl/client'
+import { now } from '@oyl/all-of-oyl/client'
 
 /**
  * @typedef {keyof typeof COLLECTIONS} CollectionName

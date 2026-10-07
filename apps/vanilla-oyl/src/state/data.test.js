@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { Note, Measurement, Goal, DayKey, Task, periodWindowOf, Subscription, Cadence, Money, Account, manualConnectivity, COLLECTIONS, InMemoryRepository, makeSeed } from '@oyl/all-of-oyl'
 import { createThemeState } from './theme.js'
 import { createDataState } from './data.js'
-import { defaultTimezone } from '../storage/clock.js'
+import { defaultTimezone } from '@oyl/all-of-oyl/client'
 
 /**
  * A COLLECTIONS-keyed map of conformant in-memory repos — used to exercise store/round-trip

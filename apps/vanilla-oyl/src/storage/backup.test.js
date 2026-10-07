@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { exportData, importData } from './backup.js'
 import { loadDataset } from './seed.js'
 import { makeSeed, Journal, COLLECTIONS, Planner } from '@oyl/all-of-oyl'
-import { SETTINGS_KEY } from './keys.js'
+import { SETTINGS_KEY } from '@oyl/all-of-oyl/client'
 
 /** @param {Record<string,string>} [seed] */
 function fakeStorage(seed = {}) {

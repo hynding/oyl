@@ -1,7 +1,7 @@
 import { DayKey } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
-import { now } from '../storage/clock.js'
+import { now } from '@oyl/all-of-oyl/client'
 import { defineGoalComposer } from './oyl-goal-composer.js'
 import { defineGoalRow } from './oyl-goal-row.js'
 

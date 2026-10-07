@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createThemeState } from './theme.js'
-import { SETTINGS_KEY } from '../storage/keys.js'
+import { SETTINGS_KEY } from '@oyl/all-of-oyl/client'
 
 /** @param {Record<string,string>} [seed] */
 function fakeStorage(seed = {}) {

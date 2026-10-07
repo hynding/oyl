@@ -1,7 +1,7 @@
 import { COLLECTIONS, DayRange } from '@oyl/all-of-oyl'
-import { CURRENT_SCHEMA_VERSION } from './schema.js'
-import { SETTINGS_KEY } from './keys.js'
-import { now } from './clock.js'
+import { CURRENT_SCHEMA_VERSION } from '@oyl/all-of-oyl/client'
+import { SETTINGS_KEY } from '@oyl/all-of-oyl/client'
+import { now } from '@oyl/all-of-oyl/client'
 import { loadDataset } from './seed.js'
 
 /**

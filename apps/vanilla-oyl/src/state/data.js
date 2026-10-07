@@ -1,7 +1,7 @@
 import { review, Transaction } from '@oyl/all-of-oyl'
 import { signal } from '@oyl/all-of-oyl/client'
 import { makeRepositories, collectionCounts, decodeBootstrap } from '../storage/bootstrap.js'
-import { readSchemaState } from '../storage/schema.js'
+import { readSchemaState } from '@oyl/all-of-oyl/client'
 import { createJournalStore } from './journal-store.js'
 import { createPlannerStore } from './planner-store.js'
 import { createVaultStore } from './vault-store.js'
@@ -10,9 +10,9 @@ import { createBudgetsStore } from './budgets-store.js'
 import { createAccountsStore } from './accounts-store.js'
 import { createConsumablesStore } from './consumables-store.js'
 import { createConsumableProductsStore } from './consumable-products-store.js'
-import { defaultTimezone } from '../storage/clock.js'
+import { defaultTimezone } from '@oyl/all-of-oyl/client'
 
-/** @typedef {import('../storage/schema.js').SchemaState} SchemaState */
+/** @typedef {import('@oyl/all-of-oyl/client').SchemaState} SchemaState */
 /** @typedef {ReturnType<typeof import('./theme.js').createThemeState>} ThemeState */
 /** @typedef {{ getItem(k: string): string | null, setItem(k: string, v: string): void, key(i: number): string | null, length: number }} AppStorage */
 

@@ -5,21 +5,19 @@ import {
   defaultApiBaseUrl, defaultStorageMode,
 } from './config.js'
 import { API_BASE_URL_KEY, STORAGE_MODE_KEY } from './keys.js'
+import type { EnumerableStorage } from '../ports.js'
 
-/** @returns {Storage} */
-function fakeStorage() {
-  /** @type {Map<string, string>} */
-  const m = new Map()
-  return /** @type {any} */ ({
-    getItem: (/** @type {string} */ k) => (m.has(k) ? /** @type {string} */ (m.get(k)) : null),
-    setItem: (/** @type {string} */ k, /** @type {string} */ v) => { m.set(k, String(v)) },
-    removeItem: (/** @type {string} */ k) => { m.delete(k) },
-  })
+function fakeStorage(): EnumerableStorage {
+  const m = new Map<string, string>()
+  return {
+    getItem: (k: string) => (m.has(k) ? (m.get(k) as string) : null),
+    setItem: (k: string, v: string) => { m.set(k, String(v)) },
+    removeItem: (k: string) => { m.delete(k) },
+  } as any
 }
 
 describe('config setters', () => {
-  /** @type {Storage} */
-  let storage
+  let storage: EnumerableStorage
   beforeEach(() => { storage = fakeStorage() })
 
   it('round-trips storage mode, persisting the explicit choice', () => {

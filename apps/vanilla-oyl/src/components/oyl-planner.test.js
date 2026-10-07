@@ -2,7 +2,7 @@ import { describe, expect, it, beforeAll } from 'vitest'
 import { LocalStorageRepository, COLLECTIONS, Task, DayKey } from '@oyl/all-of-oyl'
 import { createPlannerStore } from '../state/planner-store.js'
 import { definePlanner } from './oyl-planner.js'
-import { now } from '../storage/clock.js'
+import { now } from '@oyl/all-of-oyl/client'
 
 /** @typedef {import('@oyl/all-of-oyl').Plan} Plan */
 /** @typedef {import('@oyl/all-of-oyl').Repository<Plan>} PlansRepo */

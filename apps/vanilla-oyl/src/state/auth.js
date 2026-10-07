@@ -1,5 +1,5 @@
 import { signal } from '@oyl/all-of-oyl/client'
-import { AUTH_KEY } from '../storage/keys.js'
+import { AUTH_KEY } from '@oyl/all-of-oyl/client'
 
 /** @typedef {{ id: number, username: string, email: string }} AuthUser */
 /** @typedef {{ token: string, user: AuthUser } | null} AuthSession */

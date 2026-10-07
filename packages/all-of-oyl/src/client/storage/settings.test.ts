@@ -3,10 +3,10 @@ import { readRawSettings } from './settings.js'
 import { SETTINGS_KEY } from './keys.js'
 
 const memStorage = () => {
-  const m = new Map()
+  const m = new Map<string, string>()
   return {
-    getItem: (/** @type {string} */ k) => m.get(k) ?? null,
-    setItem: (/** @type {string} */ k, /** @type {string} */ v) => void m.set(k, v),
+    getItem: (k: string) => m.get(k) ?? null,
+    setItem: (k: string, v: string) => void m.set(k, v),
   }
 }
 

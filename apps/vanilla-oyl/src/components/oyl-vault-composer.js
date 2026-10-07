@@ -2,7 +2,7 @@ import { Document, Possession, Subscription, Contact, Money, Cadence, DayKey } f
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { signal } from '@oyl/all-of-oyl/client'
 import { sheet } from './sheet.js'
-import { now } from '../storage/clock.js'
+import { now } from '@oyl/all-of-oyl/client'
 
 /** @typedef {ReturnType<typeof import('../state/vault-store.js').createVaultStore>} VaultStore */
 

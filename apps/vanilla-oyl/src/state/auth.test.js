@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createAuthState, googleErrorMessage } from './auth.js'
-import { AUTH_KEY } from '../storage/keys.js'
+import { AUTH_KEY } from '@oyl/all-of-oyl/client'
 
 /** @param {Record<string,string>} [seed] */
 function fakeStorage(seed = {}) {

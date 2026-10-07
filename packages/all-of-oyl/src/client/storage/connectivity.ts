@@ -1,8 +1,8 @@
-/**
- * A Connectivity backed by the browser. @param {Window} win
- * @returns {import('@oyl/all-of-oyl').Connectivity}
- */
-export function createBrowserConnectivity(win) {
+import type { Connectivity } from '../../core/connectivity.js'
+import type { ConnectivityWindow } from '../ports.js'
+
+/** A Connectivity backed by the browser. */
+export function createBrowserConnectivity(win: ConnectivityWindow): Connectivity {
   return {
     isOnline: () => win.navigator.onLine,
     subscribe(cb) {

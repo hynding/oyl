@@ -3,7 +3,7 @@ import { formatNutrients, relativeDayLabel, formatDayHeading, formatClockTime } 
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { signal } from '@oyl/all-of-oyl/client'
 import { sheet } from './sheet.js'
-import { now } from '../storage/clock.js'
+import { now } from '@oyl/all-of-oyl/client'
 import { defineNutritionComposer } from './oyl-nutrition-composer.js'
 import { defineConsumableForm } from './oyl-consumable-form.js'
 

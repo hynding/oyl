@@ -6,19 +6,19 @@ export const AUTH_KEY = 'oyl/auth'
 export const API_BASE_URL_KEY = 'oyl/api-base-url'
 export const STORAGE_MODE_KEY = 'oyl/storage-mode'
 
-/** Full storage key for a collection. @param {string} collection @returns {string} */
-export function dataKey(collection) {
+/** Full storage key for a collection. */
+export function dataKey(collection: string): string {
   return `oyl/data/${collection}`
 }
 
-/** Whether a localStorage key belongs to OYL. @param {string} key @returns {boolean} */
-export function isOylKey(key) {
+/** Whether a localStorage key belongs to OYL. */
+export function isOylKey(key: string): boolean {
   return key.startsWith(PREFIX)
 }
 
 export const CACHE_PREFIX = 'oyl/cache/'
-/** Full localStorage key for a collection's offline cache. @param {string} collection @returns {string} */
-export function cacheKey(collection) {
+/** Full localStorage key for a collection's offline cache. */
+export function cacheKey(collection: string): string {
   return `${CACHE_PREFIX}${collection}`
 }
 /** Durable write-outbox key (online-first mutation queue). */

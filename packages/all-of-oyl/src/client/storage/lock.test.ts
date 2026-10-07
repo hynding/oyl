@@ -3,10 +3,9 @@ import { createBrowserLock } from './lock.js'
 
 describe('createBrowserLock', () => {
   it('uses navigator.locks.request when available (holds during fn)', async () => {
-    /** @type {string[]} */
-    const requested = []
-    const win = { navigator: { locks: { request: (/** @type {string} */ name, /** @type {() => any} */ fn) => { requested.push(name); return Promise.resolve(fn()) } } } }
-    const lock = createBrowserLock(/** @type {any} */ (win))
+    const requested: string[] = []
+    const win = { navigator: { locks: { request: (name: string, fn: () => any) => { requested.push(name); return Promise.resolve(fn()) } } } }
+    const lock = createBrowserLock(win)
     const ran = vi.fn(async () => {})
     await lock.runExclusive('oyl-flush', ran)
     expect(requested).toEqual(['oyl-flush'])
@@ -15,7 +14,7 @@ describe('createBrowserLock', () => {
 
   it('falls back to running fn directly when navigator.locks is absent', async () => {
     const win = { navigator: {} }
-    const lock = createBrowserLock(/** @type {any} */ (win))
+    const lock = createBrowserLock(win)
     const ran = vi.fn(async () => {})
     await lock.runExclusive('oyl-flush', ran)
     expect(ran).toHaveBeenCalledOnce()

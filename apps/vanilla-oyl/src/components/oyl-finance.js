@@ -1,7 +1,7 @@
 import { DayKey, periodWindowOf } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
-import { now } from '../storage/clock.js'
+import { now } from '@oyl/all-of-oyl/client'
 import { formatMoney } from '@oyl/all-of-oyl/format'
 import { defineFinanceComposer } from './oyl-finance-composer.js'
 import { defineVaultItem } from './oyl-vault-item.js'

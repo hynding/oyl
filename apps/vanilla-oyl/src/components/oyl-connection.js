@@ -1,6 +1,6 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
-import { normalizeBaseUrl } from '../storage/config.js'
+import { normalizeBaseUrl } from '@oyl/all-of-oyl/client'
 
 /** @typedef {{ mode: 'local'|'remote', apiBaseUrl: string, defaultApiBaseUrl: string, onApply: (mode: 'local'|'remote', url: string) => void }} ConnectionConfig */
 

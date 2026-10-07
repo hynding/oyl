@@ -2,18 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { CURRENT_SCHEMA_VERSION, readSchemaState } from './schema.js'
 import { SCHEMA_VERSION_KEY, dataKey } from './keys.js'
 
-/** @param {Record<string, string>} [seed] */
-function fakeStorage(seed = {}) {
+function fakeStorage(seed: Record<string, string> = {}) {
   const map = new Map(Object.entries(seed))
   return {
-    /** @param {string} k */
-    getItem: (k) => map.get(k) ?? null,
-    /** @param {string} k @param {string} v */
-    setItem: (k, v) => void map.set(k, v),
-    /** @param {string} k */
-    removeItem: (k) => void map.delete(k),
-    /** @param {number} i */
-    key: (i) => [...map.keys()][i] ?? null,
+    getItem: (k: string) => map.get(k) ?? null,
+    setItem: (k: string, v: string) => void map.set(k, v),
+    removeItem: (k: string) => void map.delete(k),
+    key: (i: number) => [...map.keys()][i] ?? null,
     get length() {
       return map.size
     },

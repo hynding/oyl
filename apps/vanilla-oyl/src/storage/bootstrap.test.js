@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { makeRepositories, createFlusher, PATH_BY_COLLECTION } from './bootstrap.js'
 import { Note, Consumption, Consumable, Transaction, Account, Budget, Money, Measurement, ActivitySession, Quantity, Id, Goal, entitiesByKind, manualConnectivity } from '@oyl/all-of-oyl'
-import { OUTBOX_KEY } from './keys.js'
+import { OUTBOX_KEY } from '@oyl/all-of-oyl/client'
 
 function fakeStorage() {
   const m = new Map()
