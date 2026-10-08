@@ -32,7 +32,7 @@ test('a consumable can be created and logged with servings; totals update and pe
   await form.locator('ui-button[type="submit"] button').click()
 
   await expect(rowsWith(page, name)).toHaveCount(1)
-  expect(await deepText(rowsWith(page, name))).toContain('×2')
+  await expect.poll(() => deepText(rowsWith(page, name))).toContain('×2')
   await expect.poll(() => totals(page)).toContain('300kcal')
 
   await awaitOutboxDrained(page)
