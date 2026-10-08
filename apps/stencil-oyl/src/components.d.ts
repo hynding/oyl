@@ -13,8 +13,10 @@ import { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
 import { Budget, Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 import { BudgetStatus } from "./components/oyl-budget-row/oyl-budget-row";
 import { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
+import { ContactsWriter } from "./components/oyl-contact-form/oyl-contact-form";
 import { DocumentsWriter } from "./components/oyl-document-form/oyl-document-form";
 import { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
+import { GiftIdeasWriter } from "./components/oyl-gift-idea-form/oyl-gift-idea-form";
 import { RowAction, ValueTone } from "./components/oyl-item-row/oyl-item-row";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
@@ -28,6 +30,7 @@ import { PossessionsWriter } from "./components/oyl-possession-form/oyl-possessi
 import { Routes } from "./components/oyl-router/oyl-router";
 import { Diagnostics } from "./components/oyl-status/oyl-status";
 import { StatusActions } from "./boot/data-tools.js";
+import { SubscriptionsWriter } from "./components/oyl-subscription-form/oyl-subscription-form";
 import { ThemeState } from "./boot/theme.js";
 import { AccountsReader, Direction, TransactionWriter } from "./components/oyl-transaction-form/oyl-transaction-form";
 export { AccountsWriter } from "./components/oyl-account-form/oyl-account-form";
@@ -38,8 +41,10 @@ export { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
 export { Budget, Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 export { BudgetStatus } from "./components/oyl-budget-row/oyl-budget-row";
 export { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
+export { ContactsWriter } from "./components/oyl-contact-form/oyl-contact-form";
 export { DocumentsWriter } from "./components/oyl-document-form/oyl-document-form";
 export { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
+export { GiftIdeasWriter } from "./components/oyl-gift-idea-form/oyl-gift-idea-form";
 export { RowAction, ValueTone } from "./components/oyl-item-row/oyl-item-row";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
@@ -53,6 +58,7 @@ export { PossessionsWriter } from "./components/oyl-possession-form/oyl-possessi
 export { Routes } from "./components/oyl-router/oyl-router";
 export { Diagnostics } from "./components/oyl-status/oyl-status";
 export { StatusActions } from "./boot/data-tools.js";
+export { SubscriptionsWriter } from "./components/oyl-subscription-form/oyl-subscription-form";
 export { ThemeState } from "./boot/theme.js";
 export { AccountsReader, Direction, TransactionWriter } from "./components/oyl-transaction-form/oyl-transaction-form";
 export namespace Components {
@@ -118,6 +124,12 @@ export namespace Components {
         "store": ConsumablesWriter;
     }
     /**
+     * Add a contact: name, optional birthday (a yearly occasion) and last-contacted day.
+     */
+    interface OylContactForm {
+        "store": ContactsWriter;
+    }
+    /**
      * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
      * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
      * region for the screen's announcements. Controlled: the screen owns the day signal and
@@ -165,6 +177,14 @@ export namespace Components {
           * @default 'UTC'
          */
         "tz": string;
+    }
+    /**
+     * Add a gift idea for a contact. Without contacts it shows a hint instead of the fields.
+     * The form owns `contactId` and re-derives it when the contact list changes (kept when still
+     * present, else the first contact) because `ui-select` syncs its own value silently.
+     */
+    interface OylGiftIdeaForm {
+        "store": GiftIdeasWriter;
     }
     /**
      * A generic list row: label + supporting lines | optional mono value | inline Delete →
@@ -384,6 +404,12 @@ export namespace Components {
         "tick"?: Signal<number>;
     }
     /**
+     * Add a subscription: name, amount + currency, cadence, the day it renews on, category.
+     */
+    interface OylSubscriptionForm {
+        "store": SubscriptionsWriter;
+    }
+    /**
      * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
      * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
      * a System/Light/Dark segmented control. Selection applies instantly and the panel stays open,
@@ -430,6 +456,10 @@ export interface OylConsumableFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylConsumableFormElement;
 }
+export interface OylContactFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylContactFormElement;
+}
 export interface OylDayNavCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylDayNavElement;
@@ -441,6 +471,10 @@ export interface OylDocumentFormCustomEvent<T> extends CustomEvent<T> {
 export interface OylEntryRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylEntryRowElement;
+}
+export interface OylGiftIdeaFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylGiftIdeaFormElement;
 }
 export interface OylItemRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -481,6 +515,10 @@ export interface OylPossessionFormCustomEvent<T> extends CustomEvent<T> {
 export interface OylRegisterCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylRegisterElement;
+}
+export interface OylSubscriptionFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylSubscriptionFormElement;
 }
 export interface OylTransactionFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -622,6 +660,26 @@ declare global {
         prototype: HTMLOylConsumableFormElement;
         new (): HTMLOylConsumableFormElement;
     };
+    interface HTMLOylContactFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a contact: name, optional birthday (a yearly occasion) and last-contacted day.
+     */
+    interface HTMLOylContactFormElement extends Components.OylContactForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylContactFormElementEventMap>(type: K, listener: (this: HTMLOylContactFormElement, ev: OylContactFormCustomEvent<HTMLOylContactFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylContactFormElementEventMap>(type: K, listener: (this: HTMLOylContactFormElement, ev: OylContactFormCustomEvent<HTMLOylContactFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylContactFormElement: {
+        prototype: HTMLOylContactFormElement;
+        new (): HTMLOylContactFormElement;
+    };
     interface HTMLOylDayNavElementEventMap {
         "dayChange": DayKey;
     }
@@ -698,6 +756,28 @@ declare global {
     var HTMLOylFinanceElement: {
         prototype: HTMLOylFinanceElement;
         new (): HTMLOylFinanceElement;
+    };
+    interface HTMLOylGiftIdeaFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a gift idea for a contact. Without contacts it shows a hint instead of the fields.
+     * The form owns `contactId` and re-derives it when the contact list changes (kept when still
+     * present, else the first contact) because `ui-select` syncs its own value silently.
+     */
+    interface HTMLOylGiftIdeaFormElement extends Components.OylGiftIdeaForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylGiftIdeaFormElementEventMap>(type: K, listener: (this: HTMLOylGiftIdeaFormElement, ev: OylGiftIdeaFormCustomEvent<HTMLOylGiftIdeaFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylGiftIdeaFormElementEventMap>(type: K, listener: (this: HTMLOylGiftIdeaFormElement, ev: OylGiftIdeaFormCustomEvent<HTMLOylGiftIdeaFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylGiftIdeaFormElement: {
+        prototype: HTMLOylGiftIdeaFormElement;
+        new (): HTMLOylGiftIdeaFormElement;
     };
     interface HTMLOylItemRowElementEventMap {
         "remove": string;
@@ -1001,6 +1081,26 @@ declare global {
         prototype: HTMLOylStatusElement;
         new (): HTMLOylStatusElement;
     };
+    interface HTMLOylSubscriptionFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a subscription: name, amount + currency, cadence, the day it renews on, category.
+     */
+    interface HTMLOylSubscriptionFormElement extends Components.OylSubscriptionForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylSubscriptionFormElementEventMap>(type: K, listener: (this: HTMLOylSubscriptionFormElement, ev: OylSubscriptionFormCustomEvent<HTMLOylSubscriptionFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylSubscriptionFormElementEventMap>(type: K, listener: (this: HTMLOylSubscriptionFormElement, ev: OylSubscriptionFormCustomEvent<HTMLOylSubscriptionFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylSubscriptionFormElement: {
+        prototype: HTMLOylSubscriptionFormElement;
+        new (): HTMLOylSubscriptionFormElement;
+    };
     /**
      * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
      * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
@@ -1047,10 +1147,12 @@ declare global {
         "oyl-budget-form": HTMLOylBudgetFormElement;
         "oyl-budget-row": HTMLOylBudgetRowElement;
         "oyl-consumable-form": HTMLOylConsumableFormElement;
+        "oyl-contact-form": HTMLOylContactFormElement;
         "oyl-day-nav": HTMLOylDayNavElement;
         "oyl-document-form": HTMLOylDocumentFormElement;
         "oyl-entry-row": HTMLOylEntryRowElement;
         "oyl-finance": HTMLOylFinanceElement;
+        "oyl-gift-idea-form": HTMLOylGiftIdeaFormElement;
         "oyl-item-row": HTMLOylItemRowElement;
         "oyl-journal": HTMLOylJournalElement;
         "oyl-log-form": HTMLOylLogFormElement;
@@ -1070,6 +1172,7 @@ declare global {
         "oyl-router": HTMLOylRouterElement;
         "oyl-shell": HTMLOylShellElement;
         "oyl-status": HTMLOylStatusElement;
+        "oyl-subscription-form": HTMLOylSubscriptionFormElement;
         "oyl-theme-picker": HTMLOylThemePickerElement;
         "oyl-transaction-form": HTMLOylTransactionFormElement;
     }
@@ -1160,6 +1263,16 @@ declare namespace LocalJSX {
         "store": ConsumablesWriter;
     }
     /**
+     * Add a contact: name, optional birthday (a yearly occasion) and last-contacted day.
+     */
+    interface OylContactForm {
+        /**
+          * A contact was added through the store.
+         */
+        "onAdded"?: (event: OylContactFormCustomEvent<void>) => void;
+        "store": ContactsWriter;
+    }
+    /**
      * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
      * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
      * region for the screen's announcements. Controlled: the screen owns the day signal and
@@ -1215,6 +1328,18 @@ declare namespace LocalJSX {
           * @default 'UTC'
          */
         "tz"?: string;
+    }
+    /**
+     * Add a gift idea for a contact. Without contacts it shows a hint instead of the fields.
+     * The form owns `contactId` and re-derives it when the contact list changes (kept when still
+     * present, else the first contact) because `ui-select` syncs its own value silently.
+     */
+    interface OylGiftIdeaForm {
+        /**
+          * A gift idea was added through the store.
+         */
+        "onAdded"?: (event: OylGiftIdeaFormCustomEvent<void>) => void;
+        "store": GiftIdeasWriter;
     }
     /**
      * A generic list row: label + supporting lines | optional mono value | inline Delete →
@@ -1477,6 +1602,16 @@ declare namespace LocalJSX {
         "tick"?: Signal<number>;
     }
     /**
+     * Add a subscription: name, amount + currency, cadence, the day it renews on, category.
+     */
+    interface OylSubscriptionForm {
+        /**
+          * A subscription was added through the store.
+         */
+        "onAdded"?: (event: OylSubscriptionFormCustomEvent<void>) => void;
+        "store": SubscriptionsWriter;
+    }
+    /**
      * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
      * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
      * a System/Light/Dark segmented control. Selection applies instantly and the panel stays open,
@@ -1556,10 +1691,12 @@ declare namespace LocalJSX {
         "oyl-budget-form": OylBudgetForm;
         "oyl-budget-row": OylBudgetRow;
         "oyl-consumable-form": OylConsumableForm;
+        "oyl-contact-form": OylContactForm;
         "oyl-day-nav": Omit<OylDayNav, keyof OylDayNavAttributes> & { [K in keyof OylDayNav & keyof OylDayNavAttributes]?: OylDayNav[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `attr:${K}`]?: OylDayNavAttributes[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `prop:${K}`]?: OylDayNav[K] };
         "oyl-document-form": OylDocumentForm;
         "oyl-entry-row": OylEntryRow;
         "oyl-finance": Omit<OylFinance, keyof OylFinanceAttributes> & { [K in keyof OylFinance & keyof OylFinanceAttributes]?: OylFinance[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `attr:${K}`]?: OylFinanceAttributes[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `prop:${K}`]?: OylFinance[K] };
+        "oyl-gift-idea-form": OylGiftIdeaForm;
         "oyl-item-row": Omit<OylItemRow, keyof OylItemRowAttributes> & { [K in keyof OylItemRow & keyof OylItemRowAttributes]?: OylItemRow[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `attr:${K}`]?: OylItemRowAttributes[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `prop:${K}`]?: OylItemRow[K] } & OneOf<"itemId", OylItemRow["itemId"], OylItemRowAttributes["itemId"]> & OneOf<"label", OylItemRow["label"], OylItemRowAttributes["label"]>;
         "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
         "oyl-log-form": OylLogForm;
@@ -1579,6 +1716,7 @@ declare namespace LocalJSX {
         "oyl-router": OylRouter;
         "oyl-shell": Omit<OylShell, keyof OylShellAttributes> & { [K in keyof OylShell & keyof OylShellAttributes]?: OylShell[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `attr:${K}`]?: OylShellAttributes[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `prop:${K}`]?: OylShell[K] };
         "oyl-status": OylStatus;
+        "oyl-subscription-form": OylSubscriptionForm;
         "oyl-theme-picker": OylThemePicker;
         "oyl-transaction-form": OylTransactionForm;
     }
@@ -1622,6 +1760,10 @@ declare module "@stencil/core" {
              */
             "oyl-consumable-form": LocalJSX.IntrinsicElements["oyl-consumable-form"] & JSXBase.HTMLAttributes<HTMLOylConsumableFormElement>;
             /**
+             * Add a contact: name, optional birthday (a yearly occasion) and last-contacted day.
+             */
+            "oyl-contact-form": LocalJSX.IntrinsicElements["oyl-contact-form"] & JSXBase.HTMLAttributes<HTMLOylContactFormElement>;
+            /**
              * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
              * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
              * region for the screen's announcements. Controlled: the screen owns the day signal and
@@ -1645,6 +1787,12 @@ declare module "@stencil/core" {
              * vanilla's (`periodWindowOf('month', today)`, `budgetStatus`, `accountBalance/Spend`).
              */
             "oyl-finance": LocalJSX.IntrinsicElements["oyl-finance"] & JSXBase.HTMLAttributes<HTMLOylFinanceElement>;
+            /**
+             * Add a gift idea for a contact. Without contacts it shows a hint instead of the fields.
+             * The form owns `contactId` and re-derives it when the contact list changes (kept when still
+             * present, else the first contact) because `ui-select` syncs its own value silently.
+             */
+            "oyl-gift-idea-form": LocalJSX.IntrinsicElements["oyl-gift-idea-form"] & JSXBase.HTMLAttributes<HTMLOylGiftIdeaFormElement>;
             /**
              * A generic list row: label + supporting lines | optional mono value | inline Delete →
              * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
@@ -1739,6 +1887,10 @@ declare module "@stencil/core" {
              * LOCAL storage (Local mode).
              */
             "oyl-status": LocalJSX.IntrinsicElements["oyl-status"] & JSXBase.HTMLAttributes<HTMLOylStatusElement>;
+            /**
+             * Add a subscription: name, amount + currency, cadence, the day it renews on, category.
+             */
+            "oyl-subscription-form": LocalJSX.IntrinsicElements["oyl-subscription-form"] & JSXBase.HTMLAttributes<HTMLOylSubscriptionFormElement>;
             /**
              * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
              * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
