@@ -5,7 +5,7 @@
 }
 .row {
   display: grid;
-  grid-template-columns: 4rem 1fr auto;
+  grid-template-columns: 5rem 1fr auto;
   gap: var(--space-1) var(--space-4);
   align-items: baseline;
   padding: var(--space-3) 0;
@@ -51,7 +51,10 @@ button {
 .confirm { display: inline-flex; gap: var(--space-1); align-items: center; font-size: var(--step--1); color: var(--color-danger); }
 .confirm .yes { color: var(--color-on-accent); background: var(--color-danger); font-weight: 500; }
 .confirm .no { color: var(--color-muted); background: var(--color-surface-2); }
+/* Narrow: time and actions share the first line; the body takes the full width below. */
 @container (max-width: 26rem) {
   .row { grid-template-columns: 1fr auto; }
-  .time { grid-column: 1; }
+  .time { grid-column: 1; grid-row: 1; }
+  .actions { grid-column: 2; grid-row: 1; }
+  .body { grid-column: 1 / -1; grid-row: 2; }
 }
