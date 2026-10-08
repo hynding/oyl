@@ -13,6 +13,16 @@ export default defineVitestConfig({
         },
       },
       {
+        // Pure browser modules (link interceptor, theme applier) in plain happy-dom — no Stencil.
+        test: {
+          name: 'dom',
+          include: ['src/**/*.dom.ts'],
+          environment: 'happy-dom',
+          // Disable happy-dom's real navigation so un-intercepted anchor clicks stay inert.
+          environmentOptions: { happyDOM: { settings: { navigation: { disableMainFrameNavigation: true, disableChildFrameNavigation: true } } } },
+        },
+      },
+      {
         // Component specs against the dev lazy-loader build (see vitest-setup.ts).
         test: {
           name: 'spec',

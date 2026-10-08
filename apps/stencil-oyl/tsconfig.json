@@ -16,5 +16,5 @@
     "allowSyntheticDefaultImports": true
   },
   "include": ["src"],
-  "exclude": ["src/**/*.spec.tsx", "src/**/*.unit.ts", "dist", "www", "loader"]
+  "exclude": ["src/**/*.spec.tsx", "src/**/*.unit.ts", "src/**/*.dom.ts", "www"]
 }
