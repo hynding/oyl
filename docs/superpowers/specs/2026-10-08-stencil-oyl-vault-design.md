@@ -1,7 +1,7 @@
 # `apps/stencil-oyl` Vault screen — Design
 
 **Date:** 2026-10-08
-**Status:** draft (branch `feat/stencil-oyl-vault`, stacked on `feat/stencil-oyl-finance`)
+**Status:** implemented on branch feat/stencil-oyl-vault (stacked on feat/stencil-oyl-finance; plan: `docs/superpowers/plans/2026-10-08-stencil-oyl-vault.md`)
 **Program:** Stencil front-end — sub-project 7 (fifth redesigned screen; see
 `2026-10-06-extract-client-layer-design.md` §Program context). Depends on 6 (`oyl-item-row`,
 the collapsed-form section pattern, `ui-select`).
@@ -140,3 +140,10 @@ emits `act` with both fields and never opens the confirm.
 | Hidden sections lose form state when switching kinds | Only the chosen section renders (vanilla reset the whole form on every submit anyway); the segment is a navigation control, not a tab with unsaved drafts. |
 | Renew's cross-store write fails offline | `renewSubscription` already queues the Transaction through the outbox; the announcement follows the vault write as in vanilla. |
 | `act` event name | Not a native DOM event name; `remove`/`added` already in use. |
+
+## Amendments during implementation
+
+1. The pre-build review's findings (horizon as a bundle signal, the gift form owning `contactId`, the subscription form's full reset, per-list classes, the field-named-by-the-message rule, no routing-spec change) were folded in before any code.
+2. The five forms share `src/vault/form.css` (imported per component) and `fieldValue`/`clearFields` helpers.
+3. The four segment labels fit at Pixel 7 width unshortened; the mobile overflow e2e confirms it.
+4. e2e: a `deepText` read right after a `toHaveCount` now polls across the stencil specs (the host exists before its shadow root renders — one race on mobile Finance).
