@@ -1,7 +1,7 @@
 # `packages/ui-oyl` — Design tokens, themes and v1 primitives — Design
 
 **Date:** 2026-10-07
-**Status:** reviewed; plan: `docs/superpowers/plans/2026-10-07-ui-oyl-library.md`
+**Status:** implemented on branch feat/ui-oyl (plan: docs/superpowers/plans/2026-10-07-ui-oyl-library.md)
 **Program:** Stencil front-end (`apps/stencil-oyl`) — sub-project 1 (see
 `2026-10-06-extract-client-layer-design.md` §Program context)
 
