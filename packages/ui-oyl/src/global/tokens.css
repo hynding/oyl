@@ -1,0 +1,31 @@
+@layer tokens, themes;
+
+/*
+ * Structural tokens — shared by every component. Color tokens live in themes/<name>.css.
+ * The first block is carried over from apps/vanilla-oyl/styles/tokens.css verbatim so both
+ * apps share one theme contract while they run side by side.
+ */
+@layer tokens {
+  :root {
+    --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+    --space-6: 1.5rem; --space-8: 2rem;
+    --radius-1: 0.375rem; --radius-2: 0.75rem;
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", monospace;
+    --step--1: clamp(0.78rem, 0.76rem + 0.1vw, 0.85rem);
+    --step-0: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+    --step-1: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+    --step-2: clamp(1.6rem, 1.3rem + 1.2vw, 2.25rem);
+    --focus-ring: 2px solid var(--color-accent);
+
+    /* Redesign additions ("Instrument", touch-sized) */
+    --size-control: 2.75rem;      /* 44px: min height of buttons, inputs, nav tabs */
+    --radius-pill: 999px;
+    --line-1: 0.5px;              /* hairline */
+    --line-2: 1px;                /* emphasized border */
+    --dur-fast: 120ms;
+    --dur-base: 200ms;
+    --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  }
+  @property --color-bg { syntax: "<color>"; inherits: true; initial-value: #ffffff; }
+}

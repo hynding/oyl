@@ -1,0 +1,57 @@
+@import "../../global/base.css";
+
+:host {
+  display: block;
+}
+nav {
+  display: flex;
+  gap: var(--space-1);
+}
+a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--size-control);
+  padding: 0 var(--space-3);
+  border-block-end: 2px solid transparent;
+  color: var(--color-muted);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+a:hover {
+  color: var(--color-text);
+}
+a[aria-current="page"] {
+  color: var(--color-accent);
+  border-block-end-color: var(--color-accent);
+}
+
+/* Bottom tab bar: viewport-fixed. The host's ancestors must not create a containing
+   block (no `container-type`/`transform`), or the bar is trapped in the page. */
+:host([orientation="bottom"]) {
+  position: fixed;
+  inset-block-end: 0;
+  inset-inline: 0;
+  z-index: 10;
+  background: var(--color-surface);
+  border-block-start: var(--line-1) solid var(--color-border);
+  padding-block-end: env(safe-area-inset-bottom);
+}
+:host([orientation="bottom"]) nav {
+  gap: 0;
+}
+:host([orientation="bottom"]) a {
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-1);
+  min-block-size: calc(var(--size-control) + var(--space-2));
+  padding: var(--space-1) 0;
+  border-block-end: 0;
+  font-size: var(--step--1);
+  font-weight: 400;
+}
+:host([orientation="bottom"]) a[aria-current="page"] {
+  font-weight: 500;
+}

@@ -1,0 +1,19 @@
+@layer themes {
+  :root[data-theme="sunrise"] {
+    --color-bg: light-dark(oklch(97.5% 0.014 80), oklch(18% 0.014 55));
+    --color-surface: light-dark(oklch(99.5% 0.008 80), oklch(23% 0.016 55));
+    --color-surface-2: light-dark(oklch(96% 0.018 80), oklch(27% 0.018 55));
+    --color-text: light-dark(oklch(26% 0.02 55), oklch(94% 0.012 80));
+    --color-muted: light-dark(oklch(49% 0.025 55), oklch(71% 0.02 80));
+    --color-accent: light-dark(oklch(57% 0.16 40), oklch(70% 0.14 45));
+    --color-on-accent: light-dark(oklch(99% 0.005 80), oklch(20% 0.02 55));
+    --color-border: light-dark(oklch(89% 0.015 80), oklch(31% 0.016 55));
+    --color-danger: light-dark(oklch(53% 0.2 25), oklch(70% 0.17 25));
+    --color-warn: light-dark(oklch(60% 0.14 70), oklch(80% 0.12 72));
+    --color-ok: light-dark(oklch(55% 0.15 150), oklch(74% 0.14 150));
+    --color-accent-hover: color-mix(in oklch, var(--color-accent), black 12%);
+    /* Soft dawn geometry: rounder corners than the base scale. */
+    --radius-1: 0.5rem;
+    --radius-2: 1rem;
+  }
+}

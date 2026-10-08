@@ -1,0 +1,16 @@
+@layer themes {
+  :root[data-theme="ocean"] {
+    --color-bg: light-dark(oklch(97.5% 0.008 230), oklch(17% 0.015 235));
+    --color-surface: light-dark(oklch(99.5% 0.004 230), oklch(22% 0.018 235));
+    --color-surface-2: light-dark(oklch(96% 0.01 230), oklch(26% 0.02 235));
+    --color-text: light-dark(oklch(25% 0.02 235), oklch(93.5% 0.008 220));
+    --color-muted: light-dark(oklch(49% 0.02 235), oklch(70% 0.015 220));
+    --color-accent: light-dark(oklch(51% 0.11 210), oklch(71% 0.11 205));
+    --color-on-accent: light-dark(oklch(99% 0.003 230), oklch(19% 0.02 235));
+    --color-border: light-dark(oklch(89.5% 0.01 230), oklch(31% 0.02 235));
+    --color-danger: light-dark(oklch(53% 0.2 25), oklch(70% 0.17 25));
+    --color-warn: light-dark(oklch(60% 0.14 70), oklch(80% 0.12 72));
+    --color-ok: light-dark(oklch(55% 0.14 165), oklch(74% 0.13 165));
+    --color-accent-hover: color-mix(in oklch, var(--color-accent), black 12%);
+  }
+}

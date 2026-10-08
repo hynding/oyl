@@ -27,7 +27,7 @@ proven by its unit tests and the unchanged e2e suite.
 | # | Sub-project | Depends on |
 |---|---|---|
 | **0** | **Extract client layer (this spec)** | — |
-| 1 | `packages/ui-oyl`: domain-agnostic Stencil component library (design tokens, themes for the redesign, primitives) with `dist` + custom-elements outputs | — |
+| 1 | `packages/ui-oyl`: domain-agnostic Stencil component library (design tokens, themes for the redesign, primitives) with `dist` + custom-elements outputs — **implemented** (spec `2026-10-07-ui-oyl-library-design.md`) | — |
 | 2 | `apps/stencil-oyl` shell: scaffold, signals↔Stencil bridge, routing, login/register/guard, data wiring + flusher, Status screen, dev port, its own e2e project | 0, 1 |
 | 3…n | Redesigned screens, one spec each (journal, planner, nutrition, finance, goals, vault, insights, profile) | 2 |
 | n+1 | Prerender/SEO via Stencil hydrate output | 2 |

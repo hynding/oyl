@@ -1,0 +1,3 @@
+/* Shared shadow-root base rules (a document reset never reaches shadow roots). */
+*, *::before, *::after { box-sizing: border-box; }
+:host(:focus-visible), :focus-visible { outline: var(--focus-ring); outline-offset: 2px; }

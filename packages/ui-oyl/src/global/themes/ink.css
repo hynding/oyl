@@ -1,0 +1,20 @@
+@layer themes {
+  :root[data-theme="ink"] {
+    --color-bg: light-dark(oklch(98.5% 0 0), oklch(16% 0 0));
+    --color-surface: light-dark(oklch(99.5% 0 0), oklch(21% 0 0));
+    --color-surface-2: light-dark(oklch(95.5% 0 0), oklch(25% 0 0));
+    --color-text: light-dark(oklch(20% 0 0), oklch(95% 0 0));
+    --color-muted: light-dark(oklch(45% 0 0), oklch(68% 0 0));
+    --color-accent: light-dark(oklch(25% 0 0), oklch(92% 0 0));
+    --color-on-accent: light-dark(oklch(98% 0 0), oklch(18% 0 0));
+    --color-border: light-dark(oklch(87% 0 0), oklch(32% 0 0));
+    /* Functional states keep chroma (slightly muted) so meaning survives the monochrome. */
+    --color-danger: light-dark(oklch(50% 0.17 25), oklch(70% 0.15 25));
+    --color-warn: light-dark(oklch(58% 0.12 70), oklch(78% 0.1 72));
+    --color-ok: light-dark(oklch(52% 0.12 150), oklch(72% 0.12 150));
+    --color-accent-hover: color-mix(in oklch, var(--color-accent), black 12%);
+    /* Print geometry: hard corners. */
+    --radius-1: 0;
+    --radius-2: 0;
+  }
+}
