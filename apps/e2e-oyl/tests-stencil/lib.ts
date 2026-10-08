@@ -41,6 +41,26 @@ export async function addTask(page: Page, title: string, due?: string): Promise<
   await form.locator('ui-button[type="submit"] button').click()
 }
 
+/** Add a consumable to the catalog through the stencil nutrition screen's disclosure form. */
+export async function addConsumable(page: Page, name: string, calories: string): Promise<void> {
+  const details = page.locator('oyl-nutrition details')
+  if (!(await details.evaluate((d) => (d as HTMLDetailsElement).open))) await details.locator('summary').click()
+  const form = page.locator('oyl-consumable-form')
+  await form.locator('ui-field[name="name"] input').fill(name)
+  await form.locator('ui-field[name="calories"] input').fill(calories)
+  await form.locator('ui-button[type="submit"] button').click()
+}
+
+/** Log an ad-hoc meal through the stencil meal composer. */
+export async function logAdhoc(page: Page, note: string, calories: string, protein?: string): Promise<void> {
+  const form = page.locator('oyl-meal-form')
+  await form.locator('ui-segment [data-value="adhoc"]').click()
+  await form.locator('ui-field[name="note"] input').fill(note)
+  await form.locator('ui-field[name="calories"] input').fill(calories)
+  if (protein) await form.locator('ui-field[name="protein"] input').fill(protein)
+  await form.locator('ui-button[type="submit"] button').click()
+}
+
 /** Click a ui-button by its data-act (the inner control, as a user would). */
 export function act(scope: Locator | Page, name: string): Locator {
   return scope.locator(`ui-button[data-act="${name}"] button`)
