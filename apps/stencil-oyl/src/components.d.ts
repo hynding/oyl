@@ -8,7 +8,7 @@ import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { Signal } from "@oyl/all-of-oyl/client";
 import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
-import { DayKey, Entry, Id } from "@oyl/all-of-oyl";
+import { DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
@@ -19,7 +19,7 @@ import { ThemeState } from "./boot/theme.js";
 export { Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
-export { DayKey, Entry, Id } from "@oyl/all-of-oyl";
+export { DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
@@ -148,6 +148,18 @@ export namespace Components {
     interface OylNoticeHost {
         "notice": Signal<string | null>;
     }
+    /**
+     * One plan: check | body | actions. The round check completes an open plan; Cancel and
+     * Delete are two-step inline confirms on native buttons (a control cluster, like the
+     * entry row's), so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
+     */
+    interface OylPlanRow {
+        /**
+          * Set by the Overdue section: shows "Due … · Nd ago" relative to this day.
+         */
+        "overdueAsOf"?: DayKey;
+        "plan": Plan;
+    }
     interface OylRegister {
         "auth": AuthApi1;
         "googleAuth"?: Signal<{ href: string } | null>;
@@ -233,6 +245,10 @@ export interface OylLoginCustomEvent<T> extends CustomEvent<T> {
 export interface OylNoticeHostCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylNoticeHostElement;
+}
+export interface OylPlanRowCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylPlanRowElement;
 }
 export interface OylRegisterCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -429,6 +445,30 @@ declare global {
         prototype: HTMLOylNoticeHostElement;
         new (): HTMLOylNoticeHostElement;
     };
+    interface HTMLOylPlanRowElementEventMap {
+        "complete": Id;
+        "cancelPlan": Id;
+        "remove": Id;
+    }
+    /**
+     * One plan: check | body | actions. The round check completes an open plan; Cancel and
+     * Delete are two-step inline confirms on native buttons (a control cluster, like the
+     * entry row's), so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
+     */
+    interface HTMLOylPlanRowElement extends Components.OylPlanRow, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylPlanRowElementEventMap>(type: K, listener: (this: HTMLOylPlanRowElement, ev: OylPlanRowCustomEvent<HTMLOylPlanRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylPlanRowElementEventMap>(type: K, listener: (this: HTMLOylPlanRowElement, ev: OylPlanRowCustomEvent<HTMLOylPlanRowElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylPlanRowElement: {
+        prototype: HTMLOylPlanRowElement;
+        new (): HTMLOylPlanRowElement;
+    };
     interface HTMLOylRegisterElementEventMap {
         "authenticated": void;
     }
@@ -507,6 +547,7 @@ declare global {
         "oyl-not-found": HTMLOylNotFoundElement;
         "oyl-not-yet": HTMLOylNotYetElement;
         "oyl-notice-host": HTMLOylNoticeHostElement;
+        "oyl-plan-row": HTMLOylPlanRowElement;
         "oyl-register": HTMLOylRegisterElement;
         "oyl-router": HTMLOylRouterElement;
         "oyl-shell": HTMLOylShellElement;
@@ -658,6 +699,21 @@ declare namespace LocalJSX {
          */
         "onDismiss"?: (event: OylNoticeHostCustomEvent<void>) => void;
     }
+    /**
+     * One plan: check | body | actions. The round check completes an open plan; Cancel and
+     * Delete are two-step inline confirms on native buttons (a control cluster, like the
+     * entry row's), so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
+     */
+    interface OylPlanRow {
+        "onCancelPlan"?: (event: OylPlanRowCustomEvent<Id>) => void;
+        "onComplete"?: (event: OylPlanRowCustomEvent<Id>) => void;
+        "onRemove"?: (event: OylPlanRowCustomEvent<Id>) => void;
+        /**
+          * Set by the Overdue section: shows "Due … · Nd ago" relative to this day.
+         */
+        "overdueAsOf"?: DayKey;
+        "plan": Plan;
+    }
     interface OylRegister {
         "auth": AuthApi1;
         "googleAuth"?: Signal<{ href: string } | null>;
@@ -756,6 +812,7 @@ declare namespace LocalJSX {
         "oyl-not-found": Omit<OylNotFound, keyof OylNotFoundAttributes> & { [K in keyof OylNotFound & keyof OylNotFoundAttributes]?: OylNotFound[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `attr:${K}`]?: OylNotFoundAttributes[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `prop:${K}`]?: OylNotFound[K] };
         "oyl-not-yet": Omit<OylNotYet, keyof OylNotYetAttributes> & { [K in keyof OylNotYet & keyof OylNotYetAttributes]?: OylNotYet[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `attr:${K}`]?: OylNotYetAttributes[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `prop:${K}`]?: OylNotYet[K] } & OneOf<"name", OylNotYet["name"], OylNotYetAttributes["name"]>;
         "oyl-notice-host": OylNoticeHost;
+        "oyl-plan-row": OylPlanRow;
         "oyl-register": OylRegister;
         "oyl-router": OylRouter;
         "oyl-shell": Omit<OylShell, keyof OylShellAttributes> & { [K in keyof OylShell & keyof OylShellAttributes]?: OylShell[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `attr:${K}`]?: OylShellAttributes[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `prop:${K}`]?: OylShell[K] };
@@ -820,6 +877,12 @@ declare module "@stencil/core" {
              * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
              */
             "oyl-notice-host": LocalJSX.IntrinsicElements["oyl-notice-host"] & JSXBase.HTMLAttributes<HTMLOylNoticeHostElement>;
+            /**
+             * One plan: check | body | actions. The round check completes an open plan; Cancel and
+             * Delete are two-step inline confirms on native buttons (a control cluster, like the
+             * entry row's), so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
+             */
+            "oyl-plan-row": LocalJSX.IntrinsicElements["oyl-plan-row"] & JSXBase.HTMLAttributes<HTMLOylPlanRowElement>;
             "oyl-register": LocalJSX.IntrinsicElements["oyl-register"] & JSXBase.HTMLAttributes<HTMLOylRegisterElement>;
             /**
              * Switches one screen element on the route signal. Screens are created by the `routes`

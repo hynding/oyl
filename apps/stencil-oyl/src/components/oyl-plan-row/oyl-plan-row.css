@@ -1,0 +1,70 @@
+:host {
+  display: block;
+  container-type: inline-size;
+  border-block-start: var(--line-1) solid var(--color-border);
+}
+.row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-1) var(--space-3);
+  align-items: start;
+  padding: var(--space-3) 0;
+}
+.check {
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  margin-block-start: 0.1rem;
+  padding: 0;
+  border: var(--line-2) solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-on-accent);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.check:hover:not(:disabled) { border-color: var(--color-accent); }
+.check:disabled { cursor: default; }
+.check.done { background: var(--color-accent); border-color: var(--color-accent); }
+.check.done::after { content: "✓"; font-size: 0.8rem; line-height: 1; }
+.check:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.body { min-inline-size: 0; }
+.title { color: var(--color-text); overflow-wrap: anywhere; }
+.done .title, .canceled .title { text-decoration: line-through; color: var(--color-muted); }
+.meta { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.meta:empty { display: none; }
+.time { font-family: var(--font-mono); font-size: var(--step--1); color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.badge {
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 0.1rem var(--space-2);
+  border-radius: var(--radius-pill);
+  border: var(--line-1) solid currentColor;
+}
+.badge.appt { color: var(--color-accent); }
+.badge.recur, .badge.cancel { color: var(--color-muted); }
+.badge.overdue { color: var(--color-warn); }
+.actions { display: inline-flex; gap: var(--space-1); align-self: center; }
+button {
+  font: inherit;
+  font-size: var(--step--1);
+  color: inherit;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--radius-1);
+  min-block-size: 2rem;
+  padding: 0 var(--space-2);
+}
+.quiet, .del { color: var(--color-muted); }
+.quiet:hover { color: var(--color-text); background: var(--color-surface-2); }
+.del:hover { color: var(--color-danger); background: var(--color-surface-2); }
+.confirm { display: inline-flex; gap: var(--space-1); align-items: center; font-size: var(--step--1); color: var(--color-danger); }
+.confirm .yes { color: var(--color-on-accent); background: var(--color-danger); font-weight: 500; }
+.confirm .no { color: var(--color-muted); background: var(--color-surface-2); }
+/* Narrow: the actions drop under the body. */
+@container (max-width: 26rem) {
+  .row { grid-template-columns: auto 1fr; }
+  .actions { grid-column: 2; justify-self: start; margin-block-start: var(--space-1); }
+}
