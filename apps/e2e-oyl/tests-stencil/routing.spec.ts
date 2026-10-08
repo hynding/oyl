@@ -5,10 +5,15 @@
 import { test, expect } from '../lib/fixtures'
 import { deepText, navTo } from './lib'
 
-test('deep link straight to /journal renders the placeholder screen', async ({ page, signIn }) => {
+test('deep link straight to /journal renders the journal screen', async ({ page, signIn }) => {
   await signIn('/journal')
   await expect(page).toHaveURL('/journal')
-  expect(await deepText(page.locator('oyl-not-yet'))).toContain('Journal is coming to the new OYL')
+  await expect(page.locator('oyl-journal oyl-log-form')).toBeVisible()
+})
+
+test('deep link to a screen the redesign has not reached renders its placeholder', async ({ page, signIn }) => {
+  await signIn('/planner')
+  expect(await deepText(page.locator('oyl-not-yet'))).toContain('Planner is coming to the new OYL')
 })
 
 test('nav clicks are intercepted client-side (no full page reload)', async ({ page, signIn }) => {

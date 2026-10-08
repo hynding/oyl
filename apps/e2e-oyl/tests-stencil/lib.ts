@@ -23,6 +23,15 @@ export function deepText(locator: Locator): Promise<string> {
   })
 }
 
+/** Add a journal note through the stencil composer. */
+export async function addNote(page: Page, text: string, tags?: string): Promise<void> {
+  const form = page.locator('oyl-log-form')
+  await form.locator('ui-segment [data-value="note"]').click()
+  await form.locator('ui-textarea[name="text"] textarea').fill(text)
+  if (tags) await form.locator('ui-field[name="tags"] input').fill(tags)
+  await form.locator('ui-button[type="submit"] button').click()
+}
+
 /** Click a ui-button by its data-act (the inner control, as a user would). */
 export function act(scope: Locator | Page, name: string): Locator {
   return scope.locator(`ui-button[data-act="${name}"] button`)
