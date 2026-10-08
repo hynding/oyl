@@ -14,7 +14,7 @@ import { Budget, Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 import { BudgetStatus } from "./components/oyl-budget-row/oyl-budget-row";
 import { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
 import { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
-import { ValueTone } from "./components/oyl-item-row/oyl-item-row";
+import { RowAction, ValueTone } from "./components/oyl-item-row/oyl-item-row";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
@@ -37,7 +37,7 @@ export { Budget, Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 export { BudgetStatus } from "./components/oyl-budget-row/oyl-budget-row";
 export { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
 export { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
-export { ValueTone } from "./components/oyl-item-row/oyl-item-row";
+export { RowAction, ValueTone } from "./components/oyl-item-row/oyl-item-row";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
@@ -159,10 +159,15 @@ export namespace Components {
     /**
      * A generic list row: label + supporting lines | optional mono value | inline Delete →
      * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
-     * accounts list; Vault reuses it later. `remove` carries `itemId`, so a screen keeps one
-     * stable handler per list.
+     * accounts list, and every Vault list. `remove` and `act` carry `itemId`, so a screen keeps
+     * one stable handler per list. An optional secondary `action` (Renew, Log contact) renders
+     * before Delete and emits `act` without touching the confirm.
      */
     interface OylItemRow {
+        /**
+          * An optional secondary action rendered before Delete.
+         */
+        "action"?: RowAction;
         "itemId": string;
         "label": string;
         /**
@@ -652,12 +657,14 @@ declare global {
     };
     interface HTMLOylItemRowElementEventMap {
         "remove": string;
+        "act": { act: string; itemId: string };
     }
     /**
      * A generic list row: label + supporting lines | optional mono value | inline Delete →
      * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
-     * accounts list; Vault reuses it later. `remove` carries `itemId`, so a screen keeps one
-     * stable handler per list.
+     * accounts list, and every Vault list. `remove` and `act` carry `itemId`, so a screen keeps
+     * one stable handler per list. An optional secondary `action` (Renew, Log contact) renders
+     * before Delete and emits `act` without touching the confirm.
      */
     interface HTMLOylItemRowElement extends Components.OylItemRow, HTMLStencilElement {
         addEventListener<K extends keyof HTMLOylItemRowElementEventMap>(type: K, listener: (this: HTMLOylItemRowElement, ev: OylItemRowCustomEvent<HTMLOylItemRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
@@ -1136,16 +1143,25 @@ declare namespace LocalJSX {
     /**
      * A generic list row: label + supporting lines | optional mono value | inline Delete →
      * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
-     * accounts list; Vault reuses it later. `remove` carries `itemId`, so a screen keeps one
-     * stable handler per list.
+     * accounts list, and every Vault list. `remove` and `act` carry `itemId`, so a screen keeps
+     * one stable handler per list. An optional secondary `action` (Renew, Log contact) renders
+     * before Delete and emits `act` without touching the confirm.
      */
     interface OylItemRow {
+        /**
+          * An optional secondary action rendered before Delete.
+         */
+        "action"?: RowAction;
         "itemId": string;
         "label": string;
         /**
           * @default []
          */
         "lines"?: readonly (string | null | undefined)[];
+        /**
+          * The secondary action was clicked.
+         */
+        "onAct"?: (event: OylItemRowCustomEvent<{ act: string; itemId: string }>) => void;
         /**
           * The user confirmed deletion; detail = `itemId`.
          */
@@ -1540,8 +1556,9 @@ declare module "@stencil/core" {
             /**
              * A generic list row: label + supporting lines | optional mono value | inline Delete →
              * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
-             * accounts list; Vault reuses it later. `remove` carries `itemId`, so a screen keeps one
-             * stable handler per list.
+             * accounts list, and every Vault list. `remove` and `act` carry `itemId`, so a screen keeps
+             * one stable handler per list. An optional secondary `action` (Renew, Log contact) renders
+             * before Delete and emits `act` without touching the confirm.
              */
             "oyl-item-row": LocalJSX.IntrinsicElements["oyl-item-row"] & JSXBase.HTMLAttributes<HTMLOylItemRowElement>;
             /**

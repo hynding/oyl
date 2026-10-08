@@ -20,6 +20,20 @@ describe('oyl-item-row', () => {
     expect(q(root, '[data-act="delete"]')).toHaveAttribute('aria-label', 'Delete account Checking')
   })
 
+  it('renders an optional secondary action that emits act without opening the confirm', async () => {
+    const plain = await render(<oyl-item-row itemId="s1" label="StreamFlix" lines={[]} />)
+    expect(qa(plain.root, '[data-act]').map((b) => b.getAttribute('data-act'))).toEqual(['delete'])
+    const { root, waitForChanges } = await render(<oyl-item-row itemId="s1" label="StreamFlix" lines={[]} action={{ act: 'renew', label: 'Renew' }} />)
+    const acted = vi.fn()
+    root.addEventListener('act', (e) => acted((e as CustomEvent).detail))
+    expect(qa(root, '[data-act]').map((b) => b.getAttribute('data-act'))).toEqual(['renew', 'delete'])
+    expect(q(root, '[data-act="renew"]')).toHaveTextContent('Renew')
+    click(q(root, '[data-act="renew"]')!)
+    await waitForChanges()
+    expect(acted).toHaveBeenCalledWith({ act: 'renew', itemId: 's1' })
+    expect(q(root, '[role="group"]')).toBeNull()
+  })
+
   it('delete asks inline; No restores, Yes emits remove with the item id', async () => {
     const { root, waitForChanges } = await render(<oyl-item-row itemId="t1" label="dining" lines={[]} />)
     const removed = vi.fn()

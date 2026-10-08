@@ -1,12 +1,17 @@
 import { Component, Element, Event, Prop, State, h, type EventEmitter } from '@stencil/core'
 
 export type ValueTone = 'ok' | 'warn' | 'danger'
+export interface RowAction {
+  act: string
+  label: string
+}
 
 /**
  * A generic list row: label + supporting lines | optional mono value | inline Delete →
  * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
- * accounts list; Vault reuses it later. `remove` carries `itemId`, so a screen keeps one
- * stable handler per list.
+ * accounts list, and every Vault list. `remove` and `act` carry `itemId`, so a screen keeps
+ * one stable handler per list. An optional secondary `action` (Renew, Log contact) renders
+ * before Delete and emits `act` without touching the confirm.
  */
 @Component({ tag: 'oyl-item-row', styleUrl: 'oyl-item-row.css', shadow: true })
 export class OylItemRow {
@@ -20,9 +25,13 @@ export class OylItemRow {
   @Prop() tone?: ValueTone
   /** aria-label for the Delete button; defaults to "Delete {label}". */
   @Prop() removeLabel?: string
+  /** An optional secondary action rendered before Delete. */
+  @Prop() action?: RowAction
 
   /** The user confirmed deletion; detail = `itemId`. */
   @Event() remove!: EventEmitter<string>
+  /** The secondary action was clicked. */
+  @Event() act!: EventEmitter<{ act: string; itemId: string }>
 
   @State() confirming = false
 
@@ -33,6 +42,10 @@ export class OylItemRow {
   private onYes = () => {
     this.confirming = false
     this.remove.emit(this.itemId)
+  }
+
+  private onAct = () => {
+    if (this.action) this.act.emit({ act: this.action.act, itemId: this.itemId })
   }
 
   render() {
@@ -52,7 +65,10 @@ export class OylItemRow {
               <button type="button" class="no" data-act="confirm-no" onClick={() => (this.confirming = false)}>No</button>
             </span>
           ) : (
-            <button type="button" class="del" data-act="delete" aria-label={this.removeLabel ?? `Delete ${this.label}`} onClick={() => (this.confirming = true)}>Delete</button>
+            [
+              this.action && <button type="button" class="quiet" data-act={this.action.act} onClick={this.onAct}>{this.action.label}</button>,
+              <button type="button" class="del" data-act="delete" aria-label={this.removeLabel ?? `Delete ${this.label}`} onClick={() => (this.confirming = true)}>Delete</button>,
+            ]
           )}
         </div>
       </div>
