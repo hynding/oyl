@@ -12,6 +12,7 @@ import { DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
+import { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
 import { Routes } from "./components/oyl-router/oyl-router";
 import { Diagnostics } from "./components/oyl-status/oyl-status";
 import { StatusActions } from "./boot/data-tools.js";
@@ -23,6 +24,7 @@ export { DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
+export { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
 export { Routes } from "./components/oyl-router/oyl-router";
 export { Diagnostics } from "./components/oyl-status/oyl-status";
 export { StatusActions } from "./boot/data-tools.js";
@@ -149,6 +151,23 @@ export namespace Components {
         "notice": Signal<string | null>;
     }
     /**
+     * The planner composer: a task (title, due, optional repeat) or an appointment (title,
+     * start, optional minutes). Due/start default to the shown day (start at 09:00) and
+     * re-sync on day change and after a submit. Native <form> over form-associated
+     * primitives; domain-constructor errors render inline against the title.
+     */
+    interface OylPlanComposer {
+        /**
+          * The day new plans default to (the screen's shown day).
+         */
+        "day": DayKey;
+        "store": PlannerWriter;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
+    }
+    /**
      * One plan: check | body | actions. The round check completes an open plan; Cancel and
      * Delete are two-step inline confirms on native buttons (a control cluster, like the
      * entry row's), so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
@@ -245,6 +264,10 @@ export interface OylLoginCustomEvent<T> extends CustomEvent<T> {
 export interface OylNoticeHostCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylNoticeHostElement;
+}
+export interface OylPlanComposerCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylPlanComposerElement;
 }
 export interface OylPlanRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -445,6 +468,29 @@ declare global {
         prototype: HTMLOylNoticeHostElement;
         new (): HTMLOylNoticeHostElement;
     };
+    interface HTMLOylPlanComposerElementEventMap {
+        "added": void;
+    }
+    /**
+     * The planner composer: a task (title, due, optional repeat) or an appointment (title,
+     * start, optional minutes). Due/start default to the shown day (start at 09:00) and
+     * re-sync on day change and after a submit. Native <form> over form-associated
+     * primitives; domain-constructor errors render inline against the title.
+     */
+    interface HTMLOylPlanComposerElement extends Components.OylPlanComposer, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylPlanComposerElementEventMap>(type: K, listener: (this: HTMLOylPlanComposerElement, ev: OylPlanComposerCustomEvent<HTMLOylPlanComposerElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylPlanComposerElementEventMap>(type: K, listener: (this: HTMLOylPlanComposerElement, ev: OylPlanComposerCustomEvent<HTMLOylPlanComposerElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylPlanComposerElement: {
+        prototype: HTMLOylPlanComposerElement;
+        new (): HTMLOylPlanComposerElement;
+    };
     interface HTMLOylPlanRowElementEventMap {
         "complete": Id;
         "cancelPlan": Id;
@@ -547,6 +593,7 @@ declare global {
         "oyl-not-found": HTMLOylNotFoundElement;
         "oyl-not-yet": HTMLOylNotYetElement;
         "oyl-notice-host": HTMLOylNoticeHostElement;
+        "oyl-plan-composer": HTMLOylPlanComposerElement;
         "oyl-plan-row": HTMLOylPlanRowElement;
         "oyl-register": HTMLOylRegisterElement;
         "oyl-router": HTMLOylRouterElement;
@@ -700,6 +747,27 @@ declare namespace LocalJSX {
         "onDismiss"?: (event: OylNoticeHostCustomEvent<void>) => void;
     }
     /**
+     * The planner composer: a task (title, due, optional repeat) or an appointment (title,
+     * start, optional minutes). Due/start default to the shown day (start at 09:00) and
+     * re-sync on day change and after a submit. Native <form> over form-associated
+     * primitives; domain-constructor errors render inline against the title.
+     */
+    interface OylPlanComposer {
+        /**
+          * The day new plans default to (the screen's shown day).
+         */
+        "day": DayKey;
+        /**
+          * A plan was added through the store.
+         */
+        "onAdded"?: (event: OylPlanComposerCustomEvent<void>) => void;
+        "store": PlannerWriter;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
+    }
+    /**
      * One plan: check | body | actions. The round check completes an open plan; Cancel and
      * Delete are two-step inline confirms on native buttons (a control cluster, like the
      * entry row's), so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
@@ -795,6 +863,9 @@ declare namespace LocalJSX {
         "name": string;
         "classicUrl": string;
     }
+    interface OylPlanComposerAttributes {
+        "tz": string;
+    }
     interface OylShellAttributes {
         "docked": boolean;
     }
@@ -812,6 +883,7 @@ declare namespace LocalJSX {
         "oyl-not-found": Omit<OylNotFound, keyof OylNotFoundAttributes> & { [K in keyof OylNotFound & keyof OylNotFoundAttributes]?: OylNotFound[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `attr:${K}`]?: OylNotFoundAttributes[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `prop:${K}`]?: OylNotFound[K] };
         "oyl-not-yet": Omit<OylNotYet, keyof OylNotYetAttributes> & { [K in keyof OylNotYet & keyof OylNotYetAttributes]?: OylNotYet[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `attr:${K}`]?: OylNotYetAttributes[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `prop:${K}`]?: OylNotYet[K] } & OneOf<"name", OylNotYet["name"], OylNotYetAttributes["name"]>;
         "oyl-notice-host": OylNoticeHost;
+        "oyl-plan-composer": Omit<OylPlanComposer, keyof OylPlanComposerAttributes> & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes]?: OylPlanComposer[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `attr:${K}`]?: OylPlanComposerAttributes[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `prop:${K}`]?: OylPlanComposer[K] };
         "oyl-plan-row": OylPlanRow;
         "oyl-register": OylRegister;
         "oyl-router": OylRouter;
@@ -877,6 +949,13 @@ declare module "@stencil/core" {
              * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
              */
             "oyl-notice-host": LocalJSX.IntrinsicElements["oyl-notice-host"] & JSXBase.HTMLAttributes<HTMLOylNoticeHostElement>;
+            /**
+             * The planner composer: a task (title, due, optional repeat) or an appointment (title,
+             * start, optional minutes). Due/start default to the shown day (start at 09:00) and
+             * re-sync on day change and after a submit. Native <form> over form-associated
+             * primitives; domain-constructor errors render inline against the title.
+             */
+            "oyl-plan-composer": LocalJSX.IntrinsicElements["oyl-plan-composer"] & JSXBase.HTMLAttributes<HTMLOylPlanComposerElement>;
             /**
              * One plan: check | body | actions. The round check completes an open plan; Cancel and
              * Delete are two-step inline confirms on native buttons (a control cluster, like the

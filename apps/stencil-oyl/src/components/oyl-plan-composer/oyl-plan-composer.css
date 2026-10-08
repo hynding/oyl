@@ -1,0 +1,17 @@
+:host { display: block; container-type: inline-size; }
+form { display: grid; gap: var(--space-3); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); align-items: start; }
+.repeat { display: grid; gap: var(--space-1); }
+.cadence { display: grid; grid-template-columns: auto 5rem 1fr; gap: var(--space-2); align-items: end; }
+.every { font-size: var(--step--1); color: var(--color-muted); padding-block-end: 0.8rem; }
+.cadence ui-field { min-inline-size: 0; }
+.select { display: grid; gap: var(--space-1); font-size: var(--step--1); color: var(--color-muted); }
+select {
+  min-block-size: var(--size-control); padding-inline: var(--space-3); font: inherit; font-size: var(--step-0);
+  color: var(--color-text); background: var(--color-surface); border: var(--line-2) solid var(--color-border); border-radius: var(--radius-1);
+  inline-size: 100%;
+}
+select:disabled { color: var(--color-muted); background: var(--color-surface-2); }
+[data-role="error"] { margin: 0; min-block-size: 1.2em; color: var(--color-danger); font-size: var(--step--1); }
+.actions { display: flex; justify-content: flex-end; }
+@container (max-width: 26rem) { .row2 { grid-template-columns: 1fr; } }
