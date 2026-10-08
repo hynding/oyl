@@ -8,7 +8,7 @@ import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { Signal } from "@oyl/all-of-oyl/client";
 import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
-import { DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+import { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
@@ -21,7 +21,7 @@ import { ThemeState } from "./boot/theme.js";
 export { Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
-export { DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+export { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
@@ -122,6 +122,15 @@ export namespace Components {
     interface OylLogin {
         "auth": AuthApi1;
         "googleAuth"?: Signal<{ href: string } | null>;
+    }
+    /**
+     * One logged meal: label + meta | inline Delete → Yes/No (native buttons, the shared
+     * confirm cluster, so the e2e `inlineConfirm` helper applies). The screen resolves the
+     * label (catalog name / note / "Meal" + servings) because only it sees the catalog.
+     */
+    interface OylMealRow {
+        "consumption": Consumption;
+        "label": string;
     }
     interface OylNav {
         /**
@@ -275,6 +284,10 @@ export interface OylLogFormCustomEvent<T> extends CustomEvent<T> {
 export interface OylLoginCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylLoginElement;
+}
+export interface OylMealRowCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylMealRowElement;
 }
 export interface OylNoticeHostCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -441,6 +454,28 @@ declare global {
     var HTMLOylLoginElement: {
         prototype: HTMLOylLoginElement;
         new (): HTMLOylLoginElement;
+    };
+    interface HTMLOylMealRowElementEventMap {
+        "remove": Id;
+    }
+    /**
+     * One logged meal: label + meta | inline Delete → Yes/No (native buttons, the shared
+     * confirm cluster, so the e2e `inlineConfirm` helper applies). The screen resolves the
+     * label (catalog name / note / "Meal" + servings) because only it sees the catalog.
+     */
+    interface HTMLOylMealRowElement extends Components.OylMealRow, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylMealRowElementEventMap>(type: K, listener: (this: HTMLOylMealRowElement, ev: OylMealRowCustomEvent<HTMLOylMealRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylMealRowElementEventMap>(type: K, listener: (this: HTMLOylMealRowElement, ev: OylMealRowCustomEvent<HTMLOylMealRowElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylMealRowElement: {
+        prototype: HTMLOylMealRowElement;
+        new (): HTMLOylMealRowElement;
     };
     interface HTMLOylNavElement extends Components.OylNav, HTMLStencilElement {
     }
@@ -616,6 +651,7 @@ declare global {
         "oyl-journal": HTMLOylJournalElement;
         "oyl-log-form": HTMLOylLogFormElement;
         "oyl-login": HTMLOylLoginElement;
+        "oyl-meal-row": HTMLOylMealRowElement;
         "oyl-nav": HTMLOylNavElement;
         "oyl-not-found": HTMLOylNotFoundElement;
         "oyl-not-yet": HTMLOylNotYetElement;
@@ -740,6 +776,19 @@ declare namespace LocalJSX {
           * The user signed in; the app sets remote mode and navigates into the app.
          */
         "onAuthenticated"?: (event: OylLoginCustomEvent<void>) => void;
+    }
+    /**
+     * One logged meal: label + meta | inline Delete → Yes/No (native buttons, the shared
+     * confirm cluster, so the e2e `inlineConfirm` helper applies). The screen resolves the
+     * label (catalog name / note / "Meal" + servings) because only it sees the catalog.
+     */
+    interface OylMealRow {
+        "consumption": Consumption;
+        "label": string;
+        /**
+          * The user confirmed deletion of this meal.
+         */
+        "onRemove"?: (event: OylMealRowCustomEvent<Id>) => void;
     }
     interface OylNav {
         /**
@@ -894,6 +943,9 @@ declare namespace LocalJSX {
     interface OylJournalAttributes {
         "tz": string;
     }
+    interface OylMealRowAttributes {
+        "label": string;
+    }
     interface OylNavAttributes {
         "orientation": 'top' | 'bottom';
     }
@@ -923,6 +975,7 @@ declare namespace LocalJSX {
         "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
         "oyl-log-form": OylLogForm;
         "oyl-login": OylLogin;
+        "oyl-meal-row": Omit<OylMealRow, keyof OylMealRowAttributes> & { [K in keyof OylMealRow & keyof OylMealRowAttributes]?: OylMealRow[K] } & { [K in keyof OylMealRow & keyof OylMealRowAttributes as `attr:${K}`]?: OylMealRowAttributes[K] } & { [K in keyof OylMealRow & keyof OylMealRowAttributes as `prop:${K}`]?: OylMealRow[K] } & OneOf<"label", OylMealRow["label"], OylMealRowAttributes["label"]>;
         "oyl-nav": Omit<OylNav, keyof OylNavAttributes> & { [K in keyof OylNav & keyof OylNavAttributes]?: OylNav[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `attr:${K}`]?: OylNavAttributes[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `prop:${K}`]?: OylNav[K] };
         "oyl-not-found": Omit<OylNotFound, keyof OylNotFoundAttributes> & { [K in keyof OylNotFound & keyof OylNotFoundAttributes]?: OylNotFound[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `attr:${K}`]?: OylNotFoundAttributes[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `prop:${K}`]?: OylNotFound[K] };
         "oyl-not-yet": Omit<OylNotYet, keyof OylNotYetAttributes> & { [K in keyof OylNotYet & keyof OylNotYetAttributes]?: OylNotYet[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `attr:${K}`]?: OylNotYetAttributes[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `prop:${K}`]?: OylNotYet[K] } & OneOf<"name", OylNotYet["name"], OylNotYetAttributes["name"]>;
@@ -984,6 +1037,12 @@ declare module "@stencil/core" {
              */
             "oyl-log-form": LocalJSX.IntrinsicElements["oyl-log-form"] & JSXBase.HTMLAttributes<HTMLOylLogFormElement>;
             "oyl-login": LocalJSX.IntrinsicElements["oyl-login"] & JSXBase.HTMLAttributes<HTMLOylLoginElement>;
+            /**
+             * One logged meal: label + meta | inline Delete → Yes/No (native buttons, the shared
+             * confirm cluster, so the e2e `inlineConfirm` helper applies). The screen resolves the
+             * label (catalog name / note / "Meal" + servings) because only it sees the catalog.
+             */
+            "oyl-meal-row": LocalJSX.IntrinsicElements["oyl-meal-row"] & JSXBase.HTMLAttributes<HTMLOylMealRowElement>;
             "oyl-nav": LocalJSX.IntrinsicElements["oyl-nav"] & JSXBase.HTMLAttributes<HTMLOylNavElement>;
             "oyl-not-found": LocalJSX.IntrinsicElements["oyl-not-found"] & JSXBase.HTMLAttributes<HTMLOylNotFoundElement>;
             /**
