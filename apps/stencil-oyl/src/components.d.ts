@@ -13,6 +13,7 @@ import { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
 import { Budget, Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 import { BudgetStatus } from "./components/oyl-budget-row/oyl-budget-row";
 import { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
+import { DocumentsWriter } from "./components/oyl-document-form/oyl-document-form";
 import { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
 import { RowAction, ValueTone } from "./components/oyl-item-row/oyl-item-row";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
@@ -23,6 +24,7 @@ import { ConsumablesStore, NutritionReader } from "./components/oyl-nutrition/oy
 import { ConsumableProductsReader as ConsumableProductsReader1 } from "./components/oyl-meal-form/oyl-meal-form.js";
 import { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
 import { PlannerReader } from "./components/oyl-planner/oyl-planner";
+import { PossessionsWriter } from "./components/oyl-possession-form/oyl-possession-form";
 import { Routes } from "./components/oyl-router/oyl-router";
 import { Diagnostics } from "./components/oyl-status/oyl-status";
 import { StatusActions } from "./boot/data-tools.js";
@@ -36,6 +38,7 @@ export { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
 export { Budget, Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 export { BudgetStatus } from "./components/oyl-budget-row/oyl-budget-row";
 export { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
+export { DocumentsWriter } from "./components/oyl-document-form/oyl-document-form";
 export { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
 export { RowAction, ValueTone } from "./components/oyl-item-row/oyl-item-row";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
@@ -46,6 +49,7 @@ export { ConsumablesStore, NutritionReader } from "./components/oyl-nutrition/oy
 export { ConsumableProductsReader as ConsumableProductsReader1 } from "./components/oyl-meal-form/oyl-meal-form.js";
 export { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
 export { PlannerReader } from "./components/oyl-planner/oyl-planner";
+export { PossessionsWriter } from "./components/oyl-possession-form/oyl-possession-form";
 export { Routes } from "./components/oyl-router/oyl-router";
 export { Diagnostics } from "./components/oyl-status/oyl-status";
 export { StatusActions } from "./boot/data-tools.js";
@@ -133,6 +137,12 @@ export namespace Components {
         "focusHeading": () => Promise<void>;
         "marked"?: (day: DayKey) => boolean;
         "today": DayKey;
+    }
+    /**
+     * Add a document: name, kind and an optional expiry (which feeds the Upcoming feed).
+     */
+    interface OylDocumentForm {
+        "store": DocumentsWriter;
     }
     /**
      * One journal entry: time | body | actions. Delete is a two-step inline confirm
@@ -321,6 +331,12 @@ export namespace Components {
          */
         "tz": string;
     }
+    /**
+     * Add a possession: name plus optional location, warranty, price and purchase day.
+     */
+    interface OylPossessionForm {
+        "store": PossessionsWriter;
+    }
     interface OylRegister {
         "auth": AuthApi1;
         "googleAuth"?: Signal<{ href: string } | null>;
@@ -418,6 +434,10 @@ export interface OylDayNavCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylDayNavElement;
 }
+export interface OylDocumentFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylDocumentFormElement;
+}
 export interface OylEntryRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylEntryRowElement;
@@ -453,6 +473,10 @@ export interface OylPlanComposerCustomEvent<T> extends CustomEvent<T> {
 export interface OylPlanRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylPlanRowElement;
+}
+export interface OylPossessionFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylPossessionFormElement;
 }
 export interface OylRegisterCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -621,6 +645,26 @@ declare global {
     var HTMLOylDayNavElement: {
         prototype: HTMLOylDayNavElement;
         new (): HTMLOylDayNavElement;
+    };
+    interface HTMLOylDocumentFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a document: name, kind and an optional expiry (which feeds the Upcoming feed).
+     */
+    interface HTMLOylDocumentFormElement extends Components.OylDocumentForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylDocumentFormElementEventMap>(type: K, listener: (this: HTMLOylDocumentFormElement, ev: OylDocumentFormCustomEvent<HTMLOylDocumentFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylDocumentFormElementEventMap>(type: K, listener: (this: HTMLOylDocumentFormElement, ev: OylDocumentFormCustomEvent<HTMLOylDocumentFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylDocumentFormElement: {
+        prototype: HTMLOylDocumentFormElement;
+        new (): HTMLOylDocumentFormElement;
     };
     interface HTMLOylEntryRowElementEventMap {
         "remove": Id;
@@ -886,6 +930,26 @@ declare global {
         prototype: HTMLOylPlannerElement;
         new (): HTMLOylPlannerElement;
     };
+    interface HTMLOylPossessionFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a possession: name plus optional location, warranty, price and purchase day.
+     */
+    interface HTMLOylPossessionFormElement extends Components.OylPossessionForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylPossessionFormElementEventMap>(type: K, listener: (this: HTMLOylPossessionFormElement, ev: OylPossessionFormCustomEvent<HTMLOylPossessionFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylPossessionFormElementEventMap>(type: K, listener: (this: HTMLOylPossessionFormElement, ev: OylPossessionFormCustomEvent<HTMLOylPossessionFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylPossessionFormElement: {
+        prototype: HTMLOylPossessionFormElement;
+        new (): HTMLOylPossessionFormElement;
+    };
     interface HTMLOylRegisterElementEventMap {
         "authenticated": void;
     }
@@ -984,6 +1048,7 @@ declare global {
         "oyl-budget-row": HTMLOylBudgetRowElement;
         "oyl-consumable-form": HTMLOylConsumableFormElement;
         "oyl-day-nav": HTMLOylDayNavElement;
+        "oyl-document-form": HTMLOylDocumentFormElement;
         "oyl-entry-row": HTMLOylEntryRowElement;
         "oyl-finance": HTMLOylFinanceElement;
         "oyl-item-row": HTMLOylItemRowElement;
@@ -1000,6 +1065,7 @@ declare global {
         "oyl-plan-composer": HTMLOylPlanComposerElement;
         "oyl-plan-row": HTMLOylPlanRowElement;
         "oyl-planner": HTMLOylPlannerElement;
+        "oyl-possession-form": HTMLOylPossessionFormElement;
         "oyl-register": HTMLOylRegisterElement;
         "oyl-router": HTMLOylRouterElement;
         "oyl-shell": HTMLOylShellElement;
@@ -1113,6 +1179,16 @@ declare namespace LocalJSX {
          */
         "onDayChange"?: (event: OylDayNavCustomEvent<DayKey>) => void;
         "today": DayKey;
+    }
+    /**
+     * Add a document: name, kind and an optional expiry (which feeds the Upcoming feed).
+     */
+    interface OylDocumentForm {
+        /**
+          * A document was added through the store.
+         */
+        "onAdded"?: (event: OylDocumentFormCustomEvent<void>) => void;
+        "store": DocumentsWriter;
     }
     /**
      * One journal entry: time | body | actions. Delete is a two-step inline confirm
@@ -1340,6 +1416,16 @@ declare namespace LocalJSX {
          */
         "tz"?: string;
     }
+    /**
+     * Add a possession: name plus optional location, warranty, price and purchase day.
+     */
+    interface OylPossessionForm {
+        /**
+          * A possession was added through the store.
+         */
+        "onAdded"?: (event: OylPossessionFormCustomEvent<void>) => void;
+        "store": PossessionsWriter;
+    }
     interface OylRegister {
         "auth": AuthApi1;
         "googleAuth"?: Signal<{ href: string } | null>;
@@ -1471,6 +1557,7 @@ declare namespace LocalJSX {
         "oyl-budget-row": OylBudgetRow;
         "oyl-consumable-form": OylConsumableForm;
         "oyl-day-nav": Omit<OylDayNav, keyof OylDayNavAttributes> & { [K in keyof OylDayNav & keyof OylDayNavAttributes]?: OylDayNav[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `attr:${K}`]?: OylDayNavAttributes[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `prop:${K}`]?: OylDayNav[K] };
+        "oyl-document-form": OylDocumentForm;
         "oyl-entry-row": OylEntryRow;
         "oyl-finance": Omit<OylFinance, keyof OylFinanceAttributes> & { [K in keyof OylFinance & keyof OylFinanceAttributes]?: OylFinance[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `attr:${K}`]?: OylFinanceAttributes[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `prop:${K}`]?: OylFinance[K] };
         "oyl-item-row": Omit<OylItemRow, keyof OylItemRowAttributes> & { [K in keyof OylItemRow & keyof OylItemRowAttributes]?: OylItemRow[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `attr:${K}`]?: OylItemRowAttributes[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `prop:${K}`]?: OylItemRow[K] } & OneOf<"itemId", OylItemRow["itemId"], OylItemRowAttributes["itemId"]> & OneOf<"label", OylItemRow["label"], OylItemRowAttributes["label"]>;
@@ -1487,6 +1574,7 @@ declare namespace LocalJSX {
         "oyl-plan-composer": Omit<OylPlanComposer, keyof OylPlanComposerAttributes> & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes]?: OylPlanComposer[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `attr:${K}`]?: OylPlanComposerAttributes[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `prop:${K}`]?: OylPlanComposer[K] };
         "oyl-plan-row": OylPlanRow;
         "oyl-planner": Omit<OylPlanner, keyof OylPlannerAttributes> & { [K in keyof OylPlanner & keyof OylPlannerAttributes]?: OylPlanner[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `attr:${K}`]?: OylPlannerAttributes[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `prop:${K}`]?: OylPlanner[K] };
+        "oyl-possession-form": OylPossessionForm;
         "oyl-register": OylRegister;
         "oyl-router": OylRouter;
         "oyl-shell": Omit<OylShell, keyof OylShellAttributes> & { [K in keyof OylShell & keyof OylShellAttributes]?: OylShell[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `attr:${K}`]?: OylShellAttributes[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `prop:${K}`]?: OylShell[K] };
@@ -1541,6 +1629,10 @@ declare module "@stencil/core" {
              * initiated. `marked(day)` puts a dot under a pill — the screen decides what counts.
              */
             "oyl-day-nav": LocalJSX.IntrinsicElements["oyl-day-nav"] & JSXBase.HTMLAttributes<HTMLOylDayNavElement>;
+            /**
+             * Add a document: name, kind and an optional expiry (which feeds the Upcoming feed).
+             */
+            "oyl-document-form": LocalJSX.IntrinsicElements["oyl-document-form"] & JSXBase.HTMLAttributes<HTMLOylDocumentFormElement>;
             /**
              * One journal entry: time | body | actions. Delete is a two-step inline confirm
              * (Delete → "Delete?" Yes/No) on native buttons — a confirm cluster, like the theme
@@ -1623,6 +1715,10 @@ declare module "@stencil/core" {
              * not in a field or radio.
              */
             "oyl-planner": LocalJSX.IntrinsicElements["oyl-planner"] & JSXBase.HTMLAttributes<HTMLOylPlannerElement>;
+            /**
+             * Add a possession: name plus optional location, warranty, price and purchase day.
+             */
+            "oyl-possession-form": LocalJSX.IntrinsicElements["oyl-possession-form"] & JSXBase.HTMLAttributes<HTMLOylPossessionFormElement>;
             "oyl-register": LocalJSX.IntrinsicElements["oyl-register"] & JSXBase.HTMLAttributes<HTMLOylRegisterElement>;
             /**
              * Switches one screen element on the route signal. Screens are created by the `routes`

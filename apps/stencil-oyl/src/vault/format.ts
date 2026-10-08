@@ -43,3 +43,13 @@ export function contactLines(c: Contact, today: DayKey): readonly string[] {
 export function giftLines(g: GiftIdea, namesById: ReadonlyMap<string, string>): readonly string[] {
   return [`For ${namesById.get(g.contactId) ?? 'Unknown contact'}`]
 }
+
+/** Read a `ui-field` value inside a form's shadow root ('' when absent). */
+export function fieldValue(root: { querySelector(sel: string): Element | null } | null | undefined, name: string): string {
+  return ((root?.querySelector(`ui-field[name="${name}"]`) as (Element & { value?: string }) | null)?.value ?? '').trim()
+}
+
+/** Clear every `ui-field` in a form's shadow root. */
+export function clearFields(root: { querySelectorAll(sel: string): Iterable<Element> } | null | undefined): void {
+  for (const el of root?.querySelectorAll('ui-field') ?? []) (el as Element & { value: string }).value = ''
+}
