@@ -13,6 +13,7 @@ import { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
 import { Budget, Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 import { BudgetStatus } from "./components/oyl-budget-row/oyl-budget-row";
 import { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
+import { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
 import { ValueTone } from "./components/oyl-item-row/oyl-item-row";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
@@ -35,6 +36,7 @@ export { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
 export { Budget, Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 export { BudgetStatus } from "./components/oyl-budget-row/oyl-budget-row";
 export { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
+export { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
 export { ValueTone } from "./components/oyl-item-row/oyl-item-row";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
@@ -139,6 +141,20 @@ export namespace Components {
      */
     interface OylEntryRow {
         "entry": Entry;
+    }
+    /**
+     * The month's finances: spent/income/net tiles per currency, the composer, the ledger with
+     * an account filter, then Budgets and Accounts with collapsed add forms. Lists and math are
+     * vanilla's (`periodWindowOf('month', today)`, `budgetStatus`, `accountBalance/Spend`).
+     */
+    interface OylFinance {
+        "accounts": AccountsStore;
+        "budgets": BudgetsStore;
+        "store": FinanceReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
     }
     /**
      * A generic list row: label + supporting lines | optional mono value | inline Delete →
@@ -623,6 +639,17 @@ declare global {
         prototype: HTMLOylEntryRowElement;
         new (): HTMLOylEntryRowElement;
     };
+    /**
+     * The month's finances: spent/income/net tiles per currency, the composer, the ledger with
+     * an account filter, then Budgets and Accounts with collapsed add forms. Lists and math are
+     * vanilla's (`periodWindowOf('month', today)`, `budgetStatus`, `accountBalance/Spend`).
+     */
+    interface HTMLOylFinanceElement extends Components.OylFinance, HTMLStencilElement {
+    }
+    var HTMLOylFinanceElement: {
+        prototype: HTMLOylFinanceElement;
+        new (): HTMLOylFinanceElement;
+    };
     interface HTMLOylItemRowElementEventMap {
         "remove": string;
     }
@@ -951,6 +978,7 @@ declare global {
         "oyl-consumable-form": HTMLOylConsumableFormElement;
         "oyl-day-nav": HTMLOylDayNavElement;
         "oyl-entry-row": HTMLOylEntryRowElement;
+        "oyl-finance": HTMLOylFinanceElement;
         "oyl-item-row": HTMLOylItemRowElement;
         "oyl-journal": HTMLOylJournalElement;
         "oyl-log-form": HTMLOylLogFormElement;
@@ -1090,6 +1118,20 @@ declare namespace LocalJSX {
           * The user confirmed deletion of this entry.
          */
         "onRemove"?: (event: OylEntryRowCustomEvent<Id>) => void;
+    }
+    /**
+     * The month's finances: spent/income/net tiles per currency, the composer, the ledger with
+     * an account filter, then Budgets and Accounts with collapsed add forms. Lists and math are
+     * vanilla's (`periodWindowOf('month', today)`, `budgetStatus`, `accountBalance/Spend`).
+     */
+    interface OylFinance {
+        "accounts": AccountsStore;
+        "budgets": BudgetsStore;
+        "store": FinanceReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
     }
     /**
      * A generic list row: label + supporting lines | optional mono value | inline Delete →
@@ -1365,6 +1407,9 @@ declare namespace LocalJSX {
     interface OylDayNavAttributes {
         "announcement": string;
     }
+    interface OylFinanceAttributes {
+        "tz": string;
+    }
     interface OylItemRowAttributes {
         "itemId": string;
         "label": string;
@@ -1411,6 +1456,7 @@ declare namespace LocalJSX {
         "oyl-consumable-form": OylConsumableForm;
         "oyl-day-nav": Omit<OylDayNav, keyof OylDayNavAttributes> & { [K in keyof OylDayNav & keyof OylDayNavAttributes]?: OylDayNav[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `attr:${K}`]?: OylDayNavAttributes[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `prop:${K}`]?: OylDayNav[K] };
         "oyl-entry-row": OylEntryRow;
+        "oyl-finance": Omit<OylFinance, keyof OylFinanceAttributes> & { [K in keyof OylFinance & keyof OylFinanceAttributes]?: OylFinance[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `attr:${K}`]?: OylFinanceAttributes[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `prop:${K}`]?: OylFinance[K] };
         "oyl-item-row": Omit<OylItemRow, keyof OylItemRowAttributes> & { [K in keyof OylItemRow & keyof OylItemRowAttributes]?: OylItemRow[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `attr:${K}`]?: OylItemRowAttributes[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `prop:${K}`]?: OylItemRow[K] } & OneOf<"itemId", OylItemRow["itemId"], OylItemRowAttributes["itemId"]> & OneOf<"label", OylItemRow["label"], OylItemRowAttributes["label"]>;
         "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
         "oyl-log-form": OylLogForm;
@@ -1485,6 +1531,12 @@ declare module "@stencil/core" {
              * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
              */
             "oyl-entry-row": LocalJSX.IntrinsicElements["oyl-entry-row"] & JSXBase.HTMLAttributes<HTMLOylEntryRowElement>;
+            /**
+             * The month's finances: spent/income/net tiles per currency, the composer, the ledger with
+             * an account filter, then Budgets and Accounts with collapsed add forms. Lists and math are
+             * vanilla's (`periodWindowOf('month', today)`, `budgetStatus`, `accountBalance/Spend`).
+             */
+            "oyl-finance": LocalJSX.IntrinsicElements["oyl-finance"] & JSXBase.HTMLAttributes<HTMLOylFinanceElement>;
             /**
              * A generic list row: label + supporting lines | optional mono value | inline Delete →
              * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
