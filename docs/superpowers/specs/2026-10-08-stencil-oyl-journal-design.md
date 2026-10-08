@@ -1,7 +1,7 @@
 # `apps/stencil-oyl` Journal screen — Design
 
 **Date:** 2026-10-08
-**Status:** reviewed; plan: `docs/superpowers/plans/2026-10-08-stencil-oyl-journal.md`
+**Status:** implemented on branch feat/stencil-oyl-journal (plan: `docs/superpowers/plans/2026-10-08-stencil-oyl-journal.md`)
 **Program:** Stencil front-end — sub-project 3 (first redesigned screen; see
 `2026-10-06-extract-client-layer-design.md` §Program context). Depends on 2 (shell, PR #8).
 
@@ -121,3 +121,10 @@ Both ship with specs, readme, token-only CSS, and registration in stencil-oyl's 
 | `datetime-local` through a form-associated `ui-field` under happy-dom | The spec asserts the prefilled `value` string, not native parsing; e2e covers the browser. |
 | Arrow-key day navigation vs. `ui-segment`'s arrow keys | The screen's handler ignores events whose composed path includes a `[role=radio]`, the same way it ignores inputs. |
 | `ui-textarea` autogrow in tests | Autogrow sets `style.height` from `scrollHeight`; specs do not assert height. |
+
+## Amendments during implementation
+
+1. **`oyl-entry-row` discriminates on `entry.kind`, not `instanceof`:** the bundle's `Note`/`Measurement` and a spec's are different copies of the class.
+2. **`ui-field` reflects `type`** (attribute-shaped, like `name`), so `ui-field[type=datetime-local]` selectors work.
+3. **Narrow rows:** under 26rem the time and the actions share the first line and the body takes the full width below (vanilla's two-column collapse pushed Delete to its own line).
+4. **Time column** is 5rem: `formatClockTime` emits 12-hour strings ("11:48 PM").
