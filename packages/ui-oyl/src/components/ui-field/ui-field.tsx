@@ -15,7 +15,7 @@ export class UiField {
   @Prop() label!: string
   /** Reflected: a field's name is attribute-shaped (selectors, autofill). */
   @Prop({ reflect: true }) name!: string
-  @Prop() type: FieldType = 'text'
+  @Prop({ reflect: true }) type: FieldType = 'text'
   @Prop({ mutable: true }) value = ''
   @Prop() required = false
   @Prop() autocomplete?: string

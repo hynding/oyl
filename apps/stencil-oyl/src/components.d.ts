@@ -8,7 +8,8 @@ import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { Signal } from "@oyl/all-of-oyl/client";
 import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
-import { Entry, Id } from "@oyl/all-of-oyl";
+import { DayKey, Entry, Id } from "@oyl/all-of-oyl";
+import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
 import { Routes } from "./components/oyl-router/oyl-router";
 import { Diagnostics } from "./components/oyl-status/oyl-status";
@@ -17,7 +18,8 @@ import { ThemeState } from "./boot/theme.js";
 export { Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
-export { Entry, Id } from "@oyl/all-of-oyl";
+export { DayKey, Entry, Id } from "@oyl/all-of-oyl";
+export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
 export { Routes } from "./components/oyl-router/oyl-router";
 export { Diagnostics } from "./components/oyl-status/oyl-status";
@@ -65,6 +67,18 @@ export namespace Components {
      */
     interface OylEntryRow {
         "entry": Entry;
+    }
+    /**
+     * The journal composer: a note (text + tags) or a measurement (metric + value), with a
+     * `when` prefilled to the shown day at the current time. Submits through a native <form>
+     * on form-associated primitives; domain-constructor errors render inline.
+     */
+    interface OylLogForm {
+        /**
+          * The day the entry defaults to (the screen's shown day).
+         */
+        "day": DayKey;
+        "store": JournalWriter;
     }
     interface OylLogin {
         "auth": AuthApi1;
@@ -169,6 +183,10 @@ export interface OylEntryRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylEntryRowElement;
 }
+export interface OylLogFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylLogFormElement;
+}
 export interface OylLoginCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylLoginElement;
@@ -256,6 +274,28 @@ declare global {
     var HTMLOylEntryRowElement: {
         prototype: HTMLOylEntryRowElement;
         new (): HTMLOylEntryRowElement;
+    };
+    interface HTMLOylLogFormElementEventMap {
+        "logged": void;
+    }
+    /**
+     * The journal composer: a note (text + tags) or a measurement (metric + value), with a
+     * `when` prefilled to the shown day at the current time. Submits through a native <form>
+     * on form-associated primitives; domain-constructor errors render inline.
+     */
+    interface HTMLOylLogFormElement extends Components.OylLogForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylLogFormElementEventMap>(type: K, listener: (this: HTMLOylLogFormElement, ev: OylLogFormCustomEvent<HTMLOylLogFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylLogFormElementEventMap>(type: K, listener: (this: HTMLOylLogFormElement, ev: OylLogFormCustomEvent<HTMLOylLogFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylLogFormElement: {
+        prototype: HTMLOylLogFormElement;
+        new (): HTMLOylLogFormElement;
     };
     interface HTMLOylLoginElementEventMap {
         "authenticated": void;
@@ -385,6 +425,7 @@ declare global {
         "oyl-app": HTMLOylAppElement;
         "oyl-auth-form": HTMLOylAuthFormElement;
         "oyl-entry-row": HTMLOylEntryRowElement;
+        "oyl-log-form": HTMLOylLogFormElement;
         "oyl-login": HTMLOylLoginElement;
         "oyl-nav": HTMLOylNavElement;
         "oyl-not-found": HTMLOylNotFoundElement;
@@ -450,6 +491,22 @@ declare namespace LocalJSX {
           * The user confirmed deletion of this entry.
          */
         "onRemove"?: (event: OylEntryRowCustomEvent<Id>) => void;
+    }
+    /**
+     * The journal composer: a note (text + tags) or a measurement (metric + value), with a
+     * `when` prefilled to the shown day at the current time. Submits through a native <form>
+     * on form-associated primitives; domain-constructor errors render inline.
+     */
+    interface OylLogForm {
+        /**
+          * The day the entry defaults to (the screen's shown day).
+         */
+        "day": DayKey;
+        /**
+          * An entry was added through the store.
+         */
+        "onLogged"?: (event: OylLogFormCustomEvent<void>) => void;
+        "store": JournalWriter;
     }
     interface OylLogin {
         "auth": AuthApi1;
@@ -576,6 +633,7 @@ declare namespace LocalJSX {
         "oyl-app": OylApp;
         "oyl-auth-form": Omit<OylAuthForm, keyof OylAuthFormAttributes> & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes]?: OylAuthForm[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `attr:${K}`]?: OylAuthFormAttributes[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `prop:${K}`]?: OylAuthForm[K] };
         "oyl-entry-row": OylEntryRow;
+        "oyl-log-form": OylLogForm;
         "oyl-login": OylLogin;
         "oyl-nav": Omit<OylNav, keyof OylNavAttributes> & { [K in keyof OylNav & keyof OylNavAttributes]?: OylNav[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `attr:${K}`]?: OylNavAttributes[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `prop:${K}`]?: OylNav[K] };
         "oyl-not-found": Omit<OylNotFound, keyof OylNotFoundAttributes> & { [K in keyof OylNotFound & keyof OylNotFoundAttributes]?: OylNotFound[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `attr:${K}`]?: OylNotFoundAttributes[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `prop:${K}`]?: OylNotFound[K] };
@@ -614,6 +672,12 @@ declare module "@stencil/core" {
              * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
              */
             "oyl-entry-row": LocalJSX.IntrinsicElements["oyl-entry-row"] & JSXBase.HTMLAttributes<HTMLOylEntryRowElement>;
+            /**
+             * The journal composer: a note (text + tags) or a measurement (metric + value), with a
+             * `when` prefilled to the shown day at the current time. Submits through a native <form>
+             * on form-associated primitives; domain-constructor errors render inline.
+             */
+            "oyl-log-form": LocalJSX.IntrinsicElements["oyl-log-form"] & JSXBase.HTMLAttributes<HTMLOylLogFormElement>;
             "oyl-login": LocalJSX.IntrinsicElements["oyl-login"] & JSXBase.HTMLAttributes<HTMLOylLoginElement>;
             "oyl-nav": LocalJSX.IntrinsicElements["oyl-nav"] & JSXBase.HTMLAttributes<HTMLOylNavElement>;
             "oyl-not-found": LocalJSX.IntrinsicElements["oyl-not-found"] & JSXBase.HTMLAttributes<HTMLOylNotFoundElement>;
