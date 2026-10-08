@@ -9,6 +9,7 @@
  *   pnpm dev            start both, wait for health, print URLs
  *   pnpm dev --watch    also rebuild + revendor @oyl/all-of-oyl when its src/ changes
  *   pnpm dev --fresh    delete apps/strapi-oyl/.tmp/data.db first
+ *   pnpm dev --stencil  serve apps/stencil-oyl (Stencil dev server, :3344) instead of vanilla
  *
  * Deliberately NOT on the e2e ports (1341/8042): Playwright sets reuseExistingServer,
  * so a shared port would make `pnpm e2e` silently reuse this stack and write test users
@@ -24,14 +25,17 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const STRAPI_DIR = path.join(ROOT, 'apps', 'strapi-oyl')
 const LIB_SRC = path.join(ROOT, 'packages', 'all-of-oyl', 'src')
 const API_PORT = 1340
-const APP_PORT = 8041
-
-const USAGE = `Usage: pnpm dev [--watch] [--fresh]
-
-  --watch   rebuild + revendor @oyl/all-of-oyl whenever its src/ changes
-  --fresh   delete apps/strapi-oyl/.tmp/data.db before starting`
-
 const flags = new Set(process.argv.slice(2))
+const STENCIL = flags.has('--stencil')
+const APP_PORT = STENCIL ? 3344 : 8041
+
+const USAGE = `Usage: pnpm dev [--watch] [--fresh] [--stencil]
+
+  --watch    rebuild + revendor @oyl/all-of-oyl whenever its src/ changes (vanilla only;
+             the Stencil dev server watches on its own)
+  --fresh    delete apps/strapi-oyl/.tmp/data.db before starting
+  --stencil  serve apps/stencil-oyl on :3344 instead of apps/vanilla-oyl on :8041`
+
 if (flags.has('--help') || flags.has('-h')) {
   console.log(USAGE)
   process.exit(0)
@@ -39,7 +43,7 @@ if (flags.has('--help') || flags.has('-h')) {
 const WATCH = flags.has('--watch')
 const FRESH = flags.has('--fresh')
 
-const unknown = [...flags].filter((f) => !['--watch', '--fresh'].includes(f))
+const unknown = [...flags].filter((f) => !['--watch', '--fresh', '--stencil'].includes(f))
 if (unknown.length) {
   console.error(`Unknown option(s): ${unknown.join(', ')}\n\n${USAGE}`)
   process.exit(1)
@@ -185,7 +189,7 @@ if (!fs.existsSync(path.join(STRAPI_DIR, '.env'))) {
   process.exit(1)
 }
 await assertPortFree(API_PORT, 'strapi-oyl')
-await assertPortFree(APP_PORT, 'vanilla-oyl')
+await assertPortFree(APP_PORT, STENCIL ? 'stencil-oyl' : 'vanilla-oyl')
 
 if (FRESH) {
   for (const suffix of ['', '-journal', '-wal', '-shm']) {
@@ -197,22 +201,30 @@ if (FRESH) {
 // --- build the shared lib before serving anything ----------------------------
 // index.html's importmap points at /vendor/all-of-oyl/index.js. Serving before this lands
 // would return the SPA fallback HTML for that path instead of the module (see CLAUDE.md).
-console.log('Building @oyl/all-of-oyl and vendoring it into apps/vanilla-oyl/vendor …')
-if (spawnSync('pnpm', ['vanilla', 'build:lib'], { cwd: ROOT, stdio: 'inherit' }).status !== 0) {
-  console.error('build:lib failed — fix the build before starting the stack.')
-  process.exit(1)
+if (!STENCIL) {
+  console.log('Building @oyl/all-of-oyl and vendoring it into apps/vanilla-oyl/vendor …')
+  if (spawnSync('pnpm', ['vanilla', 'build:lib'], { cwd: ROOT, stdio: 'inherit' }).status !== 0) {
+    console.error('build:lib failed — fix the build before starting the stack.')
+    process.exit(1)
+  }
 }
 
 // --- start -------------------------------------------------------------------
 run('api', 'pnpm', ['--filter', '@oyl/strapi-oyl-app', 'develop'])
-run('app', 'pnpm', [
-  '--filter', '@oyl/vanilla-oyl', 'exec',
-  'http-server', '.',
-  '-p', String(APP_PORT),
-  '-c-1',
-  '--proxy', `http://localhost:${APP_PORT}?`,
-  '--silent',
-])
+if (STENCIL) {
+  // `pnpm stencil dev` builds all-of-oyl + ui-oyl first, then watches + serves on :3344
+  // (the Stencil dev server does its own SPA fallback).
+  run('app', 'pnpm', ['--filter', '@oyl/stencil-oyl', 'dev'])
+} else {
+  run('app', 'pnpm', [
+    '--filter', '@oyl/vanilla-oyl', 'exec',
+    'http-server', '.',
+    '-p', String(APP_PORT),
+    '-c-1',
+    '--proxy', `http://localhost:${APP_PORT}?`,
+    '--silent',
+  ])
+}
 
 /**
  * Rebuild + revendor the shared lib. Async on purpose: spawnSync would block the event loop
@@ -235,7 +247,7 @@ function rebuildLib() {
   })
 }
 
-if (WATCH) {
+if (WATCH && !STENCIL) {
   let timer = null
   let building = false
   let dirty = false
@@ -274,7 +286,7 @@ if (WATCH) {
 const park = () => new Promise(() => {})
 
 if (!(await waitFor(`http://localhost:${API_PORT}/_health`, 'strapi-oyl'))) await park()
-if (!(await waitFor(`http://localhost:${APP_PORT}/`, 'vanilla-oyl'))) await park()
+if (!(await waitFor(`http://localhost:${APP_PORT}/`, STENCIL ? 'stencil-oyl' : 'vanilla-oyl'))) await park()
 
 console.log(`
   OYL stack is up.

@@ -12,16 +12,16 @@ so a native light-DOM `<form>` sees its value (`FormData`, submit).
 
 ## Properties
 
-| Property             | Attribute      | Description                                                    | Type                                                    | Default     |
-| -------------------- | -------------- | -------------------------------------------------------------- | ------------------------------------------------------- | ----------- |
-| `autocomplete`       | `autocomplete` |                                                                | `string \| undefined`                                   | `undefined` |
-| `error`              | `error`        | Validation message; sets `aria-invalid` and replaces the hint. | `string \| undefined`                                   | `undefined` |
-| `hint`               | `hint`         | Supporting copy under the input; hidden while `error` is set.  | `string \| undefined`                                   | `undefined` |
-| `label` _(required)_ | `label`        |                                                                | `string`                                                | `undefined` |
-| `name` _(required)_  | `name`         |                                                                | `string`                                                | `undefined` |
-| `required`           | `required`     |                                                                | `boolean`                                               | `false`     |
-| `type`               | `type`         |                                                                | `"date" \| "email" \| "number" \| "password" \| "text"` | `'text'`    |
-| `value`              | `value`        |                                                                | `string`                                                | `''`        |
+| Property             | Attribute      | Description                                                          | Type                                                    | Default     |
+| -------------------- | -------------- | -------------------------------------------------------------------- | ------------------------------------------------------- | ----------- |
+| `autocomplete`       | `autocomplete` |                                                                      | `string \| undefined`                                   | `undefined` |
+| `error`              | `error`        | Validation message; sets `aria-invalid` and replaces the hint.       | `string \| undefined`                                   | `undefined` |
+| `hint`               | `hint`         | Supporting copy under the input; hidden while `error` is set.        | `string \| undefined`                                   | `undefined` |
+| `label` _(required)_ | `label`        |                                                                      | `string`                                                | `undefined` |
+| `name` _(required)_  | `name`         | Reflected: a field's name is attribute-shaped (selectors, autofill). | `string`                                                | `undefined` |
+| `required`           | `required`     |                                                                      | `boolean`                                               | `false`     |
+| `type`               | `type`         |                                                                      | `"date" \| "email" \| "number" \| "password" \| "text"` | `'text'`    |
+| `value`              | `value`        |                                                                      | `string`                                                | `''`        |
 
 
 ## Events

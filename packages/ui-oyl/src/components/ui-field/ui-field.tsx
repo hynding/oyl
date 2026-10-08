@@ -13,7 +13,8 @@ export class UiField {
   @AttachInternals() internals!: ElementInternals
 
   @Prop() label!: string
-  @Prop() name!: string
+  /** Reflected: a field's name is attribute-shaped (selectors, autofill). */
+  @Prop({ reflect: true }) name!: string
   @Prop() type: FieldType = 'text'
   @Prop({ mutable: true }) value = ''
   @Prop() required = false

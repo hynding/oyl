@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
-import { APP_URL, APP_PORT, BACKEND_PORT, FAKE_GOOGLE_PORT } from './lib/urls'
+import { APP_URL, APP_PORT, BACKEND_PORT, FAKE_GOOGLE_PORT, STENCIL_APP_URL, STENCIL_APP_PORT } from './lib/urls'
 
 /**
  * E2E stack layout (dedicated ports — never collides with native dev on 8041/1340):
@@ -9,13 +9,21 @@ import { APP_URL, APP_PORT, BACKEND_PORT, FAKE_GOOGLE_PORT } from './lib/urls'
  * Both servers auto-start (and are reused when already running, so `pnpm e2e` iterates fast).
  * Every test runs on BOTH the desktop and mobile projects unless it opts out.
  *
+ * The stencil-oyl shell (apps/stencil-oyl) has its own pair of projects (stencil-desktop /
+ * stencil-mobile) over tests-stencil/, served from its www/ build on :8043 against the same
+ * backend. Filter with --project to run one app's suite.
+ *
  * E2E_BACKEND=php runs the same suite against the camis-generated PHP backend
  * (apps/camis-php-oyl) — the Strapi-compatibility gate.
  */
 const PHP = process.env.E2E_BACKEND === 'php'
+/**
+ * Optional: a Chromium binary to launch instead of Playwright's managed download (sandboxes
+ * without CDN access set PW_CHROMIUM_PATH to a preinstalled browser). Unset = default.
+ */
+const launchOptions = process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {}
 
 export default defineConfig({
-  testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -23,18 +31,31 @@ export default defineConfig({
   timeout: 30_000,
   use: {
     baseURL: APP_URL,
+    launchOptions,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
   projects: [
     {
       name: 'desktop',
+      testDir: './tests',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } },
     },
     {
       // ≤640px triggers the fixed bottom tab bar (oyl-nav) — real mobile emulation (touch, DPR).
       name: 'mobile',
+      testDir: './tests',
       use: { ...devices['Pixel 7'] },
+    },
+    {
+      name: 'stencil-desktop',
+      testDir: './tests-stencil',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 }, baseURL: STENCIL_APP_URL },
+    },
+    {
+      name: 'stencil-mobile',
+      testDir: './tests-stencil',
+      use: { ...devices['Pixel 7'], baseURL: STENCIL_APP_URL },
     },
   ],
   webServer: [
@@ -59,6 +80,13 @@ export default defineConfig({
       url: APP_URL,
       reuseExistingServer: true,
       timeout: 120_000,
+    },
+    {
+      // stencil-oyl: prod build (chains all-of-oyl + ui-oyl builds), then the static www/ with SPA fallback.
+      command: `pnpm -C ../.. stencil build && pnpm exec http-server ../stencil-oyl/www -p ${STENCIL_APP_PORT} -c-1 --proxy "${STENCIL_APP_URL}?" --silent`,
+      url: STENCIL_APP_URL,
+      reuseExistingServer: true,
+      timeout: 180_000,
     },
   ],
 })

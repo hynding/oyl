@@ -1,0 +1,53 @@
+:host { position: relative; display: inline-block; }
+.trigger {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  min-block-size: var(--size-control);
+  background: var(--color-surface); color: var(--color-text);
+  border: var(--line-2) solid var(--color-border); border-radius: var(--radius-pill);
+  padding: 0 var(--space-3) 0 var(--space-2); font: inherit; font-size: var(--step--1); cursor: pointer;
+}
+.trigger:hover { border-color: var(--color-accent); }
+.chips { display: inline-flex; }
+.chip { inline-size: 0.95rem; block-size: 0.95rem; border-radius: 50%; border: var(--line-2) solid var(--color-border); }
+.chip + .chip { margin-inline-start: -0.4rem; }
+.panel {
+  position: absolute; inset-inline-end: 0; inset-block-start: calc(100% + var(--space-2));
+  z-index: 30; inline-size: min(21rem, calc(100vw - 2rem));
+  background: var(--color-surface); border: var(--line-2) solid var(--color-border);
+  border-radius: var(--radius-2); padding: var(--space-3);
+  box-shadow: 0 12px 32px color-mix(in oklch, var(--color-text) 18%, transparent);
+  display: grid; gap: var(--space-3);
+}
+/* display:grid would otherwise defeat the hidden attribute's display:none. */
+.panel[hidden] { display: none; }
+/* Mobile: a viewport-anchored sheet under the header (a host-anchored flyout can overflow
+   the left edge when the toolbar squeezes). Must stay AFTER the base .panel rule. */
+@media (max-width: 640px) {
+  .panel {
+    position: fixed; inset-inline: 1rem;
+    inset-block-start: calc(env(safe-area-inset-top) + 3.25rem);
+    inline-size: auto;
+    max-block-size: calc(100dvh - env(safe-area-inset-top) - 8rem);
+    overflow: auto;
+  }
+}
+.group-label { margin: 0; font-size: var(--step--1); font-weight: 500; color: var(--color-muted); }
+.themes { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); max-block-size: min(65vh, 29rem); overflow: auto; }
+.option {
+  display: grid; gap: 0.3rem; padding: var(--space-2);
+  border: var(--line-2) solid var(--color-border); border-radius: var(--radius-1);
+  background: var(--color-surface); color: var(--color-text); font: inherit; text-align: start; cursor: pointer;
+}
+.option:hover { border-color: var(--color-accent); }
+.option[aria-checked="true"] { border-color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-accent); }
+.swatch { position: relative; block-size: 2.1rem; border-radius: var(--radius-1); border: var(--line-1) solid var(--color-border); overflow: hidden; }
+.swatch-surface { position: absolute; inset-block-end: 0; inset-inline: 0; block-size: 40%; }
+.swatch-accent { position: absolute; inset-block-start: 0.35rem; inset-inline-start: 0.4rem; inline-size: 0.7rem; block-size: 0.7rem; border-radius: 50%; }
+.name { font-size: var(--step--1); font-weight: 500; }
+.tagline { font-size: 0.72rem; color: var(--color-muted); }
+.modes { display: grid; grid-auto-flow: column; border: var(--line-2) solid var(--color-border); border-radius: var(--radius-pill); padding: 2px; }
+.mode {
+  border: 0; background: transparent; color: var(--color-muted); min-block-size: 2.25rem;
+  font: inherit; font-size: var(--step--1); padding: 0 var(--space-3); border-radius: var(--radius-pill); cursor: pointer;
+}
+.mode[aria-checked="true"] { background: var(--color-accent); color: var(--color-on-accent); font-weight: 500; }

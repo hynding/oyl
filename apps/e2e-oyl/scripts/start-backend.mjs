@@ -21,6 +21,8 @@ const DIST_DIR = path.join(APP_DIR, 'dist')
 
 const PORT = Number(process.env.E2E_BACKEND_PORT ?? 1341)
 const APP_ORIGIN = process.env.E2E_APP_ORIGIN ?? 'http://localhost:8042'
+// The stencil-oyl e2e projects serve on :8043 (apps/e2e-oyl/lib/urls.ts).
+const STENCIL_ORIGIN = 'http://localhost:8043'
 
 // Environment — SQLite test DB (fresh per server start), minimal secrets, CORS open to the e2e app.
 process.env.NODE_ENV = 'test'
@@ -32,7 +34,7 @@ process.env.ADMIN_JWT_SECRET ??= 'e2e-test'
 process.env.API_TOKEN_SALT ??= 'e2e-test'
 process.env.TRANSFER_TOKEN_SALT ??= 'e2e-test'
 process.env.ENCRYPTION_KEY ??= 'e2etest-e2etest-e2etest-e2etest-'
-process.env.CORS_ORIGINS = `${APP_ORIGIN},http://127.0.0.1:8042`
+process.env.CORS_ORIGINS = `${APP_ORIGIN},http://127.0.0.1:8042,${STENCIL_ORIGIN},http://127.0.0.1:8043`
 
 // Google OAuth against the fake-google fixture server (started by playwright.config.ts).
 const FAKE_GOOGLE = `http://localhost:${process.env.FAKE_GOOGLE_PORT ?? 1342}`

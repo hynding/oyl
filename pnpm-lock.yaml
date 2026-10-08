@@ -55,6 +55,34 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  apps/stencil-oyl:
+    dependencies:
+      '@oyl/all-of-oyl':
+        specifier: workspace:*
+        version: link:../../packages/all-of-oyl
+      '@oyl/ui-oyl':
+        specifier: workspace:*
+        version: link:../../packages/ui-oyl
+    devDependencies:
+      '@stencil/core':
+        specifier: ^4.45.2
+        version: 4.45.2
+      '@stencil/vitest':
+        specifier: ^1.15.1
+        version: 1.15.1(@stencil/core@4.45.2)(happy-dom@20.10.3)(jsdom@25.0.1)(vitest@4.1.10(@opentelemetry/api@1.9.0)(@types/node@25.9.1)(happy-dom@20.10.3)(jsdom@25.0.1)(msw@2.14.6(@types/node@25.9.1)(typescript@5.9.3))(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.2)(jiti@2.6.1)(terser@5.46.1)(tsx@4.22.4)(yaml@2.9.0)))
+      happy-dom:
+        specifier: ^20
+        version: 20.10.3
+      http-server:
+        specifier: ^14.1.1
+        version: 14.1.1
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@opentelemetry/api@1.9.0)(@types/node@25.9.1)(happy-dom@20.10.3)(jsdom@25.0.1)(msw@2.14.6(@types/node@25.9.1)(typescript@5.9.3))(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.2)(jiti@2.6.1)(terser@5.46.1)(tsx@4.22.4)(yaml@2.9.0))
+
   apps/strapi-oyl:
     dependencies:
       '@strapi/plugin-users-permissions':
