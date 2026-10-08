@@ -26,6 +26,7 @@ import { Routes } from "./components/oyl-router/oyl-router";
 import { Diagnostics } from "./components/oyl-status/oyl-status";
 import { StatusActions } from "./boot/data-tools.js";
 import { ThemeState } from "./boot/theme.js";
+import { AccountsReader, Direction, TransactionWriter } from "./components/oyl-transaction-form/oyl-transaction-form";
 export { AccountsWriter } from "./components/oyl-account-form/oyl-account-form";
 export { Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
@@ -47,6 +48,7 @@ export { Routes } from "./components/oyl-router/oyl-router";
 export { Diagnostics } from "./components/oyl-status/oyl-status";
 export { StatusActions } from "./boot/data-tools.js";
 export { ThemeState } from "./boot/theme.js";
+export { AccountsReader, Direction, TransactionWriter } from "./components/oyl-transaction-form/oyl-transaction-form";
 export namespace Components {
     /**
      * Add an account: a name and its currency.
@@ -355,6 +357,17 @@ export namespace Components {
     interface OylThemePicker {
         "themeState": ThemeState;
     }
+    /**
+     * The finance composer: an expense or income with amount (+ currency unless an account is
+     * chosen — the account's currency wins), account, category (per direction), date and note.
+     * Vanilla's validation order (date, then amount) precedes the domain constructor. The
+     * composer owns currency/category/account as state: `ui-select` syncs silently when its
+     * options change, so it never trusts the select for a value it was not told about.
+     */
+    interface OylTransactionForm {
+        "accounts": AccountsReader;
+        "store": TransactionWriter;
+    }
 }
 export interface OylAccountFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -423,6 +436,10 @@ export interface OylPlanRowCustomEvent<T> extends CustomEvent<T> {
 export interface OylRegisterCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylRegisterElement;
+}
+export interface OylTransactionFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylTransactionFormElement;
 }
 declare global {
     interface HTMLOylAccountFormElementEventMap {
@@ -900,6 +917,30 @@ declare global {
         prototype: HTMLOylThemePickerElement;
         new (): HTMLOylThemePickerElement;
     };
+    interface HTMLOylTransactionFormElementEventMap {
+        "added": Direction;
+    }
+    /**
+     * The finance composer: an expense or income with amount (+ currency unless an account is
+     * chosen — the account's currency wins), account, category (per direction), date and note.
+     * Vanilla's validation order (date, then amount) precedes the domain constructor. The
+     * composer owns currency/category/account as state: `ui-select` syncs silently when its
+     * options change, so it never trusts the select for a value it was not told about.
+     */
+    interface HTMLOylTransactionFormElement extends Components.OylTransactionForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylTransactionFormElementEventMap>(type: K, listener: (this: HTMLOylTransactionFormElement, ev: OylTransactionFormCustomEvent<HTMLOylTransactionFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylTransactionFormElementEventMap>(type: K, listener: (this: HTMLOylTransactionFormElement, ev: OylTransactionFormCustomEvent<HTMLOylTransactionFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylTransactionFormElement: {
+        prototype: HTMLOylTransactionFormElement;
+        new (): HTMLOylTransactionFormElement;
+    };
     interface HTMLElementTagNameMap {
         "oyl-account-form": HTMLOylAccountFormElement;
         "oyl-account-menu": HTMLOylAccountMenuElement;
@@ -929,6 +970,7 @@ declare global {
         "oyl-shell": HTMLOylShellElement;
         "oyl-status": HTMLOylStatusElement;
         "oyl-theme-picker": HTMLOylThemePickerElement;
+        "oyl-transaction-form": HTMLOylTransactionFormElement;
     }
 }
 declare namespace LocalJSX {
@@ -1301,6 +1343,21 @@ declare namespace LocalJSX {
     interface OylThemePicker {
         "themeState": ThemeState;
     }
+    /**
+     * The finance composer: an expense or income with amount (+ currency unless an account is
+     * chosen — the account's currency wins), account, category (per direction), date and note.
+     * Vanilla's validation order (date, then amount) precedes the domain constructor. The
+     * composer owns currency/category/account as state: `ui-select` syncs silently when its
+     * options change, so it never trusts the select for a value it was not told about.
+     */
+    interface OylTransactionForm {
+        "accounts": AccountsReader;
+        /**
+          * A transaction was added; detail = its direction.
+         */
+        "onAdded"?: (event: OylTransactionFormCustomEvent<Direction>) => void;
+        "store": TransactionWriter;
+    }
 
     interface OylAuthFormAttributes {
         "mode": 'login' | 'register';
@@ -1373,6 +1430,7 @@ declare namespace LocalJSX {
         "oyl-shell": Omit<OylShell, keyof OylShellAttributes> & { [K in keyof OylShell & keyof OylShellAttributes]?: OylShell[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `attr:${K}`]?: OylShellAttributes[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `prop:${K}`]?: OylShell[K] };
         "oyl-status": OylStatus;
         "oyl-theme-picker": OylThemePicker;
+        "oyl-transaction-form": OylTransactionForm;
     }
 }
 export { LocalJSX as JSX };
@@ -1525,6 +1583,14 @@ declare module "@stencil/core" {
              * radiogroup with roving tabindex and aria-checked, not actions.
              */
             "oyl-theme-picker": LocalJSX.IntrinsicElements["oyl-theme-picker"] & JSXBase.HTMLAttributes<HTMLOylThemePickerElement>;
+            /**
+             * The finance composer: an expense or income with amount (+ currency unless an account is
+             * chosen — the account's currency wins), account, category (per direction), date and note.
+             * Vanilla's validation order (date, then amount) precedes the domain constructor. The
+             * composer owns currency/category/account as state: `ui-select` syncs silently when its
+             * options change, so it never trusts the select for a value it was not told about.
+             */
+            "oyl-transaction-form": LocalJSX.IntrinsicElements["oyl-transaction-form"] & JSXBase.HTMLAttributes<HTMLOylTransactionFormElement>;
         }
     }
 }
