@@ -7,7 +7,7 @@ import type { App } from './types.js'
 
 /** Redesigned screens arrive one spec at a time; the rest show the placeholder. */
 const NOT_YET: Record<string, string> = {
-  journal: 'Journal', planner: 'Planner', nutrition: 'Nutrition', finance: 'Finance',
+  planner: 'Planner', nutrition: 'Nutrition', finance: 'Finance',
   goals: 'Goals', vault: 'Vault', insights: 'Insights', profile: 'Profile',
 }
 
@@ -40,6 +40,12 @@ export function buildRoutes(app: App, doc: Document): Routes {
     },
     login: authPage('oyl-login'),
     register: authPage('oyl-register'),
+    journal: () => {
+      const el = doc.createElement('oyl-journal')
+      el.store = app.dataState.journal
+      el.tz = app.tz
+      return el
+    },
   }
   for (const route of Object.keys(NOT_YET)) routes[route] = notYet(route)
   return routes

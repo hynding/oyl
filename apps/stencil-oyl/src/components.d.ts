@@ -9,6 +9,7 @@ import { Signal } from "@oyl/all-of-oyl/client";
 import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
 import { DayKey, Entry, Id } from "@oyl/all-of-oyl";
+import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
 import { Routes } from "./components/oyl-router/oyl-router";
@@ -19,6 +20,7 @@ export { Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
 export { DayKey, Entry, Id } from "@oyl/all-of-oyl";
+export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
 export { Routes } from "./components/oyl-router/oyl-router";
@@ -67,6 +69,18 @@ export namespace Components {
      */
     interface OylEntryRow {
         "entry": Entry;
+    }
+    /**
+     * The day-scoped journal: prev/next + a 7-day pill strip, the composer, and the day's notes
+     * and measurements newest first (finance and nutrition rows belong to their own screens).
+     * ArrowLeft/Right move a day when focus is not in a field or radio.
+     */
+    interface OylJournal {
+        "store": JournalReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
     }
     /**
      * The journal composer: a note (text + tags) or a measurement (metric + value), with a
@@ -275,6 +289,17 @@ declare global {
         prototype: HTMLOylEntryRowElement;
         new (): HTMLOylEntryRowElement;
     };
+    /**
+     * The day-scoped journal: prev/next + a 7-day pill strip, the composer, and the day's notes
+     * and measurements newest first (finance and nutrition rows belong to their own screens).
+     * ArrowLeft/Right move a day when focus is not in a field or radio.
+     */
+    interface HTMLOylJournalElement extends Components.OylJournal, HTMLStencilElement {
+    }
+    var HTMLOylJournalElement: {
+        prototype: HTMLOylJournalElement;
+        new (): HTMLOylJournalElement;
+    };
     interface HTMLOylLogFormElementEventMap {
         "logged": void;
     }
@@ -425,6 +450,7 @@ declare global {
         "oyl-app": HTMLOylAppElement;
         "oyl-auth-form": HTMLOylAuthFormElement;
         "oyl-entry-row": HTMLOylEntryRowElement;
+        "oyl-journal": HTMLOylJournalElement;
         "oyl-log-form": HTMLOylLogFormElement;
         "oyl-login": HTMLOylLoginElement;
         "oyl-nav": HTMLOylNavElement;
@@ -491,6 +517,18 @@ declare namespace LocalJSX {
           * The user confirmed deletion of this entry.
          */
         "onRemove"?: (event: OylEntryRowCustomEvent<Id>) => void;
+    }
+    /**
+     * The day-scoped journal: prev/next + a 7-day pill strip, the composer, and the day's notes
+     * and measurements newest first (finance and nutrition rows belong to their own screens).
+     * ArrowLeft/Right move a day when focus is not in a field or radio.
+     */
+    interface OylJournal {
+        "store": JournalReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
     }
     /**
      * The journal composer: a note (text + tags) or a measurement (metric + value), with a
@@ -614,6 +652,9 @@ declare namespace LocalJSX {
     interface OylAuthFormAttributes {
         "mode": 'login' | 'register';
     }
+    interface OylJournalAttributes {
+        "tz": string;
+    }
     interface OylNavAttributes {
         "orientation": 'top' | 'bottom';
     }
@@ -633,6 +674,7 @@ declare namespace LocalJSX {
         "oyl-app": OylApp;
         "oyl-auth-form": Omit<OylAuthForm, keyof OylAuthFormAttributes> & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes]?: OylAuthForm[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `attr:${K}`]?: OylAuthFormAttributes[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `prop:${K}`]?: OylAuthForm[K] };
         "oyl-entry-row": OylEntryRow;
+        "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
         "oyl-log-form": OylLogForm;
         "oyl-login": OylLogin;
         "oyl-nav": Omit<OylNav, keyof OylNavAttributes> & { [K in keyof OylNav & keyof OylNavAttributes]?: OylNav[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `attr:${K}`]?: OylNavAttributes[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `prop:${K}`]?: OylNav[K] };
@@ -672,6 +714,12 @@ declare module "@stencil/core" {
              * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
              */
             "oyl-entry-row": LocalJSX.IntrinsicElements["oyl-entry-row"] & JSXBase.HTMLAttributes<HTMLOylEntryRowElement>;
+            /**
+             * The day-scoped journal: prev/next + a 7-day pill strip, the composer, and the day's notes
+             * and measurements newest first (finance and nutrition rows belong to their own screens).
+             * ArrowLeft/Right move a day when focus is not in a field or radio.
+             */
+            "oyl-journal": LocalJSX.IntrinsicElements["oyl-journal"] & JSXBase.HTMLAttributes<HTMLOylJournalElement>;
             /**
              * The journal composer: a note (text + tags) or a measurement (metric + value), with a
              * `when` prefilled to the shown day at the current time. Submits through a native <form>
