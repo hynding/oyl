@@ -5,9 +5,36 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
+import { ButtonVariant } from "./components/ui-button/ui-button";
 import { IconName } from "./components/ui-icon/icons.js";
+export { ButtonVariant } from "./components/ui-button/ui-button";
 export { IconName } from "./components/ui-icon/icons.js";
 export namespace Components {
+    /**
+     * The library's one clickable control: a button, or a link when `href` is set.
+     * `type="submit"` submits the enclosing light-DOM form through `ElementInternals`,
+     * so a native `<form>` works across the shadow boundary.
+     */
+    interface UiButton {
+        /**
+          * @default false
+         */
+        "disabled": boolean;
+        /**
+          * Render as a link to this URL instead of a button.
+         */
+        "href"?: string;
+        /**
+          * `submit` submits the enclosing form; `button` does nothing on its own.
+          * @default 'button'
+         */
+        "type": 'button' | 'submit';
+        /**
+          * `primary` is the single accent-filled action per view; everything else is quiet.
+          * @default 'secondary'
+         */
+        "variant": ButtonVariant;
+    }
     /**
      * Inline SVG icon from the library's small glyph map. Decorative unless `label` is set.
      */
@@ -29,6 +56,17 @@ export namespace Components {
 }
 declare global {
     /**
+     * The library's one clickable control: a button, or a link when `href` is set.
+     * `type="submit"` submits the enclosing light-DOM form through `ElementInternals`,
+     * so a native `<form>` works across the shadow boundary.
+     */
+    interface HTMLUiButtonElement extends Components.UiButton, HTMLStencilElement {
+    }
+    var HTMLUiButtonElement: {
+        prototype: HTMLUiButtonElement;
+        new (): HTMLUiButtonElement;
+    };
+    /**
      * Inline SVG icon from the library's small glyph map. Decorative unless `label` is set.
      */
     interface HTMLUiIconElement extends Components.UiIcon, HTMLStencilElement {
@@ -38,12 +76,46 @@ declare global {
         new (): HTMLUiIconElement;
     };
     interface HTMLElementTagNameMap {
+        "ui-button": HTMLUiButtonElement;
         "ui-icon": HTMLUiIconElement;
     }
 }
 declare namespace LocalJSX {
     type OneOf<K extends string, PropT, AttrT = PropT> = { [P in K]: PropT } & { [P in `attr:${K}`]?: never } | { [P in `attr:${K}`]: AttrT } & { [P in K]?: never };
 
+    /**
+     * The library's one clickable control: a button, or a link when `href` is set.
+     * `type="submit"` submits the enclosing light-DOM form through `ElementInternals`,
+     * so a native `<form>` works across the shadow boundary.
+     */
+    interface UiButton {
+        /**
+          * @default false
+         */
+        "disabled"?: boolean;
+        /**
+          * The `id` of a `<form>` element to associate this element with.
+         */
+        "form"?: string;
+        /**
+          * Render as a link to this URL instead of a button.
+         */
+        "href"?: string;
+        /**
+          * The name of the element, used when submitting an HTML form.
+         */
+        "name"?: string;
+        /**
+          * `submit` submits the enclosing form; `button` does nothing on its own.
+          * @default 'button'
+         */
+        "type"?: 'button' | 'submit';
+        /**
+          * `primary` is the single accent-filled action per view; everything else is quiet.
+          * @default 'secondary'
+         */
+        "variant"?: ButtonVariant;
+    }
     /**
      * Inline SVG icon from the library's small glyph map. Decorative unless `label` is set.
      */
@@ -63,6 +135,12 @@ declare namespace LocalJSX {
         "size"?: 's' | 'm';
     }
 
+    interface UiButtonAttributes {
+        "variant": ButtonVariant;
+        "type": 'button' | 'submit';
+        "disabled": boolean;
+        "href": string;
+    }
     interface UiIconAttributes {
         "name": IconName;
         "size": 's' | 'm';
@@ -70,6 +148,7 @@ declare namespace LocalJSX {
     }
 
     interface IntrinsicElements {
+        "ui-button": Omit<UiButton, keyof UiButtonAttributes> & { [K in keyof UiButton & keyof UiButtonAttributes]?: UiButton[K] } & { [K in keyof UiButton & keyof UiButtonAttributes as `attr:${K}`]?: UiButtonAttributes[K] } & { [K in keyof UiButton & keyof UiButtonAttributes as `prop:${K}`]?: UiButton[K] };
         "ui-icon": Omit<UiIcon, keyof UiIconAttributes> & { [K in keyof UiIcon & keyof UiIconAttributes]?: UiIcon[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `attr:${K}`]?: UiIconAttributes[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `prop:${K}`]?: UiIcon[K] } & OneOf<"name", UiIcon["name"], UiIconAttributes["name"]>;
     }
 }
@@ -77,6 +156,12 @@ export { LocalJSX as JSX };
 declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
+            /**
+             * The library's one clickable control: a button, or a link when `href` is set.
+             * `type="submit"` submits the enclosing light-DOM form through `ElementInternals`,
+             * so a native `<form>` works across the shadow boundary.
+             */
+            "ui-button": LocalJSX.IntrinsicElements["ui-button"] & JSXBase.HTMLAttributes<HTMLUiButtonElement>;
             /**
              * Inline SVG icon from the library's small glyph map. Decorative unless `label` is set.
              */
