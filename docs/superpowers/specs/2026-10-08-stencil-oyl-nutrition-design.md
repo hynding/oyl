@@ -1,7 +1,7 @@
 # `apps/stencil-oyl` Nutrition screen — Design
 
 **Date:** 2026-10-08
-**Status:** draft (branch `feat/stencil-oyl-nutrition`, stacked on `feat/stencil-oyl-planner`)
+**Status:** implemented on branch feat/stencil-oyl-nutrition (stacked on feat/stencil-oyl-planner; plan: `docs/superpowers/plans/2026-10-08-stencil-oyl-nutrition.md`)
 **Program:** Stencil front-end — sub-project 5 (third redesigned screen; see
 `2026-10-06-extract-client-layer-design.md` §Program context). Depends on 4 (`oyl-day-nav`,
 `ui-checkbox`, the row/confirm convention).
@@ -150,3 +150,10 @@ details stays open (the user may add several).
 | `ui-select` value sync when the catalog hydrates after first render | The options-change watcher adopts the first option without emitting; the composer reads the select's `value` at submit time, never caches it. |
 | Shared catalog grows → long `<select>` and list | Accepted for v1 (vanilla has the same); a search field is listed under out of scope. |
 | `<details>` in happy-dom | Specs assert the form's presence and behavior, not the open/closed rendering; e2e clicks the summary. |
+
+## Amendments during implementation
+
+1. **`readNutrients` lives in `src/nutrition/format.ts`** (a `@Component` module may export only its class); both forms call it.
+2. **The composer mirrors the catalogs through one `effect`** (`@State() catalog`/`products`) and re-syncs its `consumableId` when the catalog changes, so hydration after first render and adds re-populate the selects.
+3. **Totals tiles stay five-across on narrow screens** with tighter captions (the screen host is a container so the query applies).
+4. **e2e `registerUser` retries once on a transport `ECONNRESET`** — the sandbox reset a fresh connection twice under a 4-worker run; the registration had not happened, so a retry never creates a second user.
