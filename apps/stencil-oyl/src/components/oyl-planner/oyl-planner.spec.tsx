@@ -72,6 +72,8 @@ describe('oyl-planner', () => {
     await flush(); await waitForChanges()
     expect(store.complete).toHaveBeenCalledWith(a.id, expect.objectContaining({ value: t.value }))
     expect(navQ(root, '[aria-live]')).toHaveTextContent('Completed')
+    // The store mutated the plan in place; the row must still re-render as done.
+    expect(q(root, 'oyl-plan-row')!.shadowRoot!.querySelector('button.check')).toHaveAttribute('aria-checked', 'true')
     rows[1].dispatchEvent(new CustomEvent('cancelPlan', { detail: b.id, bubbles: true }))
     await flush(); await waitForChanges()
     expect(store.cancel).toHaveBeenCalledWith(b.id)

@@ -107,8 +107,10 @@ export class OylPlanner {
   private marked = (d: DayKey) => this.store.agendaFor(d).some((p) => p.status === 'open')
 
   private rows(plans: readonly Plan[], overdueAsOf?: DayKey) {
+    // Keyed by id AND status: the store mutates plans in place (complete/cancel), so the
+    // `plan` prop keeps its identity and the row would never re-render otherwise.
     return plans.map((plan) => (
-      <li key={plan.id}>
+      <li key={`${plan.id}:${plan.status}`}>
         <oyl-plan-row plan={plan} overdueAsOf={overdueAsOf} onCompletePlan={this.onComplete} onCancelPlan={this.onCancelPlan} onRemove={this.onRemove} />
       </li>
     ))
