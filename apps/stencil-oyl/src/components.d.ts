@@ -10,6 +10,7 @@ import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
 import { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
 import { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+import { ValueTone } from "./components/oyl-item-row/oyl-item-row";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
@@ -27,6 +28,7 @@ export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
 export { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
 export { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+export { ValueTone } from "./components/oyl-item-row/oyl-item-row";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
@@ -108,6 +110,29 @@ export namespace Components {
      */
     interface OylEntryRow {
         "entry": Entry;
+    }
+    /**
+     * A generic list row: label + supporting lines | optional mono value | inline Delete →
+     * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
+     * accounts list; Vault reuses it later. `remove` carries `itemId`, so a screen keeps one
+     * stable handler per list.
+     */
+    interface OylItemRow {
+        "itemId": string;
+        "label": string;
+        /**
+          * @default []
+         */
+        "lines": readonly (string | null | undefined)[];
+        /**
+          * aria-label for the Delete button; defaults to "Delete {label}".
+         */
+        "removeLabel"?: string;
+        "tone"?: ValueTone;
+        /**
+          * Right-aligned mono value (an amount, a balance).
+         */
+        "value"?: string;
     }
     /**
      * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
@@ -324,6 +349,10 @@ export interface OylEntryRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylEntryRowElement;
 }
+export interface OylItemRowCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylItemRowElement;
+}
 export interface OylLogFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylLogFormElement;
@@ -475,6 +504,29 @@ declare global {
     var HTMLOylEntryRowElement: {
         prototype: HTMLOylEntryRowElement;
         new (): HTMLOylEntryRowElement;
+    };
+    interface HTMLOylItemRowElementEventMap {
+        "remove": string;
+    }
+    /**
+     * A generic list row: label + supporting lines | optional mono value | inline Delete →
+     * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
+     * accounts list; Vault reuses it later. `remove` carries `itemId`, so a screen keeps one
+     * stable handler per list.
+     */
+    interface HTMLOylItemRowElement extends Components.OylItemRow, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylItemRowElementEventMap>(type: K, listener: (this: HTMLOylItemRowElement, ev: OylItemRowCustomEvent<HTMLOylItemRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylItemRowElementEventMap>(type: K, listener: (this: HTMLOylItemRowElement, ev: OylItemRowCustomEvent<HTMLOylItemRowElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylItemRowElement: {
+        prototype: HTMLOylItemRowElement;
+        new (): HTMLOylItemRowElement;
     };
     /**
      * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
@@ -754,6 +806,7 @@ declare global {
         "oyl-consumable-form": HTMLOylConsumableFormElement;
         "oyl-day-nav": HTMLOylDayNavElement;
         "oyl-entry-row": HTMLOylEntryRowElement;
+        "oyl-item-row": HTMLOylItemRowElement;
         "oyl-journal": HTMLOylJournalElement;
         "oyl-log-form": HTMLOylLogFormElement;
         "oyl-login": HTMLOylLoginElement;
@@ -858,6 +911,33 @@ declare namespace LocalJSX {
           * The user confirmed deletion of this entry.
          */
         "onRemove"?: (event: OylEntryRowCustomEvent<Id>) => void;
+    }
+    /**
+     * A generic list row: label + supporting lines | optional mono value | inline Delete →
+     * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
+     * accounts list; Vault reuses it later. `remove` carries `itemId`, so a screen keeps one
+     * stable handler per list.
+     */
+    interface OylItemRow {
+        "itemId": string;
+        "label": string;
+        /**
+          * @default []
+         */
+        "lines"?: readonly (string | null | undefined)[];
+        /**
+          * The user confirmed deletion; detail = `itemId`.
+         */
+        "onRemove"?: (event: OylItemRowCustomEvent<string>) => void;
+        /**
+          * aria-label for the Delete button; defaults to "Delete {label}".
+         */
+        "removeLabel"?: string;
+        "tone"?: ValueTone;
+        /**
+          * Right-aligned mono value (an amount, a balance).
+         */
+        "value"?: string;
     }
     /**
      * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
@@ -1091,6 +1171,13 @@ declare namespace LocalJSX {
     interface OylDayNavAttributes {
         "announcement": string;
     }
+    interface OylItemRowAttributes {
+        "itemId": string;
+        "label": string;
+        "value": string;
+        "tone": ValueTone;
+        "removeLabel": string;
+    }
     interface OylJournalAttributes {
         "tz": string;
     }
@@ -1127,6 +1214,7 @@ declare namespace LocalJSX {
         "oyl-consumable-form": OylConsumableForm;
         "oyl-day-nav": Omit<OylDayNav, keyof OylDayNavAttributes> & { [K in keyof OylDayNav & keyof OylDayNavAttributes]?: OylDayNav[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `attr:${K}`]?: OylDayNavAttributes[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `prop:${K}`]?: OylDayNav[K] };
         "oyl-entry-row": OylEntryRow;
+        "oyl-item-row": Omit<OylItemRow, keyof OylItemRowAttributes> & { [K in keyof OylItemRow & keyof OylItemRowAttributes]?: OylItemRow[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `attr:${K}`]?: OylItemRowAttributes[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `prop:${K}`]?: OylItemRow[K] } & OneOf<"itemId", OylItemRow["itemId"], OylItemRowAttributes["itemId"]> & OneOf<"label", OylItemRow["label"], OylItemRowAttributes["label"]>;
         "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
         "oyl-log-form": OylLogForm;
         "oyl-login": OylLogin;
@@ -1185,6 +1273,13 @@ declare module "@stencil/core" {
              * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
              */
             "oyl-entry-row": LocalJSX.IntrinsicElements["oyl-entry-row"] & JSXBase.HTMLAttributes<HTMLOylEntryRowElement>;
+            /**
+             * A generic list row: label + supporting lines | optional mono value | inline Delete →
+             * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
+             * accounts list; Vault reuses it later. `remove` carries `itemId`, so a screen keeps one
+             * stable handler per list.
+             */
+            "oyl-item-row": LocalJSX.IntrinsicElements["oyl-item-row"] & JSXBase.HTMLAttributes<HTMLOylItemRowElement>;
             /**
              * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
              * measurements newest first (finance and nutrition rows belong to their own screens).
