@@ -38,6 +38,21 @@ export namespace Components {
         "variant": ButtonVariant;
     }
     /**
+     * A bordered surface with optional header and footer regions. The `header` slot replaces
+     * the `heading` prop; the `footer` region appears only when the `footer` slot is filled.
+     */
+    interface UiCard {
+        /**
+          * Section title, rendered as an `<h2>` unless the `header` slot is used.
+         */
+        "heading"?: string;
+        /**
+          * `none` removes the body padding (for lists whose rows carry their own).
+          * @default 'md'
+         */
+        "padding": 'md' | 'none';
+    }
+    /**
      * Label + input + hint/error in one shadow root, with the aria wiring done. Form-associated,
      * so a native light-DOM `<form>` sees its value (`FormData`, submit).
      */
@@ -101,6 +116,16 @@ declare global {
         prototype: HTMLUiButtonElement;
         new (): HTMLUiButtonElement;
     };
+    /**
+     * A bordered surface with optional header and footer regions. The `header` slot replaces
+     * the `heading` prop; the `footer` region appears only when the `footer` slot is filled.
+     */
+    interface HTMLUiCardElement extends Components.UiCard, HTMLStencilElement {
+    }
+    var HTMLUiCardElement: {
+        prototype: HTMLUiCardElement;
+        new (): HTMLUiCardElement;
+    };
     interface HTMLUiFieldElementEventMap {
         "uiInput": { value: string };
         "uiChange": { value: string };
@@ -134,6 +159,7 @@ declare global {
     };
     interface HTMLElementTagNameMap {
         "ui-button": HTMLUiButtonElement;
+        "ui-card": HTMLUiCardElement;
         "ui-field": HTMLUiFieldElement;
         "ui-icon": HTMLUiIconElement;
     }
@@ -173,6 +199,21 @@ declare namespace LocalJSX {
           * @default 'secondary'
          */
         "variant"?: ButtonVariant;
+    }
+    /**
+     * A bordered surface with optional header and footer regions. The `header` slot replaces
+     * the `heading` prop; the `footer` region appears only when the `footer` slot is filled.
+     */
+    interface UiCard {
+        /**
+          * Section title, rendered as an `<h2>` unless the `header` slot is used.
+         */
+        "heading"?: string;
+        /**
+          * `none` removes the body padding (for lists whose rows carry their own).
+          * @default 'md'
+         */
+        "padding"?: 'md' | 'none';
     }
     /**
      * Label + input + hint/error in one shadow root, with the aria wiring done. Form-associated,
@@ -244,6 +285,10 @@ declare namespace LocalJSX {
         "disabled": boolean;
         "href": string;
     }
+    interface UiCardAttributes {
+        "heading": string;
+        "padding": 'md' | 'none';
+    }
     interface UiFieldAttributes {
         "label": string;
         "name": string;
@@ -262,6 +307,7 @@ declare namespace LocalJSX {
 
     interface IntrinsicElements {
         "ui-button": Omit<UiButton, keyof UiButtonAttributes> & { [K in keyof UiButton & keyof UiButtonAttributes]?: UiButton[K] } & { [K in keyof UiButton & keyof UiButtonAttributes as `attr:${K}`]?: UiButtonAttributes[K] } & { [K in keyof UiButton & keyof UiButtonAttributes as `prop:${K}`]?: UiButton[K] };
+        "ui-card": Omit<UiCard, keyof UiCardAttributes> & { [K in keyof UiCard & keyof UiCardAttributes]?: UiCard[K] } & { [K in keyof UiCard & keyof UiCardAttributes as `attr:${K}`]?: UiCardAttributes[K] } & { [K in keyof UiCard & keyof UiCardAttributes as `prop:${K}`]?: UiCard[K] };
         "ui-field": Omit<UiField, keyof UiFieldAttributes> & { [K in keyof UiField & keyof UiFieldAttributes]?: UiField[K] } & { [K in keyof UiField & keyof UiFieldAttributes as `attr:${K}`]?: UiFieldAttributes[K] } & { [K in keyof UiField & keyof UiFieldAttributes as `prop:${K}`]?: UiField[K] } & OneOf<"label", UiField["label"], UiFieldAttributes["label"]> & OneOf<"name", UiField["name"], UiFieldAttributes["name"]>;
         "ui-icon": Omit<UiIcon, keyof UiIconAttributes> & { [K in keyof UiIcon & keyof UiIconAttributes]?: UiIcon[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `attr:${K}`]?: UiIconAttributes[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `prop:${K}`]?: UiIcon[K] } & OneOf<"name", UiIcon["name"], UiIconAttributes["name"]>;
     }
@@ -276,6 +322,11 @@ declare module "@stencil/core" {
              * so a native `<form>` works across the shadow boundary.
              */
             "ui-button": LocalJSX.IntrinsicElements["ui-button"] & JSXBase.HTMLAttributes<HTMLUiButtonElement>;
+            /**
+             * A bordered surface with optional header and footer regions. The `header` slot replaces
+             * the `heading` prop; the `footer` region appears only when the `footer` slot is filled.
+             */
+            "ui-card": LocalJSX.IntrinsicElements["ui-card"] & JSXBase.HTMLAttributes<HTMLUiCardElement>;
             /**
              * Label + input + hint/error in one shadow root, with the aria wiring done. Form-associated,
              * so a native light-DOM `<form>` sees its value (`FormData`, submit).
