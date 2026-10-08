@@ -1,7 +1,7 @@
 # `apps/stencil-oyl` Finance screen — Design
 
 **Date:** 2026-10-08
-**Status:** draft (branch `feat/stencil-oyl-finance`, stacked on `feat/stencil-oyl-nutrition`)
+**Status:** implemented on branch feat/stencil-oyl-finance (stacked on feat/stencil-oyl-nutrition; plan: `docs/superpowers/plans/2026-10-08-stencil-oyl-finance.md`)
 **Program:** Stencil front-end — sub-project 6 (fourth redesigned screen; see
 `2026-10-06-extract-client-layer-design.md` §Program context). Depends on 5 (`ui-select`, the
 collapsed-form section pattern, `readNutrients`-style field reading).
@@ -166,3 +166,8 @@ object each render so the row re-renders on spending changes.
 | Multi-currency months | Tiles are grouped per currency, never summed across; the first row is the most-used currency. |
 | Account filter after an account is deleted | The filter state falls back to `''` when its id is gone; `ui-select` syncs its own value silently. |
 | `oyl-budget-row` not re-rendering on spend | `status` is a new object per screen render (prop identity changes), unlike the Planner's in-place plans. |
+
+## Amendments during implementation
+
+1. The pre-build review's findings (currency state across the account round trip, `accountId`/`category` re-derivation, net sign, `itemId` on `oyl-item-row`, section classes, the routing spec moving with the route) were folded into this spec before any code; the build followed it as written.
+2. `oyl-budget-row` exposes the bar as `role="progressbar"` with `aria-valuenow`.
