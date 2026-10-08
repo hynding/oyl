@@ -8,6 +8,7 @@ import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { Signal } from "@oyl/all-of-oyl/client";
 import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
+import { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
 import { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
@@ -21,6 +22,7 @@ import { ThemeState } from "./boot/theme.js";
 export { Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
+export { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
 export { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
@@ -65,6 +67,12 @@ export namespace Components {
           * @default 'login'
          */
         "mode": 'login' | 'register';
+    }
+    /**
+     * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
+     */
+    interface OylConsumableForm {
+        "store": ConsumablesWriter;
     }
     /**
      * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
@@ -269,6 +277,10 @@ export interface OylAuthFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylAuthFormElement;
 }
+export interface OylConsumableFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylConsumableFormElement;
+}
 export interface OylDayNavCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylDayNavElement;
@@ -358,6 +370,26 @@ declare global {
     var HTMLOylAuthFormElement: {
         prototype: HTMLOylAuthFormElement;
         new (): HTMLOylAuthFormElement;
+    };
+    interface HTMLOylConsumableFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
+     */
+    interface HTMLOylConsumableFormElement extends Components.OylConsumableForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylConsumableFormElementEventMap>(type: K, listener: (this: HTMLOylConsumableFormElement, ev: OylConsumableFormCustomEvent<HTMLOylConsumableFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylConsumableFormElementEventMap>(type: K, listener: (this: HTMLOylConsumableFormElement, ev: OylConsumableFormCustomEvent<HTMLOylConsumableFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylConsumableFormElement: {
+        prototype: HTMLOylConsumableFormElement;
+        new (): HTMLOylConsumableFormElement;
     };
     interface HTMLOylDayNavElementEventMap {
         "dayChange": DayKey;
@@ -646,6 +678,7 @@ declare global {
         "oyl-account-menu": HTMLOylAccountMenuElement;
         "oyl-app": HTMLOylAppElement;
         "oyl-auth-form": HTMLOylAuthFormElement;
+        "oyl-consumable-form": HTMLOylConsumableFormElement;
         "oyl-day-nav": HTMLOylDayNavElement;
         "oyl-entry-row": HTMLOylEntryRowElement;
         "oyl-journal": HTMLOylJournalElement;
@@ -707,6 +740,16 @@ declare namespace LocalJSX {
          */
         "mode"?: 'login' | 'register';
         "onSuccess"?: (event: OylAuthFormCustomEvent<void>) => void;
+    }
+    /**
+     * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
+     */
+    interface OylConsumableForm {
+        /**
+          * A consumable was added through the store.
+         */
+        "onAdded"?: (event: OylConsumableFormCustomEvent<void>) => void;
+        "store": ConsumablesWriter;
     }
     /**
      * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
@@ -970,6 +1013,7 @@ declare namespace LocalJSX {
         "oyl-account-menu": OylAccountMenu;
         "oyl-app": OylApp;
         "oyl-auth-form": Omit<OylAuthForm, keyof OylAuthFormAttributes> & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes]?: OylAuthForm[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `attr:${K}`]?: OylAuthFormAttributes[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `prop:${K}`]?: OylAuthForm[K] };
+        "oyl-consumable-form": OylConsumableForm;
         "oyl-day-nav": Omit<OylDayNav, keyof OylDayNavAttributes> & { [K in keyof OylDayNav & keyof OylDayNavAttributes]?: OylDayNav[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `attr:${K}`]?: OylDayNavAttributes[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `prop:${K}`]?: OylDayNav[K] };
         "oyl-entry-row": OylEntryRow;
         "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
@@ -1010,6 +1054,10 @@ declare module "@stencil/core" {
              * after the auth call resolves; a rejection renders inline as a polite live region.
              */
             "oyl-auth-form": LocalJSX.IntrinsicElements["oyl-auth-form"] & JSXBase.HTMLAttributes<HTMLOylAuthFormElement>;
+            /**
+             * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
+             */
+            "oyl-consumable-form": LocalJSX.IntrinsicElements["oyl-consumable-form"] & JSXBase.HTMLAttributes<HTMLOylConsumableFormElement>;
             /**
              * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
              * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live

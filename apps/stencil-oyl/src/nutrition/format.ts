@@ -43,3 +43,13 @@ export function mealLabel(c: Consumption, namesById: ReadonlyMap<string, string>
   const base = (c.consumableId !== undefined ? namesById.get(c.consumableId) : undefined) ?? c.note ?? 'Meal'
   return c.servings === 1 ? base : `${base} ×${c.servings}`
 }
+
+/** Read the five nutrient `ui-field`s of a form's shadow root; blanks are omitted (vanilla's rule). */
+export function readNutrients(root: { querySelector(sel: string): Element | null } | null | undefined): NutritionAmounts {
+  const out: NutritionAmounts = {}
+  for (const [key] of NUTRIENT_FIELDS) {
+    const raw = ((root?.querySelector(`ui-field[name="${key}"]`) as (Element & { value?: string }) | null)?.value ?? '').trim()
+    if (raw !== '') out[key] = Number(raw)
+  }
+  return out
+}

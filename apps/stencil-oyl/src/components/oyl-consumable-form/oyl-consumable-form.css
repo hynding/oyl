@@ -1,0 +1,7 @@
+:host { display: block; container-type: inline-size; }
+form { display: grid; gap: var(--space-3); }
+.nutrients { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-2); }
+[data-role="error"] { margin: 0; min-block-size: 1.2em; color: var(--color-danger); font-size: var(--step--1); }
+.actions { display: flex; justify-content: flex-end; }
+@container (max-width: 40rem) { .nutrients { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container (max-width: 26rem) { .nutrients { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
