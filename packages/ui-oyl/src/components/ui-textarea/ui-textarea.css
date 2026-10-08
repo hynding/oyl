@@ -11,22 +11,21 @@ label {
   font-size: var(--step--1);
   color: var(--color-muted);
 }
-input {
-  min-block-size: var(--size-control);
-  padding: 0 var(--space-3);
+textarea {
+  min-block-size: calc(var(--size-control) * 1.5);
+  padding: var(--space-2) var(--space-3);
   border: var(--line-2) solid var(--color-border);
   border-radius: var(--radius-1);
   background: var(--color-surface);
   color: var(--color-text);
   font: inherit;
+  line-height: 1.4;
   inline-size: 100%;
+  resize: vertical;
   transition: border-color var(--dur-fast) var(--ease-out);
 }
-input[type="number"], input[type="date"], input[type="datetime-local"] {
-  font-family: var(--font-mono);
-}
-input:hover { border-color: var(--color-muted); }
-input[aria-invalid="true"] { border-color: var(--color-danger); }
+textarea:hover { border-color: var(--color-muted); }
+textarea[aria-invalid="true"] { border-color: var(--color-danger); }
 .hint, .error {
   margin: 0;
   font-size: var(--step--1);

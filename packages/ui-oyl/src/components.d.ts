@@ -141,6 +141,34 @@ export namespace Components {
          */
         "tone": NoticeTone;
     }
+    /**
+     * Multiline sibling of ui-field: label + textarea + hint/error with the aria wiring done,
+     * form-associated, auto-growing. ⌘/Ctrl+Enter emits `uiSubmit` so a host form can submit.
+     */
+    interface UiTextarea {
+        /**
+          * @default true
+         */
+        "autogrow": boolean;
+        "error"?: string;
+        "hint"?: string;
+        "label": string;
+        "name": string;
+        "placeholder"?: string;
+        /**
+          * @default false
+         */
+        "required": boolean;
+        /**
+          * Minimum visible rows; the box grows with content when `autogrow` is on.
+          * @default 2
+         */
+        "rows": number;
+        /**
+          * @default ''
+         */
+        "value": string;
+    }
 }
 export interface UiFieldCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -149,6 +177,10 @@ export interface UiFieldCustomEvent<T> extends CustomEvent<T> {
 export interface UiNoticeCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLUiNoticeElement;
+}
+export interface UiTextareaCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLUiTextareaElement;
 }
 declare global {
     /**
@@ -236,6 +268,29 @@ declare global {
         prototype: HTMLUiNoticeElement;
         new (): HTMLUiNoticeElement;
     };
+    interface HTMLUiTextareaElementEventMap {
+        "uiInput": { value: string };
+        "uiChange": { value: string };
+        "uiSubmit": void;
+    }
+    /**
+     * Multiline sibling of ui-field: label + textarea + hint/error with the aria wiring done,
+     * form-associated, auto-growing. ⌘/Ctrl+Enter emits `uiSubmit` so a host form can submit.
+     */
+    interface HTMLUiTextareaElement extends Components.UiTextarea, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLUiTextareaElementEventMap>(type: K, listener: (this: HTMLUiTextareaElement, ev: UiTextareaCustomEvent<HTMLUiTextareaElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLUiTextareaElementEventMap>(type: K, listener: (this: HTMLUiTextareaElement, ev: UiTextareaCustomEvent<HTMLUiTextareaElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLUiTextareaElement: {
+        prototype: HTMLUiTextareaElement;
+        new (): HTMLUiTextareaElement;
+    };
     interface HTMLElementTagNameMap {
         "ui-button": HTMLUiButtonElement;
         "ui-card": HTMLUiCardElement;
@@ -243,6 +298,7 @@ declare global {
         "ui-icon": HTMLUiIconElement;
         "ui-nav": HTMLUiNavElement;
         "ui-notice": HTMLUiNoticeElement;
+        "ui-textarea": HTMLUiTextareaElement;
     }
 }
 declare namespace LocalJSX {
@@ -401,6 +457,51 @@ declare namespace LocalJSX {
          */
         "tone"?: NoticeTone;
     }
+    /**
+     * Multiline sibling of ui-field: label + textarea + hint/error with the aria wiring done,
+     * form-associated, auto-growing. ⌘/Ctrl+Enter emits `uiSubmit` so a host form can submit.
+     */
+    interface UiTextarea {
+        /**
+          * @default true
+         */
+        "autogrow"?: boolean;
+        /**
+          * If `true`, the user cannot interact with the element.
+         */
+        "disabled"?: boolean;
+        "error"?: string;
+        /**
+          * The `id` of a `<form>` element to associate this element with.
+         */
+        "form"?: string;
+        "hint"?: string;
+        "label": string;
+        "name": string;
+        "onUiChange"?: (event: UiTextareaCustomEvent<{ value: string }>) => void;
+        /**
+          * Every keystroke, `{ value }` (composed). The native input/change events stop at the shadow boundary.
+         */
+        "onUiInput"?: (event: UiTextareaCustomEvent<{ value: string }>) => void;
+        /**
+          * ⌘/Ctrl+Enter inside the textarea — the host form's submit shortcut.
+         */
+        "onUiSubmit"?: (event: UiTextareaCustomEvent<void>) => void;
+        "placeholder"?: string;
+        /**
+          * @default false
+         */
+        "required"?: boolean;
+        /**
+          * Minimum visible rows; the box grows with content when `autogrow` is on.
+          * @default 2
+         */
+        "rows"?: number;
+        /**
+          * @default ''
+         */
+        "value"?: string;
+    }
 
     interface UiButtonAttributes {
         "variant": ButtonVariant;
@@ -435,6 +536,17 @@ declare namespace LocalJSX {
         "tone": NoticeTone;
         "dismissible": boolean;
     }
+    interface UiTextareaAttributes {
+        "label": string;
+        "name": string;
+        "value": string;
+        "placeholder": string;
+        "required": boolean;
+        "rows": number;
+        "autogrow": boolean;
+        "hint": string;
+        "error": string;
+    }
 
     interface IntrinsicElements {
         "ui-button": Omit<UiButton, keyof UiButtonAttributes> & { [K in keyof UiButton & keyof UiButtonAttributes]?: UiButton[K] } & { [K in keyof UiButton & keyof UiButtonAttributes as `attr:${K}`]?: UiButtonAttributes[K] } & { [K in keyof UiButton & keyof UiButtonAttributes as `prop:${K}`]?: UiButton[K] };
@@ -443,6 +555,7 @@ declare namespace LocalJSX {
         "ui-icon": Omit<UiIcon, keyof UiIconAttributes> & { [K in keyof UiIcon & keyof UiIconAttributes]?: UiIcon[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `attr:${K}`]?: UiIconAttributes[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `prop:${K}`]?: UiIcon[K] } & OneOf<"name", UiIcon["name"], UiIconAttributes["name"]>;
         "ui-nav": Omit<UiNav, keyof UiNavAttributes> & { [K in keyof UiNav & keyof UiNavAttributes]?: UiNav[K] } & { [K in keyof UiNav & keyof UiNavAttributes as `attr:${K}`]?: UiNavAttributes[K] } & { [K in keyof UiNav & keyof UiNavAttributes as `prop:${K}`]?: UiNav[K] };
         "ui-notice": Omit<UiNotice, keyof UiNoticeAttributes> & { [K in keyof UiNotice & keyof UiNoticeAttributes]?: UiNotice[K] } & { [K in keyof UiNotice & keyof UiNoticeAttributes as `attr:${K}`]?: UiNoticeAttributes[K] } & { [K in keyof UiNotice & keyof UiNoticeAttributes as `prop:${K}`]?: UiNotice[K] };
+        "ui-textarea": Omit<UiTextarea, keyof UiTextareaAttributes> & { [K in keyof UiTextarea & keyof UiTextareaAttributes]?: UiTextarea[K] } & { [K in keyof UiTextarea & keyof UiTextareaAttributes as `attr:${K}`]?: UiTextareaAttributes[K] } & { [K in keyof UiTextarea & keyof UiTextareaAttributes as `prop:${K}`]?: UiTextarea[K] } & OneOf<"label", UiTextarea["label"], UiTextareaAttributes["label"]> & OneOf<"name", UiTextarea["name"], UiTextareaAttributes["name"]>;
     }
 }
 export { LocalJSX as JSX };
@@ -481,6 +594,11 @@ declare module "@stencil/core" {
              * `danger` is announced assertively (`role="alert"`); the other tones are polite.
              */
             "ui-notice": LocalJSX.IntrinsicElements["ui-notice"] & JSXBase.HTMLAttributes<HTMLUiNoticeElement>;
+            /**
+             * Multiline sibling of ui-field: label + textarea + hint/error with the aria wiring done,
+             * form-associated, auto-growing. ⌘/Ctrl+Enter emits `uiSubmit` so a host form can submit.
+             */
+            "ui-textarea": LocalJSX.IntrinsicElements["ui-textarea"] & JSXBase.HTMLAttributes<HTMLUiTextareaElement>;
         }
     }
 }
