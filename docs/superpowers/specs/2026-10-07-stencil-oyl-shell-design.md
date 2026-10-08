@@ -1,7 +1,7 @@
 # `apps/stencil-oyl` shell — Design
 
 **Date:** 2026-10-07
-**Status:** reviewed; plan: `docs/superpowers/plans/2026-10-07-stencil-oyl-shell.md`
+**Status:** implemented on branch feat/stencil-oyl-shell (plan: `docs/superpowers/plans/2026-10-07-stencil-oyl-shell.md`)
 **Program:** Stencil front-end — sub-project 2 (see `2026-10-06-extract-client-layer-design.md`
 §Program context). Depends on 0 (`@oyl/all-of-oyl/client`, merged PR #6) and 1 (`@oyl/ui-oyl`,
 merged PR #7).
@@ -245,3 +245,8 @@ placeholder.
    and the page runs clean in headless Chromium.
 2. **`@oyl/ui-oyl` is consumed as built custom elements** (`dist/components`), so
    `pnpm ui build` is also a prerequisite; Stencil tree-shakes only the elements used.
+3. **The app registers `@oyl/ui-oyl`'s elements itself** in the global script (`defineCustomElementUiX()` per tag used); Stencil compiles foreign tags as plain elements, so without this the primitives never upgrade. A unit test keeps the list in sync with the tags rendered.
+4. **Component callbacks are `@Event()`s** (`logout`, `dismiss`, `success`, `authenticated`): Stencil refuses `onX` props.
+5. **Seed/import re-pull without a reload:** `App.flushAndRefresh()` drains (observing completion through the outbox size, since `flush()` returns early mid-drain) and then `refresh()`es, bumping a `refreshTick` signal the Status screen re-reads on.
+6. **The Google status read re-checks the session when the probe resolves** (a logout during the probe otherwise 401s).
+7. **e2e:** `PW_CHROMIUM_PATH` lets Playwright launch a preinstalled Chromium; seed-based specs declare a 150 s budget (~270 sequential PUTs under parallel workers). Two vanilla mobile specs (`vault` gift ideas, `seed`) fail in this sandbox on master as well — pre-existing, environment-specific, untouched.
