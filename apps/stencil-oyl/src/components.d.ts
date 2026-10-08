@@ -5,8 +5,40 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
+import { Signal } from "@oyl/all-of-oyl/client";
+import { Routes } from "./components/oyl-router/oyl-router";
+export { Signal } from "@oyl/all-of-oyl/client";
+export { Routes } from "./components/oyl-router/oyl-router";
 export namespace Components {
     interface OylApp {
+    }
+    interface OylNotFound {
+        /**
+          * @default ''
+         */
+        "route": string;
+    }
+    /**
+     * Placeholder for a screen the redesign has not reached yet (sub-projects 3…n replace these).
+     */
+    interface OylNotYet {
+        /**
+          * The classic app's URL for this screen; omit to hide the link.
+         */
+        "classicUrl"?: string;
+        "name": string;
+    }
+    /**
+     * Switches one screen element on the route signal. Screens are created by the `routes`
+     * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
+     * `oyl-status h2` reach them). Unknown routes render <oyl-not-found> with the name as text.
+     */
+    interface OylRouter {
+        "routeSignal": Signal<string>;
+        /**
+          * @default {}
+         */
+        "routes": Routes;
     }
 }
 declare global {
@@ -16,15 +48,86 @@ declare global {
         prototype: HTMLOylAppElement;
         new (): HTMLOylAppElement;
     };
+    interface HTMLOylNotFoundElement extends Components.OylNotFound, HTMLStencilElement {
+    }
+    var HTMLOylNotFoundElement: {
+        prototype: HTMLOylNotFoundElement;
+        new (): HTMLOylNotFoundElement;
+    };
+    /**
+     * Placeholder for a screen the redesign has not reached yet (sub-projects 3…n replace these).
+     */
+    interface HTMLOylNotYetElement extends Components.OylNotYet, HTMLStencilElement {
+    }
+    var HTMLOylNotYetElement: {
+        prototype: HTMLOylNotYetElement;
+        new (): HTMLOylNotYetElement;
+    };
+    /**
+     * Switches one screen element on the route signal. Screens are created by the `routes`
+     * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
+     * `oyl-status h2` reach them). Unknown routes render <oyl-not-found> with the name as text.
+     */
+    interface HTMLOylRouterElement extends Components.OylRouter, HTMLStencilElement {
+    }
+    var HTMLOylRouterElement: {
+        prototype: HTMLOylRouterElement;
+        new (): HTMLOylRouterElement;
+    };
     interface HTMLElementTagNameMap {
         "oyl-app": HTMLOylAppElement;
+        "oyl-not-found": HTMLOylNotFoundElement;
+        "oyl-not-yet": HTMLOylNotYetElement;
+        "oyl-router": HTMLOylRouterElement;
     }
 }
 declare namespace LocalJSX {
+    type OneOf<K extends string, PropT, AttrT = PropT> = { [P in K]: PropT } & { [P in `attr:${K}`]?: never } | { [P in `attr:${K}`]: AttrT } & { [P in K]?: never };
+
     interface OylApp {
     }
+    interface OylNotFound {
+        /**
+          * @default ''
+         */
+        "route"?: string;
+    }
+    /**
+     * Placeholder for a screen the redesign has not reached yet (sub-projects 3…n replace these).
+     */
+    interface OylNotYet {
+        /**
+          * The classic app's URL for this screen; omit to hide the link.
+         */
+        "classicUrl"?: string;
+        "name": string;
+    }
+    /**
+     * Switches one screen element on the route signal. Screens are created by the `routes`
+     * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
+     * `oyl-status h2` reach them). Unknown routes render <oyl-not-found> with the name as text.
+     */
+    interface OylRouter {
+        "routeSignal": Signal<string>;
+        /**
+          * @default {}
+         */
+        "routes"?: Routes;
+    }
+
+    interface OylNotFoundAttributes {
+        "route": string;
+    }
+    interface OylNotYetAttributes {
+        "name": string;
+        "classicUrl": string;
+    }
+
     interface IntrinsicElements {
         "oyl-app": OylApp;
+        "oyl-not-found": Omit<OylNotFound, keyof OylNotFoundAttributes> & { [K in keyof OylNotFound & keyof OylNotFoundAttributes]?: OylNotFound[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `attr:${K}`]?: OylNotFoundAttributes[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `prop:${K}`]?: OylNotFound[K] };
+        "oyl-not-yet": Omit<OylNotYet, keyof OylNotYetAttributes> & { [K in keyof OylNotYet & keyof OylNotYetAttributes]?: OylNotYet[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `attr:${K}`]?: OylNotYetAttributes[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `prop:${K}`]?: OylNotYet[K] } & OneOf<"name", OylNotYet["name"], OylNotYetAttributes["name"]>;
+        "oyl-router": OylRouter;
     }
 }
 export { LocalJSX as JSX };
@@ -32,6 +135,17 @@ declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
             "oyl-app": LocalJSX.IntrinsicElements["oyl-app"] & JSXBase.HTMLAttributes<HTMLOylAppElement>;
+            "oyl-not-found": LocalJSX.IntrinsicElements["oyl-not-found"] & JSXBase.HTMLAttributes<HTMLOylNotFoundElement>;
+            /**
+             * Placeholder for a screen the redesign has not reached yet (sub-projects 3…n replace these).
+             */
+            "oyl-not-yet": LocalJSX.IntrinsicElements["oyl-not-yet"] & JSXBase.HTMLAttributes<HTMLOylNotYetElement>;
+            /**
+             * Switches one screen element on the route signal. Screens are created by the `routes`
+             * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
+             * `oyl-status h2` reach them). Unknown routes render <oyl-not-found> with the name as text.
+             */
+            "oyl-router": LocalJSX.IntrinsicElements["oyl-router"] & JSXBase.HTMLAttributes<HTMLOylRouterElement>;
         }
     }
 }

@@ -24,6 +24,7 @@ export const config: Config = {
   sourceMap: true,
   srcIndexHtml: 'src/index.html',
   globalStyle: 'src/global/app.css',
+  globalScript: 'src/global/app.ts',
   rollupPlugins: { before: [allOfOylFromDist] },
   outputTargets: [
     {

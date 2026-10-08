@@ -26,4 +26,12 @@ beforeAll(async () => {
   await import('./www/build/oyl.esm.js')
 })
 
+/**
+ * The bundle's reactive core (one instance shared with every component). Specs that
+ * create signals MUST use this — a signal from a second copy never notifies a component.
+ */
+export async function core(): Promise<{ signal: typeof import('@oyl/all-of-oyl/client').signal }> {
+  return import('./www/build/index.esm.js') as any
+}
+
 export {}
