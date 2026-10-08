@@ -1,7 +1,8 @@
 import { Component, Element, Prop, State, h } from '@stencil/core'
 import { DayKey, type Entry, type Id } from '@oyl/all-of-oyl'
 import { signal, effect, now, type Signal } from '@oyl/all-of-oyl/client'
-import { formatDayHeading, relativeDayLabel } from '@oyl/all-of-oyl/format'
+import { formatDayHeading } from '@oyl/all-of-oyl/format'
+import { isEditableTarget } from '../../lib/keys.js'
 import type { JournalWriter } from '../oyl-log-form/oyl-log-form.js'
 
 export interface JournalReader extends JournalWriter {
@@ -10,10 +11,11 @@ export interface JournalReader extends JournalWriter {
 }
 
 const HIDDEN_KINDS = new Set(['transaction', 'consumption'])
+const visible = (e: Entry) => !HIDDEN_KINDS.has(e.kind)
 
 /**
- * The day-scoped journal: prev/next + a 7-day pill strip, the composer, and the day's notes
- * and measurements newest first (finance and nutrition rows belong to their own screens).
+ * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
+ * measurements newest first (finance and nutrition rows belong to their own screens).
  * ArrowLeft/Right move a day when focus is not in a field or radio.
  */
 @Component({ tag: 'oyl-journal', styleUrl: 'oyl-journal.css', shadow: true })
@@ -37,7 +39,7 @@ export class OylJournal {
       const day = this.daySignal.get()
       this.day = day
       this.entries = [...this.store.entriesOn(day)]
-        .filter((e) => !HIDDEN_KINDS.has(e.kind))
+        .filter(visible)
         .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
     })
   }
@@ -52,21 +54,24 @@ export class OylJournal {
   }
 
   private onKeydown = (e: KeyboardEvent) => {
-    const target = e.composedPath()[0] as Element | undefined
-    const tag = target?.tagName ?? ''
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.getAttribute?.('role') === 'radio') return
+    if (isEditableTarget(e)) return
     if (e.key === 'ArrowLeft') this.go(-1)
     else if (e.key === 'ArrowRight') this.go(1)
   }
 
   private go(delta: number) {
     this.setDay(this.daySignal.get().addDays(delta))
+    void (this.host.shadowRoot?.querySelector('oyl-day-nav') as HTMLOylDayNavElement | null)?.focusHeading()
   }
 
   private setDay(day: DayKey) {
     this.daySignal.set(day)
     this.announcement = `Showing ${formatDayHeading(day)}`
-    ;(this.host.shadowRoot?.querySelector('h2') as HTMLElement | null)?.focus()
+  }
+
+  private onDayChange = (e: CustomEvent<DayKey>) => {
+    e.stopPropagation()
+    this.setDay(e.detail)
   }
 
   private onRemove = (e: CustomEvent<Id>) => {
@@ -75,34 +80,15 @@ export class OylJournal {
     this.announcement = 'Entry deleted'
   }
 
+  private marked = (d: DayKey) => this.store.entriesOn(d).some(visible)
+
   render() {
     const day = this.day
     const today = DayKey.from(now(), this.tz)
     const heading = formatDayHeading(day)
-    const week = [-3, -2, -1, 0, 1, 2, 3].map((d) => day.addDays(d))
     return (
       <div class="screen">
-        <header class="daynav">
-          <ui-button variant="ghost" data-nav="prev" aria-label="Previous day" onClick={() => this.go(-1)}>
-            <ui-icon name="chevron-left" />
-          </ui-button>
-          <div class="day">
-            <h2 tabindex="-1">{heading}</h2>
-            <div class="rel">{relativeDayLabel(day, today)}</div>
-          </div>
-          <ui-button variant="ghost" data-nav="next" aria-label="Next day" onClick={() => this.go(1)}>
-            <ui-icon name="chevron-right" />
-          </ui-button>
-        </header>
-        <div class="week" role="group" aria-label="Week">
-          {week.map((d) => (
-            <button type="button" data-day={d.value} aria-pressed={String(d.equals(day))} onClick={() => this.setDay(d)}>
-              <span class="wd">{weekdayShort(d)}</span>
-              <span class="dm">{Number(d.value.slice(8))}</span>
-            </button>
-          ))}
-        </div>
-        <div class="sr-only" aria-live="polite">{this.announcement}</div>
+        <oyl-day-nav day={day} today={today} marked={this.marked} announcement={this.announcement} onDayChange={this.onDayChange} />
         <oyl-log-form store={this.store} day={day} onLogged={(e: Event) => { e.stopPropagation(); this.announcement = 'Entry added' }} />
         {this.entries.length > 0 ? (
           <ol>
@@ -118,9 +104,4 @@ export class OylJournal {
       </div>
     )
   }
-}
-
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-function weekdayShort(d: DayKey): string {
-  return WEEKDAYS[new Date(`${d.value}T12:00:00Z`).getUTCDay()]!
 }

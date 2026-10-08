@@ -63,6 +63,27 @@ export namespace Components {
         "mode": 'login' | 'register';
     }
     /**
+     * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
+     * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
+     * region for the screen's announcements. Controlled: the screen owns the day signal and
+     * passes `day`/`today`; this emits `dayChange` and focuses the heading after a change it
+     * initiated. `marked(day)` puts a dot under a pill — the screen decides what counts.
+     */
+    interface OylDayNav {
+        /**
+          * Text for the polite live region (screen announcements: "Entry added", "Showing …").
+          * @default ''
+         */
+        "announcement": string;
+        "day": DayKey;
+        /**
+          * Move keyboard focus to the heading (the screens call it after an arrow-key move).
+         */
+        "focusHeading": () => Promise<void>;
+        "marked"?: (day: DayKey) => boolean;
+        "today": DayKey;
+    }
+    /**
      * One journal entry: time | body | actions. Delete is a two-step inline confirm
      * (Delete → "Delete?" Yes/No) on native buttons — a confirm cluster, like the theme
      * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
@@ -71,8 +92,8 @@ export namespace Components {
         "entry": Entry;
     }
     /**
-     * The day-scoped journal: prev/next + a 7-day pill strip, the composer, and the day's notes
-     * and measurements newest first (finance and nutrition rows belong to their own screens).
+     * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
+     * measurements newest first (finance and nutrition rows belong to their own screens).
      * ArrowLeft/Right move a day when focus is not in a field or radio.
      */
     interface OylJournal {
@@ -193,6 +214,10 @@ export interface OylAuthFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylAuthFormElement;
 }
+export interface OylDayNavCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylDayNavElement;
+}
 export interface OylEntryRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylEntryRowElement;
@@ -267,6 +292,30 @@ declare global {
         prototype: HTMLOylAuthFormElement;
         new (): HTMLOylAuthFormElement;
     };
+    interface HTMLOylDayNavElementEventMap {
+        "dayChange": DayKey;
+    }
+    /**
+     * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
+     * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
+     * region for the screen's announcements. Controlled: the screen owns the day signal and
+     * passes `day`/`today`; this emits `dayChange` and focuses the heading after a change it
+     * initiated. `marked(day)` puts a dot under a pill — the screen decides what counts.
+     */
+    interface HTMLOylDayNavElement extends Components.OylDayNav, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylDayNavElementEventMap>(type: K, listener: (this: HTMLOylDayNavElement, ev: OylDayNavCustomEvent<HTMLOylDayNavElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylDayNavElementEventMap>(type: K, listener: (this: HTMLOylDayNavElement, ev: OylDayNavCustomEvent<HTMLOylDayNavElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylDayNavElement: {
+        prototype: HTMLOylDayNavElement;
+        new (): HTMLOylDayNavElement;
+    };
     interface HTMLOylEntryRowElementEventMap {
         "remove": Id;
     }
@@ -290,8 +339,8 @@ declare global {
         new (): HTMLOylEntryRowElement;
     };
     /**
-     * The day-scoped journal: prev/next + a 7-day pill strip, the composer, and the day's notes
-     * and measurements newest first (finance and nutrition rows belong to their own screens).
+     * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
+     * measurements newest first (finance and nutrition rows belong to their own screens).
      * ArrowLeft/Right move a day when focus is not in a field or radio.
      */
     interface HTMLOylJournalElement extends Components.OylJournal, HTMLStencilElement {
@@ -449,6 +498,7 @@ declare global {
         "oyl-account-menu": HTMLOylAccountMenuElement;
         "oyl-app": HTMLOylAppElement;
         "oyl-auth-form": HTMLOylAuthFormElement;
+        "oyl-day-nav": HTMLOylDayNavElement;
         "oyl-entry-row": HTMLOylEntryRowElement;
         "oyl-journal": HTMLOylJournalElement;
         "oyl-log-form": HTMLOylLogFormElement;
@@ -507,6 +557,27 @@ declare namespace LocalJSX {
         "onSuccess"?: (event: OylAuthFormCustomEvent<void>) => void;
     }
     /**
+     * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
+     * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
+     * region for the screen's announcements. Controlled: the screen owns the day signal and
+     * passes `day`/`today`; this emits `dayChange` and focuses the heading after a change it
+     * initiated. `marked(day)` puts a dot under a pill — the screen decides what counts.
+     */
+    interface OylDayNav {
+        /**
+          * Text for the polite live region (screen announcements: "Entry added", "Showing …").
+          * @default ''
+         */
+        "announcement"?: string;
+        "day": DayKey;
+        "marked"?: (day: DayKey) => boolean;
+        /**
+          * The user picked a day (prev/next or a pill).
+         */
+        "onDayChange"?: (event: OylDayNavCustomEvent<DayKey>) => void;
+        "today": DayKey;
+    }
+    /**
      * One journal entry: time | body | actions. Delete is a two-step inline confirm
      * (Delete → "Delete?" Yes/No) on native buttons — a confirm cluster, like the theme
      * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
@@ -519,8 +590,8 @@ declare namespace LocalJSX {
         "onRemove"?: (event: OylEntryRowCustomEvent<Id>) => void;
     }
     /**
-     * The day-scoped journal: prev/next + a 7-day pill strip, the composer, and the day's notes
-     * and measurements newest first (finance and nutrition rows belong to their own screens).
+     * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
+     * measurements newest first (finance and nutrition rows belong to their own screens).
      * ArrowLeft/Right move a day when focus is not in a field or radio.
      */
     interface OylJournal {
@@ -652,6 +723,9 @@ declare namespace LocalJSX {
     interface OylAuthFormAttributes {
         "mode": 'login' | 'register';
     }
+    interface OylDayNavAttributes {
+        "announcement": string;
+    }
     interface OylJournalAttributes {
         "tz": string;
     }
@@ -673,6 +747,7 @@ declare namespace LocalJSX {
         "oyl-account-menu": OylAccountMenu;
         "oyl-app": OylApp;
         "oyl-auth-form": Omit<OylAuthForm, keyof OylAuthFormAttributes> & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes]?: OylAuthForm[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `attr:${K}`]?: OylAuthFormAttributes[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `prop:${K}`]?: OylAuthForm[K] };
+        "oyl-day-nav": Omit<OylDayNav, keyof OylDayNavAttributes> & { [K in keyof OylDayNav & keyof OylDayNavAttributes]?: OylDayNav[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `attr:${K}`]?: OylDayNavAttributes[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `prop:${K}`]?: OylDayNav[K] };
         "oyl-entry-row": OylEntryRow;
         "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
         "oyl-log-form": OylLogForm;
@@ -709,14 +784,22 @@ declare module "@stencil/core" {
              */
             "oyl-auth-form": LocalJSX.IntrinsicElements["oyl-auth-form"] & JSXBase.HTMLAttributes<HTMLOylAuthFormElement>;
             /**
+             * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
+             * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
+             * region for the screen's announcements. Controlled: the screen owns the day signal and
+             * passes `day`/`today`; this emits `dayChange` and focuses the heading after a change it
+             * initiated. `marked(day)` puts a dot under a pill — the screen decides what counts.
+             */
+            "oyl-day-nav": LocalJSX.IntrinsicElements["oyl-day-nav"] & JSXBase.HTMLAttributes<HTMLOylDayNavElement>;
+            /**
              * One journal entry: time | body | actions. Delete is a two-step inline confirm
              * (Delete → "Delete?" Yes/No) on native buttons — a confirm cluster, like the theme
              * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
              */
             "oyl-entry-row": LocalJSX.IntrinsicElements["oyl-entry-row"] & JSXBase.HTMLAttributes<HTMLOylEntryRowElement>;
             /**
-             * The day-scoped journal: prev/next + a 7-day pill strip, the composer, and the day's notes
-             * and measurements newest first (finance and nutrition rows belong to their own screens).
+             * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
+             * measurements newest first (finance and nutrition rows belong to their own screens).
              * ArrowLeft/Right move a day when focus is not in a field or radio.
              */
             "oyl-journal": LocalJSX.IntrinsicElements["oyl-journal"] & JSXBase.HTMLAttributes<HTMLOylJournalElement>;

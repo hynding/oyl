@@ -3,8 +3,11 @@ import { DayKey, Note, Measurement, Transaction, Money } from '@oyl/all-of-oyl'
 import { formatDayHeading } from '@oyl/all-of-oyl/format'
 import { core } from '../../../vitest-setup.js'
 
-const q = (root: HTMLElement, sel: string) => root.shadowRoot!.querySelector(sel)
-const qa = (root: HTMLElement, sel: string) => [...root.shadowRoot!.querySelectorAll(sel)]
+// The day navigation (h2, .rel, [data-day], [data-nav], [aria-live]) renders inside the
+// nested oyl-day-nav; fall through to its shadow root, as Playwright's piercing does.
+const nav = (root: HTMLElement) => root.shadowRoot!.querySelector('oyl-day-nav')?.shadowRoot ?? null
+const q = (root: HTMLElement, sel: string) => root.shadowRoot!.querySelector(sel) ?? nav(root)?.querySelector(sel) ?? null
+const qa = (root: HTMLElement, sel: string) => { const own = [...root.shadowRoot!.querySelectorAll(sel)]; return own.length ? own : [...(nav(root)?.querySelectorAll(sel) ?? [])] }
 const click = (el: Element) => el.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }))
 const inner = (el: Element) => el.shadowRoot?.querySelector('button') ?? el
 const flush = () => new Promise((r) => setTimeout(r, 0))
