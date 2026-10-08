@@ -6,9 +6,15 @@
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { Signal } from "@oyl/all-of-oyl/client";
+import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
+import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
 import { Routes } from "./components/oyl-router/oyl-router";
+import { ThemeState } from "./boot/theme.js";
 export { Signal } from "@oyl/all-of-oyl/client";
+export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
+export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
 export { Routes } from "./components/oyl-router/oyl-router";
+export { ThemeState } from "./boot/theme.js";
 export namespace Components {
     /**
      * Toolbar account menu: Profile link always; Log out when signed in, Sign in when not.
@@ -17,6 +23,26 @@ export namespace Components {
         "session": Signal<object | null>;
     }
     interface OylApp {
+    }
+    /**
+     * Login / registration form on ui-field + ui-button, submitted through a native <form>
+     * (the primitives are form-associated, so FormData sees their values). Emits `success`
+     * after the auth call resolves; a rejection renders inline as a polite live region.
+     */
+    interface OylAuthForm {
+        "auth": AuthApi;
+        /**
+          * Google sign-in link, when the backend has Google configured (null hides it).
+         */
+        "googleAuth"?: Signal<{ href: string } | null>;
+        /**
+          * @default 'login'
+         */
+        "mode": 'login' | 'register';
+    }
+    interface OylLogin {
+        "auth": AuthApi1;
+        "googleAuth"?: Signal<{ href: string } | null>;
     }
     interface OylNav {
         /**
@@ -47,6 +73,10 @@ export namespace Components {
     interface OylNoticeHost {
         "notice": Signal<string | null>;
     }
+    interface OylRegister {
+        "auth": AuthApi1;
+        "googleAuth"?: Signal<{ href: string } | null>;
+    }
     /**
      * Switches one screen element on the route signal. Screens are created by the `routes`
      * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
@@ -70,14 +100,37 @@ export namespace Components {
          */
         "docked": boolean;
     }
+    /**
+     * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
+     * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
+     * a System/Light/Dark segmented control. Selection applies instantly and the panel stays open,
+     * so browsing is a live preview loop; arrow keys move and select.
+     * The radio options are native <button role="radio"> rather than ui-button: they are a
+     * radiogroup with roving tabindex and aria-checked, not actions.
+     */
+    interface OylThemePicker {
+        "themeState": ThemeState;
+    }
 }
 export interface OylAccountMenuCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylAccountMenuElement;
 }
+export interface OylAuthFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylAuthFormElement;
+}
+export interface OylLoginCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylLoginElement;
+}
 export interface OylNoticeHostCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylNoticeHostElement;
+}
+export interface OylRegisterCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylRegisterElement;
 }
 declare global {
     interface HTMLOylAccountMenuElementEventMap {
@@ -105,6 +158,45 @@ declare global {
     var HTMLOylAppElement: {
         prototype: HTMLOylAppElement;
         new (): HTMLOylAppElement;
+    };
+    interface HTMLOylAuthFormElementEventMap {
+        "success": void;
+    }
+    /**
+     * Login / registration form on ui-field + ui-button, submitted through a native <form>
+     * (the primitives are form-associated, so FormData sees their values). Emits `success`
+     * after the auth call resolves; a rejection renders inline as a polite live region.
+     */
+    interface HTMLOylAuthFormElement extends Components.OylAuthForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylAuthFormElementEventMap>(type: K, listener: (this: HTMLOylAuthFormElement, ev: OylAuthFormCustomEvent<HTMLOylAuthFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylAuthFormElementEventMap>(type: K, listener: (this: HTMLOylAuthFormElement, ev: OylAuthFormCustomEvent<HTMLOylAuthFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylAuthFormElement: {
+        prototype: HTMLOylAuthFormElement;
+        new (): HTMLOylAuthFormElement;
+    };
+    interface HTMLOylLoginElementEventMap {
+        "authenticated": void;
+    }
+    interface HTMLOylLoginElement extends Components.OylLogin, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylLoginElementEventMap>(type: K, listener: (this: HTMLOylLoginElement, ev: OylLoginCustomEvent<HTMLOylLoginElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylLoginElementEventMap>(type: K, listener: (this: HTMLOylLoginElement, ev: OylLoginCustomEvent<HTMLOylLoginElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylLoginElement: {
+        prototype: HTMLOylLoginElement;
+        new (): HTMLOylLoginElement;
     };
     interface HTMLOylNavElement extends Components.OylNav, HTMLStencilElement {
     }
@@ -147,6 +239,23 @@ declare global {
         prototype: HTMLOylNoticeHostElement;
         new (): HTMLOylNoticeHostElement;
     };
+    interface HTMLOylRegisterElementEventMap {
+        "authenticated": void;
+    }
+    interface HTMLOylRegisterElement extends Components.OylRegister, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylRegisterElementEventMap>(type: K, listener: (this: HTMLOylRegisterElement, ev: OylRegisterCustomEvent<HTMLOylRegisterElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylRegisterElementEventMap>(type: K, listener: (this: HTMLOylRegisterElement, ev: OylRegisterCustomEvent<HTMLOylRegisterElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylRegisterElement: {
+        prototype: HTMLOylRegisterElement;
+        new (): HTMLOylRegisterElement;
+    };
     /**
      * Switches one screen element on the route signal. Screens are created by the `routes`
      * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
@@ -169,15 +278,33 @@ declare global {
         prototype: HTMLOylShellElement;
         new (): HTMLOylShellElement;
     };
+    /**
+     * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
+     * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
+     * a System/Light/Dark segmented control. Selection applies instantly and the panel stays open,
+     * so browsing is a live preview loop; arrow keys move and select.
+     * The radio options are native <button role="radio"> rather than ui-button: they are a
+     * radiogroup with roving tabindex and aria-checked, not actions.
+     */
+    interface HTMLOylThemePickerElement extends Components.OylThemePicker, HTMLStencilElement {
+    }
+    var HTMLOylThemePickerElement: {
+        prototype: HTMLOylThemePickerElement;
+        new (): HTMLOylThemePickerElement;
+    };
     interface HTMLElementTagNameMap {
         "oyl-account-menu": HTMLOylAccountMenuElement;
         "oyl-app": HTMLOylAppElement;
+        "oyl-auth-form": HTMLOylAuthFormElement;
+        "oyl-login": HTMLOylLoginElement;
         "oyl-nav": HTMLOylNavElement;
         "oyl-not-found": HTMLOylNotFoundElement;
         "oyl-not-yet": HTMLOylNotYetElement;
         "oyl-notice-host": HTMLOylNoticeHostElement;
+        "oyl-register": HTMLOylRegisterElement;
         "oyl-router": HTMLOylRouterElement;
         "oyl-shell": HTMLOylShellElement;
+        "oyl-theme-picker": HTMLOylThemePickerElement;
     }
 }
 declare namespace LocalJSX {
@@ -194,6 +321,31 @@ declare namespace LocalJSX {
         "session": Signal<object | null>;
     }
     interface OylApp {
+    }
+    /**
+     * Login / registration form on ui-field + ui-button, submitted through a native <form>
+     * (the primitives are form-associated, so FormData sees their values). Emits `success`
+     * after the auth call resolves; a rejection renders inline as a polite live region.
+     */
+    interface OylAuthForm {
+        "auth": AuthApi;
+        /**
+          * Google sign-in link, when the backend has Google configured (null hides it).
+         */
+        "googleAuth"?: Signal<{ href: string } | null>;
+        /**
+          * @default 'login'
+         */
+        "mode"?: 'login' | 'register';
+        "onSuccess"?: (event: OylAuthFormCustomEvent<void>) => void;
+    }
+    interface OylLogin {
+        "auth": AuthApi1;
+        "googleAuth"?: Signal<{ href: string } | null>;
+        /**
+          * The user signed in; the app sets remote mode and navigates into the app.
+         */
+        "onAuthenticated"?: (event: OylLoginCustomEvent<void>) => void;
     }
     interface OylNav {
         /**
@@ -228,6 +380,14 @@ declare namespace LocalJSX {
          */
         "onDismiss"?: (event: OylNoticeHostCustomEvent<void>) => void;
     }
+    interface OylRegister {
+        "auth": AuthApi1;
+        "googleAuth"?: Signal<{ href: string } | null>;
+        /**
+          * The user signed in; the app sets remote mode and navigates into the app.
+         */
+        "onAuthenticated"?: (event: OylRegisterCustomEvent<void>) => void;
+    }
     /**
      * Switches one screen element on the route signal. Screens are created by the `routes`
      * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
@@ -251,7 +411,21 @@ declare namespace LocalJSX {
          */
         "docked"?: boolean;
     }
+    /**
+     * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
+     * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
+     * a System/Light/Dark segmented control. Selection applies instantly and the panel stays open,
+     * so browsing is a live preview loop; arrow keys move and select.
+     * The radio options are native <button role="radio"> rather than ui-button: they are a
+     * radiogroup with roving tabindex and aria-checked, not actions.
+     */
+    interface OylThemePicker {
+        "themeState": ThemeState;
+    }
 
+    interface OylAuthFormAttributes {
+        "mode": 'login' | 'register';
+    }
     interface OylNavAttributes {
         "orientation": 'top' | 'bottom';
     }
@@ -269,12 +443,16 @@ declare namespace LocalJSX {
     interface IntrinsicElements {
         "oyl-account-menu": OylAccountMenu;
         "oyl-app": OylApp;
+        "oyl-auth-form": Omit<OylAuthForm, keyof OylAuthFormAttributes> & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes]?: OylAuthForm[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `attr:${K}`]?: OylAuthFormAttributes[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `prop:${K}`]?: OylAuthForm[K] };
+        "oyl-login": OylLogin;
         "oyl-nav": Omit<OylNav, keyof OylNavAttributes> & { [K in keyof OylNav & keyof OylNavAttributes]?: OylNav[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `attr:${K}`]?: OylNavAttributes[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `prop:${K}`]?: OylNav[K] };
         "oyl-not-found": Omit<OylNotFound, keyof OylNotFoundAttributes> & { [K in keyof OylNotFound & keyof OylNotFoundAttributes]?: OylNotFound[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `attr:${K}`]?: OylNotFoundAttributes[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `prop:${K}`]?: OylNotFound[K] };
         "oyl-not-yet": Omit<OylNotYet, keyof OylNotYetAttributes> & { [K in keyof OylNotYet & keyof OylNotYetAttributes]?: OylNotYet[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `attr:${K}`]?: OylNotYetAttributes[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `prop:${K}`]?: OylNotYet[K] } & OneOf<"name", OylNotYet["name"], OylNotYetAttributes["name"]>;
         "oyl-notice-host": OylNoticeHost;
+        "oyl-register": OylRegister;
         "oyl-router": OylRouter;
         "oyl-shell": Omit<OylShell, keyof OylShellAttributes> & { [K in keyof OylShell & keyof OylShellAttributes]?: OylShell[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `attr:${K}`]?: OylShellAttributes[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `prop:${K}`]?: OylShell[K] };
+        "oyl-theme-picker": OylThemePicker;
     }
 }
 export { LocalJSX as JSX };
@@ -286,6 +464,13 @@ declare module "@stencil/core" {
              */
             "oyl-account-menu": LocalJSX.IntrinsicElements["oyl-account-menu"] & JSXBase.HTMLAttributes<HTMLOylAccountMenuElement>;
             "oyl-app": LocalJSX.IntrinsicElements["oyl-app"] & JSXBase.HTMLAttributes<HTMLOylAppElement>;
+            /**
+             * Login / registration form on ui-field + ui-button, submitted through a native <form>
+             * (the primitives are form-associated, so FormData sees their values). Emits `success`
+             * after the auth call resolves; a rejection renders inline as a polite live region.
+             */
+            "oyl-auth-form": LocalJSX.IntrinsicElements["oyl-auth-form"] & JSXBase.HTMLAttributes<HTMLOylAuthFormElement>;
+            "oyl-login": LocalJSX.IntrinsicElements["oyl-login"] & JSXBase.HTMLAttributes<HTMLOylLoginElement>;
             "oyl-nav": LocalJSX.IntrinsicElements["oyl-nav"] & JSXBase.HTMLAttributes<HTMLOylNavElement>;
             "oyl-not-found": LocalJSX.IntrinsicElements["oyl-not-found"] & JSXBase.HTMLAttributes<HTMLOylNotFoundElement>;
             /**
@@ -296,6 +481,7 @@ declare module "@stencil/core" {
              * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
              */
             "oyl-notice-host": LocalJSX.IntrinsicElements["oyl-notice-host"] & JSXBase.HTMLAttributes<HTMLOylNoticeHostElement>;
+            "oyl-register": LocalJSX.IntrinsicElements["oyl-register"] & JSXBase.HTMLAttributes<HTMLOylRegisterElement>;
             /**
              * Switches one screen element on the route signal. Screens are created by the `routes`
              * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
@@ -308,6 +494,15 @@ declare module "@stencil/core" {
              * `docked` (set by <oyl-app> from a ≤640px media query) reserves page padding for it.
              */
             "oyl-shell": LocalJSX.IntrinsicElements["oyl-shell"] & JSXBase.HTMLAttributes<HTMLOylShellElement>;
+            /**
+             * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
+             * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
+             * a System/Light/Dark segmented control. Selection applies instantly and the panel stays open,
+             * so browsing is a live preview loop; arrow keys move and select.
+             * The radio options are native <button role="radio"> rather than ui-button: they are a
+             * radiogroup with roving tabindex and aria-checked, not actions.
+             */
+            "oyl-theme-picker": LocalJSX.IntrinsicElements["oyl-theme-picker"] & JSXBase.HTMLAttributes<HTMLOylThemePickerElement>;
         }
     }
 }
