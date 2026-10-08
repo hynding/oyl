@@ -82,6 +82,14 @@
       </section>
 
       <section>
+        <h2>ui-segment</h2>
+        <div class="row">
+          <ui-segment id="seg-demo" name="type" label="Entry type" value="note"></ui-segment>
+          <ui-segment id="seg-demo-2" name="range" label="Range" value="week"></ui-segment>
+        </div>
+      </section>
+
+      <section>
         <h2>ui-card</h2>
         <div class="stack">
           <ui-card heading="Connection">
@@ -150,6 +158,8 @@
         { name: 'finance', href: '/finance', label: 'Finance', icon: 'finance' },
         { name: 'status', href: '/status', label: 'Status', icon: 'status' },
       ]
+      document.getElementById('seg-demo').options = [{ value: 'note', label: 'Note' }, { value: 'measurement', label: 'Measurement' }]
+      document.getElementById('seg-demo-2').options = [{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }]
       document.getElementById('nav-top').items = items
       document.getElementById('nav-bottom').items = items
       document.addEventListener('click', (e) => { const a = e.composedPath().find((n) => n.tagName === 'A'); if (a && a.getAttribute('href')?.startsWith('/')) e.preventDefault() })

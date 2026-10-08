@@ -10,11 +10,13 @@ import { FieldType } from "./components/ui-field/ui-field";
 import { IconName } from "./components/ui-icon/icons.js";
 import { NavItem } from "./components/ui-nav/ui-nav";
 import { NoticeTone } from "./components/ui-notice/ui-notice";
+import { SegmentOption } from "./components/ui-segment/ui-segment";
 export { ButtonVariant } from "./components/ui-button/ui-button";
 export { FieldType } from "./components/ui-field/ui-field";
 export { IconName } from "./components/ui-icon/icons.js";
 export { NavItem } from "./components/ui-nav/ui-nav";
 export { NoticeTone } from "./components/ui-notice/ui-notice";
+export { SegmentOption } from "./components/ui-segment/ui-segment";
 export namespace Components {
     /**
      * The library's one clickable control: a button, or a link when `href` is set.
@@ -142,6 +144,26 @@ export namespace Components {
         "tone": NoticeTone;
     }
     /**
+     * A segmented control: a small set of mutually exclusive choices as a radiogroup with
+     * roving tabindex and arrow-key selection. Options render as native buttons carrying
+     * `data-value` (the e2e selector).
+     */
+    interface UiSegment {
+        /**
+          * Accessible name of the group.
+         */
+        "label": string;
+        "name"?: string;
+        /**
+          * @default []
+         */
+        "options": SegmentOption[];
+        /**
+          * @default ''
+         */
+        "value": string;
+    }
+    /**
      * Multiline sibling of ui-field: label + textarea + hint/error with the aria wiring done,
      * form-associated, auto-growing. ⌘/Ctrl+Enter emits `uiSubmit` so a host form can submit.
      */
@@ -177,6 +199,10 @@ export interface UiFieldCustomEvent<T> extends CustomEvent<T> {
 export interface UiNoticeCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLUiNoticeElement;
+}
+export interface UiSegmentCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLUiSegmentElement;
 }
 export interface UiTextareaCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -268,6 +294,28 @@ declare global {
         prototype: HTMLUiNoticeElement;
         new (): HTMLUiNoticeElement;
     };
+    interface HTMLUiSegmentElementEventMap {
+        "uiChange": { value: string };
+    }
+    /**
+     * A segmented control: a small set of mutually exclusive choices as a radiogroup with
+     * roving tabindex and arrow-key selection. Options render as native buttons carrying
+     * `data-value` (the e2e selector).
+     */
+    interface HTMLUiSegmentElement extends Components.UiSegment, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLUiSegmentElementEventMap>(type: K, listener: (this: HTMLUiSegmentElement, ev: UiSegmentCustomEvent<HTMLUiSegmentElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLUiSegmentElementEventMap>(type: K, listener: (this: HTMLUiSegmentElement, ev: UiSegmentCustomEvent<HTMLUiSegmentElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLUiSegmentElement: {
+        prototype: HTMLUiSegmentElement;
+        new (): HTMLUiSegmentElement;
+    };
     interface HTMLUiTextareaElementEventMap {
         "uiInput": { value: string };
         "uiChange": { value: string };
@@ -298,6 +346,7 @@ declare global {
         "ui-icon": HTMLUiIconElement;
         "ui-nav": HTMLUiNavElement;
         "ui-notice": HTMLUiNoticeElement;
+        "ui-segment": HTMLUiSegmentElement;
         "ui-textarea": HTMLUiTextareaElement;
     }
 }
@@ -458,6 +507,27 @@ declare namespace LocalJSX {
         "tone"?: NoticeTone;
     }
     /**
+     * A segmented control: a small set of mutually exclusive choices as a radiogroup with
+     * roving tabindex and arrow-key selection. Options render as native buttons carrying
+     * `data-value` (the e2e selector).
+     */
+    interface UiSegment {
+        /**
+          * Accessible name of the group.
+         */
+        "label": string;
+        "name"?: string;
+        "onUiChange"?: (event: UiSegmentCustomEvent<{ value: string }>) => void;
+        /**
+          * @default []
+         */
+        "options"?: SegmentOption[];
+        /**
+          * @default ''
+         */
+        "value"?: string;
+    }
+    /**
      * Multiline sibling of ui-field: label + textarea + hint/error with the aria wiring done,
      * form-associated, auto-growing. ⌘/Ctrl+Enter emits `uiSubmit` so a host form can submit.
      */
@@ -536,6 +606,11 @@ declare namespace LocalJSX {
         "tone": NoticeTone;
         "dismissible": boolean;
     }
+    interface UiSegmentAttributes {
+        "name": string;
+        "label": string;
+        "value": string;
+    }
     interface UiTextareaAttributes {
         "label": string;
         "name": string;
@@ -555,6 +630,7 @@ declare namespace LocalJSX {
         "ui-icon": Omit<UiIcon, keyof UiIconAttributes> & { [K in keyof UiIcon & keyof UiIconAttributes]?: UiIcon[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `attr:${K}`]?: UiIconAttributes[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `prop:${K}`]?: UiIcon[K] } & OneOf<"name", UiIcon["name"], UiIconAttributes["name"]>;
         "ui-nav": Omit<UiNav, keyof UiNavAttributes> & { [K in keyof UiNav & keyof UiNavAttributes]?: UiNav[K] } & { [K in keyof UiNav & keyof UiNavAttributes as `attr:${K}`]?: UiNavAttributes[K] } & { [K in keyof UiNav & keyof UiNavAttributes as `prop:${K}`]?: UiNav[K] };
         "ui-notice": Omit<UiNotice, keyof UiNoticeAttributes> & { [K in keyof UiNotice & keyof UiNoticeAttributes]?: UiNotice[K] } & { [K in keyof UiNotice & keyof UiNoticeAttributes as `attr:${K}`]?: UiNoticeAttributes[K] } & { [K in keyof UiNotice & keyof UiNoticeAttributes as `prop:${K}`]?: UiNotice[K] };
+        "ui-segment": Omit<UiSegment, keyof UiSegmentAttributes> & { [K in keyof UiSegment & keyof UiSegmentAttributes]?: UiSegment[K] } & { [K in keyof UiSegment & keyof UiSegmentAttributes as `attr:${K}`]?: UiSegmentAttributes[K] } & { [K in keyof UiSegment & keyof UiSegmentAttributes as `prop:${K}`]?: UiSegment[K] } & OneOf<"label", UiSegment["label"], UiSegmentAttributes["label"]>;
         "ui-textarea": Omit<UiTextarea, keyof UiTextareaAttributes> & { [K in keyof UiTextarea & keyof UiTextareaAttributes]?: UiTextarea[K] } & { [K in keyof UiTextarea & keyof UiTextareaAttributes as `attr:${K}`]?: UiTextareaAttributes[K] } & { [K in keyof UiTextarea & keyof UiTextareaAttributes as `prop:${K}`]?: UiTextarea[K] } & OneOf<"label", UiTextarea["label"], UiTextareaAttributes["label"]> & OneOf<"name", UiTextarea["name"], UiTextareaAttributes["name"]>;
     }
 }
@@ -594,6 +670,12 @@ declare module "@stencil/core" {
              * `danger` is announced assertively (`role="alert"`); the other tones are polite.
              */
             "ui-notice": LocalJSX.IntrinsicElements["ui-notice"] & JSXBase.HTMLAttributes<HTMLUiNoticeElement>;
+            /**
+             * A segmented control: a small set of mutually exclusive choices as a radiogroup with
+             * roving tabindex and arrow-key selection. Options render as native buttons carrying
+             * `data-value` (the e2e selector).
+             */
+            "ui-segment": LocalJSX.IntrinsicElements["ui-segment"] & JSXBase.HTMLAttributes<HTMLUiSegmentElement>;
             /**
              * Multiline sibling of ui-field: label + textarea + hint/error with the aria wiring done,
              * form-associated, auto-growing. ⌘/Ctrl+Enter emits `uiSubmit` so a host form can submit.
