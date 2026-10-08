@@ -8,10 +8,12 @@ import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { ButtonVariant } from "./components/ui-button/ui-button";
 import { FieldType } from "./components/ui-field/ui-field";
 import { IconName } from "./components/ui-icon/icons.js";
+import { NavItem } from "./components/ui-nav/ui-nav";
 import { NoticeTone } from "./components/ui-notice/ui-notice";
 export { ButtonVariant } from "./components/ui-button/ui-button";
 export { FieldType } from "./components/ui-field/ui-field";
 export { IconName } from "./components/ui-icon/icons.js";
+export { NavItem } from "./components/ui-nav/ui-nav";
 export { NoticeTone } from "./components/ui-notice/ui-notice";
 export namespace Components {
     /**
@@ -102,6 +104,26 @@ export namespace Components {
         "size": 's' | 'm';
     }
     /**
+     * Primary navigation: a horizontal tab row, or a fixed bottom tab bar when
+     * `orientation="bottom"` (the app flips it from a media query). Items are plain
+     * same-origin anchors so the app's link interceptor handles navigation — the
+     * component never calls `preventDefault` or emits a navigate event.
+     */
+    interface UiNav {
+        /**
+          * Route name of the active item.
+         */
+        "current"?: string;
+        /**
+          * @default []
+         */
+        "items": NavItem[];
+        /**
+          * @default 'top'
+         */
+        "orientation": 'top' | 'bottom';
+    }
+    /**
      * Inline banner. Positioning (a fixed top bar, a toast stack) is the app's job.
      * `danger` is announced assertively (`role="alert"`); the other tones are polite.
      */
@@ -178,6 +200,18 @@ declare global {
         prototype: HTMLUiIconElement;
         new (): HTMLUiIconElement;
     };
+    /**
+     * Primary navigation: a horizontal tab row, or a fixed bottom tab bar when
+     * `orientation="bottom"` (the app flips it from a media query). Items are plain
+     * same-origin anchors so the app's link interceptor handles navigation — the
+     * component never calls `preventDefault` or emits a navigate event.
+     */
+    interface HTMLUiNavElement extends Components.UiNav, HTMLStencilElement {
+    }
+    var HTMLUiNavElement: {
+        prototype: HTMLUiNavElement;
+        new (): HTMLUiNavElement;
+    };
     interface HTMLUiNoticeElementEventMap {
         "dismiss": void;
     }
@@ -204,6 +238,7 @@ declare global {
         "ui-card": HTMLUiCardElement;
         "ui-field": HTMLUiFieldElement;
         "ui-icon": HTMLUiIconElement;
+        "ui-nav": HTMLUiNavElement;
         "ui-notice": HTMLUiNoticeElement;
     }
 }
@@ -322,6 +357,26 @@ declare namespace LocalJSX {
         "size"?: 's' | 'm';
     }
     /**
+     * Primary navigation: a horizontal tab row, or a fixed bottom tab bar when
+     * `orientation="bottom"` (the app flips it from a media query). Items are plain
+     * same-origin anchors so the app's link interceptor handles navigation — the
+     * component never calls `preventDefault` or emits a navigate event.
+     */
+    interface UiNav {
+        /**
+          * Route name of the active item.
+         */
+        "current"?: string;
+        /**
+          * @default []
+         */
+        "items"?: NavItem[];
+        /**
+          * @default 'top'
+         */
+        "orientation"?: 'top' | 'bottom';
+    }
+    /**
      * Inline banner. Positioning (a fixed top bar, a toast stack) is the app's job.
      * `danger` is announced assertively (`role="alert"`); the other tones are polite.
      */
@@ -366,6 +421,10 @@ declare namespace LocalJSX {
         "size": 's' | 'm';
         "label": string;
     }
+    interface UiNavAttributes {
+        "current": string;
+        "orientation": 'top' | 'bottom';
+    }
     interface UiNoticeAttributes {
         "tone": NoticeTone;
         "dismissible": boolean;
@@ -376,6 +435,7 @@ declare namespace LocalJSX {
         "ui-card": Omit<UiCard, keyof UiCardAttributes> & { [K in keyof UiCard & keyof UiCardAttributes]?: UiCard[K] } & { [K in keyof UiCard & keyof UiCardAttributes as `attr:${K}`]?: UiCardAttributes[K] } & { [K in keyof UiCard & keyof UiCardAttributes as `prop:${K}`]?: UiCard[K] };
         "ui-field": Omit<UiField, keyof UiFieldAttributes> & { [K in keyof UiField & keyof UiFieldAttributes]?: UiField[K] } & { [K in keyof UiField & keyof UiFieldAttributes as `attr:${K}`]?: UiFieldAttributes[K] } & { [K in keyof UiField & keyof UiFieldAttributes as `prop:${K}`]?: UiField[K] } & OneOf<"label", UiField["label"], UiFieldAttributes["label"]> & OneOf<"name", UiField["name"], UiFieldAttributes["name"]>;
         "ui-icon": Omit<UiIcon, keyof UiIconAttributes> & { [K in keyof UiIcon & keyof UiIconAttributes]?: UiIcon[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `attr:${K}`]?: UiIconAttributes[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `prop:${K}`]?: UiIcon[K] } & OneOf<"name", UiIcon["name"], UiIconAttributes["name"]>;
+        "ui-nav": Omit<UiNav, keyof UiNavAttributes> & { [K in keyof UiNav & keyof UiNavAttributes]?: UiNav[K] } & { [K in keyof UiNav & keyof UiNavAttributes as `attr:${K}`]?: UiNavAttributes[K] } & { [K in keyof UiNav & keyof UiNavAttributes as `prop:${K}`]?: UiNav[K] };
         "ui-notice": Omit<UiNotice, keyof UiNoticeAttributes> & { [K in keyof UiNotice & keyof UiNoticeAttributes]?: UiNotice[K] } & { [K in keyof UiNotice & keyof UiNoticeAttributes as `attr:${K}`]?: UiNoticeAttributes[K] } & { [K in keyof UiNotice & keyof UiNoticeAttributes as `prop:${K}`]?: UiNotice[K] };
     }
 }
@@ -403,6 +463,13 @@ declare module "@stencil/core" {
              * Inline SVG icon from the library's small glyph map. Decorative unless `label` is set.
              */
             "ui-icon": LocalJSX.IntrinsicElements["ui-icon"] & JSXBase.HTMLAttributes<HTMLUiIconElement>;
+            /**
+             * Primary navigation: a horizontal tab row, or a fixed bottom tab bar when
+             * `orientation="bottom"` (the app flips it from a media query). Items are plain
+             * same-origin anchors so the app's link interceptor handles navigation — the
+             * component never calls `preventDefault` or emits a navigate event.
+             */
+            "ui-nav": LocalJSX.IntrinsicElements["ui-nav"] & JSXBase.HTMLAttributes<HTMLUiNavElement>;
             /**
              * Inline banner. Positioning (a fixed top bar, a toast stack) is the app's job.
              * `danger` is announced assertively (`role="alert"`); the other tones are polite.

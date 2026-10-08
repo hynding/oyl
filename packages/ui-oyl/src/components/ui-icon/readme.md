@@ -22,11 +22,13 @@ Inline SVG icon from the library's small glyph map. Decorative unless `label` is
 
 ### Used by
 
+ - [ui-nav](../ui-nav)
  - [ui-notice](../ui-notice)
 
 ### Graph
 ```mermaid
 graph TD;
+  ui-nav --> ui-icon
   ui-notice --> ui-icon
   style ui-icon fill:#f9f,stroke:#333,stroke-width:4px
 ```
