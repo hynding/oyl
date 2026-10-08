@@ -6,14 +6,20 @@
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { Signal } from "@oyl/all-of-oyl/client";
+import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
 import { Routes } from "./components/oyl-router/oyl-router";
+import { Diagnostics } from "./components/oyl-status/oyl-status";
+import { StatusActions } from "./boot/data-tools.js";
 import { ThemeState } from "./boot/theme.js";
 export { Signal } from "@oyl/all-of-oyl/client";
+export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
 export { Routes } from "./components/oyl-router/oyl-router";
+export { Diagnostics } from "./components/oyl-status/oyl-status";
+export { StatusActions } from "./boot/data-tools.js";
 export { ThemeState } from "./boot/theme.js";
 export namespace Components {
     /**
@@ -22,7 +28,17 @@ export namespace Components {
     interface OylAccountMenu {
         "session": Signal<object | null>;
     }
+    /**
+     * The composition root element. Boots the app state (createApp) and renders the shell:
+     * notice host, header with theme picker + account menu, nav, router. Owns the ≤640px media
+     * query that docks the nav as a bottom tab bar.
+     */
     interface OylApp {
+        /**
+          * Injectable boot (specs); defaults to the real createApp over window.
+          * @default (win) => createApp(win)
+         */
+        "boot": (win: BootWindow) => Promise<App>;
     }
     /**
      * Login / registration form on ui-field + ui-button, submitted through a native <form>
@@ -101,6 +117,25 @@ export namespace Components {
         "docked": boolean;
     }
     /**
+     * The diagnostics/acceptance surface: Connection, Diagnostics (schema/theme/build/storage/
+     * pending + per-collection counts) and the account-scoped data tools. Tool gating follows
+     * vanilla: seed/export/import act on the signed-in ACCOUNT (Remote mode); reset clears
+     * LOCAL storage (Local mode).
+     */
+    interface OylStatus {
+        "actions": StatusActions;
+        "connection": ConnectionSettings;
+        /**
+          * Snapshot reader; re-read whenever `pending` or the refresh tick changes.
+         */
+        "diagnostics": () => Diagnostics;
+        "pending": Signal<number>;
+        /**
+          * A counter the app bumps after refresh() so the snapshot re-reads.
+         */
+        "tick"?: Signal<number>;
+    }
+    /**
      * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
      * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
      * a System/Light/Dark segmented control. Selection applies instantly and the panel stays open,
@@ -153,6 +188,11 @@ declare global {
         prototype: HTMLOylAccountMenuElement;
         new (): HTMLOylAccountMenuElement;
     };
+    /**
+     * The composition root element. Boots the app state (createApp) and renders the shell:
+     * notice host, header with theme picker + account menu, nav, router. Owns the ≤640px media
+     * query that docks the nav as a bottom tab bar.
+     */
     interface HTMLOylAppElement extends Components.OylApp, HTMLStencilElement {
     }
     var HTMLOylAppElement: {
@@ -279,6 +319,18 @@ declare global {
         new (): HTMLOylShellElement;
     };
     /**
+     * The diagnostics/acceptance surface: Connection, Diagnostics (schema/theme/build/storage/
+     * pending + per-collection counts) and the account-scoped data tools. Tool gating follows
+     * vanilla: seed/export/import act on the signed-in ACCOUNT (Remote mode); reset clears
+     * LOCAL storage (Local mode).
+     */
+    interface HTMLOylStatusElement extends Components.OylStatus, HTMLStencilElement {
+    }
+    var HTMLOylStatusElement: {
+        prototype: HTMLOylStatusElement;
+        new (): HTMLOylStatusElement;
+    };
+    /**
      * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
      * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
      * a System/Light/Dark segmented control. Selection applies instantly and the panel stays open,
@@ -304,6 +356,7 @@ declare global {
         "oyl-register": HTMLOylRegisterElement;
         "oyl-router": HTMLOylRouterElement;
         "oyl-shell": HTMLOylShellElement;
+        "oyl-status": HTMLOylStatusElement;
         "oyl-theme-picker": HTMLOylThemePickerElement;
     }
 }
@@ -320,7 +373,17 @@ declare namespace LocalJSX {
         "onLogout"?: (event: OylAccountMenuCustomEvent<void>) => void;
         "session": Signal<object | null>;
     }
+    /**
+     * The composition root element. Boots the app state (createApp) and renders the shell:
+     * notice host, header with theme picker + account menu, nav, router. Owns the ≤640px media
+     * query that docks the nav as a bottom tab bar.
+     */
     interface OylApp {
+        /**
+          * Injectable boot (specs); defaults to the real createApp over window.
+          * @default (win) => createApp(win)
+         */
+        "boot"?: (win: BootWindow) => Promise<App>;
     }
     /**
      * Login / registration form on ui-field + ui-button, submitted through a native <form>
@@ -412,6 +475,25 @@ declare namespace LocalJSX {
         "docked"?: boolean;
     }
     /**
+     * The diagnostics/acceptance surface: Connection, Diagnostics (schema/theme/build/storage/
+     * pending + per-collection counts) and the account-scoped data tools. Tool gating follows
+     * vanilla: seed/export/import act on the signed-in ACCOUNT (Remote mode); reset clears
+     * LOCAL storage (Local mode).
+     */
+    interface OylStatus {
+        "actions": StatusActions;
+        "connection": ConnectionSettings;
+        /**
+          * Snapshot reader; re-read whenever `pending` or the refresh tick changes.
+         */
+        "diagnostics": () => Diagnostics;
+        "pending": Signal<number>;
+        /**
+          * A counter the app bumps after refresh() so the snapshot re-reads.
+         */
+        "tick"?: Signal<number>;
+    }
+    /**
      * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
      * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
      * a System/Light/Dark segmented control. Selection applies instantly and the panel stays open,
@@ -452,6 +534,7 @@ declare namespace LocalJSX {
         "oyl-register": OylRegister;
         "oyl-router": OylRouter;
         "oyl-shell": Omit<OylShell, keyof OylShellAttributes> & { [K in keyof OylShell & keyof OylShellAttributes]?: OylShell[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `attr:${K}`]?: OylShellAttributes[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `prop:${K}`]?: OylShell[K] };
+        "oyl-status": OylStatus;
         "oyl-theme-picker": OylThemePicker;
     }
 }
@@ -463,6 +546,11 @@ declare module "@stencil/core" {
              * Toolbar account menu: Profile link always; Log out when signed in, Sign in when not.
              */
             "oyl-account-menu": LocalJSX.IntrinsicElements["oyl-account-menu"] & JSXBase.HTMLAttributes<HTMLOylAccountMenuElement>;
+            /**
+             * The composition root element. Boots the app state (createApp) and renders the shell:
+             * notice host, header with theme picker + account menu, nav, router. Owns the ≤640px media
+             * query that docks the nav as a bottom tab bar.
+             */
             "oyl-app": LocalJSX.IntrinsicElements["oyl-app"] & JSXBase.HTMLAttributes<HTMLOylAppElement>;
             /**
              * Login / registration form on ui-field + ui-button, submitted through a native <form>
@@ -494,6 +582,13 @@ declare module "@stencil/core" {
              * `docked` (set by <oyl-app> from a ≤640px media query) reserves page padding for it.
              */
             "oyl-shell": LocalJSX.IntrinsicElements["oyl-shell"] & JSXBase.HTMLAttributes<HTMLOylShellElement>;
+            /**
+             * The diagnostics/acceptance surface: Connection, Diagnostics (schema/theme/build/storage/
+             * pending + per-collection counts) and the account-scoped data tools. Tool gating follows
+             * vanilla: seed/export/import act on the signed-in ACCOUNT (Remote mode); reset clears
+             * LOCAL storage (Local mode).
+             */
+            "oyl-status": LocalJSX.IntrinsicElements["oyl-status"] & JSXBase.HTMLAttributes<HTMLOylStatusElement>;
             /**
              * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
              * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and

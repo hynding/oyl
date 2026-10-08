@@ -59,6 +59,8 @@ export interface App {
   profileStore: ReturnType<typeof createProfileStore>
   googleStore: ReturnType<typeof createGoogleStore>
   googleLoginHref: Signal<{ href: string } | null>
+  /** Bumped after every dataState.refresh() so snapshot readers (Status) re-read. */
+  refreshTick: Signal<number>
   /** Drain the outbox, then refresh the pending indicator (fire-and-forget). */
   flush(): void
   connection: ConnectionSettings

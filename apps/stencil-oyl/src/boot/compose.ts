@@ -78,12 +78,14 @@ export async function createApp(win: BootWindow, deps: BootDeps = {}): Promise<A
     routeState.navigate('/login', { replace: true })
   }
 
-  const flushAndRefresh = () => void flush().then(() => dataState.refreshPending()).catch(() => {})
+  const refreshTick = signal(0)
+  const flushAndRefresh = () => void flush().then(() => { dataState.refreshPending(); refreshTick.set(refreshTick.get() + 1) }).catch(() => {})
 
   const hasSession = !!authState.session.get()
   if (hasSession) {
     try {
       await dataState.refresh()
+      refreshTick.set(refreshTick.get() + 1)
       // New-device correction: if the pulled profile tz differs from what we built with, reload once.
       await profileStore.load()
       if (tzNeedsReload(tz, profileStore.profile.get(), browserTz) && !session.getItem(TZ_RELOADED_KEY)) {
@@ -132,7 +134,7 @@ export async function createApp(win: BootWindow, deps: BootDeps = {}): Promise<A
 
   // Multi-tab coherence: react to writes from other tabs. An outbox write in another tab
   // also triggers a flush here (the originating tab flushes on its own online/sign-in path).
-  const debouncedRefresh = debounce(() => void dataState.refresh(), 150)
+  const debouncedRefresh = debounce(() => void dataState.refresh().then(() => refreshTick.set(refreshTick.get() + 1)), 150)
   win.addEventListener('storage', (e: StorageEvent) => {
     if (!e.key || !isOylKey(e.key)) return
     if (e.key === SETTINGS_KEY) themeState.refresh()
@@ -158,7 +160,7 @@ export async function createApp(win: BootWindow, deps: BootDeps = {}): Promise<A
 
   return {
     win, storage, mode, apiBase, apiDefault, tz,
-    routeState, authState, noticeState, themeState, dataState, profileStore, googleStore, googleLoginHref,
+    routeState, authState, noticeState, themeState, dataState, profileStore, googleStore, googleLoginHref, refreshTick,
     flush: flushAndRefresh,
     connection: {
       mode, apiBaseUrl: apiBase, defaultApiBaseUrl: apiDefault,
