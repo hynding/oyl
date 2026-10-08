@@ -1,7 +1,7 @@
 # `apps/stencil-oyl` shell — Design
 
 **Date:** 2026-10-07
-**Status:** draft for review
+**Status:** reviewed; plan: `docs/superpowers/plans/2026-10-07-stencil-oyl-shell.md`
 **Program:** Stencil front-end — sub-project 2 (see `2026-10-06-extract-client-layer-design.md`
 §Program context). Depends on 0 (`@oyl/all-of-oyl/client`, merged PR #6) and 1 (`@oyl/ui-oyl`,
 merged PR #7).
