@@ -30,12 +30,14 @@ describe('tokens.css', () => {
 })
 
 describe('component CSS', () => {
-  it('references only contract token names', () => {
+  it('references only contract token names (or component-private --_ names)', () => {
     const offenders: string[] = []
     for (const file of walk(components)) {
       const css = readFileSync(file, 'utf8')
-      for (const m of css.matchAll(/var\(\s*(--[a-z0-9-]+)/g)) {
-        if (!ALL_TOKENS.includes(m[1])) offenders.push(`${file.slice(components.length + 1)}: ${m[1]}`)
+      for (const m of css.matchAll(/var\(\s*(--[a-z0-9_-]+)/g)) {
+        const name = m[1]
+        if (name.startsWith('--_')) continue
+        if (!ALL_TOKENS.includes(name)) offenders.push(`${file.slice(components.length + 1)}: ${name}`)
       }
     }
     expect(offenders).toEqual([])

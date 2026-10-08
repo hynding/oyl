@@ -18,6 +18,19 @@ Inline SVG icon from the library's small glyph map. Decorative unless `label` is
 | `size`              | `size`    | `s` = 16px, `m` = 20px.                                                          | `"m" \| "s"`                                                                                                                                                                                                                        | `'m'`       |
 
 
+## Dependencies
+
+### Used by
+
+ - [ui-notice](../ui-notice)
+
+### Graph
+```mermaid
+graph TD;
+  ui-notice --> ui-icon
+  style ui-icon fill:#f9f,stroke:#333,stroke-width:4px
+```
+
 ----------------------------------------------
 
 *Built with [StencilJS](https://stenciljs.com/)*

@@ -7,7 +7,7 @@ import { ICONS, type IconName } from './icons.js'
 @Component({ tag: 'ui-icon', styleUrl: 'ui-icon.css', shadow: true })
 export class UiIcon {
   /** Glyph name (see `ICON_NAMES`). Unknown names render nothing. */
-  @Prop() name!: IconName
+  @Prop({ reflect: true }) name!: IconName
   /** `s` = 16px, `m` = 20px. */
   @Prop({ reflect: true }) size: 's' | 'm' = 'm'
   /** Accessible name; when set the icon is announced, otherwise it is hidden from AT. */

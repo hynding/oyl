@@ -8,9 +8,11 @@ import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { ButtonVariant } from "./components/ui-button/ui-button";
 import { FieldType } from "./components/ui-field/ui-field";
 import { IconName } from "./components/ui-icon/icons.js";
+import { NoticeTone } from "./components/ui-notice/ui-notice";
 export { ButtonVariant } from "./components/ui-button/ui-button";
 export { FieldType } from "./components/ui-field/ui-field";
 export { IconName } from "./components/ui-icon/icons.js";
+export { NoticeTone } from "./components/ui-notice/ui-notice";
 export namespace Components {
     /**
      * The library's one clickable control: a button, or a link when `href` is set.
@@ -99,10 +101,29 @@ export namespace Components {
          */
         "size": 's' | 'm';
     }
+    /**
+     * Inline banner. Positioning (a fixed top bar, a toast stack) is the app's job.
+     * `danger` is announced assertively (`role="alert"`); the other tones are polite.
+     */
+    interface UiNotice {
+        /**
+          * Shows a close control that emits `dismiss`.
+          * @default false
+         */
+        "dismissible": boolean;
+        /**
+          * @default 'info'
+         */
+        "tone": NoticeTone;
+    }
 }
 export interface UiFieldCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLUiFieldElement;
+}
+export interface UiNoticeCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLUiNoticeElement;
 }
 declare global {
     /**
@@ -157,11 +178,33 @@ declare global {
         prototype: HTMLUiIconElement;
         new (): HTMLUiIconElement;
     };
+    interface HTMLUiNoticeElementEventMap {
+        "dismiss": void;
+    }
+    /**
+     * Inline banner. Positioning (a fixed top bar, a toast stack) is the app's job.
+     * `danger` is announced assertively (`role="alert"`); the other tones are polite.
+     */
+    interface HTMLUiNoticeElement extends Components.UiNotice, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLUiNoticeElementEventMap>(type: K, listener: (this: HTMLUiNoticeElement, ev: UiNoticeCustomEvent<HTMLUiNoticeElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLUiNoticeElementEventMap>(type: K, listener: (this: HTMLUiNoticeElement, ev: UiNoticeCustomEvent<HTMLUiNoticeElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLUiNoticeElement: {
+        prototype: HTMLUiNoticeElement;
+        new (): HTMLUiNoticeElement;
+    };
     interface HTMLElementTagNameMap {
         "ui-button": HTMLUiButtonElement;
         "ui-card": HTMLUiCardElement;
         "ui-field": HTMLUiFieldElement;
         "ui-icon": HTMLUiIconElement;
+        "ui-notice": HTMLUiNoticeElement;
     }
 }
 declare namespace LocalJSX {
@@ -278,6 +321,25 @@ declare namespace LocalJSX {
          */
         "size"?: 's' | 'm';
     }
+    /**
+     * Inline banner. Positioning (a fixed top bar, a toast stack) is the app's job.
+     * `danger` is announced assertively (`role="alert"`); the other tones are polite.
+     */
+    interface UiNotice {
+        /**
+          * Shows a close control that emits `dismiss`.
+          * @default false
+         */
+        "dismissible"?: boolean;
+        /**
+          * Fired when the close control is activated. The host decides whether to remove the notice.
+         */
+        "onDismiss"?: (event: UiNoticeCustomEvent<void>) => void;
+        /**
+          * @default 'info'
+         */
+        "tone"?: NoticeTone;
+    }
 
     interface UiButtonAttributes {
         "variant": ButtonVariant;
@@ -304,12 +366,17 @@ declare namespace LocalJSX {
         "size": 's' | 'm';
         "label": string;
     }
+    interface UiNoticeAttributes {
+        "tone": NoticeTone;
+        "dismissible": boolean;
+    }
 
     interface IntrinsicElements {
         "ui-button": Omit<UiButton, keyof UiButtonAttributes> & { [K in keyof UiButton & keyof UiButtonAttributes]?: UiButton[K] } & { [K in keyof UiButton & keyof UiButtonAttributes as `attr:${K}`]?: UiButtonAttributes[K] } & { [K in keyof UiButton & keyof UiButtonAttributes as `prop:${K}`]?: UiButton[K] };
         "ui-card": Omit<UiCard, keyof UiCardAttributes> & { [K in keyof UiCard & keyof UiCardAttributes]?: UiCard[K] } & { [K in keyof UiCard & keyof UiCardAttributes as `attr:${K}`]?: UiCardAttributes[K] } & { [K in keyof UiCard & keyof UiCardAttributes as `prop:${K}`]?: UiCard[K] };
         "ui-field": Omit<UiField, keyof UiFieldAttributes> & { [K in keyof UiField & keyof UiFieldAttributes]?: UiField[K] } & { [K in keyof UiField & keyof UiFieldAttributes as `attr:${K}`]?: UiFieldAttributes[K] } & { [K in keyof UiField & keyof UiFieldAttributes as `prop:${K}`]?: UiField[K] } & OneOf<"label", UiField["label"], UiFieldAttributes["label"]> & OneOf<"name", UiField["name"], UiFieldAttributes["name"]>;
         "ui-icon": Omit<UiIcon, keyof UiIconAttributes> & { [K in keyof UiIcon & keyof UiIconAttributes]?: UiIcon[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `attr:${K}`]?: UiIconAttributes[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `prop:${K}`]?: UiIcon[K] } & OneOf<"name", UiIcon["name"], UiIconAttributes["name"]>;
+        "ui-notice": Omit<UiNotice, keyof UiNoticeAttributes> & { [K in keyof UiNotice & keyof UiNoticeAttributes]?: UiNotice[K] } & { [K in keyof UiNotice & keyof UiNoticeAttributes as `attr:${K}`]?: UiNoticeAttributes[K] } & { [K in keyof UiNotice & keyof UiNoticeAttributes as `prop:${K}`]?: UiNotice[K] };
     }
 }
 export { LocalJSX as JSX };
@@ -336,6 +403,11 @@ declare module "@stencil/core" {
              * Inline SVG icon from the library's small glyph map. Decorative unless `label` is set.
              */
             "ui-icon": LocalJSX.IntrinsicElements["ui-icon"] & JSXBase.HTMLAttributes<HTMLUiIconElement>;
+            /**
+             * Inline banner. Positioning (a fixed top bar, a toast stack) is the app's job.
+             * `danger` is announced assertively (`role="alert"`); the other tones are polite.
+             */
+            "ui-notice": LocalJSX.IntrinsicElements["ui-notice"] & JSXBase.HTMLAttributes<HTMLUiNoticeElement>;
         }
     }
 }
