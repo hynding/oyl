@@ -1,11 +1,11 @@
 import { Consumption, effectiveFacts } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
-import { now } from '../storage/clock.js'
+import { now } from '@oyl/all-of-oyl/client'
 
-/** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
-/** @typedef {ReturnType<typeof import('../state/consumables-store.js').createConsumablesStore>} ConsumablesStore */
-/** @typedef {ReturnType<typeof import('../state/consumable-products-store.js').createConsumableProductsStore>} ConsumableProductsStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createJournalStore>} JournalStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createConsumablesStore>} ConsumablesStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createConsumableProductsStore>} ConsumableProductsStore */
 /** @typedef {import('@oyl/all-of-oyl').DayKey} DayKey */
 /** @typedef {import('@oyl/all-of-oyl').Nutrients} Nutrients */
 /** @typedef {import('@oyl/all-of-oyl').NutritionAmounts} NutritionAmounts */

@@ -1,13 +1,13 @@
 import { DayKey } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { sheet } from './sheet.js'
-import { now } from '../storage/clock.js'
+import { now } from '@oyl/all-of-oyl/client'
 import { relativeDayLabel, formatDayHeading } from '@oyl/all-of-oyl/format'
 import { definePlanComposer } from './oyl-plan-composer.js'
 import { definePlanRow } from './oyl-plan-row.js'
 
-/** @typedef {ReturnType<typeof import('../state/planner-store.js').createPlannerStore>} PlannerStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createPlannerStore>} PlannerStore */
 /** @typedef {import('@oyl/all-of-oyl').Plan} Plan */
 /** @typedef {import('@oyl/all-of-oyl').Id} Id */
 
@@ -36,7 +36,7 @@ export class OylPlanner extends OylElement {
     this.store = /** @type {PlannerStore} */ (/** @type {unknown} */ (undefined))
     /** @type {string} */
     this.tz = 'UTC'
-    /** @type {import('../lib/reactive/signal.js').Signal<DayKey>} */
+    /** @type {import('@oyl/all-of-oyl/client').Signal<DayKey>} */
     this._day = /** @type {any} */ (undefined)
   }
 

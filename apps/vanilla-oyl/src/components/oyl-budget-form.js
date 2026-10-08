@@ -2,7 +2,7 @@ import { Budget, Money } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 
-/** @typedef {ReturnType<typeof import('../state/budgets-store.js').createBudgetsStore>} BudgetsStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createBudgetsStore>} BudgetsStore */
 
 const CATEGORIES = ['groceries', 'dining', 'transport', 'utilities', 'entertainment', 'other']
 const CURRENCIES = ['USD', 'EUR', 'GBP']

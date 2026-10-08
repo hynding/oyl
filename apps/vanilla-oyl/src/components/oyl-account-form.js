@@ -2,7 +2,7 @@ import { Account } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 
-/** @typedef {ReturnType<typeof import('../state/accounts-store.js').createAccountsStore>} AccountsStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createAccountsStore>} AccountsStore */
 
 const CURRENCIES = ['USD', 'EUR', 'GBP']
 

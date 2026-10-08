@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { defineSyncStatus } from './oyl-sync-status.js'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 
 beforeAll(() => defineSyncStatus())
 /** @type {import('./oyl-sync-status.js').SyncState} */

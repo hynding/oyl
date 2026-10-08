@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, vi } from 'vitest'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { defineRegister } from './oyl-register.js'
 
 beforeAll(() => defineRegister())

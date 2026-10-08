@@ -1,15 +1,15 @@
 import { DayKey, sumNutrients } from '@oyl/all-of-oyl'
 import { formatNutrients, relativeDayLabel, formatDayHeading, formatClockTime } from '@oyl/all-of-oyl/format'
 import { OylElement } from '../lib/reactive/oyl-element.js'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { sheet } from './sheet.js'
-import { now } from '../storage/clock.js'
+import { now } from '@oyl/all-of-oyl/client'
 import { defineNutritionComposer } from './oyl-nutrition-composer.js'
 import { defineConsumableForm } from './oyl-consumable-form.js'
 
-/** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
-/** @typedef {ReturnType<typeof import('../state/consumables-store.js').createConsumablesStore>} ConsumablesStore */
-/** @typedef {ReturnType<typeof import('../state/consumable-products-store.js').createConsumableProductsStore>} ConsumableProductsStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createJournalStore>} JournalStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createConsumablesStore>} ConsumablesStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createConsumableProductsStore>} ConsumableProductsStore */
 
 /**
  * Row meta for a logged consumption: per-serving nutrients, plus a scaled
@@ -59,7 +59,7 @@ export class OylNutrition extends OylElement {
     this.consumableProducts = undefined
     /** @type {string} */
     this.tz = 'UTC'
-    /** @type {import('../lib/reactive/signal.js').Signal<DayKey>} */
+    /** @type {import('@oyl/all-of-oyl/client').Signal<DayKey>} */
     this._day = /** @type {any} */ (undefined)
   }
 

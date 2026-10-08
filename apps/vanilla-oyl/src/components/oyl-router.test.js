@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll } from 'vitest'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { defineRouter } from './oyl-router.js'
 
 beforeAll(() => defineRouter())

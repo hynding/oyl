@@ -2,7 +2,7 @@ import { OylElement, baseStyles } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 import { byId, ORIENTATION, DEFAULT_LAYOUT } from '../layouts/layout-catalog.js'
 
-/** @typedef {import('../lib/reactive/signal.js').Signal<string>} LayoutSignal */
+/** @typedef {import('@oyl/all-of-oyl/client').Signal<string>} LayoutSignal */
 
 /*
  * The shared frame every layout builds on. Contains ALL sub-641px rules: below that

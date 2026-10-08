@@ -21,15 +21,15 @@ export class OylProfile extends OylElement {
   static styles = [styles]
   constructor() {
     super()
-    /** @type {import('../lib/reactive/signal.js').Signal<any>} */ this.session = /** @type {any} */ (undefined)
-    /** @type {import('../lib/reactive/signal.js').Signal<any>} */ this.profile = /** @type {any} */ (undefined)
+    /** @type {import('@oyl/all-of-oyl/client').Signal<any>} */ this.session = /** @type {any} */ (undefined)
+    /** @type {import('@oyl/all-of-oyl/client').Signal<any>} */ this.profile = /** @type {any} */ (undefined)
     /** @type {(patch: Record<string, any>) => void} */ this.onSaveProfile = () => {}
     /** @type {() => void} */ this.onLogout = () => {}
     /** @type {import('./oyl-connection.js').ConnectionConfig | null} */ this.connection = null
-    /** @type {{ state: import('../lib/reactive/signal.js').Signal<any>, onResync: () => void } | null} */ this.sync = null
+    /** @type {{ state: import('@oyl/all-of-oyl/client').Signal<any>, onResync: () => void } | null} */ this.sync = null
     /** @type {{ mode: 'local'|'remote', canUploadLocal: boolean, onExport: () => void, onImport: () => void, onUploadLocal: () => void } | null} */ this.dataActions = null
     /** @type {string} */ this.today = ''
-    /** @type {{ connection: import('../lib/reactive/signal.js').Signal<import('../state/google-store.js').GoogleConnection>, onConnect: () => void, onDisconnect: () => void } | null} */ this.google = null
+    /** @type {{ connection: import('@oyl/all-of-oyl/client').Signal<import('@oyl/all-of-oyl/client').GoogleConnection>, onConnect: () => void, onDisconnect: () => void } | null} */ this.google = null
   }
   render() {
     const root = /** @type {ShadowRoot} */ (this.shadowRoot)

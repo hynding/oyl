@@ -1,9 +1,9 @@
 import { Note, Measurement } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { sheet } from './sheet.js'
 
-/** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createJournalStore>} JournalStore */
 /** @typedef {import('@oyl/all-of-oyl').DayKey} DayKey */
 
 const METRICS = ['body.weight_kg', 'sleep.hours', 'mood.score', 'screen.minutes', 'custom']

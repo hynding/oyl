@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { OylElement, baseStyles } from './oyl-element.js'
-import { signal } from './signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 
 class Counter extends OylElement {
   count = signal(0)

@@ -1,7 +1,7 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 
-/** @typedef {import('../lib/reactive/signal.js').Signal<string | null>} NoticeSignal */
+/** @typedef {import('@oyl/all-of-oyl/client').Signal<string | null>} NoticeSignal */
 
 const styles = sheet(`
   :host { position: fixed; inset-block-start: 0; inset-inline: 0; z-index: 50; }

@@ -1,7 +1,7 @@
 import { OylElement } from '../lib/reactive/oyl-element.js'
 import { sheet } from './sheet.js'
 
-/** @typedef {import('../lib/reactive/signal.js').Signal<string>} RouteSignal */
+/** @typedef {import('@oyl/all-of-oyl/client').Signal<string>} RouteSignal */
 
 const ITEMS = /** @type {ReadonlyArray<readonly [string, string]>} */ ([
   ['status', 'Status'],

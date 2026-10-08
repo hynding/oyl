@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll, vi } from 'vitest'
 import { InMemoryRepository, Document, Possession, Subscription, Contact, GiftIdea, Cadence, Money, DayKey } from '@oyl/all-of-oyl'
-import { createVaultStore } from '../state/vault-store.js'
-import { now } from '../storage/clock.js'
+import { createVaultStore } from '@oyl/all-of-oyl/client'
+import { now } from '@oyl/all-of-oyl/client'
 import { defineVault } from './oyl-vault.js'
 
 beforeAll(() => defineVault())

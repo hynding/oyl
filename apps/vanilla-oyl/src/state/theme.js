@@ -1,6 +1,6 @@
-import { signal } from '../lib/reactive/signal.js'
-import { SETTINGS_KEY } from '../storage/keys.js'
-import { readRawSettings } from '../storage/settings.js'
+import { signal } from '@oyl/all-of-oyl/client'
+import { SETTINGS_KEY } from '@oyl/all-of-oyl/client'
+import { readRawSettings } from '@oyl/all-of-oyl/client'
 import { DEFAULT_SETTINGS, nextSettings } from '../theme/theme-manager.js'
 
 /** @typedef {import('../theme/theme-manager.js').ThemeSettings} ThemeSettings */

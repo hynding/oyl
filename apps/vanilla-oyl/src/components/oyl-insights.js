@@ -1,8 +1,8 @@
 import { DayKey, periodWindowOf } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { sheet } from './sheet.js'
-import { now } from '../storage/clock.js'
+import { now } from '@oyl/all-of-oyl/client'
 import { usd, reviewGoalLabel, areaStatsLabel } from '../insights/format.js'
 
 /** @typedef {import('@oyl/all-of-oyl').Review} Review */
@@ -43,7 +43,7 @@ export class OylInsights extends OylElement {
     this.reviewOn = /** @type {ReviewOn} */ (/** @type {unknown} */ (undefined))
     /** @type {string} */
     this.tz = 'UTC'
-    /** @type {import('../lib/reactive/signal.js').Signal<string>} */
+    /** @type {import('@oyl/all-of-oyl/client').Signal<string>} */
     this._period = /** @type {any} */ (undefined)
   }
 

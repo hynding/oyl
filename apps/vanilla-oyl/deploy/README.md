@@ -4,7 +4,7 @@ Nothing here ships as-is. `scripts/dreamhost/publish-www.sh` (repo root) stages 
 `src/`, `styles/`, `vendor/` (minus `*.test.js`), then:
 
 1. fills `<meta name="oyl-api-base" content="">` in the staged `index.html` with `DH_API_BASE`
-   (`src/storage/config.js` reads it first; empty = hostname rules, so dev and tests are unaffected);
+   (`packages/all-of-oyl/src/client/storage/config.ts` (shared package, not vanilla) reads it first; empty = hostname rules, so dev and tests are unaffected);
 2. runs `node scripts/render-htaccess.mjs` → `.htaccess` from `htaccess.template`: scoped SPA
    fallback (asset roots stay 404), `Cache-Control`, security headers and a CSP whose
    `script-src` carries one `sha256-` hash per inline `<script>` in `index.html`

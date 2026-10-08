@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, vi } from 'vitest'
-import { createNoticeState } from '../state/notice.js'
+import { createNoticeState } from '@oyl/all-of-oyl/client'
 import { defineNotice } from './oyl-notice.js'
 
 beforeAll(() => defineNotice())

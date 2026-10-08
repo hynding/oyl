@@ -1,8 +1,8 @@
 import { DayKey, DayRange } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { sheet } from './sheet.js'
-import { now } from '../storage/clock.js'
+import { now } from '@oyl/all-of-oyl/client'
 import { dueInLabel, formatMoney, monthlyTotalLabel } from '@oyl/all-of-oyl/format'
 import { defineVaultComposer } from './oyl-vault-composer.js'
 import { defineVaultItem } from './oyl-vault-item.js'
@@ -10,7 +10,7 @@ import { defineSubscriptionRow } from './oyl-subscription-row.js'
 import { defineContactRow } from './oyl-contact-row.js'
 import { defineGiftIdeaForm } from './oyl-gift-idea-form.js'
 
-/** @typedef {ReturnType<typeof import('../state/vault-store.js').createVaultStore>} VaultStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createVaultStore>} VaultStore */
 
 const HORIZONS = /** @type {ReadonlyArray<readonly [number, string]>} */ ([
   [30, 'Next 30 days'],
@@ -47,7 +47,7 @@ export class OylVault extends OylElement {
     this.tz = 'UTC'
     /** @type {(id: import('@oyl/all-of-oyl').Id, on: import('@oyl/all-of-oyl').DayKey) => Promise<unknown>} */
     this.renew = async () => undefined
-    /** @type {import('../lib/reactive/signal.js').Signal<number>} */
+    /** @type {import('@oyl/all-of-oyl/client').Signal<number>} */
     this._horizon = /** @type {any} */ (undefined)
   }
 

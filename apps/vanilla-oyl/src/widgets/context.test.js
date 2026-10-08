@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DayKey, DayRange, Journal, Task } from '@oyl/all-of-oyl'
 import { createWidgetContext } from './context.js'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 
 function makeCtx(profileValue = /** @type {any} */ ({ displayName: 'Steve' })) {
   const journal = new Journal('UTC')

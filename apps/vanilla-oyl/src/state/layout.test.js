@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createLayoutState } from './layout.js'
-import { SETTINGS_KEY } from '../storage/keys.js'
+import { SETTINGS_KEY } from '@oyl/all-of-oyl/client'
 
 const memStorage = () => {
   const m = new Map()

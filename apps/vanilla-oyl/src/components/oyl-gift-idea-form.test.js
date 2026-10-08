@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeAll } from 'vitest'
 import { InMemoryRepository, Contact } from '@oyl/all-of-oyl'
-import { createVaultStore } from '../state/vault-store.js'
+import { createVaultStore } from '@oyl/all-of-oyl/client'
 import { defineGiftIdeaForm } from './oyl-gift-idea-form.js'
 
 beforeAll(() => defineGiftIdeaForm())

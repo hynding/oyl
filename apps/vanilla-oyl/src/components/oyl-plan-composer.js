@@ -1,9 +1,9 @@
 import { Task, Appointment, Cadence, DayKey } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { sheet } from './sheet.js'
 
-/** @typedef {ReturnType<typeof import('../state/planner-store.js').createPlannerStore>} PlannerStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createPlannerStore>} PlannerStore */
 
 const UNITS = ['days', 'weeks', 'months']
 

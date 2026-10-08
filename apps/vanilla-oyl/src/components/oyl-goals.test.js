@@ -1,14 +1,14 @@
 import { describe, expect, it, beforeAll } from 'vitest'
 import { InMemoryRepository, Goal } from '@oyl/all-of-oyl'
-import { createGoalsStore } from '../state/goals-store.js'
-import { createJournalStore } from '../state/journal-store.js'
+import { createGoalsStore } from '@oyl/all-of-oyl/client'
+import { createJournalStore } from '@oyl/all-of-oyl/client'
 import { defineGoals } from './oyl-goals.js'
 
 beforeAll(() => defineGoals())
 const TZ = 'UTC'
 const settle = () => new Promise((r) => setTimeout(r, 0))
 
-/** @returns {import('../state/journal-store.js').ReposByKind} */
+/** @returns {import('@oyl/all-of-oyl/client').ReposByKind} */
 function makeReposByKind() {
   return {
     'note': /** @type {any} */ (new InMemoryRepository()),

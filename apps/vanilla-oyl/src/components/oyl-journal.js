@@ -1,13 +1,13 @@
 import { DayKey } from '@oyl/all-of-oyl'
 import { OylElement } from '../lib/reactive/oyl-element.js'
-import { signal } from '../lib/reactive/signal.js'
+import { signal } from '@oyl/all-of-oyl/client'
 import { sheet } from './sheet.js'
-import { now } from '../storage/clock.js'
+import { now } from '@oyl/all-of-oyl/client'
 import { relativeDayLabel, formatDayHeading } from '@oyl/all-of-oyl/format'
 import { defineLogForm } from './oyl-log-form.js'
 import { defineEntryRow } from './oyl-entry-row.js'
 
-/** @typedef {ReturnType<typeof import('../state/journal-store.js').createJournalStore>} JournalStore */
+/** @typedef {ReturnType<typeof import('@oyl/all-of-oyl/client').createJournalStore>} JournalStore */
 
 const styles = sheet(`
   :host { display: block; }
@@ -33,7 +33,7 @@ export class OylJournal extends OylElement {
     this.store = /** @type {JournalStore} */ (/** @type {unknown} */ (undefined))
     /** @type {string} */
     this.tz = 'UTC'
-    /** @type {import('../lib/reactive/signal.js').Signal<DayKey>} */
+    /** @type {import('@oyl/all-of-oyl/client').Signal<DayKey>} */
     this._day = /** @type {any} */ (undefined)
   }
 

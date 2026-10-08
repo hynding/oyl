@@ -17,7 +17,7 @@ export class OylRegister extends OylElement {
     super()
     /** @type {any} */ this.auth = undefined
     /** @type {(patch: Record<string, any>) => void} */ this.onAuthenticated = () => {}
-    /** @type {import('../lib/reactive/signal.js').Signal<{ href: string } | null> | null} */
+    /** @type {import('@oyl/all-of-oyl/client').Signal<{ href: string } | null> | null} */
     this.googleAuth = null
   }
   render() {

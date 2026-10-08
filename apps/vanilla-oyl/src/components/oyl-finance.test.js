@@ -1,14 +1,14 @@
 import { describe, expect, it, beforeAll } from 'vitest'
 import { InMemoryRepository, Transaction, Budget, Money, Account } from '@oyl/all-of-oyl'
-import { createJournalStore } from '../state/journal-store.js'
-import { createBudgetsStore } from '../state/budgets-store.js'
-import { createAccountsStore } from '../state/accounts-store.js'
+import { createJournalStore } from '@oyl/all-of-oyl/client'
+import { createBudgetsStore } from '@oyl/all-of-oyl/client'
+import { createAccountsStore } from '@oyl/all-of-oyl/client'
 import { defineFinance } from './oyl-finance.js'
 
 beforeAll(() => defineFinance())
 const TZ = 'UTC'
 
-/** @returns {import('../state/journal-store.js').ReposByKind} */
+/** @returns {import('@oyl/all-of-oyl/client').ReposByKind} */
 function makeReposByKind() {
   return {
     'note': /** @type {any} */ (new InMemoryRepository()),
