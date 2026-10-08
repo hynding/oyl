@@ -5,9 +5,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ui-oyl showcase</title>
     <link rel="stylesheet" href="/build/ui-oyl.css" />
+    <link rel="stylesheet" href="/themes/classic.css" />
+    <link rel="stylesheet" href="/themes/forest.css" />
+    <link rel="stylesheet" href="/themes/sunrise.css" />
+    <link rel="stylesheet" href="/themes/ocean.css" />
+    <link rel="stylesheet" href="/themes/lavender.css" />
+    <link rel="stylesheet" href="/themes/ember.css" />
+    <link rel="stylesheet" href="/themes/ink.css" />
+    <link rel="stylesheet" href="/themes/paper.css" />
     <script type="module" src="/build/ui-oyl.esm.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      body { margin: 0; font-family: var(--font-sans); font-size: var(--step-0); background: var(--color-bg); color: var(--color-text); }
+      main { max-inline-size: 48rem; margin-inline: auto; padding: var(--space-4) var(--space-4) var(--space-8); display: grid; gap: var(--space-6); }
+      header.bar { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; padding-block: var(--space-3); border-block-end: var(--line-1) solid var(--color-border); }
+      header.bar h1 { font-size: var(--step-1); margin: 0; margin-inline-end: auto; }
+      select { font: inherit; min-block-size: var(--size-control); padding-inline: var(--space-3); border-radius: var(--radius-1); border: var(--line-2) solid var(--color-border); background: var(--color-surface); color: inherit; }
+      section > h2 { font-size: var(--step-0); margin: 0 0 var(--space-3); color: var(--color-muted); font-weight: 500; }
+      .row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+      .stack { display: grid; gap: var(--space-3); }
+      .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: var(--space-3); }
+      .swatch { border: var(--line-1) solid var(--color-border); border-radius: var(--radius-1); overflow: hidden; font-size: var(--step--1); }
+      .swatch i { display: block; block-size: 2.5rem; }
+      .swatch span { display: block; padding: var(--space-2); font-family: var(--font-mono); }
+      .phone { inline-size: 24rem; block-size: 12rem; position: relative; overflow: hidden; border: var(--line-2) solid var(--color-border); border-radius: var(--radius-2); contain: layout; }
+      .phone ui-nav[orientation="bottom"] { position: absolute; }
+      .scale { display: grid; gap: var(--space-2); font-family: var(--font-mono); font-size: var(--step--1); }
+      .scale i { display: inline-block; block-size: 0.75rem; background: var(--color-accent); vertical-align: middle; margin-inline-end: var(--space-2); }
+    </style>
   </head>
   <body>
-    <ui-icon name="check"></ui-icon>
+    <main>
+      <header class="bar">
+        <h1>ui-oyl</h1>
+        <label>Theme
+          <select id="theme">
+            <option>classic</option><option>forest</option><option>sunrise</option><option>ocean</option>
+            <option>lavender</option><option>ember</option><option>ink</option><option>paper</option>
+          </select>
+        </label>
+        <label>Scheme
+          <select id="scheme"><option value="light dark">system</option><option value="light">light</option><option value="dark">dark</option></select>
+        </label>
+      </header>
+
+      <section id="components"></section>
+
+      <section>
+        <h2>Color tokens</h2>
+        <div class="swatches" id="swatches"></div>
+      </section>
+
+      <section>
+        <h2>Scale</h2>
+        <div class="scale" id="scale"></div>
+      </section>
+    </main>
+
+    <script type="module">
+      const html = document.documentElement
+      document.getElementById('theme').addEventListener('change', (e) => (html.dataset.theme = e.target.value))
+      document.getElementById('scheme').addEventListener('change', (e) => (html.style.colorScheme = e.target.value))
+
+      const colors = ['bg','surface','surface-2','text','muted','border','accent','accent-hover','on-accent','danger','warn','ok']
+      document.getElementById('swatches').innerHTML = colors
+        .map((c) => `<div class="swatch"><i style="background: var(--color-${c})"></i><span>--color-${c}</span></div>`)
+        .join('')
+
+      const scale = [['space-1', 'inline-size: var(--space-1)'], ['space-2', 'inline-size: var(--space-2)'], ['space-3', 'inline-size: var(--space-3)'],
+        ['space-4', 'inline-size: var(--space-4)'], ['space-6', 'inline-size: var(--space-6)'], ['space-8', 'inline-size: var(--space-8)'],
+        ['size-control', 'inline-size: var(--size-control)']]
+      document.getElementById('scale').innerHTML = scale.map(([n, s]) => `<div><i style="${s}"></i>--${n}</div>`).join('')
+        + `<div style="font-family: var(--font-sans); font-size: var(--step--1)">--step--1 The quick brown fox</div>`
+        + `<div style="font-family: var(--font-sans); font-size: var(--step-0)">--step-0 The quick brown fox</div>`
+        + `<div style="font-family: var(--font-sans); font-size: var(--step-1)">--step-1 The quick brown fox</div>`
+        + `<div style="font-family: var(--font-sans); font-size: var(--step-2)">--step-2 The quick brown fox</div>`
+    </script>
   </body>
 </html>
