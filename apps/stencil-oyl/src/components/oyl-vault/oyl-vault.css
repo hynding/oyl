@@ -1,0 +1,29 @@
+:host { display: block; container-type: inline-size; }
+.screen { display: grid; gap: var(--space-4); }
+h2 { margin: 0; text-align: center; font-size: var(--step-2); font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; }
+h2:focus-visible { outline: var(--focus-ring); outline-offset: 4px; border-radius: var(--radius-1); }
+.sr-only { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.section-head { display: flex; align-items: end; justify-content: space-between; gap: var(--space-3); }
+.section-head ui-select { inline-size: 12rem; }
+.section-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 500; color: var(--color-muted); }
+.gifts-label { margin-block-start: var(--space-4); }
+.monthly-total { color: var(--color-muted); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
+ol { list-style: none; margin: 0; padding: 0; }
+.due { display: grid; grid-template-columns: 1fr auto; gap: var(--space-1) var(--space-3); align-items: baseline; padding: var(--space-2) 0; border-block-start: var(--line-1) solid var(--color-border); }
+.due .label { color: var(--color-text); }
+.due .when { color: var(--color-muted); font-size: var(--step--1); }
+.due .date { color: var(--color-muted); font-family: var(--font-mono); font-size: var(--step--1); font-variant-numeric: tabular-nums; }
+.empty { color: var(--color-muted); padding: var(--space-4) 0; text-align: center; }
+ui-segment { justify-self: center; }
+section { display: grid; gap: var(--space-2); }
+details { border: var(--line-1) solid var(--color-border); border-radius: var(--radius-2); background: var(--color-surface); }
+summary { cursor: pointer; padding: var(--space-3) var(--space-4); color: var(--color-muted); font-size: var(--step--1); }
+summary:hover { color: var(--color-text); }
+details[open] summary { border-block-end: var(--line-1) solid var(--color-border); }
+details > :not(summary) { padding: var(--space-4); display: block; }
+oyl-gift-idea-form { padding: var(--space-3) var(--space-4); border: var(--line-1) solid var(--color-border); border-radius: var(--radius-2); background: var(--color-surface); }
+@container (max-width: 30rem) {
+  .section-head { flex-direction: column; align-items: stretch; }
+  .section-head ui-select { inline-size: 100%; }
+  ui-segment { justify-self: stretch; }
+}

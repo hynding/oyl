@@ -7,7 +7,7 @@ import type { App } from './types.js'
 
 /** Redesigned screens arrive one spec at a time; the rest show the placeholder. */
 const NOT_YET: Record<string, string> = {
-  goals: 'Goals', vault: 'Vault', insights: 'Insights', profile: 'Profile',
+  goals: 'Goals', insights: 'Insights', profile: 'Profile',
 }
 
 /** The route → screen factories for the shell. Screens receive state as properties. */
@@ -56,6 +56,13 @@ export function buildRoutes(app: App, doc: Document): Routes {
       el.store = app.dataState.journal
       el.budgets = app.dataState.budgets
       el.accounts = app.dataState.accounts
+      el.tz = app.tz
+      return el
+    },
+    vault: () => {
+      const el = doc.createElement('oyl-vault')
+      el.store = app.dataState.vault
+      el.renew = app.dataState.renewSubscription
       el.tz = app.tz
       return el
     },

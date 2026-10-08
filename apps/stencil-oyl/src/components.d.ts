@@ -33,6 +33,7 @@ import { StatusActions } from "./boot/data-tools.js";
 import { SubscriptionsWriter } from "./components/oyl-subscription-form/oyl-subscription-form";
 import { ThemeState } from "./boot/theme.js";
 import { AccountsReader, Direction, TransactionWriter } from "./components/oyl-transaction-form/oyl-transaction-form";
+import { VaultStore } from "./components/oyl-vault/oyl-vault";
 export { AccountsWriter } from "./components/oyl-account-form/oyl-account-form";
 export { Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
@@ -61,6 +62,7 @@ export { StatusActions } from "./boot/data-tools.js";
 export { SubscriptionsWriter } from "./components/oyl-subscription-form/oyl-subscription-form";
 export { ThemeState } from "./boot/theme.js";
 export { AccountsReader, Direction, TransactionWriter } from "./components/oyl-transaction-form/oyl-transaction-form";
+export { VaultStore } from "./components/oyl-vault/oyl-vault";
 export namespace Components {
     /**
      * Add an account: a name and its currency.
@@ -430,6 +432,23 @@ export namespace Components {
     interface OylTransactionForm {
         "accounts": AccountsReader;
         "store": TransactionWriter;
+    }
+    /**
+     * The vault: an Upcoming feed over a horizon, then one kind at a time (documents,
+     * possessions, subscriptions, contacts — gift ideas under contacts), each with a collapsed
+     * add form and a list of `oyl-item-row`s. Lists and callbacks are vanilla's; the horizon is a
+     * bundle signal so the effect re-computes the feed when it changes.
+     */
+    interface OylVault {
+        /**
+          * `dataState.renewSubscription`: renews and records the finance expense.
+         */
+        "renew": (id: Id, on: DayKey) => Promise<unknown>;
+        "store": VaultStore;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
     }
 }
 export interface OylAccountFormCustomEvent<T> extends CustomEvent<T> {
@@ -1139,6 +1158,18 @@ declare global {
         prototype: HTMLOylTransactionFormElement;
         new (): HTMLOylTransactionFormElement;
     };
+    /**
+     * The vault: an Upcoming feed over a horizon, then one kind at a time (documents,
+     * possessions, subscriptions, contacts — gift ideas under contacts), each with a collapsed
+     * add form and a list of `oyl-item-row`s. Lists and callbacks are vanilla's; the horizon is a
+     * bundle signal so the effect re-computes the feed when it changes.
+     */
+    interface HTMLOylVaultElement extends Components.OylVault, HTMLStencilElement {
+    }
+    var HTMLOylVaultElement: {
+        prototype: HTMLOylVaultElement;
+        new (): HTMLOylVaultElement;
+    };
     interface HTMLElementTagNameMap {
         "oyl-account-form": HTMLOylAccountFormElement;
         "oyl-account-menu": HTMLOylAccountMenuElement;
@@ -1175,6 +1206,7 @@ declare global {
         "oyl-subscription-form": HTMLOylSubscriptionFormElement;
         "oyl-theme-picker": HTMLOylThemePickerElement;
         "oyl-transaction-form": HTMLOylTransactionFormElement;
+        "oyl-vault": HTMLOylVaultElement;
     }
 }
 declare namespace LocalJSX {
@@ -1637,6 +1669,23 @@ declare namespace LocalJSX {
         "onAdded"?: (event: OylTransactionFormCustomEvent<Direction>) => void;
         "store": TransactionWriter;
     }
+    /**
+     * The vault: an Upcoming feed over a horizon, then one kind at a time (documents,
+     * possessions, subscriptions, contacts — gift ideas under contacts), each with a collapsed
+     * add form and a list of `oyl-item-row`s. Lists and callbacks are vanilla's; the horizon is a
+     * bundle signal so the effect re-computes the feed when it changes.
+     */
+    interface OylVault {
+        /**
+          * `dataState.renewSubscription`: renews and records the finance expense.
+         */
+        "renew": (id: Id, on: DayKey) => Promise<unknown>;
+        "store": VaultStore;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
+    }
 
     interface OylAuthFormAttributes {
         "mode": 'login' | 'register';
@@ -1682,6 +1731,9 @@ declare namespace LocalJSX {
     interface OylShellAttributes {
         "docked": boolean;
     }
+    interface OylVaultAttributes {
+        "tz": string;
+    }
 
     interface IntrinsicElements {
         "oyl-account-form": OylAccountForm;
@@ -1719,6 +1771,7 @@ declare namespace LocalJSX {
         "oyl-subscription-form": OylSubscriptionForm;
         "oyl-theme-picker": OylThemePicker;
         "oyl-transaction-form": OylTransactionForm;
+        "oyl-vault": Omit<OylVault, keyof OylVaultAttributes> & { [K in keyof OylVault & keyof OylVaultAttributes]?: OylVault[K] } & { [K in keyof OylVault & keyof OylVaultAttributes as `attr:${K}`]?: OylVaultAttributes[K] } & { [K in keyof OylVault & keyof OylVaultAttributes as `prop:${K}`]?: OylVault[K] };
     }
 }
 export { LocalJSX as JSX };
@@ -1908,6 +1961,13 @@ declare module "@stencil/core" {
              * options change, so it never trusts the select for a value it was not told about.
              */
             "oyl-transaction-form": LocalJSX.IntrinsicElements["oyl-transaction-form"] & JSXBase.HTMLAttributes<HTMLOylTransactionFormElement>;
+            /**
+             * The vault: an Upcoming feed over a horizon, then one kind at a time (documents,
+             * possessions, subscriptions, contacts — gift ideas under contacts), each with a collapsed
+             * add form and a list of `oyl-item-row`s. Lists and callbacks are vanilla's; the horizon is a
+             * bundle signal so the effect re-computes the feed when it changes.
+             */
+            "oyl-vault": LocalJSX.IntrinsicElements["oyl-vault"] & JSXBase.HTMLAttributes<HTMLOylVaultElement>;
         }
     }
 }
