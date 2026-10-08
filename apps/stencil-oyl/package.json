@@ -1,0 +1,28 @@
+{
+  "name": "@oyl/stencil-oyl",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Stencil OYL front end (next version of apps/vanilla-oyl)",
+  "scripts": {
+    "lib": "pnpm -C ../.. all-of build && pnpm -C ../.. ui build",
+    "dev": "pnpm lib && stencil build --dev --watch --serve",
+    "build": "pnpm lib && stencil build",
+    "serve": "http-server www -p 8043 -c-1 --proxy \"http://localhost:8043?\" --silent",
+    "test": "pnpm lib && stencil-test",
+    "test:watch": "stencil-test --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@oyl/all-of-oyl": "workspace:*",
+    "@oyl/ui-oyl": "workspace:*"
+  },
+  "devDependencies": {
+    "@stencil/core": "^4.45.2",
+    "@stencil/vitest": "^1.15.1",
+    "happy-dom": "^20",
+    "http-server": "^14.1.1",
+    "typescript": "^5",
+    "vitest": "^4.1.10"
+  }
+}

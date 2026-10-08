@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en" data-theme="classic">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>OYL</title>
+    <!-- Deploy-injected API base; '' means hostname rules (see boot/compose.ts). -->
+    <meta name="oyl-api-base" content="" />
+
+    <!-- Anti-FOUC: apply persisted theme/mode synchronously before first paint. -->
+    <script>
+      (function () {
+        try {
+          var s = JSON.parse(localStorage.getItem('oyl/settings') || 'null')
+          if (s && s.theme) document.documentElement.dataset.theme = s.theme
+          document.documentElement.style.colorScheme =
+            !s || s.mode === 'system' ? 'light dark' : s.mode
+        } catch (e) {}
+      })()
+    </script>
+
+    <!-- Root-absolute paths: relative ones break on multi-segment deep links. -->
+    <link rel="stylesheet" href="/tokens.css" />
+    <link rel="stylesheet" href="/themes/classic.css" />
+    <link rel="stylesheet" href="/themes/forest.css" />
+    <link rel="stylesheet" href="/themes/sunrise.css" />
+    <link rel="stylesheet" href="/themes/ocean.css" />
+    <link rel="stylesheet" href="/themes/lavender.css" />
+    <link rel="stylesheet" href="/themes/ember.css" />
+    <link rel="stylesheet" href="/themes/ink.css" />
+    <link rel="stylesheet" href="/themes/paper.css" />
+    <link rel="stylesheet" href="/build/oyl.css" />
+    <script type="module" src="/build/oyl.esm.js"></script>
+  </head>
+  <body>
+    <oyl-app></oyl-app>
+    <p id="boot-fallback" hidden></p>
+  </body>
+</html>

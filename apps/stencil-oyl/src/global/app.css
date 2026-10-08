@@ -1,0 +1,11 @@
+/* Document-level rules only. Components carry their own shadow styles via @oyl/ui-oyl tokens. */
+:root { color-scheme: light dark; }
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--step-0);
+  line-height: 1.5;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
