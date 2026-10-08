@@ -29,12 +29,12 @@ accounts stores unchanged); new look, month summary tiles, and one shared row co
   h2[tabindex=-1] "{Month YYYY}"        sr-only aria-live region
   .totals[data-role=totals]  per currency: <div class="tiles" data-currency> 3 × .tile (spent / income / net)
   <oyl-transaction-form store accounts onAdded>            — ui-card
-  .section-head  "This month" · <ui-select name="ledgerFilter"> (All accounts / Cash / each account; hidden when no accounts)
+  .section-head  "This month" · <ui-select name="ledgerFilter" label="Show"> (All accounts / Cash / each account; not rendered when there are no accounts)
   <ol class="ledger"> <li><oyl-item-row label lines value tone onRemove></li> …   newest first
   .empty[data-role=ledger-empty]  "No transactions this month." | "No transactions for this view."
-  section  .section-label "Budgets" · <details><summary>New budget</summary><oyl-budget-form store onAdded></details>
+  section.budgets   .section-label "Budgets" · <details><summary>New budget</summary><oyl-budget-form store onAdded></details>
            <ol class="budgets"> <li><oyl-budget-row budget status onRemove></li> …  · .empty "No budgets yet."
-  section  .section-label "Accounts" · <details><summary>New account</summary><oyl-account-form store onAdded></details>
+  section.accounts  .section-label "Accounts" · <details><summary>New account</summary><oyl-account-form store onAdded></details>
            <ol class="accounts"> <li><oyl-item-row label lines value onRemove></li> …  · .empty "No accounts yet."
 ```
 
@@ -45,7 +45,9 @@ accounts stores unchanged); new look, month summary tiles, and one shared row co
   budgets and accounts revisions. The filter is `@State()`; an unknown value (its account was
   deleted) falls back to `''`.
 - Ledger row: `label = category`, `lines = [ "{Mon D} · {account name}", note ]`, `value =
-  (income ? '+' : '−') + formatMoney(amount)`, `tone = income ? 'ok' : undefined`. Account row:
+  (income ? '+' : '−') + formatMoney(amount)`, `tone = income ? 'ok' : undefined`. (Deliberate
+  new-look choices: vanilla showed the ISO day and left expenses unsigned; the e2e asserts
+  — category, amount, `+` on income — still hold.) Account row:
   `label = name`, `lines = [ "{currency} · {formatMoney(spend)} this month" ]`, `value =
   formatMoney(balance)`.
 - Announcements (live region on the screen): "Expense added" / "Income added", "Budget added",
@@ -56,21 +58,29 @@ accounts stores unchanged); new look, month summary tiles, and one shared row co
 `monthTotals(txs)` (app-side, `src/finance/format.ts`) groups by `amount.currency` and sums
 `expense` and `income` with `Money.add`; `net = income − spent`. One `.tiles` row per currency
 (`data-currency`), tiles captioned `spent` / `income` / `net` ("{CUR} net" when more than one
-currency); net shows a leading `+`/`−`. With no transactions: one row of dashes.
+currency); net is rendered as its own sign (`+`/`−`, from `net.minor`) + `formatMoney(|net|)` —
+`formatMoney` already emits `-` for negatives, so the helper never double-signs. With no
+transactions: one row of dashes. `monthHeading(day)` ("October 2026") is app-side with its own
+month-name table; `/format` has no full-month formatter.
 
 ### `oyl-transaction-form` (composer)
 
 - `ui-segment name="direction"` Expense / Income (`data-value`), default expense; the submit
   reads "Add expense" / "Add income".
 - `.row2`: `ui-field name="amount" type="number" label="Amount"` and
-  `ui-select name="currency"` (USD/EUR/GBP) — the currency select is **hidden** (not rendered)
-  while an account is chosen (the account's currency wins).
+  `ui-select name="currency"` (USD/EUR/GBP) — the currency select is **not rendered** while an
+  account is chosen (the account's currency wins). The chosen currency is `@State()` and is
+  passed back as `value` when the select re-mounts, so EUR → account → Cash still posts EUR
+  (vanilla kept the hidden select's value).
 - `ui-select name="account" label="Account"`: "Cash (no account)" (value `''`) + `{name} ·
-  {currency}` per account, mirrored from `accounts.all()` through an `effect`.
+  {currency}` per account, mirrored from `accounts.all()` through an `effect` that also resets
+  `accountId` to `''` when its account is gone (`ui-select` syncs its own value silently and
+  emits nothing, so the composer must not trust a stale id — `oyl-meal-form` does the same).
 - `ui-select name="category" label="Category"`: expense list
   (groceries/dining/transport/utilities/entertainment/other) or income list
-  (salary/freelance/gift/refund/other) by direction; the current value carries over when present
-  in the new list.
+  (salary/freelance/gift/refund/other) by direction; on a direction change the composer
+  re-derives `category = cats.includes(category) ? category : cats[0]` itself (vanilla's rule) —
+  it cannot rely on `ui-select`'s silent sync, which emits no event.
 - `ui-field name="date" type="date"` prefilled today (`now()` ISO date); `ui-field name="note"
   label="Note (optional)"`.
 - Validation first (vanilla's): empty date → "Pick a date"; amount not > 0 → "Amount must be
@@ -91,10 +101,11 @@ currency); net shows a leading `+`/`−`. With no transactions: one row of dashe
 
 ### `oyl-item-row` (shared)
 
-Props `label`, `lines: readonly (string | null | undefined)[]` (blank lines skipped), `value?`
-(mono, right-aligned), `tone?: 'ok' | 'warn' | 'danger'` (value color), `removeLabel?`
-(aria-label for Delete, default "Delete {label}"). Event `remove` (no payload — the host
-knows which row it rendered). The confirm cluster is the shared one (`data-act="delete" |
+Props `itemId` (the domain id), `label`, `lines: readonly (string | null | undefined)[]` (blank
+lines skipped), `value?` (mono, right-aligned), `tone?: 'ok' | 'warn' | 'danger'` (value
+color), `removeLabel?` (aria-label for Delete, default "Delete {label}"). Event `remove:
+EventEmitter<string>` carrying `itemId`, so screens keep one stable handler per list, as every
+other row does. The confirm cluster is the shared one (`data-act="delete" |
 "confirm-yes" | "confirm-no"`, `role=group`, No focused).
 
 ### `oyl-budget-row`
@@ -135,6 +146,11 @@ object each render so the row re-renders on spending changes.
   presence, `ui-field[name=date] input`, `oyl-finance ol.ledger oyl-item-row`,
   `ui-select[name=ledgerFilter] select`, the Budgets/Accounts `details summary`, `oyl-budget-row`,
   `[data-role=totals]` via `deepText`) plus one for the tiles and one for inline delete.
+  `tests-stencil/lib.ts` gains `addExpense`, `addAccount`, `addBudget`; the latter two open
+  their section's `<details>` first (scoped `oyl-finance section.accounts details` /
+  `section.budgets details` — two details exist, so never the bare `oyl-finance details`).
+  The routing spec's placeholder test moves from `/finance` to `/goals` in the same commit
+  that removes `finance` from `NOT_YET`, so the suite never sits red between tasks.
 - Definition of Done per CLAUDE.md: `pnpm stencil test|typecheck|build`, stencil e2e projects
   green; ui-oyl untouched unless a gap appears; vanilla untouched.
 
