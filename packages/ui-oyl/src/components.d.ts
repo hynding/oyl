@@ -59,6 +59,30 @@ export namespace Components {
         "padding": 'md' | 'none';
     }
     /**
+     * A labeled checkbox. Form-associated: a native light-DOM `<form>` sees `value`
+     * (default `"on"`) while checked and nothing while unchecked, like a native checkbox.
+     */
+    interface UiCheckbox {
+        /**
+          * @default false
+         */
+        "checked": boolean;
+        /**
+          * @default false
+         */
+        "disabled": boolean;
+        "label": string;
+        /**
+          * Reflected: attribute-shaped, like a native control's name.
+         */
+        "name": string;
+        /**
+          * The form value submitted while checked.
+          * @default 'on'
+         */
+        "value": string;
+    }
+    /**
      * Label + input + hint/error in one shadow root, with the aria wiring done. Form-associated,
      * so a native light-DOM `<form>` sees its value (`FormData`, submit).
      */
@@ -192,6 +216,10 @@ export namespace Components {
         "value": string;
     }
 }
+export interface UiCheckboxCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLUiCheckboxElement;
+}
 export interface UiFieldCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLUiFieldElement;
@@ -229,6 +257,27 @@ declare global {
     var HTMLUiCardElement: {
         prototype: HTMLUiCardElement;
         new (): HTMLUiCardElement;
+    };
+    interface HTMLUiCheckboxElementEventMap {
+        "uiChange": { checked: boolean };
+    }
+    /**
+     * A labeled checkbox. Form-associated: a native light-DOM `<form>` sees `value`
+     * (default `"on"`) while checked and nothing while unchecked, like a native checkbox.
+     */
+    interface HTMLUiCheckboxElement extends Components.UiCheckbox, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLUiCheckboxElementEventMap>(type: K, listener: (this: HTMLUiCheckboxElement, ev: UiCheckboxCustomEvent<HTMLUiCheckboxElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLUiCheckboxElementEventMap>(type: K, listener: (this: HTMLUiCheckboxElement, ev: UiCheckboxCustomEvent<HTMLUiCheckboxElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLUiCheckboxElement: {
+        prototype: HTMLUiCheckboxElement;
+        new (): HTMLUiCheckboxElement;
     };
     interface HTMLUiFieldElementEventMap {
         "uiInput": { value: string };
@@ -342,6 +391,7 @@ declare global {
     interface HTMLElementTagNameMap {
         "ui-button": HTMLUiButtonElement;
         "ui-card": HTMLUiCardElement;
+        "ui-checkbox": HTMLUiCheckboxElement;
         "ui-field": HTMLUiFieldElement;
         "ui-icon": HTMLUiIconElement;
         "ui-nav": HTMLUiNavElement;
@@ -400,6 +450,38 @@ declare namespace LocalJSX {
           * @default 'md'
          */
         "padding"?: 'md' | 'none';
+    }
+    /**
+     * A labeled checkbox. Form-associated: a native light-DOM `<form>` sees `value`
+     * (default `"on"`) while checked and nothing while unchecked, like a native checkbox.
+     */
+    interface UiCheckbox {
+        /**
+          * @default false
+         */
+        "checked"?: boolean;
+        /**
+          * @default false
+         */
+        "disabled"?: boolean;
+        /**
+          * The `id` of a `<form>` element to associate this element with.
+         */
+        "form"?: string;
+        "label": string;
+        /**
+          * Reflected: attribute-shaped, like a native control's name.
+         */
+        "name": string;
+        /**
+          * Fires on every toggle with `{ checked }` (composed); the inner input's `change` is stopped.
+         */
+        "onUiChange"?: (event: UiCheckboxCustomEvent<{ checked: boolean }>) => void;
+        /**
+          * The form value submitted while checked.
+          * @default 'on'
+         */
+        "value"?: string;
     }
     /**
      * Label + input + hint/error in one shadow root, with the aria wiring done. Form-associated,
@@ -583,6 +665,13 @@ declare namespace LocalJSX {
         "heading": string;
         "padding": 'md' | 'none';
     }
+    interface UiCheckboxAttributes {
+        "label": string;
+        "name": string;
+        "checked": boolean;
+        "disabled": boolean;
+        "value": string;
+    }
     interface UiFieldAttributes {
         "label": string;
         "name": string;
@@ -626,6 +715,7 @@ declare namespace LocalJSX {
     interface IntrinsicElements {
         "ui-button": Omit<UiButton, keyof UiButtonAttributes> & { [K in keyof UiButton & keyof UiButtonAttributes]?: UiButton[K] } & { [K in keyof UiButton & keyof UiButtonAttributes as `attr:${K}`]?: UiButtonAttributes[K] } & { [K in keyof UiButton & keyof UiButtonAttributes as `prop:${K}`]?: UiButton[K] };
         "ui-card": Omit<UiCard, keyof UiCardAttributes> & { [K in keyof UiCard & keyof UiCardAttributes]?: UiCard[K] } & { [K in keyof UiCard & keyof UiCardAttributes as `attr:${K}`]?: UiCardAttributes[K] } & { [K in keyof UiCard & keyof UiCardAttributes as `prop:${K}`]?: UiCard[K] };
+        "ui-checkbox": Omit<UiCheckbox, keyof UiCheckboxAttributes> & { [K in keyof UiCheckbox & keyof UiCheckboxAttributes]?: UiCheckbox[K] } & { [K in keyof UiCheckbox & keyof UiCheckboxAttributes as `attr:${K}`]?: UiCheckboxAttributes[K] } & { [K in keyof UiCheckbox & keyof UiCheckboxAttributes as `prop:${K}`]?: UiCheckbox[K] } & OneOf<"label", UiCheckbox["label"], UiCheckboxAttributes["label"]> & OneOf<"name", UiCheckbox["name"], UiCheckboxAttributes["name"]>;
         "ui-field": Omit<UiField, keyof UiFieldAttributes> & { [K in keyof UiField & keyof UiFieldAttributes]?: UiField[K] } & { [K in keyof UiField & keyof UiFieldAttributes as `attr:${K}`]?: UiFieldAttributes[K] } & { [K in keyof UiField & keyof UiFieldAttributes as `prop:${K}`]?: UiField[K] } & OneOf<"label", UiField["label"], UiFieldAttributes["label"]> & OneOf<"name", UiField["name"], UiFieldAttributes["name"]>;
         "ui-icon": Omit<UiIcon, keyof UiIconAttributes> & { [K in keyof UiIcon & keyof UiIconAttributes]?: UiIcon[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `attr:${K}`]?: UiIconAttributes[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `prop:${K}`]?: UiIcon[K] } & OneOf<"name", UiIcon["name"], UiIconAttributes["name"]>;
         "ui-nav": Omit<UiNav, keyof UiNavAttributes> & { [K in keyof UiNav & keyof UiNavAttributes]?: UiNav[K] } & { [K in keyof UiNav & keyof UiNavAttributes as `attr:${K}`]?: UiNavAttributes[K] } & { [K in keyof UiNav & keyof UiNavAttributes as `prop:${K}`]?: UiNav[K] };
@@ -649,6 +739,11 @@ declare module "@stencil/core" {
              * the `heading` prop; the `footer` region appears only when the `footer` slot is filled.
              */
             "ui-card": LocalJSX.IntrinsicElements["ui-card"] & JSXBase.HTMLAttributes<HTMLUiCardElement>;
+            /**
+             * A labeled checkbox. Form-associated: a native light-DOM `<form>` sees `value`
+             * (default `"on"`) while checked and nothing while unchecked, like a native checkbox.
+             */
+            "ui-checkbox": LocalJSX.IntrinsicElements["ui-checkbox"] & JSXBase.HTMLAttributes<HTMLUiCheckboxElement>;
             /**
              * Label + input + hint/error in one shadow root, with the aria wiring done. Form-associated,
              * so a native light-DOM `<form>` sees its value (`FormData`, submit).
