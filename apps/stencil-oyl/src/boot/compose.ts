@@ -84,14 +84,15 @@ export async function createApp(win: BootWindow, deps: BootDeps = {}): Promise<A
   /**
    * Drain, then re-pull. `flush()` returns at once when a drain is already running (it only
    * flags a re-pass — see createFlusher), so completion is observed through the outbox size:
-   * wait until it is empty, giving up after `stallMs` without progress (a stuck op waits for
-   * its retry trigger; a dead backend must not hang the caller).
+   * wait until it is empty, giving up after `stallMs` without progress or `maxMs` overall (a
+   * stuck op waits for its retry trigger; a dead backend must not hang the caller).
    */
-  const flushThenRefresh = async (stallMs = 3000) => {
+  const flushThenRefresh = async ({ stallMs = 5000, maxMs = 90_000 } = {}) => {
     await flush().catch(() => {})
+    const started = Date.now()
     let last = outbox.size()
-    let lastChange = Date.now()
-    while (outbox.size() > 0 && Date.now() - lastChange < stallMs) {
+    let lastChange = started
+    while (outbox.size() > 0 && Date.now() - lastChange < stallMs && Date.now() - started < maxMs) {
       await new Promise((r) => setTimeout(r, 50))
       const size = outbox.size()
       if (size !== last) { last = size; lastChange = Date.now() }
@@ -130,7 +131,8 @@ export async function createApp(win: BootWindow, deps: BootDeps = {}): Promise<A
     googleLoginHref.set(unconfigured ? null : { href: `${apiBase}/google/connect?mode=login` })
     // Only hit /google/status when probe() found Google configured — an unconfigured backend
     // 501s that route and the browser logs a console.error for any non-2xx fetch (e2e hygiene).
-    if (hasSession && !unconfigured) return googleStore.loadStatus()
+    // Re-check the session NOW: a logout during the probe would turn this into a 401.
+    if (!!authState.session.get() && !unconfigured) return googleStore.loadStatus()
   })
 
   // Flush the outbox whenever connectivity returns online, then refresh the pending indicator.
