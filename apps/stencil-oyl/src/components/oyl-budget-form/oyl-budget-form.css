@@ -1,0 +1,6 @@
+:host { display: block; container-type: inline-size; }
+form { display: grid; gap: var(--space-3); }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 7rem; gap: var(--space-3); align-items: start; }
+[data-role="error"] { margin: 0; min-block-size: 1.2em; color: var(--color-danger); font-size: var(--step--1); }
+.actions { display: flex; justify-content: flex-end; }
+@container (max-width: 26rem) { .row3 { grid-template-columns: 1fr; } }
