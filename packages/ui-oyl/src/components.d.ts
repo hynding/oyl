@@ -89,6 +89,10 @@ export namespace Components {
     interface UiField {
         "autocomplete"?: string;
         /**
+          * @default false
+         */
+        "disabled": boolean;
+        /**
           * Validation message; sets `aria-invalid` and replaces the hint.
          */
         "error"?: string;
@@ -490,7 +494,7 @@ declare namespace LocalJSX {
     interface UiField {
         "autocomplete"?: string;
         /**
-          * If `true`, the user cannot interact with the element.
+          * @default false
          */
         "disabled"?: boolean;
         /**
@@ -678,6 +682,7 @@ declare namespace LocalJSX {
         "type": FieldType;
         "value": string;
         "required": boolean;
+        "disabled": boolean;
         "autocomplete": string;
         "hint": string;
         "error": string;

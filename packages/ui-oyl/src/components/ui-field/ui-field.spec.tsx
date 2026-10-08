@@ -35,6 +35,12 @@ describe('ui-field', () => {
     expect(el).toHaveAttribute('autocomplete', 'current-password')
   })
 
+  it('passes disabled through and reflects it', async () => {
+    const { root } = await render(<ui-field label="N" name="n" disabled />)
+    expect(input(root).disabled).toBe(true)
+    expect(root).toHaveAttribute('disabled', '')
+  })
+
   it('emits a composed uiInput event with the value and updates value', async () => {
     const { root } = await render(<ui-field label="Name" name="n" />)
     const handler = vi.fn()

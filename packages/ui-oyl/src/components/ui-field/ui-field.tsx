@@ -18,6 +18,7 @@ export class UiField {
   @Prop({ reflect: true }) type: FieldType = 'text'
   @Prop({ mutable: true }) value = ''
   @Prop() required = false
+  @Prop({ reflect: true }) disabled = false
   @Prop() autocomplete?: string
   /** Supporting copy under the input; hidden while `error` is set. */
   @Prop() hint?: string
@@ -66,6 +67,7 @@ export class UiField {
           type={this.type}
           value={this.value}
           required={this.required}
+          disabled={this.disabled}
           autocomplete={this.autocomplete}
           aria-invalid={this.error ? 'true' : undefined}
           aria-describedby={describedBy}
