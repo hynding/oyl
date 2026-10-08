@@ -1,0 +1,57 @@
+:host {
+  display: block;
+  min-block-size: 100dvh;
+}
+.frame {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  min-block-size: 100dvh;
+}
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-block-size: var(--size-control);
+  padding-block: var(--space-2);
+  padding-inline: max(var(--space-4), env(safe-area-inset-left)) max(var(--space-4), env(safe-area-inset-right));
+  background: var(--color-surface);
+  border-block-end: var(--line-1) solid var(--color-border);
+}
+h1 {
+  margin: 0;
+  font-size: var(--step-1);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-inline-start: auto;
+  min-inline-size: 0;
+}
+.nav-dock {
+  padding-inline: var(--space-2);
+  background: var(--color-surface);
+  border-block-end: var(--line-1) solid var(--color-border);
+}
+.page {
+  inline-size: 100%;
+  max-inline-size: 52rem;
+  margin-inline: auto;
+  padding: clamp(var(--space-4), 4vw, var(--space-8)) var(--space-4) var(--space-8);
+}
+/* Mobile: the nav docks as a fixed bottom tab bar — keep the page clear of it. */
+:host([docked]) .nav-dock {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+:host([docked]) .page {
+  padding-block-end: calc(5rem + env(safe-area-inset-bottom));
+}
+::slotted([slot="main"]) {
+  display: block;
+}

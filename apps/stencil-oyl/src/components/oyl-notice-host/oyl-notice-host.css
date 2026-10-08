@@ -1,0 +1,9 @@
+:host {
+  position: fixed;
+  inset-block-start: var(--space-2);
+  inset-inline: var(--space-2);
+  z-index: 50;
+  display: block;
+  pointer-events: none;
+}
+ui-notice { pointer-events: auto; max-inline-size: 48rem; margin-inline: auto; }

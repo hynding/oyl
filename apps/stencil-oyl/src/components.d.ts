@@ -10,7 +10,20 @@ import { Routes } from "./components/oyl-router/oyl-router";
 export { Signal } from "@oyl/all-of-oyl/client";
 export { Routes } from "./components/oyl-router/oyl-router";
 export namespace Components {
+    /**
+     * Toolbar account menu: Profile link always; Log out when signed in, Sign in when not.
+     */
+    interface OylAccountMenu {
+        "session": Signal<object | null>;
+    }
     interface OylApp {
+    }
+    interface OylNav {
+        /**
+          * @default 'top'
+         */
+        "orientation": 'top' | 'bottom';
+        "routeSignal": Signal<string>;
     }
     interface OylNotFound {
         /**
@@ -29,6 +42,12 @@ export namespace Components {
         "name": string;
     }
     /**
+     * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
+     */
+    interface OylNoticeHost {
+        "notice": Signal<string | null>;
+    }
+    /**
      * Switches one screen element on the route signal. Screens are created by the `routes`
      * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
      * `oyl-status h2` reach them). Unknown routes render <oyl-not-found> with the name as text.
@@ -40,13 +59,58 @@ export namespace Components {
          */
         "routes": Routes;
     }
+    /**
+     * The app frame: header (brand + toolbar), nav row, page. No `container-type` on :host —
+     * layout containment would trap the nav's position:fixed bottom bar on mobile.
+     * `docked` (set by <oyl-app> from a ≤640px media query) reserves page padding for it.
+     */
+    interface OylShell {
+        /**
+          * @default false
+         */
+        "docked": boolean;
+    }
+}
+export interface OylAccountMenuCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylAccountMenuElement;
+}
+export interface OylNoticeHostCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylNoticeHostElement;
 }
 declare global {
+    interface HTMLOylAccountMenuElementEventMap {
+        "logout": void;
+    }
+    /**
+     * Toolbar account menu: Profile link always; Log out when signed in, Sign in when not.
+     */
+    interface HTMLOylAccountMenuElement extends Components.OylAccountMenu, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylAccountMenuElementEventMap>(type: K, listener: (this: HTMLOylAccountMenuElement, ev: OylAccountMenuCustomEvent<HTMLOylAccountMenuElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylAccountMenuElementEventMap>(type: K, listener: (this: HTMLOylAccountMenuElement, ev: OylAccountMenuCustomEvent<HTMLOylAccountMenuElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylAccountMenuElement: {
+        prototype: HTMLOylAccountMenuElement;
+        new (): HTMLOylAccountMenuElement;
+    };
     interface HTMLOylAppElement extends Components.OylApp, HTMLStencilElement {
     }
     var HTMLOylAppElement: {
         prototype: HTMLOylAppElement;
         new (): HTMLOylAppElement;
+    };
+    interface HTMLOylNavElement extends Components.OylNav, HTMLStencilElement {
+    }
+    var HTMLOylNavElement: {
+        prototype: HTMLOylNavElement;
+        new (): HTMLOylNavElement;
     };
     interface HTMLOylNotFoundElement extends Components.OylNotFound, HTMLStencilElement {
     }
@@ -63,6 +127,26 @@ declare global {
         prototype: HTMLOylNotYetElement;
         new (): HTMLOylNotYetElement;
     };
+    interface HTMLOylNoticeHostElementEventMap {
+        "dismiss": void;
+    }
+    /**
+     * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
+     */
+    interface HTMLOylNoticeHostElement extends Components.OylNoticeHost, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylNoticeHostElementEventMap>(type: K, listener: (this: HTMLOylNoticeHostElement, ev: OylNoticeHostCustomEvent<HTMLOylNoticeHostElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylNoticeHostElementEventMap>(type: K, listener: (this: HTMLOylNoticeHostElement, ev: OylNoticeHostCustomEvent<HTMLOylNoticeHostElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylNoticeHostElement: {
+        prototype: HTMLOylNoticeHostElement;
+        new (): HTMLOylNoticeHostElement;
+    };
     /**
      * Switches one screen element on the route signal. Screens are created by the `routes`
      * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
@@ -74,17 +158,49 @@ declare global {
         prototype: HTMLOylRouterElement;
         new (): HTMLOylRouterElement;
     };
+    /**
+     * The app frame: header (brand + toolbar), nav row, page. No `container-type` on :host —
+     * layout containment would trap the nav's position:fixed bottom bar on mobile.
+     * `docked` (set by <oyl-app> from a ≤640px media query) reserves page padding for it.
+     */
+    interface HTMLOylShellElement extends Components.OylShell, HTMLStencilElement {
+    }
+    var HTMLOylShellElement: {
+        prototype: HTMLOylShellElement;
+        new (): HTMLOylShellElement;
+    };
     interface HTMLElementTagNameMap {
+        "oyl-account-menu": HTMLOylAccountMenuElement;
         "oyl-app": HTMLOylAppElement;
+        "oyl-nav": HTMLOylNavElement;
         "oyl-not-found": HTMLOylNotFoundElement;
         "oyl-not-yet": HTMLOylNotYetElement;
+        "oyl-notice-host": HTMLOylNoticeHostElement;
         "oyl-router": HTMLOylRouterElement;
+        "oyl-shell": HTMLOylShellElement;
     }
 }
 declare namespace LocalJSX {
     type OneOf<K extends string, PropT, AttrT = PropT> = { [P in K]: PropT } & { [P in `attr:${K}`]?: never } | { [P in `attr:${K}`]: AttrT } & { [P in K]?: never };
 
+    /**
+     * Toolbar account menu: Profile link always; Log out when signed in, Sign in when not.
+     */
+    interface OylAccountMenu {
+        /**
+          * The user asked to log out.
+         */
+        "onLogout"?: (event: OylAccountMenuCustomEvent<void>) => void;
+        "session": Signal<object | null>;
+    }
     interface OylApp {
+    }
+    interface OylNav {
+        /**
+          * @default 'top'
+         */
+        "orientation"?: 'top' | 'bottom';
+        "routeSignal": Signal<string>;
     }
     interface OylNotFound {
         /**
@@ -103,6 +219,16 @@ declare namespace LocalJSX {
         "name": string;
     }
     /**
+     * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
+     */
+    interface OylNoticeHost {
+        "notice": Signal<string | null>;
+        /**
+          * The user dismissed the notice; the host clears the signal.
+         */
+        "onDismiss"?: (event: OylNoticeHostCustomEvent<void>) => void;
+    }
+    /**
      * Switches one screen element on the route signal. Screens are created by the `routes`
      * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
      * `oyl-status h2` reach them). Unknown routes render <oyl-not-found> with the name as text.
@@ -114,7 +240,21 @@ declare namespace LocalJSX {
          */
         "routes"?: Routes;
     }
+    /**
+     * The app frame: header (brand + toolbar), nav row, page. No `container-type` on :host —
+     * layout containment would trap the nav's position:fixed bottom bar on mobile.
+     * `docked` (set by <oyl-app> from a ≤640px media query) reserves page padding for it.
+     */
+    interface OylShell {
+        /**
+          * @default false
+         */
+        "docked"?: boolean;
+    }
 
+    interface OylNavAttributes {
+        "orientation": 'top' | 'bottom';
+    }
     interface OylNotFoundAttributes {
         "route": string;
     }
@@ -122,30 +262,52 @@ declare namespace LocalJSX {
         "name": string;
         "classicUrl": string;
     }
+    interface OylShellAttributes {
+        "docked": boolean;
+    }
 
     interface IntrinsicElements {
+        "oyl-account-menu": OylAccountMenu;
         "oyl-app": OylApp;
+        "oyl-nav": Omit<OylNav, keyof OylNavAttributes> & { [K in keyof OylNav & keyof OylNavAttributes]?: OylNav[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `attr:${K}`]?: OylNavAttributes[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `prop:${K}`]?: OylNav[K] };
         "oyl-not-found": Omit<OylNotFound, keyof OylNotFoundAttributes> & { [K in keyof OylNotFound & keyof OylNotFoundAttributes]?: OylNotFound[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `attr:${K}`]?: OylNotFoundAttributes[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `prop:${K}`]?: OylNotFound[K] };
         "oyl-not-yet": Omit<OylNotYet, keyof OylNotYetAttributes> & { [K in keyof OylNotYet & keyof OylNotYetAttributes]?: OylNotYet[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `attr:${K}`]?: OylNotYetAttributes[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `prop:${K}`]?: OylNotYet[K] } & OneOf<"name", OylNotYet["name"], OylNotYetAttributes["name"]>;
+        "oyl-notice-host": OylNoticeHost;
         "oyl-router": OylRouter;
+        "oyl-shell": Omit<OylShell, keyof OylShellAttributes> & { [K in keyof OylShell & keyof OylShellAttributes]?: OylShell[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `attr:${K}`]?: OylShellAttributes[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `prop:${K}`]?: OylShell[K] };
     }
 }
 export { LocalJSX as JSX };
 declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
+            /**
+             * Toolbar account menu: Profile link always; Log out when signed in, Sign in when not.
+             */
+            "oyl-account-menu": LocalJSX.IntrinsicElements["oyl-account-menu"] & JSXBase.HTMLAttributes<HTMLOylAccountMenuElement>;
             "oyl-app": LocalJSX.IntrinsicElements["oyl-app"] & JSXBase.HTMLAttributes<HTMLOylAppElement>;
+            "oyl-nav": LocalJSX.IntrinsicElements["oyl-nav"] & JSXBase.HTMLAttributes<HTMLOylNavElement>;
             "oyl-not-found": LocalJSX.IntrinsicElements["oyl-not-found"] & JSXBase.HTMLAttributes<HTMLOylNotFoundElement>;
             /**
              * Placeholder for a screen the redesign has not reached yet (sub-projects 3…n replace these).
              */
             "oyl-not-yet": LocalJSX.IntrinsicElements["oyl-not-yet"] & JSXBase.HTMLAttributes<HTMLOylNotYetElement>;
             /**
+             * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
+             */
+            "oyl-notice-host": LocalJSX.IntrinsicElements["oyl-notice-host"] & JSXBase.HTMLAttributes<HTMLOylNoticeHostElement>;
+            /**
              * Switches one screen element on the route signal. Screens are created by the `routes`
              * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
              * `oyl-status h2` reach them). Unknown routes render <oyl-not-found> with the name as text.
              */
             "oyl-router": LocalJSX.IntrinsicElements["oyl-router"] & JSXBase.HTMLAttributes<HTMLOylRouterElement>;
+            /**
+             * The app frame: header (brand + toolbar), nav row, page. No `container-type` on :host —
+             * layout containment would trap the nav's position:fixed bottom bar on mobile.
+             * `docked` (set by <oyl-app> from a ≤640px media query) reserves page padding for it.
+             */
+            "oyl-shell": LocalJSX.IntrinsicElements["oyl-shell"] & JSXBase.HTMLAttributes<HTMLOylShellElement>;
         }
     }
 }

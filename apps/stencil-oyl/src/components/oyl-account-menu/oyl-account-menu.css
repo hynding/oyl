@@ -1,0 +1,4 @@
+:host { display: inline-block; }
+nav { display: inline-flex; align-items: center; gap: var(--space-3); }
+a { color: var(--color-muted); text-decoration: none; font-weight: 500; min-block-size: var(--size-control); display: inline-flex; align-items: center; }
+a:hover { color: var(--color-text); }
