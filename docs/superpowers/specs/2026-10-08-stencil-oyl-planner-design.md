@@ -1,7 +1,7 @@
 # `apps/stencil-oyl` Planner screen — Design
 
 **Date:** 2026-10-08
-**Status:** draft (branch `feat/stencil-oyl-planner`, stacked on `feat/stencil-oyl-journal`)
+**Status:** implemented on branch feat/stencil-oyl-planner (stacked on feat/stencil-oyl-journal; plan: `docs/superpowers/plans/2026-10-08-stencil-oyl-planner.md`)
 **Program:** Stencil front-end — sub-project 4 (second redesigned screen; see
 `2026-10-06-extract-client-layer-design.md` §Program context). Depends on 3 (Journal: `ui-segment`,
 `ui-textarea`, the day-navigation pattern, the inline-confirm row convention).
@@ -152,3 +152,11 @@ and `@oyl/ui-oyl` gains `ui-checkbox`.
 | `ui-checkbox` form value under happy-dom | The setup shim records `setFormValue`; the spec asserts `__formValue` (`"on"` / `null`). |
 | Week dots cost 7 store reads per render | `agendaFor`/`entriesOn` are in-memory filters over small arrays; the predicate is called inside the screen's render, after the single effect. |
 | `select[name=repeatUnit]` stays native | Same as the Journal's metric select; a `ui-select` primitive is deferred until a third consumer appears. |
+
+## Amendments during implementation
+
+1. **`oyl-day-nav` takes `announcement` as a prop** (rendered into its live region) instead of an `announce()` method — reactive and testable; `focusHeading()` is the one `@Method()`.
+2. **Stable prev/next handlers:** a `ui-*` host keeps the click listener from its first render (Stencil never re-binds it), so the nav's prev/next read `this.day` at click time rather than closing over the render's day.
+3. **Row event is `completePlan`** (`complete` collides with a native DOM event name; Stencil warns).
+4. **Rows are keyed by `id:status`:** the store completes/cancels plans in place, so the `plan` prop keeps its identity and the row would not re-render otherwise.
+5. **`ui-field` gains `disabled`** (reflected) for the repeat interval.
