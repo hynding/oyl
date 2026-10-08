@@ -61,6 +61,39 @@ export async function logAdhoc(page: Page, note: string, calories: string, prote
   await form.locator('ui-button[type="submit"] button').click()
 }
 
+/** Open a collapsed `<details>` (scoped — several exist per screen) if it is not already open. */
+async function openDetails(details: Locator): Promise<void> {
+  if (!(await details.evaluate((d) => (d as HTMLDetailsElement).open))) await details.locator('summary').click()
+}
+
+/** Log an expense through the stencil finance composer (cash unless `accountLabel` is given). */
+export async function addExpense(page: Page, amount: string, category = 'groceries', accountLabel?: string): Promise<void> {
+  const form = page.locator('oyl-transaction-form')
+  await form.locator('ui-segment [data-value="expense"]').click()
+  if (accountLabel !== undefined) await form.locator('ui-select[name="account"] select').selectOption({ label: accountLabel })
+  await form.locator('ui-field[name="amount"] input').fill(amount)
+  await form.locator('ui-select[name="category"] select').selectOption(category)
+  await form.locator('ui-button[type="submit"] button').click()
+}
+
+/** Add an account through the Accounts section's disclosure form. */
+export async function addAccount(page: Page, name: string, currency = 'USD'): Promise<void> {
+  await openDetails(page.locator('oyl-finance section.accounts details'))
+  const form = page.locator('oyl-account-form')
+  await form.locator('ui-field[name="name"] input').fill(name)
+  await form.locator('ui-select[name="currency"] select').selectOption(currency)
+  await form.locator('ui-button[type="submit"] button').click()
+}
+
+/** Add a budget through the Budgets section's disclosure form. */
+export async function addBudget(page: Page, category: string, limit: string): Promise<void> {
+  await openDetails(page.locator('oyl-finance section.budgets details'))
+  const form = page.locator('oyl-budget-form')
+  await form.locator('ui-select[name="category"] select').selectOption(category)
+  await form.locator('ui-field[name="limit"] input').fill(limit)
+  await form.locator('ui-button[type="submit"] button').click()
+}
+
 /** Click a ui-button by its data-act (the inner control, as a user would). */
 export function act(scope: Locator | Page, name: string): Locator {
   return scope.locator(`ui-button[data-act="${name}"] button`)
