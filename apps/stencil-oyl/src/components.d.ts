@@ -14,6 +14,8 @@ import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
 import { ConsumableProductsReader, ConsumablesReader, MealWriter } from "./components/oyl-meal-form/oyl-meal-form";
+import { ConsumablesStore, NutritionReader } from "./components/oyl-nutrition/oyl-nutrition";
+import { ConsumableProductsReader as ConsumableProductsReader1 } from "./components/oyl-meal-form/oyl-meal-form.js";
 import { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
 import { PlannerReader } from "./components/oyl-planner/oyl-planner";
 import { Routes } from "./components/oyl-router/oyl-router";
@@ -29,6 +31,8 @@ export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
 export { ConsumableProductsReader, ConsumablesReader, MealWriter } from "./components/oyl-meal-form/oyl-meal-form";
+export { ConsumablesStore, NutritionReader } from "./components/oyl-nutrition/oyl-nutrition";
+export { ConsumableProductsReader as ConsumableProductsReader1 } from "./components/oyl-meal-form/oyl-meal-form.js";
 export { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
 export { PlannerReader } from "./components/oyl-planner/oyl-planner";
 export { Routes } from "./components/oyl-router/oyl-router";
@@ -185,6 +189,20 @@ export namespace Components {
      */
     interface OylNoticeHost {
         "notice": Signal<string | null>;
+    }
+    /**
+     * The day-scoped nutrition screen: `oyl-day-nav` (dots on days with meals), five totals
+     * tiles, the meal composer, the day's meals newest first, and the shared consumables
+     * catalog with a collapsed add form. Same lists and totals as vanilla's screen.
+     */
+    interface OylNutrition {
+        "consumableProducts"?: ConsumableProductsReader1;
+        "consumables": ConsumablesStore;
+        "store": NutritionReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
     }
     /**
      * The planner composer: a task (title, due, optional repeat) or an appointment (title,
@@ -594,6 +612,17 @@ declare global {
         prototype: HTMLOylNoticeHostElement;
         new (): HTMLOylNoticeHostElement;
     };
+    /**
+     * The day-scoped nutrition screen: `oyl-day-nav` (dots on days with meals), five totals
+     * tiles, the meal composer, the day's meals newest first, and the shared consumables
+     * catalog with a collapsed add form. Same lists and totals as vanilla's screen.
+     */
+    interface HTMLOylNutritionElement extends Components.OylNutrition, HTMLStencilElement {
+    }
+    var HTMLOylNutritionElement: {
+        prototype: HTMLOylNutritionElement;
+        new (): HTMLOylNutritionElement;
+    };
     interface HTMLOylPlanComposerElementEventMap {
         "added": void;
     }
@@ -734,6 +763,7 @@ declare global {
         "oyl-not-found": HTMLOylNotFoundElement;
         "oyl-not-yet": HTMLOylNotYetElement;
         "oyl-notice-host": HTMLOylNoticeHostElement;
+        "oyl-nutrition": HTMLOylNutritionElement;
         "oyl-plan-composer": HTMLOylPlanComposerElement;
         "oyl-plan-row": HTMLOylPlanRowElement;
         "oyl-planner": HTMLOylPlannerElement;
@@ -931,6 +961,20 @@ declare namespace LocalJSX {
         "onDismiss"?: (event: OylNoticeHostCustomEvent<void>) => void;
     }
     /**
+     * The day-scoped nutrition screen: `oyl-day-nav` (dots on days with meals), five totals
+     * tiles, the meal composer, the day's meals newest first, and the shared consumables
+     * catalog with a collapsed add form. Same lists and totals as vanilla's screen.
+     */
+    interface OylNutrition {
+        "consumableProducts"?: ConsumableProductsReader1;
+        "consumables": ConsumablesStore;
+        "store": NutritionReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
+    }
+    /**
      * The planner composer: a task (title, due, optional repeat) or an appointment (title,
      * start, optional minutes). Due/start default to the shown day (start at 09:00) and
      * re-sync on day change and after a submit. Native <form> over form-associated
@@ -1063,6 +1107,9 @@ declare namespace LocalJSX {
         "name": string;
         "classicUrl": string;
     }
+    interface OylNutritionAttributes {
+        "tz": string;
+    }
     interface OylPlanComposerAttributes {
         "tz": string;
     }
@@ -1089,6 +1136,7 @@ declare namespace LocalJSX {
         "oyl-not-found": Omit<OylNotFound, keyof OylNotFoundAttributes> & { [K in keyof OylNotFound & keyof OylNotFoundAttributes]?: OylNotFound[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `attr:${K}`]?: OylNotFoundAttributes[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `prop:${K}`]?: OylNotFound[K] };
         "oyl-not-yet": Omit<OylNotYet, keyof OylNotYetAttributes> & { [K in keyof OylNotYet & keyof OylNotYetAttributes]?: OylNotYet[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `attr:${K}`]?: OylNotYetAttributes[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `prop:${K}`]?: OylNotYet[K] } & OneOf<"name", OylNotYet["name"], OylNotYetAttributes["name"]>;
         "oyl-notice-host": OylNoticeHost;
+        "oyl-nutrition": Omit<OylNutrition, keyof OylNutritionAttributes> & { [K in keyof OylNutrition & keyof OylNutritionAttributes]?: OylNutrition[K] } & { [K in keyof OylNutrition & keyof OylNutritionAttributes as `attr:${K}`]?: OylNutritionAttributes[K] } & { [K in keyof OylNutrition & keyof OylNutritionAttributes as `prop:${K}`]?: OylNutrition[K] };
         "oyl-plan-composer": Omit<OylPlanComposer, keyof OylPlanComposerAttributes> & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes]?: OylPlanComposer[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `attr:${K}`]?: OylPlanComposerAttributes[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `prop:${K}`]?: OylPlanComposer[K] };
         "oyl-plan-row": OylPlanRow;
         "oyl-planner": Omit<OylPlanner, keyof OylPlannerAttributes> & { [K in keyof OylPlanner & keyof OylPlannerAttributes]?: OylPlanner[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `attr:${K}`]?: OylPlannerAttributes[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `prop:${K}`]?: OylPlanner[K] };
@@ -1173,6 +1221,12 @@ declare module "@stencil/core" {
              * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
              */
             "oyl-notice-host": LocalJSX.IntrinsicElements["oyl-notice-host"] & JSXBase.HTMLAttributes<HTMLOylNoticeHostElement>;
+            /**
+             * The day-scoped nutrition screen: `oyl-day-nav` (dots on days with meals), five totals
+             * tiles, the meal composer, the day's meals newest first, and the shared consumables
+             * catalog with a collapsed add form. Same lists and totals as vanilla's screen.
+             */
+            "oyl-nutrition": LocalJSX.IntrinsicElements["oyl-nutrition"] & JSXBase.HTMLAttributes<HTMLOylNutritionElement>;
             /**
              * The planner composer: a task (title, due, optional repeat) or an appointment (title,
              * start, optional minutes). Due/start default to the shown day (start at 09:00) and
