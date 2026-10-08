@@ -211,3 +211,17 @@ Two Vitest projects, both under `@stencil/vitest`'s `defineVitestConfig`:
 - `pnpm ui dev` shows every component in every theme and both color schemes on the showcase.
 - All verification tests green; CLAUDE.md gains a `@oyl/ui-oyl` package row, the `pnpm ui`
   shortcuts, the port, and the `ui-`/`oyl-` prefix rule.
+
+## Amendments during implementation
+
+1. **`ui-field` events are `uiInput` / `uiChange`** (`detail: { value }`), not `input` /
+   `change`: Stencil warns on custom events that shadow native DOM event names, and the
+   inner input's native events are stopped at the shadow boundary so consumers see exactly
+   one value event. Stencil consumers bind `onUiInput`.
+2. **Test DOM shim for `ElementInternals`.** happy-dom 20 has no `attachInternals`;
+   `vitest-setup.ts` installs a minimal shim (`form`, `setFormValue`, `setValidity`) that
+   records the last form value on the host, which the `ui-field` spec asserts instead of a
+   `FormData` round-trip. Browsers use the real API.
+3. **The dev lazy loader is `dist/ui-oyl/ui-oyl.esm.js`** (Stencil also emits an empty
+   `index.esm.js`); `tsconfig.json` must not set `noEmit`, or Stencil's transpile step
+   finds no components.

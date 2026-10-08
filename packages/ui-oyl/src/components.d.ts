@@ -6,8 +6,10 @@
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { ButtonVariant } from "./components/ui-button/ui-button";
+import { FieldType } from "./components/ui-field/ui-field";
 import { IconName } from "./components/ui-icon/icons.js";
 export { ButtonVariant } from "./components/ui-button/ui-button";
+export { FieldType } from "./components/ui-field/ui-field";
 export { IconName } from "./components/ui-icon/icons.js";
 export namespace Components {
     /**
@@ -36,6 +38,35 @@ export namespace Components {
         "variant": ButtonVariant;
     }
     /**
+     * Label + input + hint/error in one shadow root, with the aria wiring done. Form-associated,
+     * so a native light-DOM `<form>` sees its value (`FormData`, submit).
+     */
+    interface UiField {
+        "autocomplete"?: string;
+        /**
+          * Validation message; sets `aria-invalid` and replaces the hint.
+         */
+        "error"?: string;
+        /**
+          * Supporting copy under the input; hidden while `error` is set.
+         */
+        "hint"?: string;
+        "label": string;
+        "name": string;
+        /**
+          * @default false
+         */
+        "required": boolean;
+        /**
+          * @default 'text'
+         */
+        "type": FieldType;
+        /**
+          * @default ''
+         */
+        "value": string;
+    }
+    /**
      * Inline SVG icon from the library's small glyph map. Decorative unless `label` is set.
      */
     interface UiIcon {
@@ -54,6 +85,10 @@ export namespace Components {
         "size": 's' | 'm';
     }
 }
+export interface UiFieldCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLUiFieldElement;
+}
 declare global {
     /**
      * The library's one clickable control: a button, or a link when `href` is set.
@@ -66,6 +101,28 @@ declare global {
         prototype: HTMLUiButtonElement;
         new (): HTMLUiButtonElement;
     };
+    interface HTMLUiFieldElementEventMap {
+        "uiInput": { value: string };
+        "uiChange": { value: string };
+    }
+    /**
+     * Label + input + hint/error in one shadow root, with the aria wiring done. Form-associated,
+     * so a native light-DOM `<form>` sees its value (`FormData`, submit).
+     */
+    interface HTMLUiFieldElement extends Components.UiField, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLUiFieldElementEventMap>(type: K, listener: (this: HTMLUiFieldElement, ev: UiFieldCustomEvent<HTMLUiFieldElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLUiFieldElementEventMap>(type: K, listener: (this: HTMLUiFieldElement, ev: UiFieldCustomEvent<HTMLUiFieldElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLUiFieldElement: {
+        prototype: HTMLUiFieldElement;
+        new (): HTMLUiFieldElement;
+    };
     /**
      * Inline SVG icon from the library's small glyph map. Decorative unless `label` is set.
      */
@@ -77,6 +134,7 @@ declare global {
     };
     interface HTMLElementTagNameMap {
         "ui-button": HTMLUiButtonElement;
+        "ui-field": HTMLUiFieldElement;
         "ui-icon": HTMLUiIconElement;
     }
 }
@@ -117,6 +175,51 @@ declare namespace LocalJSX {
         "variant"?: ButtonVariant;
     }
     /**
+     * Label + input + hint/error in one shadow root, with the aria wiring done. Form-associated,
+     * so a native light-DOM `<form>` sees its value (`FormData`, submit).
+     */
+    interface UiField {
+        "autocomplete"?: string;
+        /**
+          * If `true`, the user cannot interact with the element.
+         */
+        "disabled"?: boolean;
+        /**
+          * Validation message; sets `aria-invalid` and replaces the hint.
+         */
+        "error"?: string;
+        /**
+          * The `id` of a `<form>` element to associate this element with.
+         */
+        "form"?: string;
+        /**
+          * Supporting copy under the input; hidden while `error` is set.
+         */
+        "hint"?: string;
+        "label": string;
+        "name": string;
+        /**
+          * Fires when the input commits (blur/enter) with `{ value }`.
+         */
+        "onUiChange"?: (event: UiFieldCustomEvent<{ value: string }>) => void;
+        /**
+          * Fires on every keystroke with `{ value }` (composed). The inner input's native `input`/`change` events are stopped at the shadow boundary, so this is the only value event consumers see.
+         */
+        "onUiInput"?: (event: UiFieldCustomEvent<{ value: string }>) => void;
+        /**
+          * @default false
+         */
+        "required"?: boolean;
+        /**
+          * @default 'text'
+         */
+        "type"?: FieldType;
+        /**
+          * @default ''
+         */
+        "value"?: string;
+    }
+    /**
      * Inline SVG icon from the library's small glyph map. Decorative unless `label` is set.
      */
     interface UiIcon {
@@ -141,6 +244,16 @@ declare namespace LocalJSX {
         "disabled": boolean;
         "href": string;
     }
+    interface UiFieldAttributes {
+        "label": string;
+        "name": string;
+        "type": FieldType;
+        "value": string;
+        "required": boolean;
+        "autocomplete": string;
+        "hint": string;
+        "error": string;
+    }
     interface UiIconAttributes {
         "name": IconName;
         "size": 's' | 'm';
@@ -149,6 +262,7 @@ declare namespace LocalJSX {
 
     interface IntrinsicElements {
         "ui-button": Omit<UiButton, keyof UiButtonAttributes> & { [K in keyof UiButton & keyof UiButtonAttributes]?: UiButton[K] } & { [K in keyof UiButton & keyof UiButtonAttributes as `attr:${K}`]?: UiButtonAttributes[K] } & { [K in keyof UiButton & keyof UiButtonAttributes as `prop:${K}`]?: UiButton[K] };
+        "ui-field": Omit<UiField, keyof UiFieldAttributes> & { [K in keyof UiField & keyof UiFieldAttributes]?: UiField[K] } & { [K in keyof UiField & keyof UiFieldAttributes as `attr:${K}`]?: UiFieldAttributes[K] } & { [K in keyof UiField & keyof UiFieldAttributes as `prop:${K}`]?: UiField[K] } & OneOf<"label", UiField["label"], UiFieldAttributes["label"]> & OneOf<"name", UiField["name"], UiFieldAttributes["name"]>;
         "ui-icon": Omit<UiIcon, keyof UiIconAttributes> & { [K in keyof UiIcon & keyof UiIconAttributes]?: UiIcon[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `attr:${K}`]?: UiIconAttributes[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `prop:${K}`]?: UiIcon[K] } & OneOf<"name", UiIcon["name"], UiIconAttributes["name"]>;
     }
 }
@@ -162,6 +276,11 @@ declare module "@stencil/core" {
              * so a native `<form>` works across the shadow boundary.
              */
             "ui-button": LocalJSX.IntrinsicElements["ui-button"] & JSXBase.HTMLAttributes<HTMLUiButtonElement>;
+            /**
+             * Label + input + hint/error in one shadow root, with the aria wiring done. Form-associated,
+             * so a native light-DOM `<form>` sees its value (`FormData`, submit).
+             */
+            "ui-field": LocalJSX.IntrinsicElements["ui-field"] & JSXBase.HTMLAttributes<HTMLUiFieldElement>;
             /**
              * Inline SVG icon from the library's small glyph map. Decorative unless `label` is set.
              */
