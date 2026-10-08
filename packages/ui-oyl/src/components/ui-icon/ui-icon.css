@@ -1,3 +1,17 @@
+@import "../../global/base.css";
+
 :host {
   display: inline-flex;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  color: inherit;
+  flex: none;
+}
+:host([size="s"]) {
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+svg {
+  inline-size: 100%;
+  block-size: 100%;
 }

@@ -5,12 +5,32 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
+import { IconName } from "./components/ui-icon/icons.js";
+export { IconName } from "./components/ui-icon/icons.js";
 export namespace Components {
+    /**
+     * Inline SVG icon from the library's small glyph map. Decorative unless `label` is set.
+     */
     interface UiIcon {
-        "name": string;
+        /**
+          * Accessible name; when set the icon is announced, otherwise it is hidden from AT.
+         */
+        "label"?: string;
+        /**
+          * Glyph name (see `ICON_NAMES`). Unknown names render nothing.
+         */
+        "name": IconName;
+        /**
+          * `s` = 16px, `m` = 20px.
+          * @default 'm'
+         */
+        "size": 's' | 'm';
     }
 }
 declare global {
+    /**
+     * Inline SVG icon from the library's small glyph map. Decorative unless `label` is set.
+     */
     interface HTMLUiIconElement extends Components.UiIcon, HTMLStencilElement {
     }
     var HTMLUiIconElement: {
@@ -24,12 +44,29 @@ declare global {
 declare namespace LocalJSX {
     type OneOf<K extends string, PropT, AttrT = PropT> = { [P in K]: PropT } & { [P in `attr:${K}`]?: never } | { [P in `attr:${K}`]: AttrT } & { [P in K]?: never };
 
+    /**
+     * Inline SVG icon from the library's small glyph map. Decorative unless `label` is set.
+     */
     interface UiIcon {
-        "name": string;
+        /**
+          * Accessible name; when set the icon is announced, otherwise it is hidden from AT.
+         */
+        "label"?: string;
+        /**
+          * Glyph name (see `ICON_NAMES`). Unknown names render nothing.
+         */
+        "name": IconName;
+        /**
+          * `s` = 16px, `m` = 20px.
+          * @default 'm'
+         */
+        "size"?: 's' | 'm';
     }
 
     interface UiIconAttributes {
-        "name": string;
+        "name": IconName;
+        "size": 's' | 'm';
+        "label": string;
     }
 
     interface IntrinsicElements {
@@ -40,6 +77,9 @@ export { LocalJSX as JSX };
 declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
+            /**
+             * Inline SVG icon from the library's small glyph map. Decorative unless `label` is set.
+             */
             "ui-icon": LocalJSX.IntrinsicElements["ui-icon"] & JSXBase.HTMLAttributes<HTMLUiIconElement>;
         }
     }
