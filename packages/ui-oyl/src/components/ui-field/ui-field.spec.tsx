@@ -15,6 +15,7 @@ describe('ui-field', () => {
     const el = input(root)
     expect(el).toHaveAttribute('type', 'text')
     expect(el).toHaveAttribute('name', 'email')
+    expect(root).toHaveAttribute('name', 'email')
     expect(el.id).not.toBe('')
     expect(label(root)).toHaveAttribute('for', el.id)
     expect(label(root)).toHaveTextContent('Email')

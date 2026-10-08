@@ -71,6 +71,9 @@ export namespace Components {
          */
         "hint"?: string;
         "label": string;
+        /**
+          * Reflected: a field's name is attribute-shaped (selectors, autofill).
+         */
         "name": string;
         /**
           * @default false
@@ -316,6 +319,9 @@ declare namespace LocalJSX {
          */
         "hint"?: string;
         "label": string;
+        /**
+          * Reflected: a field's name is attribute-shaped (selectors, autofill).
+         */
         "name": string;
         /**
           * Fires when the input commits (blur/enter) with `{ value }`.
