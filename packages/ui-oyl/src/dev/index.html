@@ -4,16 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ui-oyl showcase</title>
-    <link rel="stylesheet" href="/build/ui-oyl.css" />
-    <link rel="stylesheet" href="/themes/classic.css" />
-    <link rel="stylesheet" href="/themes/forest.css" />
-    <link rel="stylesheet" href="/themes/sunrise.css" />
-    <link rel="stylesheet" href="/themes/ocean.css" />
-    <link rel="stylesheet" href="/themes/lavender.css" />
-    <link rel="stylesheet" href="/themes/ember.css" />
-    <link rel="stylesheet" href="/themes/ink.css" />
-    <link rel="stylesheet" href="/themes/paper.css" />
-    <script type="module" src="/build/ui-oyl.esm.js"></script>
+    <link rel="stylesheet" href="build/ui-oyl.css" />
+    <link rel="stylesheet" href="themes/classic.css" />
+    <link rel="stylesheet" href="themes/forest.css" />
+    <link rel="stylesheet" href="themes/sunrise.css" />
+    <link rel="stylesheet" href="themes/ocean.css" />
+    <link rel="stylesheet" href="themes/lavender.css" />
+    <link rel="stylesheet" href="themes/ember.css" />
+    <link rel="stylesheet" href="themes/ink.css" />
+    <link rel="stylesheet" href="themes/paper.css" />
+    <script type="module" src="build/ui-oyl.esm.js"></script>
     <style>
       :root { color-scheme: light dark; }
       body { margin: 0; font-family: var(--font-sans); font-size: var(--step-0); background: var(--color-bg); color: var(--color-text); }
@@ -49,7 +49,67 @@
         </label>
       </header>
 
-      <section id="components"></section>
+      <section>
+        <h2>ui-button</h2>
+        <div class="row">
+          <ui-button variant="primary">Add entry</ui-button>
+          <ui-button>Secondary</ui-button>
+          <ui-button variant="ghost">Ghost</ui-button>
+          <ui-button variant="danger">Delete</ui-button>
+          <ui-button disabled>Disabled</ui-button>
+          <ui-button href="/journal">Link</ui-button>
+          <ui-button variant="primary"><ui-icon name="plus"></ui-icon>With icon</ui-button>
+        </div>
+      </section>
+
+      <section>
+        <h2>ui-field</h2>
+        <form class="stack" style="max-inline-size: 24rem" onsubmit="event.preventDefault(); this.querySelector('output').value = JSON.stringify(Object.fromEntries(new FormData(this)))">
+          <ui-field label="Email" name="email" type="email" required autocomplete="email" hint="We never share it"></ui-field>
+          <ui-field label="Password" name="password" type="password" error="Enter at least 8 characters"></ui-field>
+          <ui-field label="Weight (kg)" name="weight" type="number" value="78.4"></ui-field>
+          <ui-field label="Date" name="date" type="date" value="2026-10-07"></ui-field>
+          <div class="row"><ui-button type="submit" variant="primary">Submit form</ui-button><output style="font-family: var(--font-mono); font-size: var(--step--1)"></output></div>
+        </form>
+      </section>
+
+      <section>
+        <h2>ui-card</h2>
+        <div class="stack">
+          <ui-card heading="Connection">
+            Backend <code>http://localhost:1340/api</code> · mode Remote
+            <ui-button slot="footer">Apply &amp; reload</ui-button>
+          </ui-card>
+          <ui-card padding="none">
+            <strong slot="header">Custom header</strong>
+            <div style="padding: var(--space-3) var(--space-4); border-block-end: var(--line-1) solid var(--color-border)">Row one</div>
+            <div style="padding: var(--space-3) var(--space-4)">Row two</div>
+          </ui-card>
+        </div>
+      </section>
+
+      <section>
+        <h2>ui-notice</h2>
+        <div class="stack">
+          <ui-notice>Changes sync when you're back online.</ui-notice>
+          <ui-notice tone="ok" dismissible>Backup downloaded</ui-notice>
+          <ui-notice tone="warn" dismissible>Offline — 3 writes queued</ui-notice>
+          <ui-notice tone="danger">Couldn't reach the backend. Retry</ui-notice>
+        </div>
+      </section>
+
+      <section>
+        <h2>ui-nav</h2>
+        <div class="stack">
+          <ui-nav id="nav-top" current="journal"></ui-nav>
+          <div class="phone"><ui-nav id="nav-bottom" orientation="bottom" current="planner"></ui-nav></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>ui-icon</h2>
+        <div class="row" id="icons"></div>
+      </section>
 
       <section>
         <h2>Color tokens</h2>
@@ -64,8 +124,32 @@
 
     <script type="module">
       const html = document.documentElement
-      document.getElementById('theme').addEventListener('change', (e) => (html.dataset.theme = e.target.value))
-      document.getElementById('scheme').addEventListener('change', (e) => (html.style.colorScheme = e.target.value))
+      const themeSel = document.getElementById('theme')
+      const schemeSel = document.getElementById('scheme')
+      const params = new URLSearchParams(location.search)
+      // ?theme=ink&scheme=dark preselects a look (handy for sharing a screenshot).
+      if (params.get('theme')) themeSel.value = params.get('theme')
+      if (params.get('scheme')) schemeSel.value = params.get('scheme')
+      const apply = () => { html.dataset.theme = themeSel.value; html.style.colorScheme = schemeSel.value }
+      themeSel.addEventListener('change', apply)
+      schemeSel.addEventListener('change', apply)
+      apply()
+
+      const items = [
+        { name: 'journal', href: '/journal', label: 'Journal', icon: 'journal' },
+        { name: 'planner', href: '/planner', label: 'Planner', icon: 'planner' },
+        { name: 'nutrition', href: '/nutrition', label: 'Nutrition', icon: 'nutrition' },
+        { name: 'finance', href: '/finance', label: 'Finance', icon: 'finance' },
+        { name: 'status', href: '/status', label: 'Status', icon: 'status' },
+      ]
+      document.getElementById('nav-top').items = items
+      document.getElementById('nav-bottom').items = items
+      document.addEventListener('click', (e) => { const a = e.composedPath().find((n) => n.tagName === 'A'); if (a && a.getAttribute('href')?.startsWith('/')) e.preventDefault() })
+      document.querySelectorAll('ui-notice[dismissible]').forEach((n) => n.addEventListener('dismiss', () => n.remove()))
+
+      const { ICON_NAMES } = await import(new URL("build/index.esm.js", document.baseURI).href).catch(() => ({ ICON_NAMES: null }))
+      const icons = ICON_NAMES ?? ['journal','planner','nutrition','finance','goals','vault','insights','status','profile','info','check','warning','danger','close','plus','chevron-left','chevron-right','menu']
+      document.getElementById('icons').innerHTML = icons.map((n) => `<span title="${n}" style="display:inline-flex;flex-direction:column;align-items:center;gap:4px;font-size:var(--step--1);font-family:var(--font-mono)"><ui-icon name="${n}"></ui-icon>${n}</span>`).join('')
 
       const colors = ['bg','surface','surface-2','text','muted','border','accent','accent-hover','on-accent','danger','warn','ok']
       document.getElementById('swatches').innerHTML = colors
