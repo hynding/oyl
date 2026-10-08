@@ -12,12 +12,15 @@ import '@oyl/all-of-oyl/client'
 import {
   defineCustomElementUiButton, defineCustomElementUiCard, defineCustomElementUiField,
   defineCustomElementUiIcon, defineCustomElementUiNav, defineCustomElementUiNotice,
+  defineCustomElementUiSegment, defineCustomElementUiTextarea,
 } from '@oyl/ui-oyl'
 
 export default function () {
   defineCustomElementUiIcon()
   defineCustomElementUiButton()
   defineCustomElementUiField()
+  defineCustomElementUiTextarea()
+  defineCustomElementUiSegment()
   defineCustomElementUiCard()
   defineCustomElementUiNotice()
   defineCustomElementUiNav()

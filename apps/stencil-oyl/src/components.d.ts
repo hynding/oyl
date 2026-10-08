@@ -8,6 +8,7 @@ import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { Signal } from "@oyl/all-of-oyl/client";
 import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
+import { Entry, Id } from "@oyl/all-of-oyl";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
 import { Routes } from "./components/oyl-router/oyl-router";
 import { Diagnostics } from "./components/oyl-status/oyl-status";
@@ -16,6 +17,7 @@ import { ThemeState } from "./boot/theme.js";
 export { Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
+export { Entry, Id } from "@oyl/all-of-oyl";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
 export { Routes } from "./components/oyl-router/oyl-router";
 export { Diagnostics } from "./components/oyl-status/oyl-status";
@@ -55,6 +57,14 @@ export namespace Components {
           * @default 'login'
          */
         "mode": 'login' | 'register';
+    }
+    /**
+     * One journal entry: time | body | actions. Delete is a two-step inline confirm
+     * (Delete → "Delete?" Yes/No) on native buttons — a confirm cluster, like the theme
+     * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
+     */
+    interface OylEntryRow {
+        "entry": Entry;
     }
     interface OylLogin {
         "auth": AuthApi1;
@@ -155,6 +165,10 @@ export interface OylAuthFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylAuthFormElement;
 }
+export interface OylEntryRowCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylEntryRowElement;
+}
 export interface OylLoginCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylLoginElement;
@@ -220,6 +234,28 @@ declare global {
     var HTMLOylAuthFormElement: {
         prototype: HTMLOylAuthFormElement;
         new (): HTMLOylAuthFormElement;
+    };
+    interface HTMLOylEntryRowElementEventMap {
+        "remove": Id;
+    }
+    /**
+     * One journal entry: time | body | actions. Delete is a two-step inline confirm
+     * (Delete → "Delete?" Yes/No) on native buttons — a confirm cluster, like the theme
+     * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
+     */
+    interface HTMLOylEntryRowElement extends Components.OylEntryRow, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylEntryRowElementEventMap>(type: K, listener: (this: HTMLOylEntryRowElement, ev: OylEntryRowCustomEvent<HTMLOylEntryRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylEntryRowElementEventMap>(type: K, listener: (this: HTMLOylEntryRowElement, ev: OylEntryRowCustomEvent<HTMLOylEntryRowElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylEntryRowElement: {
+        prototype: HTMLOylEntryRowElement;
+        new (): HTMLOylEntryRowElement;
     };
     interface HTMLOylLoginElementEventMap {
         "authenticated": void;
@@ -348,6 +384,7 @@ declare global {
         "oyl-account-menu": HTMLOylAccountMenuElement;
         "oyl-app": HTMLOylAppElement;
         "oyl-auth-form": HTMLOylAuthFormElement;
+        "oyl-entry-row": HTMLOylEntryRowElement;
         "oyl-login": HTMLOylLoginElement;
         "oyl-nav": HTMLOylNavElement;
         "oyl-not-found": HTMLOylNotFoundElement;
@@ -401,6 +438,18 @@ declare namespace LocalJSX {
          */
         "mode"?: 'login' | 'register';
         "onSuccess"?: (event: OylAuthFormCustomEvent<void>) => void;
+    }
+    /**
+     * One journal entry: time | body | actions. Delete is a two-step inline confirm
+     * (Delete → "Delete?" Yes/No) on native buttons — a confirm cluster, like the theme
+     * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
+     */
+    interface OylEntryRow {
+        "entry": Entry;
+        /**
+          * The user confirmed deletion of this entry.
+         */
+        "onRemove"?: (event: OylEntryRowCustomEvent<Id>) => void;
     }
     interface OylLogin {
         "auth": AuthApi1;
@@ -526,6 +575,7 @@ declare namespace LocalJSX {
         "oyl-account-menu": OylAccountMenu;
         "oyl-app": OylApp;
         "oyl-auth-form": Omit<OylAuthForm, keyof OylAuthFormAttributes> & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes]?: OylAuthForm[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `attr:${K}`]?: OylAuthFormAttributes[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `prop:${K}`]?: OylAuthForm[K] };
+        "oyl-entry-row": OylEntryRow;
         "oyl-login": OylLogin;
         "oyl-nav": Omit<OylNav, keyof OylNavAttributes> & { [K in keyof OylNav & keyof OylNavAttributes]?: OylNav[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `attr:${K}`]?: OylNavAttributes[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `prop:${K}`]?: OylNav[K] };
         "oyl-not-found": Omit<OylNotFound, keyof OylNotFoundAttributes> & { [K in keyof OylNotFound & keyof OylNotFoundAttributes]?: OylNotFound[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `attr:${K}`]?: OylNotFoundAttributes[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `prop:${K}`]?: OylNotFound[K] };
@@ -558,6 +608,12 @@ declare module "@stencil/core" {
              * after the auth call resolves; a rejection renders inline as a polite live region.
              */
             "oyl-auth-form": LocalJSX.IntrinsicElements["oyl-auth-form"] & JSXBase.HTMLAttributes<HTMLOylAuthFormElement>;
+            /**
+             * One journal entry: time | body | actions. Delete is a two-step inline confirm
+             * (Delete → "Delete?" Yes/No) on native buttons — a confirm cluster, like the theme
+             * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
+             */
+            "oyl-entry-row": LocalJSX.IntrinsicElements["oyl-entry-row"] & JSXBase.HTMLAttributes<HTMLOylEntryRowElement>;
             "oyl-login": LocalJSX.IntrinsicElements["oyl-login"] & JSXBase.HTMLAttributes<HTMLOylLoginElement>;
             "oyl-nav": LocalJSX.IntrinsicElements["oyl-nav"] & JSXBase.HTMLAttributes<HTMLOylNavElement>;
             "oyl-not-found": LocalJSX.IntrinsicElements["oyl-not-found"] & JSXBase.HTMLAttributes<HTMLOylNotFoundElement>;
