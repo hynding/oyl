@@ -18,7 +18,7 @@ export class OylPlanRow {
   /** Set by the Overdue section: shows "Due … · Nd ago" relative to this day. */
   @Prop() overdueAsOf?: DayKey
 
-  @Event() complete!: EventEmitter<Id>
+  @Event() completePlan!: EventEmitter<Id>
   @Event() cancelPlan!: EventEmitter<Id>
   @Event() remove!: EventEmitter<Id>
 
@@ -29,7 +29,7 @@ export class OylPlanRow {
   }
 
   private onCheck = () => {
-    if (this.plan.status === 'open') this.complete.emit(this.plan.id)
+    if (this.plan.status === 'open') this.completePlan.emit(this.plan.id)
   }
 
   private confirmYes = () => {

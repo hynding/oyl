@@ -13,6 +13,7 @@ import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
 import { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
+import { PlannerReader } from "./components/oyl-planner/oyl-planner";
 import { Routes } from "./components/oyl-router/oyl-router";
 import { Diagnostics } from "./components/oyl-status/oyl-status";
 import { StatusActions } from "./boot/data-tools.js";
@@ -25,6 +26,7 @@ export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
 export { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
+export { PlannerReader } from "./components/oyl-planner/oyl-planner";
 export { Routes } from "./components/oyl-router/oyl-router";
 export { Diagnostics } from "./components/oyl-status/oyl-status";
 export { StatusActions } from "./boot/data-tools.js";
@@ -178,6 +180,19 @@ export namespace Components {
          */
         "overdueAsOf"?: DayKey;
         "plan": Plan;
+    }
+    /**
+     * The day-scoped planner: `oyl-day-nav`, the composer, an Overdue section (today only)
+     * and the day's agenda (appointments by time, tasks, then canceled plans) — the same
+     * lists and callbacks as vanilla's planner. ArrowLeft/Right move a day when focus is
+     * not in a field or radio.
+     */
+    interface OylPlanner {
+        "store": PlannerReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
     }
     interface OylRegister {
         "auth": AuthApi1;
@@ -492,7 +507,7 @@ declare global {
         new (): HTMLOylPlanComposerElement;
     };
     interface HTMLOylPlanRowElementEventMap {
-        "complete": Id;
+        "completePlan": Id;
         "cancelPlan": Id;
         "remove": Id;
     }
@@ -514,6 +529,18 @@ declare global {
     var HTMLOylPlanRowElement: {
         prototype: HTMLOylPlanRowElement;
         new (): HTMLOylPlanRowElement;
+    };
+    /**
+     * The day-scoped planner: `oyl-day-nav`, the composer, an Overdue section (today only)
+     * and the day's agenda (appointments by time, tasks, then canceled plans) — the same
+     * lists and callbacks as vanilla's planner. ArrowLeft/Right move a day when focus is
+     * not in a field or radio.
+     */
+    interface HTMLOylPlannerElement extends Components.OylPlanner, HTMLStencilElement {
+    }
+    var HTMLOylPlannerElement: {
+        prototype: HTMLOylPlannerElement;
+        new (): HTMLOylPlannerElement;
     };
     interface HTMLOylRegisterElementEventMap {
         "authenticated": void;
@@ -595,6 +622,7 @@ declare global {
         "oyl-notice-host": HTMLOylNoticeHostElement;
         "oyl-plan-composer": HTMLOylPlanComposerElement;
         "oyl-plan-row": HTMLOylPlanRowElement;
+        "oyl-planner": HTMLOylPlannerElement;
         "oyl-register": HTMLOylRegisterElement;
         "oyl-router": HTMLOylRouterElement;
         "oyl-shell": HTMLOylShellElement;
@@ -774,13 +802,26 @@ declare namespace LocalJSX {
      */
     interface OylPlanRow {
         "onCancelPlan"?: (event: OylPlanRowCustomEvent<Id>) => void;
-        "onComplete"?: (event: OylPlanRowCustomEvent<Id>) => void;
+        "onCompletePlan"?: (event: OylPlanRowCustomEvent<Id>) => void;
         "onRemove"?: (event: OylPlanRowCustomEvent<Id>) => void;
         /**
           * Set by the Overdue section: shows "Due … · Nd ago" relative to this day.
          */
         "overdueAsOf"?: DayKey;
         "plan": Plan;
+    }
+    /**
+     * The day-scoped planner: `oyl-day-nav`, the composer, an Overdue section (today only)
+     * and the day's agenda (appointments by time, tasks, then canceled plans) — the same
+     * lists and callbacks as vanilla's planner. ArrowLeft/Right move a day when focus is
+     * not in a field or radio.
+     */
+    interface OylPlanner {
+        "store": PlannerReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
     }
     interface OylRegister {
         "auth": AuthApi1;
@@ -866,6 +907,9 @@ declare namespace LocalJSX {
     interface OylPlanComposerAttributes {
         "tz": string;
     }
+    interface OylPlannerAttributes {
+        "tz": string;
+    }
     interface OylShellAttributes {
         "docked": boolean;
     }
@@ -885,6 +929,7 @@ declare namespace LocalJSX {
         "oyl-notice-host": OylNoticeHost;
         "oyl-plan-composer": Omit<OylPlanComposer, keyof OylPlanComposerAttributes> & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes]?: OylPlanComposer[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `attr:${K}`]?: OylPlanComposerAttributes[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `prop:${K}`]?: OylPlanComposer[K] };
         "oyl-plan-row": OylPlanRow;
+        "oyl-planner": Omit<OylPlanner, keyof OylPlannerAttributes> & { [K in keyof OylPlanner & keyof OylPlannerAttributes]?: OylPlanner[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `attr:${K}`]?: OylPlannerAttributes[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `prop:${K}`]?: OylPlanner[K] };
         "oyl-register": OylRegister;
         "oyl-router": OylRouter;
         "oyl-shell": Omit<OylShell, keyof OylShellAttributes> & { [K in keyof OylShell & keyof OylShellAttributes]?: OylShell[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `attr:${K}`]?: OylShellAttributes[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `prop:${K}`]?: OylShell[K] };
@@ -962,6 +1007,13 @@ declare module "@stencil/core" {
              * entry row's), so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
              */
             "oyl-plan-row": LocalJSX.IntrinsicElements["oyl-plan-row"] & JSXBase.HTMLAttributes<HTMLOylPlanRowElement>;
+            /**
+             * The day-scoped planner: `oyl-day-nav`, the composer, an Overdue section (today only)
+             * and the day's agenda (appointments by time, tasks, then canceled plans) — the same
+             * lists and callbacks as vanilla's planner. ArrowLeft/Right move a day when focus is
+             * not in a field or radio.
+             */
+            "oyl-planner": LocalJSX.IntrinsicElements["oyl-planner"] & JSXBase.HTMLAttributes<HTMLOylPlannerElement>;
             "oyl-register": LocalJSX.IntrinsicElements["oyl-register"] & JSXBase.HTMLAttributes<HTMLOylRegisterElement>;
             /**
              * Switches one screen element on the route signal. Screens are created by the `routes`

@@ -25,7 +25,7 @@ describe('oyl-plan-row', () => {
   it('the check emits complete with the id', async () => {
     const plan = new Task({ title: 'Do it', due: day })
     const { root } = await render(<oyl-plan-row plan={plan} />)
-    const complete = listen(root, 'complete')
+    const complete = listen(root, 'completePlan')
     click(q(root, 'button.check')!)
     expect(complete).toHaveBeenCalledWith(plan.id)
   })
