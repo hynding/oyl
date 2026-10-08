@@ -8,8 +8,9 @@ import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { Signal } from "@oyl/all-of-oyl/client";
 import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
+import { Budget, Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+import { BudgetStatus } from "./components/oyl-budget-row/oyl-budget-row";
 import { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
-import { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 import { ValueTone } from "./components/oyl-item-row/oyl-item-row";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
@@ -26,8 +27,9 @@ import { ThemeState } from "./boot/theme.js";
 export { Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
+export { Budget, Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+export { BudgetStatus } from "./components/oyl-budget-row/oyl-budget-row";
 export { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
-export { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 export { ValueTone } from "./components/oyl-item-row/oyl-item-row";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
@@ -75,6 +77,15 @@ export namespace Components {
           * @default 'login'
          */
         "mode": 'login' | 'register';
+    }
+    /**
+     * One budget: name (or category), a progress bar of the month's spending against the limit
+     * (warn tone when over), the "spent of limit · left/over by" line, and the inline Delete.
+     * `status` is a fresh object per screen render, which is what re-renders the row.
+     */
+    interface OylBudgetRow {
+        "budget": Budget;
+        "status": BudgetStatus;
     }
     /**
      * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
@@ -337,6 +348,10 @@ export interface OylAuthFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylAuthFormElement;
 }
+export interface OylBudgetRowCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylBudgetRowElement;
+}
 export interface OylConsumableFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylConsumableFormElement;
@@ -438,6 +453,28 @@ declare global {
     var HTMLOylAuthFormElement: {
         prototype: HTMLOylAuthFormElement;
         new (): HTMLOylAuthFormElement;
+    };
+    interface HTMLOylBudgetRowElementEventMap {
+        "remove": Id;
+    }
+    /**
+     * One budget: name (or category), a progress bar of the month's spending against the limit
+     * (warn tone when over), the "spent of limit · left/over by" line, and the inline Delete.
+     * `status` is a fresh object per screen render, which is what re-renders the row.
+     */
+    interface HTMLOylBudgetRowElement extends Components.OylBudgetRow, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylBudgetRowElementEventMap>(type: K, listener: (this: HTMLOylBudgetRowElement, ev: OylBudgetRowCustomEvent<HTMLOylBudgetRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylBudgetRowElementEventMap>(type: K, listener: (this: HTMLOylBudgetRowElement, ev: OylBudgetRowCustomEvent<HTMLOylBudgetRowElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylBudgetRowElement: {
+        prototype: HTMLOylBudgetRowElement;
+        new (): HTMLOylBudgetRowElement;
     };
     interface HTMLOylConsumableFormElementEventMap {
         "added": void;
@@ -803,6 +840,7 @@ declare global {
         "oyl-account-menu": HTMLOylAccountMenuElement;
         "oyl-app": HTMLOylAppElement;
         "oyl-auth-form": HTMLOylAuthFormElement;
+        "oyl-budget-row": HTMLOylBudgetRowElement;
         "oyl-consumable-form": HTMLOylConsumableFormElement;
         "oyl-day-nav": HTMLOylDayNavElement;
         "oyl-entry-row": HTMLOylEntryRowElement;
@@ -868,6 +906,19 @@ declare namespace LocalJSX {
          */
         "mode"?: 'login' | 'register';
         "onSuccess"?: (event: OylAuthFormCustomEvent<void>) => void;
+    }
+    /**
+     * One budget: name (or category), a progress bar of the month's spending against the limit
+     * (warn tone when over), the "spent of limit · left/over by" line, and the inline Delete.
+     * `status` is a fresh object per screen render, which is what re-renders the row.
+     */
+    interface OylBudgetRow {
+        "budget": Budget;
+        /**
+          * The user confirmed deletion of this budget.
+         */
+        "onRemove"?: (event: OylBudgetRowCustomEvent<Id>) => void;
+        "status": BudgetStatus;
     }
     /**
      * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
@@ -1211,6 +1262,7 @@ declare namespace LocalJSX {
         "oyl-account-menu": OylAccountMenu;
         "oyl-app": OylApp;
         "oyl-auth-form": Omit<OylAuthForm, keyof OylAuthFormAttributes> & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes]?: OylAuthForm[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `attr:${K}`]?: OylAuthFormAttributes[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `prop:${K}`]?: OylAuthForm[K] };
+        "oyl-budget-row": OylBudgetRow;
         "oyl-consumable-form": OylConsumableForm;
         "oyl-day-nav": Omit<OylDayNav, keyof OylDayNavAttributes> & { [K in keyof OylDayNav & keyof OylDayNavAttributes]?: OylDayNav[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `attr:${K}`]?: OylDayNavAttributes[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `prop:${K}`]?: OylDayNav[K] };
         "oyl-entry-row": OylEntryRow;
@@ -1255,6 +1307,12 @@ declare module "@stencil/core" {
              * after the auth call resolves; a rejection renders inline as a polite live region.
              */
             "oyl-auth-form": LocalJSX.IntrinsicElements["oyl-auth-form"] & JSXBase.HTMLAttributes<HTMLOylAuthFormElement>;
+            /**
+             * One budget: name (or category), a progress bar of the month's spending against the limit
+             * (warn tone when over), the "spent of limit · left/over by" line, and the inline Delete.
+             * `status` is a fresh object per screen render, which is what re-renders the row.
+             */
+            "oyl-budget-row": LocalJSX.IntrinsicElements["oyl-budget-row"] & JSXBase.HTMLAttributes<HTMLOylBudgetRowElement>;
             /**
              * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
              */
