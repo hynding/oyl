@@ -1,7 +1,7 @@
 # `packages/ui-oyl` — Design tokens, themes and v1 primitives — Design
 
 **Date:** 2026-10-07
-**Status:** draft for review
+**Status:** reviewed; plan: `docs/superpowers/plans/2026-10-07-ui-oyl-library.md`
 **Program:** Stencil front-end (`apps/stencil-oyl`) — sub-project 1 (see
 `2026-10-06-extract-client-layer-design.md` §Program context)
 
@@ -92,10 +92,11 @@ Added for the redesign:
 
 The 12 names vanilla uses today, unchanged: `--color-bg`, `--color-surface`,
 `--color-surface-2`, `--color-text`, `--color-muted`, `--color-border`, `--color-accent`,
-`--color-accent-hover`, `--color-on-accent`, `--color-danger`, `--color-warn`,
-plus one addition: `--color-ok` (success; sync status and notices need it). Values are
-**copied from `apps/vanilla-oyl/styles/themes/<name>.css`** (each file adds `--color-ok` in its
-own hue family), so the 8 themes look identical in both apps.
+`--color-accent-hover`, `--color-on-accent`, `--color-danger`, `--color-warn`, `--color-ok`.
+The files are **copied byte-for-byte from `apps/vanilla-oyl/styles/themes/<name>.css`**, so
+the 8 themes look identical in both apps. They keep their `@layer themes { … }` wrapper, and
+three of them (ink, sunrise, paper) also override structural tokens (radius, font) by design;
+`tokens.css` therefore opens with `@layer tokens, themes;` so those overrides win.
 
 The theme set (classic, forest, sunrise, ocean, lavender, ember, ink, paper) is kept as-is:
 the files already exist, they are `light-dark()` so System/Light/Dark comes free from
@@ -161,16 +162,25 @@ Port 3443 sits with the repo's other 3xxx dev ports and clears 1341/1342/8042 (e
 
 ## Verification
 
+Two Vitest projects, both under `@stencil/vitest`'s `defineVitestConfig`:
+
+- **`spec`** (`src/**/*.spec.tsx`, `environment: 'stencil'` with `domEnvironment:
+  'happy-dom'`, which the repo already uses): component tests. `@stencil/vitest` tests a
+  *built* output, so `pnpm ui test` is its `stencil-test` CLI (dev build, then Vitest); the
+  setup file imports `dist/ui-oyl/ui-oyl.esm.js`.
+- **`unit`** (`src/**/*.unit.ts`, `environment: 'node'`): file-level checks that need no
+  build.
+
 - **TDD per component:** the `*.spec.tsx` (render + prop/attribute reflection + event +
   a11y attributes) is written first; the component makes it pass.
-- **Theme contract test:** a spec parses every `src/global/themes/*.css`, asserts each
-  declares exactly the 13 color names and nothing else, and that the set of theme names equals
-  vanilla's `THEMES` registry (read from `apps/vanilla-oyl/src/theme/theme-manager.js`) so
-  the two apps cannot drift while side by side.
-- **Token-usage test:** a spec greps every component CSS for `--color-*` and `--size-*`,
-  `--space-*`, `--radius-*` names and fails on any name outside the contract (catches typos
-  and private tokens).
-- **Domain-agnostic gate:** a spec fails if any file under `src/` imports `@oyl/all-of-oyl`.
+- **Theme contract (unit):** every `src/global/themes/*.css` declares exactly the 12 color
+  names (structural overrides allowed); the theme-name set equals vanilla's `THEMES` registry
+  (`apps/vanilla-oyl/src/theme/theme-manager.js`); and each file is byte-equal to its vanilla
+  twin. The parity half is deleted at cutover, when vanilla's copies go.
+- **Token usage (unit):** every component CSS may reference only `--color-*`, `--space-*`,
+  `--radius-*`, `--size-*`, `--line-*`, `--dur-*`, `--ease-*`, `--font-*`, `--step-*`,
+  `--focus-ring` names from the contract (catches typos and private tokens).
+- **Domain-agnostic gate (unit):** no file under `src/` imports `@oyl/all-of-oyl`.
 - **Definition of Done:** `pnpm ui test`, `pnpm ui typecheck`, `pnpm ui build` green; root
   `pnpm test`/`pnpm typecheck` still green (the new package joins the `./packages/*`
   aggregates). No e2e in this sub-project — the library has no app surface; sub-project 2's
@@ -190,7 +200,8 @@ Port 3443 sits with the repo's other 3xxx dev ports and clears 1341/1342/8042 (e
 |---|---|
 | `@stencil/vitest` is young; a gap forces jsdom hacks | Specs stay to render/props/events; no DOM-API-heavy tests. If it blocks, fall back to Stencil's own `newSpecPage` runner for the library only — the repo's Vitest rule applies to everything else. |
 | `formAssociated` + `ElementInternals` in `ui-field`/`ui-button` | Supported in every target browser (Chromium, Safari ≥16.4, Firefox ≥98); tests assert `FormData` round-trip. |
-| Theme files duplicated across two apps | Copied, not referenced, on purpose (the library must stand alone); the contract test pins the names; values are frozen until cutover retires vanilla's copies. |
+| Theme files duplicated across two apps | Copied, not referenced, on purpose (the library must stand alone); the byte-parity unit test fails on any drift until cutover retires vanilla's copies. |
+| `ElementInternals` under happy-dom | If `attachInternals` is missing or incomplete in the test DOM, the `FormData` round-trip spec asserts through a spied `internals.setFormValue` instead; the behavior itself is unchanged. |
 | Scope creep into screen components | The six-component list is the spec; anything else is a new spec. |
 
 ## Success criteria
