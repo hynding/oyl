@@ -231,3 +231,17 @@ placeholder.
 | Form-associated primitives inside Stencil pages under happy-dom | Same shim as ui-oyl; e2e proves the real browser path. |
 | Untracked `signal.get()` in `render()` | Rule + a spec per component that flips a signal and expects a re-render. |
 | e2e runtime grows (4 projects) | Shell specs are few and fast; `--project` filters stay available; the recorded `--workers=4` rule holds. |
+
+## Amendments during planning
+
+1. **`@oyl/all-of-oyl` is bundled from its `dist/` browser build, not TS source.** Stencil's
+   Rollup only transpiles the app's own `src/`; the package's `exports` point at `.ts` files
+   (for tsc/vitest), which Rollup cannot parse. A ~10-line `rollupPlugins.before` resolver in
+   `stencil.config.ts` maps `@oyl/all-of-oyl` and its subpaths (`/client`, `/format`) to
+   `packages/all-of-oyl/dist/<subpath>/index.js`. Consequences: `pnpm all-of build` must
+   precede a stencil-oyl build (the `stencil` scripts chain it, as `vanilla build:lib` does),
+   and `dist/` remains the gate for DOM-safety. Types still resolve from source for `tsc`.
+   Proven by a throwaway probe: both packages bundle, the signal→`@State` bridge re-renders,
+   and the page runs clean in headless Chromium.
+2. **`@oyl/ui-oyl` is consumed as built custom elements** (`dist/components`), so
+   `pnpm ui build` is also a prerequisite; Stencil tree-shakes only the elements used.
