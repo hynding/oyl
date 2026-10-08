@@ -1,7 +1,7 @@
 # `apps/stencil-oyl` Journal screen — Design
 
 **Date:** 2026-10-08
-**Status:** draft for review
+**Status:** reviewed; plan: `docs/superpowers/plans/2026-10-08-stencil-oyl-journal.md`
 **Program:** Stencil front-end — sub-project 3 (first redesigned screen; see
 `2026-10-06-extract-client-layer-design.md` §Program context). Depends on 2 (shell, PR #8).
 
@@ -64,7 +64,9 @@ direction, and two reusable primitives added to `@oyl/ui-oyl` for every composer
 Grid `time | body | actions`: mono clock time; body = kind label (Note/Measurement), text or
 `metric = value unit` (mono), optional italic annotation, tag chips; actions = inline
 Delete → "Delete?" Yes/No (`data-act="delete"`, `confirm-yes`, `confirm-no`, group role, No
-focused on open). Container query collapses to two columns under 26rem. `measurementUnit`
+focused on open). The three are native `<button>`s (a confirm cluster, like the theme
+picker's radios — the one sanctioned exception to primitives-first), so the shared e2e
+`inlineConfirm` helper's `[data-act]` clicks work unchanged. Container query collapses to two columns under 26rem. `measurementUnit`
 moves to the app (`src/journal/format.ts`) with its test.
 
 ## New `@oyl/ui-oyl` primitives
