@@ -1,0 +1,43 @@
+{
+  "name": "@oyl/ui-oyl",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Domain-agnostic Stencil component library, design tokens and themes for OYL",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.js",
+  "types": "dist/types/index.d.ts",
+  "collection": "dist/collection/collection-manifest.json",
+  "collection:main": "dist/collection/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/components/index.d.ts",
+      "import": "./dist/components/index.js"
+    },
+    "./loader": {
+      "types": "./loader/index.d.ts",
+      "import": "./loader/index.js"
+    },
+    "./tokens.css": "./dist/ui-oyl/ui-oyl.css",
+    "./themes/*": "./dist/themes/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "loader"
+  ],
+  "scripts": {
+    "dev": "stencil build --dev --watch --serve",
+    "build": "stencil build --docs && node scripts/copy-themes.mjs",
+    "test": "stencil-test",
+    "test:watch": "stencil-test --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@stencil/core": "^4.45.2",
+    "@stencil/vitest": "^1.15.1",
+    "happy-dom": "^20",
+    "typescript": "^5",
+    "vitest": "^4.1.10"
+  }
+}

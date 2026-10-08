@@ -6,6 +6,7 @@
   "scripts": {
     "all-of": "pnpm --filter @oyl/all-of-oyl",
     "strapi-app": "pnpm --filter @oyl/strapi-oyl-app",
+    "ui": "pnpm --filter @oyl/ui-oyl",
     "vanilla": "pnpm --filter @oyl/vanilla-oyl",
     "e2e": "pnpm --filter @oyl/e2e-oyl e2e",
     "ocari": "pnpm --filter @oyl/ocari-oyl ocari",
@@ -45,9 +46,18 @@
       "core-js-pure"
     ],
     "supportedArchitectures": {
-      "os": ["current", "linux"],
-      "cpu": ["current", "arm64"],
-      "libc": ["current", "musl"]
+      "os": [
+        "current",
+        "linux"
+      ],
+      "cpu": [
+        "current",
+        "arm64"
+      ],
+      "libc": [
+        "current",
+        "musl"
+      ]
     }
   }
 }
