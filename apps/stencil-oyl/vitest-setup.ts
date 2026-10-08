@@ -1,5 +1,4 @@
 import { beforeAll } from 'vitest'
-import { defineCustomElements } from '@oyl/ui-oyl/loader'
 
 /**
  * happy-dom (v20) has no `attachInternals`; ui-oyl's form-associated primitives need the
@@ -22,7 +21,7 @@ function shimElementInternals() {
 
 beforeAll(async () => {
   shimElementInternals()
-  defineCustomElements()
+  // The bundle's global script registers the ui-* elements it uses.
   await import('./www/build/oyl.esm.js')
 })
 

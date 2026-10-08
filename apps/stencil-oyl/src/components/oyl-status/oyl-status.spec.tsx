@@ -4,7 +4,8 @@ import { core } from '../../../vitest-setup.js'
 const diagnostics = { schema: { status: 'fresh', version: 3 }, counts: { notes: 1, goals: 0 }, theme: { theme: 'classic', mode: 'system' }, build: 'abc', storage: null }
 const connection = (mode: 'remote' | 'local') => ({ mode, apiBaseUrl: 'http://x/api', defaultApiBaseUrl: 'http://d/api', onApply: vi.fn() })
 const actions = () => ({ onSeed: vi.fn(), onExport: vi.fn(), onImport: vi.fn(), onReset: vi.fn() })
-const click = (el: Element) => el.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }))
+/** Click a ui-button the way a user does: on its inner control (a host-level synthetic click is not a user path). */
+const click = (el: Element) => (el.shadowRoot?.querySelector('button, a') ?? el).dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }))
 
 describe('oyl-status', () => {
   it('leads with the Status heading and lists diagnostics as dt/dd pairs', async () => {

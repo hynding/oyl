@@ -10,6 +10,8 @@ select {
   color: var(--color-text); background: var(--color-surface); border: var(--line-2) solid var(--color-border); border-radius: var(--radius-1);
 }
 dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-1) var(--space-4); margin: 0; }
+/* Collections: two label/value columns once there is room. */
+@container (min-width: 40rem) { dl.counts { grid-template-columns: auto 1fr auto 1fr; } }
 dt { color: var(--color-muted); font-size: var(--step--1); }
 dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }

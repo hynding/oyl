@@ -79,13 +79,33 @@ export async function createApp(win: BootWindow, deps: BootDeps = {}): Promise<A
   }
 
   const refreshTick = signal(0)
-  const flushAndRefresh = () => void flush().then(() => { dataState.refreshPending(); refreshTick.set(refreshTick.get() + 1) }).catch(() => {})
+  const bump = () => refreshTick.set(refreshTick.get() + 1)
+  const flushAndRefresh = () => void flush().then(() => { dataState.refreshPending(); bump() }).catch(() => {})
+  /**
+   * Drain, then re-pull. `flush()` returns at once when a drain is already running (it only
+   * flags a re-pass — see createFlusher), so completion is observed through the outbox size:
+   * wait until it is empty, giving up after `stallMs` without progress (a stuck op waits for
+   * its retry trigger; a dead backend must not hang the caller).
+   */
+  const flushThenRefresh = async (stallMs = 3000) => {
+    await flush().catch(() => {})
+    let last = outbox.size()
+    let lastChange = Date.now()
+    while (outbox.size() > 0 && Date.now() - lastChange < stallMs) {
+      await new Promise((r) => setTimeout(r, 50))
+      const size = outbox.size()
+      if (size !== last) { last = size; lastChange = Date.now() }
+    }
+    dataState.refreshPending()
+    await dataState.refresh().catch(() => {})
+    bump()
+  }
 
   const hasSession = !!authState.session.get()
   if (hasSession) {
     try {
       await dataState.refresh()
-      refreshTick.set(refreshTick.get() + 1)
+      bump()
       // New-device correction: if the pulled profile tz differs from what we built with, reload once.
       await profileStore.load()
       if (tzNeedsReload(tz, profileStore.profile.get(), browserTz) && !session.getItem(TZ_RELOADED_KEY)) {
@@ -134,7 +154,7 @@ export async function createApp(win: BootWindow, deps: BootDeps = {}): Promise<A
 
   // Multi-tab coherence: react to writes from other tabs. An outbox write in another tab
   // also triggers a flush here (the originating tab flushes on its own online/sign-in path).
-  const debouncedRefresh = debounce(() => void dataState.refresh().then(() => refreshTick.set(refreshTick.get() + 1)), 150)
+  const debouncedRefresh = debounce(() => void dataState.refresh().then(bump), 150)
   win.addEventListener('storage', (e: StorageEvent) => {
     if (!e.key || !isOylKey(e.key)) return
     if (e.key === SETTINGS_KEY) themeState.refresh()
@@ -162,6 +182,7 @@ export async function createApp(win: BootWindow, deps: BootDeps = {}): Promise<A
     win, storage, mode, apiBase, apiDefault, tz,
     routeState, authState, noticeState, themeState, dataState, profileStore, googleStore, googleLoginHref, refreshTick,
     flush: flushAndRefresh,
+    flushAndRefresh: flushThenRefresh,
     connection: {
       mode, apiBaseUrl: apiBase, defaultApiBaseUrl: apiDefault,
       onApply: (m, url) => { setStorageMode(storage, m); setApiBaseUrl(storage, url); win.location.reload() },

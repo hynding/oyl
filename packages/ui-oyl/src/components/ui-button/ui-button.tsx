@@ -15,7 +15,7 @@ export class UiButton {
   /** `primary` is the single accent-filled action per view; everything else is quiet. */
   @Prop({ reflect: true }) variant: ButtonVariant = 'secondary'
   /** `submit` submits the enclosing form; `button` does nothing on its own. */
-  @Prop() type: 'button' | 'submit' = 'button'
+  @Prop({ reflect: true }) type: 'button' | 'submit' = 'button'
   @Prop({ reflect: true }) disabled = false
   /** Render as a link to this URL instead of a button. */
   @Prop() href?: string

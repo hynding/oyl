@@ -57,7 +57,9 @@ export function statusActions(app: App, now: () => Date): StatusActions {
       void (async () => {
         if (accountIsEmpty(dataState) || confirm('Add demo data to this account?')) {
           await seedAccount(dataState, DayKey.from(now(), tz))
-          dataState.refreshPending()
+          // Seeding enqueues every record; drain the outbox now and re-pull so the pending
+          // indicator and the collection counts are live without a reload.
+          await app.flushAndRefresh()
         }
       })()
     },

@@ -63,6 +63,8 @@ export interface App {
   refreshTick: Signal<number>
   /** Drain the outbox, then refresh the pending indicator (fire-and-forget). */
   flush(): void
+  /** Drain the outbox, then re-pull everything (counts + stores) and bump the tick. */
+  flushAndRefresh(): Promise<void>
   connection: ConnectionSettings
   /** After a form login/registration: remote mode + a full navigation into the app. */
   onAuthenticated(): void

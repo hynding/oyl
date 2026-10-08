@@ -45,6 +45,7 @@ describe('ui-button', () => {
       </form>,
     )
     const form = root as unknown as HTMLFormElement
+    expect(form.querySelector('ui-button')).toHaveAttribute('type', 'submit')
     const requestSubmit = vi.fn()
     form.requestSubmit = requestSubmit
     const button = form.querySelector('ui-button')!
