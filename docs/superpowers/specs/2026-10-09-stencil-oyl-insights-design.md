@@ -1,7 +1,7 @@
 # `apps/stencil-oyl` Insights screen — Design
 
 **Date:** 2026-10-09
-**Status:** reviewed (branch `feat/stencil-oyl-insights`, stacked on `feat/stencil-oyl-goals`)
+**Status:** implemented on branch feat/stencil-oyl-insights (stacked on feat/stencil-oyl-goals; plan: `docs/superpowers/plans/2026-10-09-stencil-oyl-insights.md`)
 **Program:** Stencil front-end — sub-project 9 (seventh redesigned screen; see
 `2026-10-06-extract-client-layer-design.md` §Program context). Depends on nothing new; reuses the
 tile pattern from Nutrition and the section pattern from Finance/Vault.
@@ -106,3 +106,10 @@ a segmented period control, completion as a fourth tile, nothing editable.
 | Four tiles at Pixel 7 width | Nutrition already fits five with the 30rem container query; reuse that CSS (incl. the `:host { container-type: inline-size }` it depends on). No `white-space: nowrap` on values; `.tile { min-inline-size: 0; overflow-wrap: anywhere }` so a long amount wraps instead of overflowing (the mobile spec asserts no horizontal overflow on `/insights`). |
 | `completionRate` semantics | Taken from `planner.completionRate(period)` untouched; "—" only when it is `undefined` (no open/done plans due in the period). |
 | Spec-test `DayRange` comparisons | The bundle's `DayRange` and the test's are different classes: assert `start.value`/`end.value`, and `await flush()` after events (effects re-run on a microtask). |
+
+## Amendments during implementation
+
+1. The pre-build review's findings (persist-first waits before `navTo` in the e2e, `toContain` on tile text, `InsightsPeriod` + `INSIGHTS_PERIODS`, deltas hidden when the rounded magnitude is zero, wrapping tiles, `DayRange` asserted by value) were folded in before any code.
+2. `ui-segment`'s `options` is a mutable array type, so the readonly `INSIGHTS_PERIODS` is spread at the call site.
+3. Observed, unchanged (domain parity with vanilla): the review judges each goal at `period.end`, so a day-period goal measured today shows "No data" under "This month" until the last day of the month, while its streak counts today.
+4. e2e: `registerUser` now also retries once on a bare "socket hang up" (same transient backend drop as `ECONNRESET`; seen once under 4 workers).
