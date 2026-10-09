@@ -32,6 +32,15 @@ export async function addNote(page: Page, text: string, tags?: string): Promise<
   await form.locator('ui-button[type="submit"] button').click()
 }
 
+/** Add a task through the stencil planner composer (due defaults to the shown day). */
+export async function addTask(page: Page, title: string, due?: string): Promise<void> {
+  const form = page.locator('oyl-plan-composer')
+  await form.locator('ui-segment [data-value="task"]').click()
+  await form.locator('ui-field[name="title"] input').fill(title)
+  if (due) await form.locator('ui-field[name="due"] input').fill(due)
+  await form.locator('ui-button[type="submit"] button').click()
+}
+
 /** Click a ui-button by its data-act (the inner control, as a user would). */
 export function act(scope: Locator | Page, name: string): Locator {
   return scope.locator(`ui-button[data-act="${name}"] button`)

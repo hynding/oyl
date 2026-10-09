@@ -1,0 +1,9 @@
+:host { display: block; }
+.screen { display: grid; gap: var(--space-4); }
+.section-label {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 500;
+  color: var(--color-muted); margin-block: var(--space-2) calc(-1 * var(--space-3));
+}
+.section-label.overdue { color: var(--color-warn); }
+ol { list-style: none; margin: 0; padding: 0; }
+.empty { text-align: center; color: var(--color-muted); padding: var(--space-8) var(--space-4); }

@@ -25,7 +25,8 @@ input {
 input[type="number"], input[type="date"], input[type="datetime-local"] {
   font-family: var(--font-mono);
 }
-input:hover { border-color: var(--color-muted); }
+input:hover:not(:disabled) { border-color: var(--color-muted); }
+input:disabled { color: var(--color-muted); background: var(--color-surface-2); }
 input[aria-invalid="true"] { border-color: var(--color-danger); }
 .hint, .error {
   margin: 0;

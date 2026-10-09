@@ -8,10 +8,12 @@ import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { Signal } from "@oyl/all-of-oyl/client";
 import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
-import { DayKey, Entry, Id } from "@oyl/all-of-oyl";
+import { DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
+import { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
+import { PlannerReader } from "./components/oyl-planner/oyl-planner";
 import { Routes } from "./components/oyl-router/oyl-router";
 import { Diagnostics } from "./components/oyl-status/oyl-status";
 import { StatusActions } from "./boot/data-tools.js";
@@ -19,10 +21,12 @@ import { ThemeState } from "./boot/theme.js";
 export { Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
-export { DayKey, Entry, Id } from "@oyl/all-of-oyl";
+export { DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
+export { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
+export { PlannerReader } from "./components/oyl-planner/oyl-planner";
 export { Routes } from "./components/oyl-router/oyl-router";
 export { Diagnostics } from "./components/oyl-status/oyl-status";
 export { StatusActions } from "./boot/data-tools.js";
@@ -63,6 +67,27 @@ export namespace Components {
         "mode": 'login' | 'register';
     }
     /**
+     * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
+     * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
+     * region for the screen's announcements. Controlled: the screen owns the day signal and
+     * passes `day`/`today`; this emits `dayChange` and focuses the heading after a change it
+     * initiated. `marked(day)` puts a dot under a pill — the screen decides what counts.
+     */
+    interface OylDayNav {
+        /**
+          * Text for the polite live region (screen announcements: "Entry added", "Showing …").
+          * @default ''
+         */
+        "announcement": string;
+        "day": DayKey;
+        /**
+          * Move keyboard focus to the heading (the screens call it after an arrow-key move).
+         */
+        "focusHeading": () => Promise<void>;
+        "marked"?: (day: DayKey) => boolean;
+        "today": DayKey;
+    }
+    /**
      * One journal entry: time | body | actions. Delete is a two-step inline confirm
      * (Delete → "Delete?" Yes/No) on native buttons — a confirm cluster, like the theme
      * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
@@ -71,8 +96,8 @@ export namespace Components {
         "entry": Entry;
     }
     /**
-     * The day-scoped journal: prev/next + a 7-day pill strip, the composer, and the day's notes
-     * and measurements newest first (finance and nutrition rows belong to their own screens).
+     * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
+     * measurements newest first (finance and nutrition rows belong to their own screens).
      * ArrowLeft/Right move a day when focus is not in a field or radio.
      */
     interface OylJournal {
@@ -126,6 +151,48 @@ export namespace Components {
      */
     interface OylNoticeHost {
         "notice": Signal<string | null>;
+    }
+    /**
+     * The planner composer: a task (title, due, optional repeat) or an appointment (title,
+     * start, optional minutes). Due/start default to the shown day (start at 09:00) and
+     * re-sync on day change and after a submit. Native <form> over form-associated
+     * primitives; domain-constructor errors render inline against the title.
+     */
+    interface OylPlanComposer {
+        /**
+          * The day new plans default to (the screen's shown day).
+         */
+        "day": DayKey;
+        "store": PlannerWriter;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
+    }
+    /**
+     * One plan: check | body | actions. The round check completes an open plan; Cancel and
+     * Delete are two-step inline confirms on native buttons (a control cluster, like the
+     * entry row's), so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
+     */
+    interface OylPlanRow {
+        /**
+          * Set by the Overdue section: shows "Due … · Nd ago" relative to this day.
+         */
+        "overdueAsOf"?: DayKey;
+        "plan": Plan;
+    }
+    /**
+     * The day-scoped planner: `oyl-day-nav`, the composer, an Overdue section (today only)
+     * and the day's agenda (appointments by time, tasks, then canceled plans) — the same
+     * lists and callbacks as vanilla's planner. ArrowLeft/Right move a day when focus is
+     * not in a field or radio.
+     */
+    interface OylPlanner {
+        "store": PlannerReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
     }
     interface OylRegister {
         "auth": AuthApi1;
@@ -193,6 +260,10 @@ export interface OylAuthFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylAuthFormElement;
 }
+export interface OylDayNavCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylDayNavElement;
+}
 export interface OylEntryRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylEntryRowElement;
@@ -208,6 +279,14 @@ export interface OylLoginCustomEvent<T> extends CustomEvent<T> {
 export interface OylNoticeHostCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylNoticeHostElement;
+}
+export interface OylPlanComposerCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylPlanComposerElement;
+}
+export interface OylPlanRowCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylPlanRowElement;
 }
 export interface OylRegisterCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -267,6 +346,30 @@ declare global {
         prototype: HTMLOylAuthFormElement;
         new (): HTMLOylAuthFormElement;
     };
+    interface HTMLOylDayNavElementEventMap {
+        "dayChange": DayKey;
+    }
+    /**
+     * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
+     * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
+     * region for the screen's announcements. Controlled: the screen owns the day signal and
+     * passes `day`/`today`; this emits `dayChange` and focuses the heading after a change it
+     * initiated. `marked(day)` puts a dot under a pill — the screen decides what counts.
+     */
+    interface HTMLOylDayNavElement extends Components.OylDayNav, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylDayNavElementEventMap>(type: K, listener: (this: HTMLOylDayNavElement, ev: OylDayNavCustomEvent<HTMLOylDayNavElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylDayNavElementEventMap>(type: K, listener: (this: HTMLOylDayNavElement, ev: OylDayNavCustomEvent<HTMLOylDayNavElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylDayNavElement: {
+        prototype: HTMLOylDayNavElement;
+        new (): HTMLOylDayNavElement;
+    };
     interface HTMLOylEntryRowElementEventMap {
         "remove": Id;
     }
@@ -290,8 +393,8 @@ declare global {
         new (): HTMLOylEntryRowElement;
     };
     /**
-     * The day-scoped journal: prev/next + a 7-day pill strip, the composer, and the day's notes
-     * and measurements newest first (finance and nutrition rows belong to their own screens).
+     * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
+     * measurements newest first (finance and nutrition rows belong to their own screens).
      * ArrowLeft/Right move a day when focus is not in a field or radio.
      */
     interface HTMLOylJournalElement extends Components.OylJournal, HTMLStencilElement {
@@ -380,6 +483,65 @@ declare global {
         prototype: HTMLOylNoticeHostElement;
         new (): HTMLOylNoticeHostElement;
     };
+    interface HTMLOylPlanComposerElementEventMap {
+        "added": void;
+    }
+    /**
+     * The planner composer: a task (title, due, optional repeat) or an appointment (title,
+     * start, optional minutes). Due/start default to the shown day (start at 09:00) and
+     * re-sync on day change and after a submit. Native <form> over form-associated
+     * primitives; domain-constructor errors render inline against the title.
+     */
+    interface HTMLOylPlanComposerElement extends Components.OylPlanComposer, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylPlanComposerElementEventMap>(type: K, listener: (this: HTMLOylPlanComposerElement, ev: OylPlanComposerCustomEvent<HTMLOylPlanComposerElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylPlanComposerElementEventMap>(type: K, listener: (this: HTMLOylPlanComposerElement, ev: OylPlanComposerCustomEvent<HTMLOylPlanComposerElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylPlanComposerElement: {
+        prototype: HTMLOylPlanComposerElement;
+        new (): HTMLOylPlanComposerElement;
+    };
+    interface HTMLOylPlanRowElementEventMap {
+        "completePlan": Id;
+        "cancelPlan": Id;
+        "remove": Id;
+    }
+    /**
+     * One plan: check | body | actions. The round check completes an open plan; Cancel and
+     * Delete are two-step inline confirms on native buttons (a control cluster, like the
+     * entry row's), so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
+     */
+    interface HTMLOylPlanRowElement extends Components.OylPlanRow, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylPlanRowElementEventMap>(type: K, listener: (this: HTMLOylPlanRowElement, ev: OylPlanRowCustomEvent<HTMLOylPlanRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylPlanRowElementEventMap>(type: K, listener: (this: HTMLOylPlanRowElement, ev: OylPlanRowCustomEvent<HTMLOylPlanRowElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylPlanRowElement: {
+        prototype: HTMLOylPlanRowElement;
+        new (): HTMLOylPlanRowElement;
+    };
+    /**
+     * The day-scoped planner: `oyl-day-nav`, the composer, an Overdue section (today only)
+     * and the day's agenda (appointments by time, tasks, then canceled plans) — the same
+     * lists and callbacks as vanilla's planner. ArrowLeft/Right move a day when focus is
+     * not in a field or radio.
+     */
+    interface HTMLOylPlannerElement extends Components.OylPlanner, HTMLStencilElement {
+    }
+    var HTMLOylPlannerElement: {
+        prototype: HTMLOylPlannerElement;
+        new (): HTMLOylPlannerElement;
+    };
     interface HTMLOylRegisterElementEventMap {
         "authenticated": void;
     }
@@ -449,6 +611,7 @@ declare global {
         "oyl-account-menu": HTMLOylAccountMenuElement;
         "oyl-app": HTMLOylAppElement;
         "oyl-auth-form": HTMLOylAuthFormElement;
+        "oyl-day-nav": HTMLOylDayNavElement;
         "oyl-entry-row": HTMLOylEntryRowElement;
         "oyl-journal": HTMLOylJournalElement;
         "oyl-log-form": HTMLOylLogFormElement;
@@ -457,6 +620,9 @@ declare global {
         "oyl-not-found": HTMLOylNotFoundElement;
         "oyl-not-yet": HTMLOylNotYetElement;
         "oyl-notice-host": HTMLOylNoticeHostElement;
+        "oyl-plan-composer": HTMLOylPlanComposerElement;
+        "oyl-plan-row": HTMLOylPlanRowElement;
+        "oyl-planner": HTMLOylPlannerElement;
         "oyl-register": HTMLOylRegisterElement;
         "oyl-router": HTMLOylRouterElement;
         "oyl-shell": HTMLOylShellElement;
@@ -507,6 +673,27 @@ declare namespace LocalJSX {
         "onSuccess"?: (event: OylAuthFormCustomEvent<void>) => void;
     }
     /**
+     * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
+     * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
+     * region for the screen's announcements. Controlled: the screen owns the day signal and
+     * passes `day`/`today`; this emits `dayChange` and focuses the heading after a change it
+     * initiated. `marked(day)` puts a dot under a pill — the screen decides what counts.
+     */
+    interface OylDayNav {
+        /**
+          * Text for the polite live region (screen announcements: "Entry added", "Showing …").
+          * @default ''
+         */
+        "announcement"?: string;
+        "day": DayKey;
+        "marked"?: (day: DayKey) => boolean;
+        /**
+          * The user picked a day (prev/next or a pill).
+         */
+        "onDayChange"?: (event: OylDayNavCustomEvent<DayKey>) => void;
+        "today": DayKey;
+    }
+    /**
      * One journal entry: time | body | actions. Delete is a two-step inline confirm
      * (Delete → "Delete?" Yes/No) on native buttons — a confirm cluster, like the theme
      * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
@@ -519,8 +706,8 @@ declare namespace LocalJSX {
         "onRemove"?: (event: OylEntryRowCustomEvent<Id>) => void;
     }
     /**
-     * The day-scoped journal: prev/next + a 7-day pill strip, the composer, and the day's notes
-     * and measurements newest first (finance and nutrition rows belong to their own screens).
+     * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
+     * measurements newest first (finance and nutrition rows belong to their own screens).
      * ArrowLeft/Right move a day when focus is not in a field or radio.
      */
     interface OylJournal {
@@ -587,6 +774,55 @@ declare namespace LocalJSX {
          */
         "onDismiss"?: (event: OylNoticeHostCustomEvent<void>) => void;
     }
+    /**
+     * The planner composer: a task (title, due, optional repeat) or an appointment (title,
+     * start, optional minutes). Due/start default to the shown day (start at 09:00) and
+     * re-sync on day change and after a submit. Native <form> over form-associated
+     * primitives; domain-constructor errors render inline against the title.
+     */
+    interface OylPlanComposer {
+        /**
+          * The day new plans default to (the screen's shown day).
+         */
+        "day": DayKey;
+        /**
+          * A plan was added through the store.
+         */
+        "onAdded"?: (event: OylPlanComposerCustomEvent<void>) => void;
+        "store": PlannerWriter;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
+    }
+    /**
+     * One plan: check | body | actions. The round check completes an open plan; Cancel and
+     * Delete are two-step inline confirms on native buttons (a control cluster, like the
+     * entry row's), so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
+     */
+    interface OylPlanRow {
+        "onCancelPlan"?: (event: OylPlanRowCustomEvent<Id>) => void;
+        "onCompletePlan"?: (event: OylPlanRowCustomEvent<Id>) => void;
+        "onRemove"?: (event: OylPlanRowCustomEvent<Id>) => void;
+        /**
+          * Set by the Overdue section: shows "Due … · Nd ago" relative to this day.
+         */
+        "overdueAsOf"?: DayKey;
+        "plan": Plan;
+    }
+    /**
+     * The day-scoped planner: `oyl-day-nav`, the composer, an Overdue section (today only)
+     * and the day's agenda (appointments by time, tasks, then canceled plans) — the same
+     * lists and callbacks as vanilla's planner. ArrowLeft/Right move a day when focus is
+     * not in a field or radio.
+     */
+    interface OylPlanner {
+        "store": PlannerReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
+    }
     interface OylRegister {
         "auth": AuthApi1;
         "googleAuth"?: Signal<{ href: string } | null>;
@@ -652,6 +888,9 @@ declare namespace LocalJSX {
     interface OylAuthFormAttributes {
         "mode": 'login' | 'register';
     }
+    interface OylDayNavAttributes {
+        "announcement": string;
+    }
     interface OylJournalAttributes {
         "tz": string;
     }
@@ -665,6 +904,12 @@ declare namespace LocalJSX {
         "name": string;
         "classicUrl": string;
     }
+    interface OylPlanComposerAttributes {
+        "tz": string;
+    }
+    interface OylPlannerAttributes {
+        "tz": string;
+    }
     interface OylShellAttributes {
         "docked": boolean;
     }
@@ -673,6 +918,7 @@ declare namespace LocalJSX {
         "oyl-account-menu": OylAccountMenu;
         "oyl-app": OylApp;
         "oyl-auth-form": Omit<OylAuthForm, keyof OylAuthFormAttributes> & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes]?: OylAuthForm[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `attr:${K}`]?: OylAuthFormAttributes[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `prop:${K}`]?: OylAuthForm[K] };
+        "oyl-day-nav": Omit<OylDayNav, keyof OylDayNavAttributes> & { [K in keyof OylDayNav & keyof OylDayNavAttributes]?: OylDayNav[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `attr:${K}`]?: OylDayNavAttributes[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `prop:${K}`]?: OylDayNav[K] };
         "oyl-entry-row": OylEntryRow;
         "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
         "oyl-log-form": OylLogForm;
@@ -681,6 +927,9 @@ declare namespace LocalJSX {
         "oyl-not-found": Omit<OylNotFound, keyof OylNotFoundAttributes> & { [K in keyof OylNotFound & keyof OylNotFoundAttributes]?: OylNotFound[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `attr:${K}`]?: OylNotFoundAttributes[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `prop:${K}`]?: OylNotFound[K] };
         "oyl-not-yet": Omit<OylNotYet, keyof OylNotYetAttributes> & { [K in keyof OylNotYet & keyof OylNotYetAttributes]?: OylNotYet[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `attr:${K}`]?: OylNotYetAttributes[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `prop:${K}`]?: OylNotYet[K] } & OneOf<"name", OylNotYet["name"], OylNotYetAttributes["name"]>;
         "oyl-notice-host": OylNoticeHost;
+        "oyl-plan-composer": Omit<OylPlanComposer, keyof OylPlanComposerAttributes> & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes]?: OylPlanComposer[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `attr:${K}`]?: OylPlanComposerAttributes[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `prop:${K}`]?: OylPlanComposer[K] };
+        "oyl-plan-row": OylPlanRow;
+        "oyl-planner": Omit<OylPlanner, keyof OylPlannerAttributes> & { [K in keyof OylPlanner & keyof OylPlannerAttributes]?: OylPlanner[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `attr:${K}`]?: OylPlannerAttributes[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `prop:${K}`]?: OylPlanner[K] };
         "oyl-register": OylRegister;
         "oyl-router": OylRouter;
         "oyl-shell": Omit<OylShell, keyof OylShellAttributes> & { [K in keyof OylShell & keyof OylShellAttributes]?: OylShell[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `attr:${K}`]?: OylShellAttributes[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `prop:${K}`]?: OylShell[K] };
@@ -709,14 +958,22 @@ declare module "@stencil/core" {
              */
             "oyl-auth-form": LocalJSX.IntrinsicElements["oyl-auth-form"] & JSXBase.HTMLAttributes<HTMLOylAuthFormElement>;
             /**
+             * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
+             * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
+             * region for the screen's announcements. Controlled: the screen owns the day signal and
+             * passes `day`/`today`; this emits `dayChange` and focuses the heading after a change it
+             * initiated. `marked(day)` puts a dot under a pill — the screen decides what counts.
+             */
+            "oyl-day-nav": LocalJSX.IntrinsicElements["oyl-day-nav"] & JSXBase.HTMLAttributes<HTMLOylDayNavElement>;
+            /**
              * One journal entry: time | body | actions. Delete is a two-step inline confirm
              * (Delete → "Delete?" Yes/No) on native buttons — a confirm cluster, like the theme
              * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
              */
             "oyl-entry-row": LocalJSX.IntrinsicElements["oyl-entry-row"] & JSXBase.HTMLAttributes<HTMLOylEntryRowElement>;
             /**
-             * The day-scoped journal: prev/next + a 7-day pill strip, the composer, and the day's notes
-             * and measurements newest first (finance and nutrition rows belong to their own screens).
+             * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
+             * measurements newest first (finance and nutrition rows belong to their own screens).
              * ArrowLeft/Right move a day when focus is not in a field or radio.
              */
             "oyl-journal": LocalJSX.IntrinsicElements["oyl-journal"] & JSXBase.HTMLAttributes<HTMLOylJournalElement>;
@@ -737,6 +994,26 @@ declare module "@stencil/core" {
              * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
              */
             "oyl-notice-host": LocalJSX.IntrinsicElements["oyl-notice-host"] & JSXBase.HTMLAttributes<HTMLOylNoticeHostElement>;
+            /**
+             * The planner composer: a task (title, due, optional repeat) or an appointment (title,
+             * start, optional minutes). Due/start default to the shown day (start at 09:00) and
+             * re-sync on day change and after a submit. Native <form> over form-associated
+             * primitives; domain-constructor errors render inline against the title.
+             */
+            "oyl-plan-composer": LocalJSX.IntrinsicElements["oyl-plan-composer"] & JSXBase.HTMLAttributes<HTMLOylPlanComposerElement>;
+            /**
+             * One plan: check | body | actions. The round check completes an open plan; Cancel and
+             * Delete are two-step inline confirms on native buttons (a control cluster, like the
+             * entry row's), so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
+             */
+            "oyl-plan-row": LocalJSX.IntrinsicElements["oyl-plan-row"] & JSXBase.HTMLAttributes<HTMLOylPlanRowElement>;
+            /**
+             * The day-scoped planner: `oyl-day-nav`, the composer, an Overdue section (today only)
+             * and the day's agenda (appointments by time, tasks, then canceled plans) — the same
+             * lists and callbacks as vanilla's planner. ArrowLeft/Right move a day when focus is
+             * not in a field or radio.
+             */
+            "oyl-planner": LocalJSX.IntrinsicElements["oyl-planner"] & JSXBase.HTMLAttributes<HTMLOylPlannerElement>;
             "oyl-register": LocalJSX.IntrinsicElements["oyl-register"] & JSXBase.HTMLAttributes<HTMLOylRegisterElement>;
             /**
              * Switches one screen element on the route signal. Screens are created by the `routes`

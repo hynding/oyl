@@ -15,6 +15,7 @@ so a native light-DOM `<form>` sees its value (`FormData`, submit).
 | Property             | Attribute      | Description                                                          | Type                                                                        | Default     |
 | -------------------- | -------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------- |
 | `autocomplete`       | `autocomplete` |                                                                      | `string \| undefined`                                                       | `undefined` |
+| `disabled`           | `disabled`     |                                                                      | `boolean`                                                                   | `false`     |
 | `error`              | `error`        | Validation message; sets `aria-invalid` and replaces the hint.       | `string \| undefined`                                                       | `undefined` |
 | `hint`               | `hint`         | Supporting copy under the input; hidden while `error` is set.        | `string \| undefined`                                                       | `undefined` |
 | `label` _(required)_ | `label`        |                                                                      | `string`                                                                    | `undefined` |

@@ -12,8 +12,8 @@ test('deep link straight to /journal renders the journal screen', async ({ page,
 })
 
 test('deep link to a screen the redesign has not reached renders its placeholder', async ({ page, signIn }) => {
-  await signIn('/planner')
-  expect(await deepText(page.locator('oyl-not-yet'))).toContain('Planner is coming to the new OYL')
+  await signIn('/nutrition')
+  expect(await deepText(page.locator('oyl-not-yet'))).toContain('Nutrition is coming to the new OYL')
 })
 
 test('nav clicks are intercepted client-side (no full page reload)', async ({ page, signIn }) => {

@@ -10,7 +10,7 @@
  */
 import '@oyl/all-of-oyl/client'
 import {
-  defineCustomElementUiButton, defineCustomElementUiCard, defineCustomElementUiField,
+  defineCustomElementUiButton, defineCustomElementUiCard, defineCustomElementUiCheckbox, defineCustomElementUiField,
   defineCustomElementUiIcon, defineCustomElementUiNav, defineCustomElementUiNotice,
   defineCustomElementUiSegment, defineCustomElementUiTextarea,
 } from '@oyl/ui-oyl'
@@ -19,6 +19,7 @@ export default function () {
   defineCustomElementUiIcon()
   defineCustomElementUiButton()
   defineCustomElementUiField()
+  defineCustomElementUiCheckbox()
   defineCustomElementUiTextarea()
   defineCustomElementUiSegment()
   defineCustomElementUiCard()
