@@ -1,7 +1,7 @@
 # `apps/stencil-oyl` Goals screen — Design
 
 **Date:** 2026-10-09
-**Status:** reviewed (branch `feat/stencil-oyl-goals`, stacked on `feat/stencil-oyl-vault`)
+**Status:** implemented on branch feat/stencil-oyl-goals (stacked on feat/stencil-oyl-vault; plan: `docs/superpowers/plans/2026-10-09-stencil-oyl-goals.md`)
 **Program:** Stencil front-end — sub-project 8 (sixth redesigned screen; see
 `2026-10-06-extract-client-layer-design.md` §Program context). Depends on 7 (the collapsed-form
 pattern, `oyl-item-row`'s action convention) and refactors 6's `oyl-budget-row`.
@@ -126,3 +126,9 @@ budgetLabel(...)`.
 | Replacing `oyl-budget-row` ripples into Finance | Its spec and the Finance screen spec/e2e are updated in the same task; the budget bar keeps its exact semantics (`warn` when over). |
 | Same-day resume keeps the goal paused through today | Domain semantics (vanilla's e2e comment); the e2e asserts Resume stays visible after reload, as vanilla's does. The action button follows the goal's open pause (see anatomy) so a closed-today range offers Pause, not a Resume that would throw — a deliberate divergence from vanilla. |
 | `emptyPeriods: 'met'` goals (seeded/imported only) | Tone follows vanilla's cascade: muted beats met. The form never sets `emptyPeriods`. |
+
+## Amendments during implementation
+
+1. The pre-build review's findings (action from the goal's open pause, `name` instead of the reserved `title` prop, no text transform on the shared row, no `min`/`step` on `ui-field`, `PERIOD_OPTIONS` from `GOAL_PERIODS`, vanilla's tone cascade) were folded in before any code.
+2. `oyl-goal-form` passes the readonly option lists straight to `ui-select` (`options` is `readonly SelectOption[]`).
+3. Finance's budget rows derive `name`/`ratio`/`tone`/`label` in `render()` from `budgetStatus`; `oyl-budget-row` is gone.
