@@ -17,6 +17,7 @@ import { DocumentsWriter } from "./components/oyl-document-form/oyl-document-for
 import { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
 import { GiftIdeasWriter } from "./components/oyl-gift-idea-form/oyl-gift-idea-form";
 import { GoalsWriter } from "./components/oyl-goal-form/oyl-goal-form";
+import { GoalsJournal, GoalsStore } from "./components/oyl-goals/oyl-goals";
 import { RowAction, ValueTone } from "./components/oyl-item-row/oyl-item-row";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
@@ -48,6 +49,7 @@ export { DocumentsWriter } from "./components/oyl-document-form/oyl-document-for
 export { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
 export { GiftIdeasWriter } from "./components/oyl-gift-idea-form/oyl-gift-idea-form";
 export { GoalsWriter } from "./components/oyl-goal-form/oyl-goal-form";
+export { GoalsJournal, GoalsStore } from "./components/oyl-goals/oyl-goals";
 export { RowAction, ValueTone } from "./components/oyl-item-row/oyl-item-row";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
@@ -191,6 +193,22 @@ export namespace Components {
      */
     interface OylGoalForm {
         "store": GoalsWriter;
+    }
+    /**
+     * Goals: a summary line, a collapsed "New goal" form, and one `oyl-progress-row` per goal
+     * tracked against the journal. One effect over the goals store and the journal revision
+     * (`progressOf` reads it) mirrors fresh `goals` + `progress` arrays into state; row props
+     * derive in `render()`. The Pause/Resume action follows the goal's open pause, not
+     * `progress.paused`: a same-day resume closes the range inclusively, so the period stays
+     * paused through today while there is nothing left to resume.
+     */
+    interface OylGoals {
+        "journal": GoalsJournal;
+        "store": GoalsStore;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
     }
     /**
      * A generic list row: label + supporting lines | optional mono value | inline Delete →
@@ -844,6 +862,20 @@ declare global {
         prototype: HTMLOylGoalFormElement;
         new (): HTMLOylGoalFormElement;
     };
+    /**
+     * Goals: a summary line, a collapsed "New goal" form, and one `oyl-progress-row` per goal
+     * tracked against the journal. One effect over the goals store and the journal revision
+     * (`progressOf` reads it) mirrors fresh `goals` + `progress` arrays into state; row props
+     * derive in `render()`. The Pause/Resume action follows the goal's open pause, not
+     * `progress.paused`: a same-day resume closes the range inclusively, so the period stays
+     * paused through today while there is nothing left to resume.
+     */
+    interface HTMLOylGoalsElement extends Components.OylGoals, HTMLStencilElement {
+    }
+    var HTMLOylGoalsElement: {
+        prototype: HTMLOylGoalsElement;
+        new (): HTMLOylGoalsElement;
+    };
     interface HTMLOylItemRowElementEventMap {
         "remove": string;
         "act": { act: string; itemId: string };
@@ -1255,6 +1287,7 @@ declare global {
         "oyl-finance": HTMLOylFinanceElement;
         "oyl-gift-idea-form": HTMLOylGiftIdeaFormElement;
         "oyl-goal-form": HTMLOylGoalFormElement;
+        "oyl-goals": HTMLOylGoalsElement;
         "oyl-item-row": HTMLOylItemRowElement;
         "oyl-journal": HTMLOylJournalElement;
         "oyl-log-form": HTMLOylLogFormElement;
@@ -1444,6 +1477,22 @@ declare namespace LocalJSX {
          */
         "onAdded"?: (event: OylGoalFormCustomEvent<void>) => void;
         "store": GoalsWriter;
+    }
+    /**
+     * Goals: a summary line, a collapsed "New goal" form, and one `oyl-progress-row` per goal
+     * tracked against the journal. One effect over the goals store and the journal revision
+     * (`progressOf` reads it) mirrors fresh `goals` + `progress` arrays into state; row props
+     * derive in `render()`. The Pause/Resume action follows the goal's open pause, not
+     * `progress.paused`: a same-day resume closes the range inclusively, so the period stays
+     * paused through today while there is nothing left to resume.
+     */
+    interface OylGoals {
+        "journal": GoalsJournal;
+        "store": GoalsStore;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
     }
     /**
      * A generic list row: label + supporting lines | optional mono value | inline Delete →
@@ -1813,6 +1862,9 @@ declare namespace LocalJSX {
     interface OylFinanceAttributes {
         "tz": string;
     }
+    interface OylGoalsAttributes {
+        "tz": string;
+    }
     interface OylItemRowAttributes {
         "itemId": string;
         "label": string;
@@ -1875,6 +1927,7 @@ declare namespace LocalJSX {
         "oyl-finance": Omit<OylFinance, keyof OylFinanceAttributes> & { [K in keyof OylFinance & keyof OylFinanceAttributes]?: OylFinance[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `attr:${K}`]?: OylFinanceAttributes[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `prop:${K}`]?: OylFinance[K] };
         "oyl-gift-idea-form": OylGiftIdeaForm;
         "oyl-goal-form": OylGoalForm;
+        "oyl-goals": Omit<OylGoals, keyof OylGoalsAttributes> & { [K in keyof OylGoals & keyof OylGoalsAttributes]?: OylGoals[K] } & { [K in keyof OylGoals & keyof OylGoalsAttributes as `attr:${K}`]?: OylGoalsAttributes[K] } & { [K in keyof OylGoals & keyof OylGoalsAttributes as `prop:${K}`]?: OylGoals[K] };
         "oyl-item-row": Omit<OylItemRow, keyof OylItemRowAttributes> & { [K in keyof OylItemRow & keyof OylItemRowAttributes]?: OylItemRow[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `attr:${K}`]?: OylItemRowAttributes[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `prop:${K}`]?: OylItemRow[K] } & OneOf<"itemId", OylItemRow["itemId"], OylItemRowAttributes["itemId"]> & OneOf<"label", OylItemRow["label"], OylItemRowAttributes["label"]>;
         "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
         "oyl-log-form": OylLogForm;
@@ -1974,6 +2027,15 @@ declare module "@stencil/core" {
              * the period from each newly chosen preset.
              */
             "oyl-goal-form": LocalJSX.IntrinsicElements["oyl-goal-form"] & JSXBase.HTMLAttributes<HTMLOylGoalFormElement>;
+            /**
+             * Goals: a summary line, a collapsed "New goal" form, and one `oyl-progress-row` per goal
+             * tracked against the journal. One effect over the goals store and the journal revision
+             * (`progressOf` reads it) mirrors fresh `goals` + `progress` arrays into state; row props
+             * derive in `render()`. The Pause/Resume action follows the goal's open pause, not
+             * `progress.paused`: a same-day resume closes the range inclusively, so the period stays
+             * paused through today while there is nothing left to resume.
+             */
+            "oyl-goals": LocalJSX.IntrinsicElements["oyl-goals"] & JSXBase.HTMLAttributes<HTMLOylGoalsElement>;
             /**
              * A generic list row: label + supporting lines | optional mono value | inline Delete →
              * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
