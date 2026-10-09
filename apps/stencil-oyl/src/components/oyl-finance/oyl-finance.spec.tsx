@@ -114,12 +114,15 @@ describe('oyl-finance', () => {
     await flush(); await waitForChanges()
     expect(s.journal.remove).toHaveBeenCalledWith(a.id)
     expect(live()).toHaveTextContent('Deleted')
-    const budgetRow = q(root, 'oyl-budget-row') as any
-    expect(budgetRow.status.spent.minor).toBe(9300)
+    const budgetRow = q(root, 'ol.budgets oyl-progress-row') as any
+    expect(budgetRow.name).toBe('dining')
+    expect(budgetRow.label).toBe('$93.00 of $150.00 · $57.00 left')
+    expect(budgetRow.tone).toBe('met')
+    expect(budgetRow.ratio).toBe(0.62)
     budgetRow.dispatchEvent(new CustomEvent('remove', { detail: b.id, bubbles: true }))
     await flush(); await waitForChanges()
     expect(s.budgets.remove).toHaveBeenCalledWith(b.id)
-    expect(qa(root, 'oyl-budget-row')).toHaveLength(0)
+    expect(qa(root, 'oyl-progress-row')).toHaveLength(0)
     const acctRow = q(root, 'ol.accounts oyl-item-row') as any
     expect(acctRow.label).toBe('Checking')
     expect(acctRow.value).toBe('$2415.80')

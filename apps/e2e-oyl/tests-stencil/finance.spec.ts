@@ -98,14 +98,14 @@ test('budgets: create one and see it tracked against spending', async ({ page, s
   await signIn('/finance')
   await addExpense(page, '30', 'dining')
   await addBudget(page, 'dining', '150')
-  const row = page.locator('oyl-budget-row')
+  const row = page.locator('oyl-progress-row')
   await expect(row).toHaveCount(1)
   await expect.poll(() => deepText(row)).toContain('dining')
   expect(await deepText(row)).toContain('$30.00 of $150.00')
   await awaitOutboxDrained(page)
   await page.reload()
-  await expect(page.locator('oyl-budget-row')).toHaveCount(1)
-  await expect.poll(() => deepText(page.locator('oyl-budget-row'))).toContain('dining')
+  await expect(page.locator('oyl-progress-row')).toHaveCount(1)
+  await expect.poll(() => deepText(page.locator('oyl-progress-row'))).toContain('dining')
 })
 
 test('deleting a transaction asks inline and clears the tiles', async ({ page, signIn }) => {

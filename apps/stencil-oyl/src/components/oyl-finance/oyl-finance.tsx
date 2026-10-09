@@ -1,16 +1,15 @@
 import { Component, Element, Prop, State, h } from '@stencil/core'
-import { DayKey, periodWindowOf, type Account, type Budget, type DayRange, type Id, type Money, type Transaction } from '@oyl/all-of-oyl'
+import { DayKey, periodWindowOf, type Account, type Budget, type DayRange, type GoalProgress, type Id, type Money, type Transaction } from '@oyl/all-of-oyl'
 import { effect, now } from '@oyl/all-of-oyl/client'
 import { formatMoney } from '@oyl/all-of-oyl/format'
-import { accountSpendLabel, monthHeading, monthTotals, signedMoney, transactionLines, transactionValue, type MonthTotal } from '../../finance/format.js'
+import { accountSpendLabel, budgetLabel, monthHeading, monthTotals, signedMoney, transactionLines, transactionValue, type MonthTotal } from '../../finance/format.js'
 import type { AccountsReader, Direction, TransactionWriter } from '../oyl-transaction-form/oyl-transaction-form.js'
-import type { BudgetStatus } from '../oyl-budget-row/oyl-budget-row.js'
 import type { BudgetsWriter } from '../oyl-budget-form/oyl-budget-form.js'
 import type { AccountsWriter } from '../oyl-account-form/oyl-account-form.js'
 
 export interface FinanceReader extends TransactionWriter {
   transactionsIn(range: DayRange): readonly Transaction[]
-  budgetStatus(budget: Budget, day: DayKey): BudgetStatus
+  budgetStatus(budget: Budget, day: DayKey): { progress: GoalProgress; spent: Money }
   accountBalance(account: Account): Money
   accountSpend(account: Account, day: DayKey): Money
   remove(id: Id): Promise<unknown>
@@ -75,9 +74,9 @@ export class OylFinance {
     this.announcement = 'Deleted'
   }
 
-  private onRemoveBudget = (e: CustomEvent<Id>) => {
+  private onRemoveBudget = (e: CustomEvent<string>) => {
     e.stopPropagation()
-    void this.budgets.remove(e.detail)
+    void this.budgets.remove(e.detail as Id)
     this.announcement = 'Deleted'
   }
 
@@ -171,11 +170,14 @@ export class OylFinance {
           </details>
           {this.budgetList.length > 0 ? (
             <ol class="budgets">
-              {this.budgetList.map((b) => (
-                <li key={b.id}>
-                  <oyl-budget-row budget={b} status={this.store.budgetStatus(b, today)} onRemove={this.onRemoveBudget} />
-                </li>
-              ))}
+              {this.budgetList.map((b) => {
+                const { progress, spent } = this.store.budgetStatus(b, today)
+                return (
+                  <li key={b.id}>
+                    <oyl-progress-row itemId={b.id} name={b.name ?? b.category} ratio={progress.ratio} tone={progress.met === false ? 'warn' : 'met'} label={budgetLabel(progress, spent, b.limit)} onRemove={this.onRemoveBudget} />
+                  </li>
+                )
+              })}
             </ol>
           ) : (
             <div class="empty">No budgets yet.</div>
