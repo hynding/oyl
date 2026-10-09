@@ -1,7 +1,7 @@
 # `apps/stencil-oyl` Insights screen — Design
 
 **Date:** 2026-10-09
-**Status:** draft (branch `feat/stencil-oyl-insights`, stacked on `feat/stencil-oyl-goals`)
+**Status:** reviewed (branch `feat/stencil-oyl-insights`, stacked on `feat/stencil-oyl-goals`)
 **Program:** Stencil front-end — sub-project 9 (seventh redesigned screen; see
 `2026-10-06-extract-client-layer-design.md` §Program context). Depends on nothing new; reuses the
 tile pattern from Nutrition and the section pattern from Finance/Vault.
@@ -28,23 +28,27 @@ a segmented period control, completion as a fourth tile, nothing editable.
 <oyl-insights review tz>
   h2[tabindex=-1] "Insights"
   ui-segment name=period "Period" [week|month]            (value mirrors the period signal)
-  .tiles[data-role=totals]  4 × .tile[data-tile=spending|activity|calories|completion]
-                            b (value) · small (caption) · .delta ("↑ $42.50" / "↓ 20"; empty when 0)
-  section.goals     .section-label "Goals"      ol.goals li (.k name|"Goal", .v label[+ " · 🔥 n"])   | .empty "No goals yet"
-  section.spending  .section-label "Top spending" ol.spending li (.k category, .v.mono usd)         | .empty "Nothing this period"
-  section.activity  .section-label "Activity"    ol.activity li (.k slug, .v "120 min · 3×")        | .empty "Nothing this period"
-  section.areas     .section-label "Life areas"  ol.areas li (.head .k name|"Unassigned", .v stats; .bar>.fill when goalsTotal>0) | .empty "No areas tracked"
+  .totals[data-role=totals][role=group]  4 × .tile[data-tile=spending|activity|calories|completion]
+                            b (value) · small (caption) · .delta ("↑ $42.50" / "↓ 20"; empty when the rounded magnitude is 0)
+  section.goals     .section-label "Goals"      ol.goals li[key=goalId] (.k name|"Goal", .v label[+ " · 🔥 n"])   | .empty "No goals yet"
+  section.spending  .section-label "Top spending" ol.spending li[key=category] (.k category, .v.mono usd)       | .empty "Nothing this period"
+  section.activity  .section-label "Activity"    ol.activity li[key=slug] (.k slug, .v "120 min · 3×")          | .empty "Nothing this period"
+  section.areas     .section-label "Life areas"  ol.areas li[key=areaId|'unassigned'] (.head .k name|"Unassigned", .v stats; .bar>.fill when goalsTotal>0) | .empty "No areas tracked"
 ```
 
-- The screen owns a bundle `signal<GoalPeriod>('month')`; one `effect` reads it plus `today =
+- The screen owns a bundle `signal<InsightsPeriod>('month')` (`InsightsPeriod = 'week' | 'month'`,
+  a subtype of `GoalPeriod` — the segment never offers `day`); one `effect` reads it plus `today =
   DayKey.from(now(), tz)`, calls `review(periodWindowOf(period, today))` and mirrors the `Review`
   into `@State() review` (a fresh object per run — every store the review touches bumps a
   revision `reviewOn` reads, so the effect re-runs on any journal/planner/goals change, as in
   vanilla). The `ui-segment` change handler sets the signal (stopPropagation).
 - Tiles (vanilla's values): `usd(totals.spending)` (insights spending is single-currency USD, as
   vanilla), `Math.round(activityMinutes)`, `Math.round(calories)`, `completionRate === undefined
-  ? '—' : `${Math.round(rate*100)}%``. Delta line per tile for the first three only: hidden when
-  `deltas.x === 0`, else `↑`/`↓` + magnitude (money via `usd`, else rounded).
+  ? '—' : `${Math.round(rate*100)}%`` (`undefined` when the period has no open or done plans
+  due — canceled-only is "—" too, open-only is "0%"). Delta line per tile for the first three
+  only: `↑`/`↓` + magnitude (money via `usd`, else rounded); hidden when the displayed
+  magnitude would be zero (vanilla hides only the exact 0 and would show "↑ 0" — deliberate
+  divergence).
 - Rows: goals → `name ?? 'Goal'` and `reviewGoalLabel(progress)` + `· 🔥 {streak}` when > 0;
   spending → `category` / `usd(total)`; activity → `slug` / parts of `{round(minutes)} min` and
   `{count}×` joined by ` · `; areas → filter `areaId !== undefined || goalsTotal > 0 ||
@@ -57,9 +61,11 @@ a segmented period control, completion as a fourth tile, nothing editable.
 
 - Nothing new in `@oyl/all-of-oyl`: `review`, `periodWindowOf`, `Review`/`AreaRollup` exist;
   `dataState.reviewOn` is the prop.
-- `src/insights/format.ts`: `PERIOD_OPTIONS` (`[{week,'This week'},{month,'This month'}]`),
-  `usd`, `reviewGoalLabel`, `areaStatsLabel`, `activityLabel`, `deltaLabel(delta, money)`,
-  `completionLabel(rate?)` — ported from vanilla's `insights/format.js` with tests.
+- `src/insights/format.ts`: `InsightsPeriod`, `INSIGHTS_PERIODS` (`[{week,'This week'},{month,
+  'This month'}]` — not `PERIOD_OPTIONS`, which `goals/format.ts` already exports for the goal
+  form), `TILES`, `usd`, `reviewGoalLabel` (paused > empty > met > percent, as vanilla),
+  `areaStatsLabel`, `activityLabel`, `deltaLabel(delta, money)`, `completionLabel(rate?)` —
+  ported from vanilla's `insights/format.js` with tests.
 - `boot/routes.ts`: `insights` creates `oyl-insights` with `review = app.dataState.reviewOn`,
   `tz`; `insights` leaves `NOT_YET` (only `profile` remains); the routing spec's placeholder deep
   link moves to `/profile` in the same commit.
@@ -79,9 +85,12 @@ a segmented period control, completion as a fourth tile, nothing editable.
   with signal), stats and bar width; the four empty texts; a revision bump re-calls `review`.
 - **e2e `tests-stencil/insights.spec.ts`** = vanilla's three insights tests on stencil
   selectors (`oyl-insights .tile` count 4, `deepText` + `expect.poll`; spending via `addExpense`
-  on Finance, a goal via `addGoal`, then `navTo('insights')` and "42.50"/"dining"/"Sleep goal"
-  present + "No goals yet" absent; the segment `[data-value="week"|"month"]` click keeps 4
-  tiles).
+  on Finance and a goal via `addGoal`, each awaited through its row before `navTo` — adds are
+  persist-first; then `navTo('insights')` and "42.50"/"dining"/"Sleep goal" present + "No goals
+  yet" absent, all `toContain` (a tile's deep text is value+caption+delta); the segment
+  `[data-value="week"|"month"]` click moves `aria-checked` and keeps 4 tiles — never assert the
+  expense under "This week" (the transaction form's UTC default date can cross a week boundary
+  in a non-UTC tz).
 - Definition of Done per CLAUDE.md: `pnpm stencil test|typecheck|build`, stencil e2e projects
   green; ui-oyl and vanilla untouched.
 
@@ -94,5 +103,6 @@ a segmented period control, completion as a fourth tile, nothing editable.
 | Risk | Mitigation |
 |---|---|
 | The review is recomputed on every revision of any store | Same cost as vanilla; the review is a pure read over in-memory aggregates. |
-| Four tiles at Pixel 7 width | Nutrition already fits five with the 30rem container query; reuse that CSS. |
-| `completionRate` semantics | Taken from `planner.completionRate(period)` untouched; "—" only when it is `undefined`. |
+| Four tiles at Pixel 7 width | Nutrition already fits five with the 30rem container query; reuse that CSS (incl. the `:host { container-type: inline-size }` it depends on). No `white-space: nowrap` on values; `.tile { min-inline-size: 0; overflow-wrap: anywhere }` so a long amount wraps instead of overflowing (the mobile spec asserts no horizontal overflow on `/insights`). |
+| `completionRate` semantics | Taken from `planner.completionRate(period)` untouched; "—" only when it is `undefined` (no open/done plans due in the period). |
+| Spec-test `DayRange` comparisons | The bundle's `DayRange` and the test's are different classes: assert `start.value`/`end.value`, and `await flush()` after events (effects re-run on a microtask). |
