@@ -12,7 +12,7 @@ import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
 import { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
 import { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
 import { ContactsWriter } from "./components/oyl-contact-form/oyl-contact-form";
-import { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+import { Consumption, DayKey, DayRange, Entry, Id, Plan, Review } from "@oyl/all-of-oyl";
 import { DocumentsWriter } from "./components/oyl-document-form/oyl-document-form";
 import { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
 import { GiftIdeasWriter } from "./components/oyl-gift-idea-form/oyl-gift-idea-form";
@@ -44,7 +44,7 @@ export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
 export { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
 export { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
 export { ContactsWriter } from "./components/oyl-contact-form/oyl-contact-form";
-export { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+export { Consumption, DayKey, DayRange, Entry, Id, Plan, Review } from "@oyl/all-of-oyl";
 export { DocumentsWriter } from "./components/oyl-document-form/oyl-document-form";
 export { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
 export { GiftIdeasWriter } from "./components/oyl-gift-idea-form/oyl-gift-idea-form";
@@ -205,6 +205,22 @@ export namespace Components {
     interface OylGoals {
         "journal": GoalsJournal;
         "store": GoalsStore;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
+    }
+    /**
+     * The read-only review of a period: a week/month segment, four tiles with period-over-period
+     * deltas, then goals, top spending, activity and the life-area rollup as plain rows. The period
+     * is a bundle signal read inside the one effect (with today), which calls `review(range)` —
+     * every store the review touches bumps a revision it reads, so the screen follows any change.
+     */
+    interface OylInsights {
+        /**
+          * `dataState.reviewOn`.
+         */
+        "review": (range: DayRange) => Review;
         /**
           * @default 'UTC'
          */
@@ -876,6 +892,18 @@ declare global {
         prototype: HTMLOylGoalsElement;
         new (): HTMLOylGoalsElement;
     };
+    /**
+     * The read-only review of a period: a week/month segment, four tiles with period-over-period
+     * deltas, then goals, top spending, activity and the life-area rollup as plain rows. The period
+     * is a bundle signal read inside the one effect (with today), which calls `review(range)` —
+     * every store the review touches bumps a revision it reads, so the screen follows any change.
+     */
+    interface HTMLOylInsightsElement extends Components.OylInsights, HTMLStencilElement {
+    }
+    var HTMLOylInsightsElement: {
+        prototype: HTMLOylInsightsElement;
+        new (): HTMLOylInsightsElement;
+    };
     interface HTMLOylItemRowElementEventMap {
         "remove": string;
         "act": { act: string; itemId: string };
@@ -1288,6 +1316,7 @@ declare global {
         "oyl-gift-idea-form": HTMLOylGiftIdeaFormElement;
         "oyl-goal-form": HTMLOylGoalFormElement;
         "oyl-goals": HTMLOylGoalsElement;
+        "oyl-insights": HTMLOylInsightsElement;
         "oyl-item-row": HTMLOylItemRowElement;
         "oyl-journal": HTMLOylJournalElement;
         "oyl-log-form": HTMLOylLogFormElement;
@@ -1489,6 +1518,22 @@ declare namespace LocalJSX {
     interface OylGoals {
         "journal": GoalsJournal;
         "store": GoalsStore;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
+    }
+    /**
+     * The read-only review of a period: a week/month segment, four tiles with period-over-period
+     * deltas, then goals, top spending, activity and the life-area rollup as plain rows. The period
+     * is a bundle signal read inside the one effect (with today), which calls `review(range)` —
+     * every store the review touches bumps a revision it reads, so the screen follows any change.
+     */
+    interface OylInsights {
+        /**
+          * `dataState.reviewOn`.
+         */
+        "review": (range: DayRange) => Review;
         /**
           * @default 'UTC'
          */
@@ -1865,6 +1910,9 @@ declare namespace LocalJSX {
     interface OylGoalsAttributes {
         "tz": string;
     }
+    interface OylInsightsAttributes {
+        "tz": string;
+    }
     interface OylItemRowAttributes {
         "itemId": string;
         "label": string;
@@ -1928,6 +1976,7 @@ declare namespace LocalJSX {
         "oyl-gift-idea-form": OylGiftIdeaForm;
         "oyl-goal-form": OylGoalForm;
         "oyl-goals": Omit<OylGoals, keyof OylGoalsAttributes> & { [K in keyof OylGoals & keyof OylGoalsAttributes]?: OylGoals[K] } & { [K in keyof OylGoals & keyof OylGoalsAttributes as `attr:${K}`]?: OylGoalsAttributes[K] } & { [K in keyof OylGoals & keyof OylGoalsAttributes as `prop:${K}`]?: OylGoals[K] };
+        "oyl-insights": Omit<OylInsights, keyof OylInsightsAttributes> & { [K in keyof OylInsights & keyof OylInsightsAttributes]?: OylInsights[K] } & { [K in keyof OylInsights & keyof OylInsightsAttributes as `attr:${K}`]?: OylInsightsAttributes[K] } & { [K in keyof OylInsights & keyof OylInsightsAttributes as `prop:${K}`]?: OylInsights[K] };
         "oyl-item-row": Omit<OylItemRow, keyof OylItemRowAttributes> & { [K in keyof OylItemRow & keyof OylItemRowAttributes]?: OylItemRow[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `attr:${K}`]?: OylItemRowAttributes[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `prop:${K}`]?: OylItemRow[K] } & OneOf<"itemId", OylItemRow["itemId"], OylItemRowAttributes["itemId"]> & OneOf<"label", OylItemRow["label"], OylItemRowAttributes["label"]>;
         "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
         "oyl-log-form": OylLogForm;
@@ -2036,6 +2085,13 @@ declare module "@stencil/core" {
              * paused through today while there is nothing left to resume.
              */
             "oyl-goals": LocalJSX.IntrinsicElements["oyl-goals"] & JSXBase.HTMLAttributes<HTMLOylGoalsElement>;
+            /**
+             * The read-only review of a period: a week/month segment, four tiles with period-over-period
+             * deltas, then goals, top spending, activity and the life-area rollup as plain rows. The period
+             * is a bundle signal read inside the one effect (with today), which calls `review(range)` —
+             * every store the review touches bumps a revision it reads, so the screen follows any change.
+             */
+            "oyl-insights": LocalJSX.IntrinsicElements["oyl-insights"] & JSXBase.HTMLAttributes<HTMLOylInsightsElement>;
             /**
              * A generic list row: label + supporting lines | optional mono value | inline Delete →
              * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
