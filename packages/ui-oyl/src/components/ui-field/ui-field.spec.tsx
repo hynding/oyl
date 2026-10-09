@@ -21,12 +21,24 @@ describe('ui-field', () => {
     expect(label(root)).toHaveTextContent('Email')
   })
 
+  it('accepts datetime-local', async () => {
+    const { root } = await render(<ui-field label="When" name="when" type="datetime-local" value="2026-10-08T09:30" />)
+    expect(input(root)).toHaveAttribute('type', 'datetime-local')
+    expect(input(root).value).toBe('2026-10-08T09:30')
+  })
+
   it('passes type, required and autocomplete through', async () => {
     const { root } = await render(<ui-field label="Password" name="pw" type="password" required autocomplete="current-password" />)
     const el = input(root)
     expect(el).toHaveAttribute('type', 'password')
     expect(el).toHaveAttribute('required', '')
     expect(el).toHaveAttribute('autocomplete', 'current-password')
+  })
+
+  it('passes disabled through and reflects it', async () => {
+    const { root } = await render(<ui-field label="N" name="n" disabled />)
+    expect(input(root).disabled).toBe(true)
+    expect(root).toHaveAttribute('disabled', '')
   })
 
   it('emits a composed uiInput event with the value and updates value', async () => {

@@ -1,0 +1,29 @@
+@import "../../global/base.css";
+
+:host {
+  display: inline-block;
+}
+label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--size-control);
+  color: var(--color-text);
+  cursor: pointer;
+}
+label.disabled {
+  color: var(--color-muted);
+  cursor: default;
+}
+input {
+  appearance: auto;
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  margin: 0;
+  accent-color: var(--color-accent);
+  cursor: inherit;
+}
+input:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}

@@ -5,7 +5,7 @@
  */
 import { test, expect, primeRemoteSession } from '../lib/fixtures'
 import { API_URL } from '../lib/urls'
-import { act, awaitOutboxDrained, deepText } from './lib'
+import { addNote, awaitOutboxDrained, deepText } from './lib'
 
 test('a dead backend at boot surfaces the reach-failure notice, not a crash', async ({ page, user, hygiene }) => {
   hygiene.allow(/localhost:1399/)
@@ -34,31 +34,22 @@ test('an invalid session token logs out and lands on the login page', async ({ p
   expect(await page.evaluate(() => localStorage.getItem('oyl/auth'))).toBeNull()
 })
 
-test('offline writes queue in the outbox and flush on reconnect', async ({ page, context, user, hygiene }) => {
-  // The shell's only write path today is the demo seed (~270 records): draining it after
-  // reconnect takes a while under parallel workers.
-  test.setTimeout(150_000)
-  // Offline, the post-seed re-pull of /bootstrap fails by design (the notice path), and the
-  // browser logs it; both are the intended offline behavior.
-  hygiene.allow(/localhost:1341/)
-  hygiene.allow(/Failed to load resource/)
-  hygiene.allow(/ERR_INTERNET_DISCONNECTED/)
+test('offline writes queue in the outbox and flush on reconnect', async ({ page, context, user }) => {
   await primeRemoteSession(page, user)
-  await page.goto('/status')
-  await expect(page.locator('oyl-status h2').first()).toHaveText('Status')
+  await page.goto('/journal')
+  await expect(page.locator('oyl-journal oyl-log-form')).toBeVisible()
   // Let boot's fire-and-forget Google probe finish before flipping the network.
   await page.waitForLoadState('networkidle')
   await context.setOffline(true)
-  await act(page.locator('oyl-status'), 'seed').click()
-  const queued = () => page.evaluate(() => (JSON.parse(localStorage.getItem('oyl/write-outbox') ?? '[]') as unknown[]).length)
-  await expect.poll(queued, { timeout: 15_000 }).toBeGreaterThan(0)
-  // Nothing drains while offline (the flusher is offline-gated — no network attempt).
-  const before = await queued()
-  await page.waitForTimeout(1000)
-  expect(await queued()).toBe(before)
+  await addNote(page, 'Written in a tunnel')
+  // Optimistic UI: the entry renders immediately.
+  await expect(page.locator('oyl-entry-row')).toHaveCount(1)
+  // The write waits durably in the outbox (flusher is offline-gated, no network attempt).
+  const queued = await page.evaluate(() => (JSON.parse(localStorage.getItem('oyl/write-outbox') ?? '[]') as unknown[]).length)
+  expect(queued).toBeGreaterThan(0)
   await context.setOffline(false)
-  // Reconnect: the connectivity subscription flushes; everything lands on the server.
-  await awaitOutboxDrained(page, 120_000)
+  await awaitOutboxDrained(page)
   await page.reload()
-  await expect(page.locator('oyl-status dt:text-is("notes") + dd')).not.toHaveText('0')
+  await expect(page.locator('oyl-entry-row')).toHaveCount(1)
+  expect(await deepText(page.locator('oyl-entry-row'))).toContain('Written in a tunnel')
 })

@@ -1,0 +1,4 @@
+:host { display: block; }
+.screen { display: grid; gap: var(--space-4); }
+ol { list-style: none; margin: 0; padding: 0; }
+.empty { text-align: center; color: var(--color-muted); padding: var(--space-8) var(--space-4); }

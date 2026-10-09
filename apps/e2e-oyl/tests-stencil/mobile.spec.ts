@@ -3,6 +3,7 @@
  * the ≤640px fixed bottom tab bar, reserved page padding, no horizontal overflow, tap targets.
  */
 import { test, expect } from '../lib/fixtures'
+import { deepText } from './lib'
 
 test('nav docks as a fixed bottom tab bar on mobile (and stays in the header on desktop)', async ({ page, signIn, isMobile }) => {
   await signIn('/')
@@ -38,4 +39,15 @@ test('every nav tab is reachable and tappable with a ≥44px target on mobile', 
   }
   await tabs.filter({ hasText: 'Vault' }).tap()
   await expect(page).toHaveURL('/vault')
+})
+
+test('logging a journal note works with touch input', async ({ page, signIn, isMobile }) => {
+  test.skip(!isMobile, 'mobile only')
+  await signIn('/journal')
+  const form = page.locator('oyl-log-form')
+  await form.locator('ui-textarea[name="text"] textarea').tap()
+  await form.locator('ui-textarea[name="text"] textarea').fill('Tapped in')
+  await form.locator('ui-button[type="submit"] button').tap()
+  await expect(page.locator('oyl-entry-row')).toHaveCount(1)
+  expect(await deepText(page.locator('oyl-entry-row'))).toContain('Tapped in')
 })

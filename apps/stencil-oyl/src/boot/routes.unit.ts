@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { navRoutesCovered } from './routes.js'
 
 describe('routes', () => {
-  it('names every nav item (status + the seven placeholders) plus the auth pages', () => {
+  it('names every nav item (journal, planner, status + the placeholders) plus the auth pages', () => {
     const keys = ['status', 'login', 'register', 'journal', 'planner', 'nutrition', 'finance', 'goals', 'vault', 'insights', 'profile']
     const routes = Object.fromEntries(keys.map((k) => [k, () => document.createElement('div')]))
     expect(navRoutesCovered(routes)).toEqual([])

@@ -74,6 +74,31 @@
       </section>
 
       <section>
+        <h2>ui-textarea</h2>
+        <div class="stack" style="max-inline-size: 24rem">
+          <ui-textarea label="What happened?" name="text" placeholder="A line about your day…" hint="⌘/Ctrl+Enter logs it"></ui-textarea>
+          <ui-textarea label="Note" name="note2" value="Morning run, easy pace along the river." error="Keep it under 500 characters"></ui-textarea>
+        </div>
+      </section>
+
+      <section>
+        <h2>ui-segment</h2>
+        <div class="row">
+          <ui-segment id="seg-demo" name="type" label="Entry type" value="note"></ui-segment>
+          <ui-segment id="seg-demo-2" name="range" label="Range" value="week"></ui-segment>
+        </div>
+      </section>
+
+      <section>
+        <h2>ui-checkbox</h2>
+        <div class="row">
+          <ui-checkbox label="Repeat" name="repeat"></ui-checkbox>
+          <ui-checkbox label="Checked" name="c2" checked></ui-checkbox>
+          <ui-checkbox label="Disabled" name="c3" disabled></ui-checkbox>
+        </div>
+      </section>
+
+      <section>
         <h2>ui-card</h2>
         <div class="stack">
           <ui-card heading="Connection">
@@ -142,6 +167,8 @@
         { name: 'finance', href: '/finance', label: 'Finance', icon: 'finance' },
         { name: 'status', href: '/status', label: 'Status', icon: 'status' },
       ]
+      document.getElementById('seg-demo').options = [{ value: 'note', label: 'Note' }, { value: 'measurement', label: 'Measurement' }]
+      document.getElementById('seg-demo-2').options = [{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }]
       document.getElementById('nav-top').items = items
       document.getElementById('nav-bottom').items = items
       document.addEventListener('click', (e) => { const a = e.composedPath().find((n) => n.tagName === 'A'); if (a && a.getAttribute('href')?.startsWith('/')) e.preventDefault() })

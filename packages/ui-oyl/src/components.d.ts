@@ -10,11 +10,13 @@ import { FieldType } from "./components/ui-field/ui-field";
 import { IconName } from "./components/ui-icon/icons.js";
 import { NavItem } from "./components/ui-nav/ui-nav";
 import { NoticeTone } from "./components/ui-notice/ui-notice";
+import { SegmentOption } from "./components/ui-segment/ui-segment";
 export { ButtonVariant } from "./components/ui-button/ui-button";
 export { FieldType } from "./components/ui-field/ui-field";
 export { IconName } from "./components/ui-icon/icons.js";
 export { NavItem } from "./components/ui-nav/ui-nav";
 export { NoticeTone } from "./components/ui-notice/ui-notice";
+export { SegmentOption } from "./components/ui-segment/ui-segment";
 export namespace Components {
     /**
      * The library's one clickable control: a button, or a link when `href` is set.
@@ -57,11 +59,39 @@ export namespace Components {
         "padding": 'md' | 'none';
     }
     /**
+     * A labeled checkbox. Form-associated: a native light-DOM `<form>` sees `value`
+     * (default `"on"`) while checked and nothing while unchecked, like a native checkbox.
+     */
+    interface UiCheckbox {
+        /**
+          * @default false
+         */
+        "checked": boolean;
+        /**
+          * @default false
+         */
+        "disabled": boolean;
+        "label": string;
+        /**
+          * Reflected: attribute-shaped, like a native control's name.
+         */
+        "name": string;
+        /**
+          * The form value submitted while checked.
+          * @default 'on'
+         */
+        "value": string;
+    }
+    /**
      * Label + input + hint/error in one shadow root, with the aria wiring done. Form-associated,
      * so a native light-DOM `<form>` sees its value (`FormData`, submit).
      */
     interface UiField {
         "autocomplete"?: string;
+        /**
+          * @default false
+         */
+        "disabled": boolean;
         /**
           * Validation message; sets `aria-invalid` and replaces the hint.
          */
@@ -141,6 +171,58 @@ export namespace Components {
          */
         "tone": NoticeTone;
     }
+    /**
+     * A segmented control: a small set of mutually exclusive choices as a radiogroup with
+     * roving tabindex and arrow-key selection. Options render as native buttons carrying
+     * `data-value` (the e2e selector).
+     */
+    interface UiSegment {
+        /**
+          * Accessible name of the group.
+         */
+        "label": string;
+        "name"?: string;
+        /**
+          * @default []
+         */
+        "options": SegmentOption[];
+        /**
+          * @default ''
+         */
+        "value": string;
+    }
+    /**
+     * Multiline sibling of ui-field: label + textarea + hint/error with the aria wiring done,
+     * form-associated, auto-growing. ⌘/Ctrl+Enter emits `uiSubmit` so a host form can submit.
+     */
+    interface UiTextarea {
+        /**
+          * @default true
+         */
+        "autogrow": boolean;
+        "error"?: string;
+        "hint"?: string;
+        "label": string;
+        "name": string;
+        "placeholder"?: string;
+        /**
+          * @default false
+         */
+        "required": boolean;
+        /**
+          * Minimum visible rows; the box grows with content when `autogrow` is on.
+          * @default 2
+         */
+        "rows": number;
+        /**
+          * @default ''
+         */
+        "value": string;
+    }
+}
+export interface UiCheckboxCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLUiCheckboxElement;
 }
 export interface UiFieldCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -149,6 +231,14 @@ export interface UiFieldCustomEvent<T> extends CustomEvent<T> {
 export interface UiNoticeCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLUiNoticeElement;
+}
+export interface UiSegmentCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLUiSegmentElement;
+}
+export interface UiTextareaCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLUiTextareaElement;
 }
 declare global {
     /**
@@ -171,6 +261,27 @@ declare global {
     var HTMLUiCardElement: {
         prototype: HTMLUiCardElement;
         new (): HTMLUiCardElement;
+    };
+    interface HTMLUiCheckboxElementEventMap {
+        "uiChange": { checked: boolean };
+    }
+    /**
+     * A labeled checkbox. Form-associated: a native light-DOM `<form>` sees `value`
+     * (default `"on"`) while checked and nothing while unchecked, like a native checkbox.
+     */
+    interface HTMLUiCheckboxElement extends Components.UiCheckbox, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLUiCheckboxElementEventMap>(type: K, listener: (this: HTMLUiCheckboxElement, ev: UiCheckboxCustomEvent<HTMLUiCheckboxElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLUiCheckboxElementEventMap>(type: K, listener: (this: HTMLUiCheckboxElement, ev: UiCheckboxCustomEvent<HTMLUiCheckboxElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLUiCheckboxElement: {
+        prototype: HTMLUiCheckboxElement;
+        new (): HTMLUiCheckboxElement;
     };
     interface HTMLUiFieldElementEventMap {
         "uiInput": { value: string };
@@ -236,13 +347,61 @@ declare global {
         prototype: HTMLUiNoticeElement;
         new (): HTMLUiNoticeElement;
     };
+    interface HTMLUiSegmentElementEventMap {
+        "uiChange": { value: string };
+    }
+    /**
+     * A segmented control: a small set of mutually exclusive choices as a radiogroup with
+     * roving tabindex and arrow-key selection. Options render as native buttons carrying
+     * `data-value` (the e2e selector).
+     */
+    interface HTMLUiSegmentElement extends Components.UiSegment, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLUiSegmentElementEventMap>(type: K, listener: (this: HTMLUiSegmentElement, ev: UiSegmentCustomEvent<HTMLUiSegmentElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLUiSegmentElementEventMap>(type: K, listener: (this: HTMLUiSegmentElement, ev: UiSegmentCustomEvent<HTMLUiSegmentElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLUiSegmentElement: {
+        prototype: HTMLUiSegmentElement;
+        new (): HTMLUiSegmentElement;
+    };
+    interface HTMLUiTextareaElementEventMap {
+        "uiInput": { value: string };
+        "uiChange": { value: string };
+        "uiSubmit": void;
+    }
+    /**
+     * Multiline sibling of ui-field: label + textarea + hint/error with the aria wiring done,
+     * form-associated, auto-growing. ⌘/Ctrl+Enter emits `uiSubmit` so a host form can submit.
+     */
+    interface HTMLUiTextareaElement extends Components.UiTextarea, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLUiTextareaElementEventMap>(type: K, listener: (this: HTMLUiTextareaElement, ev: UiTextareaCustomEvent<HTMLUiTextareaElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLUiTextareaElementEventMap>(type: K, listener: (this: HTMLUiTextareaElement, ev: UiTextareaCustomEvent<HTMLUiTextareaElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLUiTextareaElement: {
+        prototype: HTMLUiTextareaElement;
+        new (): HTMLUiTextareaElement;
+    };
     interface HTMLElementTagNameMap {
         "ui-button": HTMLUiButtonElement;
         "ui-card": HTMLUiCardElement;
+        "ui-checkbox": HTMLUiCheckboxElement;
         "ui-field": HTMLUiFieldElement;
         "ui-icon": HTMLUiIconElement;
         "ui-nav": HTMLUiNavElement;
         "ui-notice": HTMLUiNoticeElement;
+        "ui-segment": HTMLUiSegmentElement;
+        "ui-textarea": HTMLUiTextareaElement;
     }
 }
 declare namespace LocalJSX {
@@ -297,13 +456,45 @@ declare namespace LocalJSX {
         "padding"?: 'md' | 'none';
     }
     /**
+     * A labeled checkbox. Form-associated: a native light-DOM `<form>` sees `value`
+     * (default `"on"`) while checked and nothing while unchecked, like a native checkbox.
+     */
+    interface UiCheckbox {
+        /**
+          * @default false
+         */
+        "checked"?: boolean;
+        /**
+          * @default false
+         */
+        "disabled"?: boolean;
+        /**
+          * The `id` of a `<form>` element to associate this element with.
+         */
+        "form"?: string;
+        "label": string;
+        /**
+          * Reflected: attribute-shaped, like a native control's name.
+         */
+        "name": string;
+        /**
+          * Fires on every toggle with `{ checked }` (composed); the inner input's `change` is stopped.
+         */
+        "onUiChange"?: (event: UiCheckboxCustomEvent<{ checked: boolean }>) => void;
+        /**
+          * The form value submitted while checked.
+          * @default 'on'
+         */
+        "value"?: string;
+    }
+    /**
      * Label + input + hint/error in one shadow root, with the aria wiring done. Form-associated,
      * so a native light-DOM `<form>` sees its value (`FormData`, submit).
      */
     interface UiField {
         "autocomplete"?: string;
         /**
-          * If `true`, the user cannot interact with the element.
+          * @default false
          */
         "disabled"?: boolean;
         /**
@@ -401,6 +592,72 @@ declare namespace LocalJSX {
          */
         "tone"?: NoticeTone;
     }
+    /**
+     * A segmented control: a small set of mutually exclusive choices as a radiogroup with
+     * roving tabindex and arrow-key selection. Options render as native buttons carrying
+     * `data-value` (the e2e selector).
+     */
+    interface UiSegment {
+        /**
+          * Accessible name of the group.
+         */
+        "label": string;
+        "name"?: string;
+        "onUiChange"?: (event: UiSegmentCustomEvent<{ value: string }>) => void;
+        /**
+          * @default []
+         */
+        "options"?: SegmentOption[];
+        /**
+          * @default ''
+         */
+        "value"?: string;
+    }
+    /**
+     * Multiline sibling of ui-field: label + textarea + hint/error with the aria wiring done,
+     * form-associated, auto-growing. ⌘/Ctrl+Enter emits `uiSubmit` so a host form can submit.
+     */
+    interface UiTextarea {
+        /**
+          * @default true
+         */
+        "autogrow"?: boolean;
+        /**
+          * If `true`, the user cannot interact with the element.
+         */
+        "disabled"?: boolean;
+        "error"?: string;
+        /**
+          * The `id` of a `<form>` element to associate this element with.
+         */
+        "form"?: string;
+        "hint"?: string;
+        "label": string;
+        "name": string;
+        "onUiChange"?: (event: UiTextareaCustomEvent<{ value: string }>) => void;
+        /**
+          * Every keystroke, `{ value }` (composed). The native input/change events stop at the shadow boundary.
+         */
+        "onUiInput"?: (event: UiTextareaCustomEvent<{ value: string }>) => void;
+        /**
+          * ⌘/Ctrl+Enter inside the textarea — the host form's submit shortcut.
+         */
+        "onUiSubmit"?: (event: UiTextareaCustomEvent<void>) => void;
+        "placeholder"?: string;
+        /**
+          * @default false
+         */
+        "required"?: boolean;
+        /**
+          * Minimum visible rows; the box grows with content when `autogrow` is on.
+          * @default 2
+         */
+        "rows"?: number;
+        /**
+          * @default ''
+         */
+        "value"?: string;
+    }
 
     interface UiButtonAttributes {
         "variant": ButtonVariant;
@@ -412,12 +669,20 @@ declare namespace LocalJSX {
         "heading": string;
         "padding": 'md' | 'none';
     }
+    interface UiCheckboxAttributes {
+        "label": string;
+        "name": string;
+        "checked": boolean;
+        "disabled": boolean;
+        "value": string;
+    }
     interface UiFieldAttributes {
         "label": string;
         "name": string;
         "type": FieldType;
         "value": string;
         "required": boolean;
+        "disabled": boolean;
         "autocomplete": string;
         "hint": string;
         "error": string;
@@ -435,14 +700,33 @@ declare namespace LocalJSX {
         "tone": NoticeTone;
         "dismissible": boolean;
     }
+    interface UiSegmentAttributes {
+        "name": string;
+        "label": string;
+        "value": string;
+    }
+    interface UiTextareaAttributes {
+        "label": string;
+        "name": string;
+        "value": string;
+        "placeholder": string;
+        "required": boolean;
+        "rows": number;
+        "autogrow": boolean;
+        "hint": string;
+        "error": string;
+    }
 
     interface IntrinsicElements {
         "ui-button": Omit<UiButton, keyof UiButtonAttributes> & { [K in keyof UiButton & keyof UiButtonAttributes]?: UiButton[K] } & { [K in keyof UiButton & keyof UiButtonAttributes as `attr:${K}`]?: UiButtonAttributes[K] } & { [K in keyof UiButton & keyof UiButtonAttributes as `prop:${K}`]?: UiButton[K] };
         "ui-card": Omit<UiCard, keyof UiCardAttributes> & { [K in keyof UiCard & keyof UiCardAttributes]?: UiCard[K] } & { [K in keyof UiCard & keyof UiCardAttributes as `attr:${K}`]?: UiCardAttributes[K] } & { [K in keyof UiCard & keyof UiCardAttributes as `prop:${K}`]?: UiCard[K] };
+        "ui-checkbox": Omit<UiCheckbox, keyof UiCheckboxAttributes> & { [K in keyof UiCheckbox & keyof UiCheckboxAttributes]?: UiCheckbox[K] } & { [K in keyof UiCheckbox & keyof UiCheckboxAttributes as `attr:${K}`]?: UiCheckboxAttributes[K] } & { [K in keyof UiCheckbox & keyof UiCheckboxAttributes as `prop:${K}`]?: UiCheckbox[K] } & OneOf<"label", UiCheckbox["label"], UiCheckboxAttributes["label"]> & OneOf<"name", UiCheckbox["name"], UiCheckboxAttributes["name"]>;
         "ui-field": Omit<UiField, keyof UiFieldAttributes> & { [K in keyof UiField & keyof UiFieldAttributes]?: UiField[K] } & { [K in keyof UiField & keyof UiFieldAttributes as `attr:${K}`]?: UiFieldAttributes[K] } & { [K in keyof UiField & keyof UiFieldAttributes as `prop:${K}`]?: UiField[K] } & OneOf<"label", UiField["label"], UiFieldAttributes["label"]> & OneOf<"name", UiField["name"], UiFieldAttributes["name"]>;
         "ui-icon": Omit<UiIcon, keyof UiIconAttributes> & { [K in keyof UiIcon & keyof UiIconAttributes]?: UiIcon[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `attr:${K}`]?: UiIconAttributes[K] } & { [K in keyof UiIcon & keyof UiIconAttributes as `prop:${K}`]?: UiIcon[K] } & OneOf<"name", UiIcon["name"], UiIconAttributes["name"]>;
         "ui-nav": Omit<UiNav, keyof UiNavAttributes> & { [K in keyof UiNav & keyof UiNavAttributes]?: UiNav[K] } & { [K in keyof UiNav & keyof UiNavAttributes as `attr:${K}`]?: UiNavAttributes[K] } & { [K in keyof UiNav & keyof UiNavAttributes as `prop:${K}`]?: UiNav[K] };
         "ui-notice": Omit<UiNotice, keyof UiNoticeAttributes> & { [K in keyof UiNotice & keyof UiNoticeAttributes]?: UiNotice[K] } & { [K in keyof UiNotice & keyof UiNoticeAttributes as `attr:${K}`]?: UiNoticeAttributes[K] } & { [K in keyof UiNotice & keyof UiNoticeAttributes as `prop:${K}`]?: UiNotice[K] };
+        "ui-segment": Omit<UiSegment, keyof UiSegmentAttributes> & { [K in keyof UiSegment & keyof UiSegmentAttributes]?: UiSegment[K] } & { [K in keyof UiSegment & keyof UiSegmentAttributes as `attr:${K}`]?: UiSegmentAttributes[K] } & { [K in keyof UiSegment & keyof UiSegmentAttributes as `prop:${K}`]?: UiSegment[K] } & OneOf<"label", UiSegment["label"], UiSegmentAttributes["label"]>;
+        "ui-textarea": Omit<UiTextarea, keyof UiTextareaAttributes> & { [K in keyof UiTextarea & keyof UiTextareaAttributes]?: UiTextarea[K] } & { [K in keyof UiTextarea & keyof UiTextareaAttributes as `attr:${K}`]?: UiTextareaAttributes[K] } & { [K in keyof UiTextarea & keyof UiTextareaAttributes as `prop:${K}`]?: UiTextarea[K] } & OneOf<"label", UiTextarea["label"], UiTextareaAttributes["label"]> & OneOf<"name", UiTextarea["name"], UiTextareaAttributes["name"]>;
     }
 }
 export { LocalJSX as JSX };
@@ -460,6 +744,11 @@ declare module "@stencil/core" {
              * the `heading` prop; the `footer` region appears only when the `footer` slot is filled.
              */
             "ui-card": LocalJSX.IntrinsicElements["ui-card"] & JSXBase.HTMLAttributes<HTMLUiCardElement>;
+            /**
+             * A labeled checkbox. Form-associated: a native light-DOM `<form>` sees `value`
+             * (default `"on"`) while checked and nothing while unchecked, like a native checkbox.
+             */
+            "ui-checkbox": LocalJSX.IntrinsicElements["ui-checkbox"] & JSXBase.HTMLAttributes<HTMLUiCheckboxElement>;
             /**
              * Label + input + hint/error in one shadow root, with the aria wiring done. Form-associated,
              * so a native light-DOM `<form>` sees its value (`FormData`, submit).
@@ -481,6 +770,17 @@ declare module "@stencil/core" {
              * `danger` is announced assertively (`role="alert"`); the other tones are polite.
              */
             "ui-notice": LocalJSX.IntrinsicElements["ui-notice"] & JSXBase.HTMLAttributes<HTMLUiNoticeElement>;
+            /**
+             * A segmented control: a small set of mutually exclusive choices as a radiogroup with
+             * roving tabindex and arrow-key selection. Options render as native buttons carrying
+             * `data-value` (the e2e selector).
+             */
+            "ui-segment": LocalJSX.IntrinsicElements["ui-segment"] & JSXBase.HTMLAttributes<HTMLUiSegmentElement>;
+            /**
+             * Multiline sibling of ui-field: label + textarea + hint/error with the aria wiring done,
+             * form-associated, auto-growing. ⌘/Ctrl+Enter emits `uiSubmit` so a host form can submit.
+             */
+            "ui-textarea": LocalJSX.IntrinsicElements["ui-textarea"] & JSXBase.HTMLAttributes<HTMLUiTextareaElement>;
         }
     }
 }
