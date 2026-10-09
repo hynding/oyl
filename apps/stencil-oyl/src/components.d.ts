@@ -16,6 +16,7 @@ import { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 import { DocumentsWriter } from "./components/oyl-document-form/oyl-document-form";
 import { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
 import { GiftIdeasWriter } from "./components/oyl-gift-idea-form/oyl-gift-idea-form";
+import { GoalsWriter } from "./components/oyl-goal-form/oyl-goal-form";
 import { RowAction, ValueTone } from "./components/oyl-item-row/oyl-item-row";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
@@ -46,6 +47,7 @@ export { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 export { DocumentsWriter } from "./components/oyl-document-form/oyl-document-form";
 export { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
 export { GiftIdeasWriter } from "./components/oyl-gift-idea-form/oyl-gift-idea-form";
+export { GoalsWriter } from "./components/oyl-goal-form/oyl-goal-form";
 export { RowAction, ValueTone } from "./components/oyl-item-row/oyl-item-row";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
@@ -180,6 +182,15 @@ export namespace Components {
      */
     interface OylGiftIdeaForm {
         "store": GiftIdeasWriter;
+    }
+    /**
+     * Add a goal from a metric preset: the preset fixes metric/direction/aggregation and proposes
+     * a period and a unit hint; the user supplies the target, an optional name and may override
+     * the period. The form owns `presetIndex` and `period` (the `ui-select` rule), and re-derives
+     * the period from each newly chosen preset.
+     */
+    interface OylGoalForm {
+        "store": GoalsWriter;
     }
     /**
      * A generic list row: label + supporting lines | optional mono value | inline Delete →
@@ -521,6 +532,10 @@ export interface OylGiftIdeaFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylGiftIdeaFormElement;
 }
+export interface OylGoalFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylGoalFormElement;
+}
 export interface OylItemRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylItemRowElement;
@@ -805,6 +820,29 @@ declare global {
     var HTMLOylGiftIdeaFormElement: {
         prototype: HTMLOylGiftIdeaFormElement;
         new (): HTMLOylGiftIdeaFormElement;
+    };
+    interface HTMLOylGoalFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a goal from a metric preset: the preset fixes metric/direction/aggregation and proposes
+     * a period and a unit hint; the user supplies the target, an optional name and may override
+     * the period. The form owns `presetIndex` and `period` (the `ui-select` rule), and re-derives
+     * the period from each newly chosen preset.
+     */
+    interface HTMLOylGoalFormElement extends Components.OylGoalForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylGoalFormElementEventMap>(type: K, listener: (this: HTMLOylGoalFormElement, ev: OylGoalFormCustomEvent<HTMLOylGoalFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylGoalFormElementEventMap>(type: K, listener: (this: HTMLOylGoalFormElement, ev: OylGoalFormCustomEvent<HTMLOylGoalFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylGoalFormElement: {
+        prototype: HTMLOylGoalFormElement;
+        new (): HTMLOylGoalFormElement;
     };
     interface HTMLOylItemRowElementEventMap {
         "remove": string;
@@ -1216,6 +1254,7 @@ declare global {
         "oyl-entry-row": HTMLOylEntryRowElement;
         "oyl-finance": HTMLOylFinanceElement;
         "oyl-gift-idea-form": HTMLOylGiftIdeaFormElement;
+        "oyl-goal-form": HTMLOylGoalFormElement;
         "oyl-item-row": HTMLOylItemRowElement;
         "oyl-journal": HTMLOylJournalElement;
         "oyl-log-form": HTMLOylLogFormElement;
@@ -1392,6 +1431,19 @@ declare namespace LocalJSX {
          */
         "onAdded"?: (event: OylGiftIdeaFormCustomEvent<void>) => void;
         "store": GiftIdeasWriter;
+    }
+    /**
+     * Add a goal from a metric preset: the preset fixes metric/direction/aggregation and proposes
+     * a period and a unit hint; the user supplies the target, an optional name and may override
+     * the period. The form owns `presetIndex` and `period` (the `ui-select` rule), and re-derives
+     * the period from each newly chosen preset.
+     */
+    interface OylGoalForm {
+        /**
+          * A goal was added through the store.
+         */
+        "onAdded"?: (event: OylGoalFormCustomEvent<void>) => void;
+        "store": GoalsWriter;
     }
     /**
      * A generic list row: label + supporting lines | optional mono value | inline Delete →
@@ -1822,6 +1874,7 @@ declare namespace LocalJSX {
         "oyl-entry-row": OylEntryRow;
         "oyl-finance": Omit<OylFinance, keyof OylFinanceAttributes> & { [K in keyof OylFinance & keyof OylFinanceAttributes]?: OylFinance[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `attr:${K}`]?: OylFinanceAttributes[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `prop:${K}`]?: OylFinance[K] };
         "oyl-gift-idea-form": OylGiftIdeaForm;
+        "oyl-goal-form": OylGoalForm;
         "oyl-item-row": Omit<OylItemRow, keyof OylItemRowAttributes> & { [K in keyof OylItemRow & keyof OylItemRowAttributes]?: OylItemRow[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `attr:${K}`]?: OylItemRowAttributes[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `prop:${K}`]?: OylItemRow[K] } & OneOf<"itemId", OylItemRow["itemId"], OylItemRowAttributes["itemId"]> & OneOf<"label", OylItemRow["label"], OylItemRowAttributes["label"]>;
         "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
         "oyl-log-form": OylLogForm;
@@ -1914,6 +1967,13 @@ declare module "@stencil/core" {
              * present, else the first contact) because `ui-select` syncs its own value silently.
              */
             "oyl-gift-idea-form": LocalJSX.IntrinsicElements["oyl-gift-idea-form"] & JSXBase.HTMLAttributes<HTMLOylGiftIdeaFormElement>;
+            /**
+             * Add a goal from a metric preset: the preset fixes metric/direction/aggregation and proposes
+             * a period and a unit hint; the user supplies the target, an optional name and may override
+             * the period. The form owns `presetIndex` and `period` (the `ui-select` rule), and re-derives
+             * the period from each newly chosen preset.
+             */
+            "oyl-goal-form": LocalJSX.IntrinsicElements["oyl-goal-form"] & JSXBase.HTMLAttributes<HTMLOylGoalFormElement>;
             /**
              * A generic list row: label + supporting lines | optional mono value | inline Delete →
              * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
