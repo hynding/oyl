@@ -7,7 +7,7 @@ import type { App } from './types.js'
 
 /** Redesigned screens arrive one spec at a time; the rest show the placeholder. */
 const NOT_YET: Record<string, string> = {
-  nutrition: 'Nutrition', finance: 'Finance',
+  finance: 'Finance',
   goals: 'Goals', vault: 'Vault', insights: 'Insights', profile: 'Profile',
 }
 
@@ -49,6 +49,14 @@ export function buildRoutes(app: App, doc: Document): Routes {
     planner: () => {
       const el = doc.createElement('oyl-planner')
       el.store = app.dataState.planner
+      el.tz = app.tz
+      return el
+    },
+    nutrition: () => {
+      const el = doc.createElement('oyl-nutrition')
+      el.store = app.dataState.journal
+      el.consumables = app.dataState.consumables
+      el.consumableProducts = app.dataState.consumableProducts
       el.tz = app.tz
       return el
     },

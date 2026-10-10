@@ -36,9 +36,10 @@ export async function registerUser(request: APIRequestContext): Promise<TestUser
   const username = `e2e_${unique}`
   const email = `${username}@example.com`
   const password = 'e2e-Password-1'
-  const res = await request.post(`${API_URL}/auth/local/register`, {
-    data: { username, email, password },
-  })
+  const post = () => request.post(`${API_URL}/auth/local/register`, { data: { username, email, password } })
+  // Under load the backend occasionally resets a fresh connection before answering; the
+  // registration never happened, so one retry is safe (a second user is never created).
+  const res = await post().catch((err: unknown) => (String(err).includes('ECONNRESET') ? post() : Promise.reject(err)))
   expect(res.ok(), `register ${username}: ${res.status()} ${await res.text().catch(() => '')}`).toBe(true)
   const body = (await res.json()) as { jwt: string; user: { id: number } }
   return { username, email, password, jwt: body.jwt, id: body.user.id }

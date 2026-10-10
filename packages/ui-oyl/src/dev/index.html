@@ -90,6 +90,14 @@
       </section>
 
       <section>
+        <h2>ui-select</h2>
+        <div class="row" style="align-items: start">
+          <ui-select id="sel-demo" label="Consumable" name="consumable" hint="From your catalog"></ui-select>
+          <ui-select id="sel-demo-2" label="Unit" name="unit" value="weeks" disabled></ui-select>
+        </div>
+      </section>
+
+      <section>
         <h2>ui-checkbox</h2>
         <div class="row">
           <ui-checkbox label="Repeat" name="repeat"></ui-checkbox>
@@ -169,6 +177,8 @@
       ]
       document.getElementById('seg-demo').options = [{ value: 'note', label: 'Note' }, { value: 'measurement', label: 'Measurement' }]
       document.getElementById('seg-demo-2').options = [{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }]
+      document.getElementById('sel-demo').options = [{ value: 'oats', label: 'Oatmeal' }, { value: 'banana', label: 'Banana' }]
+      document.getElementById('sel-demo-2').options = [{ value: 'days', label: 'days' }, { value: 'weeks', label: 'weeks' }]
       document.getElementById('nav-top').items = items
       document.getElementById('nav-bottom').items = items
       document.addEventListener('click', (e) => { const a = e.composedPath().find((n) => n.tagName === 'A'); if (a && a.getAttribute('href')?.startsWith('/')) e.preventDefault() })

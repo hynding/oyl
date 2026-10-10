@@ -11,12 +11,14 @@ import { IconName } from "./components/ui-icon/icons.js";
 import { NavItem } from "./components/ui-nav/ui-nav";
 import { NoticeTone } from "./components/ui-notice/ui-notice";
 import { SegmentOption } from "./components/ui-segment/ui-segment";
+import { SelectOption } from "./components/ui-select/ui-select";
 export { ButtonVariant } from "./components/ui-button/ui-button";
 export { FieldType } from "./components/ui-field/ui-field";
 export { IconName } from "./components/ui-icon/icons.js";
 export { NavItem } from "./components/ui-nav/ui-nav";
 export { NoticeTone } from "./components/ui-notice/ui-notice";
 export { SegmentOption } from "./components/ui-segment/ui-segment";
+export { SelectOption } from "./components/ui-select/ui-select";
 export namespace Components {
     /**
      * The library's one clickable control: a button, or a link when `href` is set.
@@ -192,6 +194,38 @@ export namespace Components {
         "value": string;
     }
     /**
+     * Label + native `<select>` + hint/error, the same anatomy and aria wiring as `ui-field`.
+     * Form-associated. When `options` change under the current `value`, the value is synced to
+     * the first option (or `''`) WITHOUT emitting `uiChange` — a sync, not a user choice.
+     */
+    interface UiSelect {
+        /**
+          * @default false
+         */
+        "disabled": boolean;
+        /**
+          * Validation message; sets `aria-invalid` and replaces the hint.
+         */
+        "error"?: string;
+        /**
+          * Supporting copy under the select; hidden while `error` is set.
+         */
+        "hint"?: string;
+        "label": string;
+        /**
+          * Reflected: attribute-shaped, like a native control's name.
+         */
+        "name": string;
+        /**
+          * @default []
+         */
+        "options": readonly SelectOption[];
+        /**
+          * @default ''
+         */
+        "value": string;
+    }
+    /**
      * Multiline sibling of ui-field: label + textarea + hint/error with the aria wiring done,
      * form-associated, auto-growing. ⌘/Ctrl+Enter emits `uiSubmit` so a host form can submit.
      */
@@ -235,6 +269,10 @@ export interface UiNoticeCustomEvent<T> extends CustomEvent<T> {
 export interface UiSegmentCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLUiSegmentElement;
+}
+export interface UiSelectCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLUiSelectElement;
 }
 export interface UiTextareaCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -369,6 +407,28 @@ declare global {
         prototype: HTMLUiSegmentElement;
         new (): HTMLUiSegmentElement;
     };
+    interface HTMLUiSelectElementEventMap {
+        "uiChange": { value: string };
+    }
+    /**
+     * Label + native `<select>` + hint/error, the same anatomy and aria wiring as `ui-field`.
+     * Form-associated. When `options` change under the current `value`, the value is synced to
+     * the first option (or `''`) WITHOUT emitting `uiChange` — a sync, not a user choice.
+     */
+    interface HTMLUiSelectElement extends Components.UiSelect, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLUiSelectElementEventMap>(type: K, listener: (this: HTMLUiSelectElement, ev: UiSelectCustomEvent<HTMLUiSelectElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLUiSelectElementEventMap>(type: K, listener: (this: HTMLUiSelectElement, ev: UiSelectCustomEvent<HTMLUiSelectElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLUiSelectElement: {
+        prototype: HTMLUiSelectElement;
+        new (): HTMLUiSelectElement;
+    };
     interface HTMLUiTextareaElementEventMap {
         "uiInput": { value: string };
         "uiChange": { value: string };
@@ -401,6 +461,7 @@ declare global {
         "ui-nav": HTMLUiNavElement;
         "ui-notice": HTMLUiNoticeElement;
         "ui-segment": HTMLUiSegmentElement;
+        "ui-select": HTMLUiSelectElement;
         "ui-textarea": HTMLUiTextareaElement;
     }
 }
@@ -614,6 +675,46 @@ declare namespace LocalJSX {
         "value"?: string;
     }
     /**
+     * Label + native `<select>` + hint/error, the same anatomy and aria wiring as `ui-field`.
+     * Form-associated. When `options` change under the current `value`, the value is synced to
+     * the first option (or `''`) WITHOUT emitting `uiChange` — a sync, not a user choice.
+     */
+    interface UiSelect {
+        /**
+          * @default false
+         */
+        "disabled"?: boolean;
+        /**
+          * Validation message; sets `aria-invalid` and replaces the hint.
+         */
+        "error"?: string;
+        /**
+          * The `id` of a `<form>` element to associate this element with.
+         */
+        "form"?: string;
+        /**
+          * Supporting copy under the select; hidden while `error` is set.
+         */
+        "hint"?: string;
+        "label": string;
+        /**
+          * Reflected: attribute-shaped, like a native control's name.
+         */
+        "name": string;
+        /**
+          * Fires when the user picks an option, with `{ value }` (composed); the inner `change` is stopped.
+         */
+        "onUiChange"?: (event: UiSelectCustomEvent<{ value: string }>) => void;
+        /**
+          * @default []
+         */
+        "options"?: readonly SelectOption[];
+        /**
+          * @default ''
+         */
+        "value"?: string;
+    }
+    /**
      * Multiline sibling of ui-field: label + textarea + hint/error with the aria wiring done,
      * form-associated, auto-growing. ⌘/Ctrl+Enter emits `uiSubmit` so a host form can submit.
      */
@@ -705,6 +806,14 @@ declare namespace LocalJSX {
         "label": string;
         "value": string;
     }
+    interface UiSelectAttributes {
+        "label": string;
+        "name": string;
+        "value": string;
+        "disabled": boolean;
+        "hint": string;
+        "error": string;
+    }
     interface UiTextareaAttributes {
         "label": string;
         "name": string;
@@ -726,6 +835,7 @@ declare namespace LocalJSX {
         "ui-nav": Omit<UiNav, keyof UiNavAttributes> & { [K in keyof UiNav & keyof UiNavAttributes]?: UiNav[K] } & { [K in keyof UiNav & keyof UiNavAttributes as `attr:${K}`]?: UiNavAttributes[K] } & { [K in keyof UiNav & keyof UiNavAttributes as `prop:${K}`]?: UiNav[K] };
         "ui-notice": Omit<UiNotice, keyof UiNoticeAttributes> & { [K in keyof UiNotice & keyof UiNoticeAttributes]?: UiNotice[K] } & { [K in keyof UiNotice & keyof UiNoticeAttributes as `attr:${K}`]?: UiNoticeAttributes[K] } & { [K in keyof UiNotice & keyof UiNoticeAttributes as `prop:${K}`]?: UiNotice[K] };
         "ui-segment": Omit<UiSegment, keyof UiSegmentAttributes> & { [K in keyof UiSegment & keyof UiSegmentAttributes]?: UiSegment[K] } & { [K in keyof UiSegment & keyof UiSegmentAttributes as `attr:${K}`]?: UiSegmentAttributes[K] } & { [K in keyof UiSegment & keyof UiSegmentAttributes as `prop:${K}`]?: UiSegment[K] } & OneOf<"label", UiSegment["label"], UiSegmentAttributes["label"]>;
+        "ui-select": Omit<UiSelect, keyof UiSelectAttributes> & { [K in keyof UiSelect & keyof UiSelectAttributes]?: UiSelect[K] } & { [K in keyof UiSelect & keyof UiSelectAttributes as `attr:${K}`]?: UiSelectAttributes[K] } & { [K in keyof UiSelect & keyof UiSelectAttributes as `prop:${K}`]?: UiSelect[K] } & OneOf<"label", UiSelect["label"], UiSelectAttributes["label"]> & OneOf<"name", UiSelect["name"], UiSelectAttributes["name"]>;
         "ui-textarea": Omit<UiTextarea, keyof UiTextareaAttributes> & { [K in keyof UiTextarea & keyof UiTextareaAttributes]?: UiTextarea[K] } & { [K in keyof UiTextarea & keyof UiTextareaAttributes as `attr:${K}`]?: UiTextareaAttributes[K] } & { [K in keyof UiTextarea & keyof UiTextareaAttributes as `prop:${K}`]?: UiTextarea[K] } & OneOf<"label", UiTextarea["label"], UiTextareaAttributes["label"]> & OneOf<"name", UiTextarea["name"], UiTextareaAttributes["name"]>;
     }
 }
@@ -776,6 +886,12 @@ declare module "@stencil/core" {
              * `data-value` (the e2e selector).
              */
             "ui-segment": LocalJSX.IntrinsicElements["ui-segment"] & JSXBase.HTMLAttributes<HTMLUiSegmentElement>;
+            /**
+             * Label + native `<select>` + hint/error, the same anatomy and aria wiring as `ui-field`.
+             * Form-associated. When `options` change under the current `value`, the value is synced to
+             * the first option (or `''`) WITHOUT emitting `uiChange` — a sync, not a user choice.
+             */
+            "ui-select": LocalJSX.IntrinsicElements["ui-select"] & JSXBase.HTMLAttributes<HTMLUiSelectElement>;
             /**
              * Multiline sibling of ui-field: label + textarea + hint/error with the aria wiring done,
              * form-associated, auto-growing. ⌘/Ctrl+Enter emits `uiSubmit` so a host form can submit.

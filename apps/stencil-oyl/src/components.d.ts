@@ -8,10 +8,14 @@ import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { Signal } from "@oyl/all-of-oyl/client";
 import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
-import { DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+import { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
+import { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
+import { ConsumableProductsReader, ConsumablesReader, MealWriter } from "./components/oyl-meal-form/oyl-meal-form";
+import { ConsumablesStore, NutritionReader } from "./components/oyl-nutrition/oyl-nutrition";
+import { ConsumableProductsReader as ConsumableProductsReader1 } from "./components/oyl-meal-form/oyl-meal-form.js";
 import { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
 import { PlannerReader } from "./components/oyl-planner/oyl-planner";
 import { Routes } from "./components/oyl-router/oyl-router";
@@ -21,10 +25,14 @@ import { ThemeState } from "./boot/theme.js";
 export { Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
-export { DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+export { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
+export { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
+export { ConsumableProductsReader, ConsumablesReader, MealWriter } from "./components/oyl-meal-form/oyl-meal-form";
+export { ConsumablesStore, NutritionReader } from "./components/oyl-nutrition/oyl-nutrition";
+export { ConsumableProductsReader as ConsumableProductsReader1 } from "./components/oyl-meal-form/oyl-meal-form.js";
 export { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
 export { PlannerReader } from "./components/oyl-planner/oyl-planner";
 export { Routes } from "./components/oyl-router/oyl-router";
@@ -65,6 +73,12 @@ export namespace Components {
           * @default 'login'
          */
         "mode": 'login' | 'register';
+    }
+    /**
+     * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
+     */
+    interface OylConsumableForm {
+        "store": ConsumablesWriter;
     }
     /**
      * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
@@ -123,6 +137,30 @@ export namespace Components {
         "auth": AuthApi1;
         "googleAuth"?: Signal<{ href: string } | null>;
     }
+    /**
+     * The meal composer: log from the shared catalog (optionally a specific product) or an
+     * ad-hoc meal with its own nutrients; servings and a `when` prefilled to the shown day.
+     * Builds the Consumption exactly as vanilla does (product → effective facts, catalog →
+     * snapshot, ad-hoc → given nutrients). Native <form> over form-associated primitives.
+     */
+    interface OylMealForm {
+        "consumableProducts"?: ConsumableProductsReader;
+        "consumables": ConsumablesReader;
+        /**
+          * The day new meals default to (the screen's shown day).
+         */
+        "day": DayKey;
+        "store": MealWriter;
+    }
+    /**
+     * One logged meal: label + meta | inline Delete → Yes/No (native buttons, the shared
+     * confirm cluster, so the e2e `inlineConfirm` helper applies). The screen resolves the
+     * label (catalog name / note / "Meal" + servings) because only it sees the catalog.
+     */
+    interface OylMealRow {
+        "consumption": Consumption;
+        "label": string;
+    }
     interface OylNav {
         /**
           * @default 'top'
@@ -151,6 +189,20 @@ export namespace Components {
      */
     interface OylNoticeHost {
         "notice": Signal<string | null>;
+    }
+    /**
+     * The day-scoped nutrition screen: `oyl-day-nav` (dots on days with meals), five totals
+     * tiles, the meal composer, the day's meals newest first, and the shared consumables
+     * catalog with a collapsed add form. Same lists and totals as vanilla's screen.
+     */
+    interface OylNutrition {
+        "consumableProducts"?: ConsumableProductsReader1;
+        "consumables": ConsumablesStore;
+        "store": NutritionReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
     }
     /**
      * The planner composer: a task (title, due, optional repeat) or an appointment (title,
@@ -260,6 +312,10 @@ export interface OylAuthFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylAuthFormElement;
 }
+export interface OylConsumableFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylConsumableFormElement;
+}
 export interface OylDayNavCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylDayNavElement;
@@ -275,6 +331,14 @@ export interface OylLogFormCustomEvent<T> extends CustomEvent<T> {
 export interface OylLoginCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylLoginElement;
+}
+export interface OylMealFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylMealFormElement;
+}
+export interface OylMealRowCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylMealRowElement;
 }
 export interface OylNoticeHostCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -345,6 +409,26 @@ declare global {
     var HTMLOylAuthFormElement: {
         prototype: HTMLOylAuthFormElement;
         new (): HTMLOylAuthFormElement;
+    };
+    interface HTMLOylConsumableFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
+     */
+    interface HTMLOylConsumableFormElement extends Components.OylConsumableForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylConsumableFormElementEventMap>(type: K, listener: (this: HTMLOylConsumableFormElement, ev: OylConsumableFormCustomEvent<HTMLOylConsumableFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylConsumableFormElementEventMap>(type: K, listener: (this: HTMLOylConsumableFormElement, ev: OylConsumableFormCustomEvent<HTMLOylConsumableFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylConsumableFormElement: {
+        prototype: HTMLOylConsumableFormElement;
+        new (): HTMLOylConsumableFormElement;
     };
     interface HTMLOylDayNavElementEventMap {
         "dayChange": DayKey;
@@ -442,6 +526,51 @@ declare global {
         prototype: HTMLOylLoginElement;
         new (): HTMLOylLoginElement;
     };
+    interface HTMLOylMealFormElementEventMap {
+        "logged": void;
+    }
+    /**
+     * The meal composer: log from the shared catalog (optionally a specific product) or an
+     * ad-hoc meal with its own nutrients; servings and a `when` prefilled to the shown day.
+     * Builds the Consumption exactly as vanilla does (product → effective facts, catalog →
+     * snapshot, ad-hoc → given nutrients). Native <form> over form-associated primitives.
+     */
+    interface HTMLOylMealFormElement extends Components.OylMealForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylMealFormElementEventMap>(type: K, listener: (this: HTMLOylMealFormElement, ev: OylMealFormCustomEvent<HTMLOylMealFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylMealFormElementEventMap>(type: K, listener: (this: HTMLOylMealFormElement, ev: OylMealFormCustomEvent<HTMLOylMealFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylMealFormElement: {
+        prototype: HTMLOylMealFormElement;
+        new (): HTMLOylMealFormElement;
+    };
+    interface HTMLOylMealRowElementEventMap {
+        "remove": Id;
+    }
+    /**
+     * One logged meal: label + meta | inline Delete → Yes/No (native buttons, the shared
+     * confirm cluster, so the e2e `inlineConfirm` helper applies). The screen resolves the
+     * label (catalog name / note / "Meal" + servings) because only it sees the catalog.
+     */
+    interface HTMLOylMealRowElement extends Components.OylMealRow, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylMealRowElementEventMap>(type: K, listener: (this: HTMLOylMealRowElement, ev: OylMealRowCustomEvent<HTMLOylMealRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylMealRowElementEventMap>(type: K, listener: (this: HTMLOylMealRowElement, ev: OylMealRowCustomEvent<HTMLOylMealRowElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylMealRowElement: {
+        prototype: HTMLOylMealRowElement;
+        new (): HTMLOylMealRowElement;
+    };
     interface HTMLOylNavElement extends Components.OylNav, HTMLStencilElement {
     }
     var HTMLOylNavElement: {
@@ -482,6 +611,17 @@ declare global {
     var HTMLOylNoticeHostElement: {
         prototype: HTMLOylNoticeHostElement;
         new (): HTMLOylNoticeHostElement;
+    };
+    /**
+     * The day-scoped nutrition screen: `oyl-day-nav` (dots on days with meals), five totals
+     * tiles, the meal composer, the day's meals newest first, and the shared consumables
+     * catalog with a collapsed add form. Same lists and totals as vanilla's screen.
+     */
+    interface HTMLOylNutritionElement extends Components.OylNutrition, HTMLStencilElement {
+    }
+    var HTMLOylNutritionElement: {
+        prototype: HTMLOylNutritionElement;
+        new (): HTMLOylNutritionElement;
     };
     interface HTMLOylPlanComposerElementEventMap {
         "added": void;
@@ -611,15 +751,19 @@ declare global {
         "oyl-account-menu": HTMLOylAccountMenuElement;
         "oyl-app": HTMLOylAppElement;
         "oyl-auth-form": HTMLOylAuthFormElement;
+        "oyl-consumable-form": HTMLOylConsumableFormElement;
         "oyl-day-nav": HTMLOylDayNavElement;
         "oyl-entry-row": HTMLOylEntryRowElement;
         "oyl-journal": HTMLOylJournalElement;
         "oyl-log-form": HTMLOylLogFormElement;
         "oyl-login": HTMLOylLoginElement;
+        "oyl-meal-form": HTMLOylMealFormElement;
+        "oyl-meal-row": HTMLOylMealRowElement;
         "oyl-nav": HTMLOylNavElement;
         "oyl-not-found": HTMLOylNotFoundElement;
         "oyl-not-yet": HTMLOylNotYetElement;
         "oyl-notice-host": HTMLOylNoticeHostElement;
+        "oyl-nutrition": HTMLOylNutritionElement;
         "oyl-plan-composer": HTMLOylPlanComposerElement;
         "oyl-plan-row": HTMLOylPlanRowElement;
         "oyl-planner": HTMLOylPlannerElement;
@@ -671,6 +815,16 @@ declare namespace LocalJSX {
          */
         "mode"?: 'login' | 'register';
         "onSuccess"?: (event: OylAuthFormCustomEvent<void>) => void;
+    }
+    /**
+     * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
+     */
+    interface OylConsumableForm {
+        /**
+          * A consumable was added through the store.
+         */
+        "onAdded"?: (event: OylConsumableFormCustomEvent<void>) => void;
+        "store": ConsumablesWriter;
     }
     /**
      * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
@@ -741,6 +895,38 @@ declare namespace LocalJSX {
          */
         "onAuthenticated"?: (event: OylLoginCustomEvent<void>) => void;
     }
+    /**
+     * The meal composer: log from the shared catalog (optionally a specific product) or an
+     * ad-hoc meal with its own nutrients; servings and a `when` prefilled to the shown day.
+     * Builds the Consumption exactly as vanilla does (product → effective facts, catalog →
+     * snapshot, ad-hoc → given nutrients). Native <form> over form-associated primitives.
+     */
+    interface OylMealForm {
+        "consumableProducts"?: ConsumableProductsReader;
+        "consumables": ConsumablesReader;
+        /**
+          * The day new meals default to (the screen's shown day).
+         */
+        "day": DayKey;
+        /**
+          * A meal was logged through the store.
+         */
+        "onLogged"?: (event: OylMealFormCustomEvent<void>) => void;
+        "store": MealWriter;
+    }
+    /**
+     * One logged meal: label + meta | inline Delete → Yes/No (native buttons, the shared
+     * confirm cluster, so the e2e `inlineConfirm` helper applies). The screen resolves the
+     * label (catalog name / note / "Meal" + servings) because only it sees the catalog.
+     */
+    interface OylMealRow {
+        "consumption": Consumption;
+        "label": string;
+        /**
+          * The user confirmed deletion of this meal.
+         */
+        "onRemove"?: (event: OylMealRowCustomEvent<Id>) => void;
+    }
     interface OylNav {
         /**
           * @default 'top'
@@ -773,6 +959,20 @@ declare namespace LocalJSX {
           * The user dismissed the notice; the host clears the signal.
          */
         "onDismiss"?: (event: OylNoticeHostCustomEvent<void>) => void;
+    }
+    /**
+     * The day-scoped nutrition screen: `oyl-day-nav` (dots on days with meals), five totals
+     * tiles, the meal composer, the day's meals newest first, and the shared consumables
+     * catalog with a collapsed add form. Same lists and totals as vanilla's screen.
+     */
+    interface OylNutrition {
+        "consumableProducts"?: ConsumableProductsReader1;
+        "consumables": ConsumablesStore;
+        "store": NutritionReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
     }
     /**
      * The planner composer: a task (title, due, optional repeat) or an appointment (title,
@@ -894,6 +1094,9 @@ declare namespace LocalJSX {
     interface OylJournalAttributes {
         "tz": string;
     }
+    interface OylMealRowAttributes {
+        "label": string;
+    }
     interface OylNavAttributes {
         "orientation": 'top' | 'bottom';
     }
@@ -903,6 +1106,9 @@ declare namespace LocalJSX {
     interface OylNotYetAttributes {
         "name": string;
         "classicUrl": string;
+    }
+    interface OylNutritionAttributes {
+        "tz": string;
     }
     interface OylPlanComposerAttributes {
         "tz": string;
@@ -918,15 +1124,19 @@ declare namespace LocalJSX {
         "oyl-account-menu": OylAccountMenu;
         "oyl-app": OylApp;
         "oyl-auth-form": Omit<OylAuthForm, keyof OylAuthFormAttributes> & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes]?: OylAuthForm[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `attr:${K}`]?: OylAuthFormAttributes[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `prop:${K}`]?: OylAuthForm[K] };
+        "oyl-consumable-form": OylConsumableForm;
         "oyl-day-nav": Omit<OylDayNav, keyof OylDayNavAttributes> & { [K in keyof OylDayNav & keyof OylDayNavAttributes]?: OylDayNav[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `attr:${K}`]?: OylDayNavAttributes[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `prop:${K}`]?: OylDayNav[K] };
         "oyl-entry-row": OylEntryRow;
         "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
         "oyl-log-form": OylLogForm;
         "oyl-login": OylLogin;
+        "oyl-meal-form": OylMealForm;
+        "oyl-meal-row": Omit<OylMealRow, keyof OylMealRowAttributes> & { [K in keyof OylMealRow & keyof OylMealRowAttributes]?: OylMealRow[K] } & { [K in keyof OylMealRow & keyof OylMealRowAttributes as `attr:${K}`]?: OylMealRowAttributes[K] } & { [K in keyof OylMealRow & keyof OylMealRowAttributes as `prop:${K}`]?: OylMealRow[K] } & OneOf<"label", OylMealRow["label"], OylMealRowAttributes["label"]>;
         "oyl-nav": Omit<OylNav, keyof OylNavAttributes> & { [K in keyof OylNav & keyof OylNavAttributes]?: OylNav[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `attr:${K}`]?: OylNavAttributes[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `prop:${K}`]?: OylNav[K] };
         "oyl-not-found": Omit<OylNotFound, keyof OylNotFoundAttributes> & { [K in keyof OylNotFound & keyof OylNotFoundAttributes]?: OylNotFound[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `attr:${K}`]?: OylNotFoundAttributes[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `prop:${K}`]?: OylNotFound[K] };
         "oyl-not-yet": Omit<OylNotYet, keyof OylNotYetAttributes> & { [K in keyof OylNotYet & keyof OylNotYetAttributes]?: OylNotYet[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `attr:${K}`]?: OylNotYetAttributes[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `prop:${K}`]?: OylNotYet[K] } & OneOf<"name", OylNotYet["name"], OylNotYetAttributes["name"]>;
         "oyl-notice-host": OylNoticeHost;
+        "oyl-nutrition": Omit<OylNutrition, keyof OylNutritionAttributes> & { [K in keyof OylNutrition & keyof OylNutritionAttributes]?: OylNutrition[K] } & { [K in keyof OylNutrition & keyof OylNutritionAttributes as `attr:${K}`]?: OylNutritionAttributes[K] } & { [K in keyof OylNutrition & keyof OylNutritionAttributes as `prop:${K}`]?: OylNutrition[K] };
         "oyl-plan-composer": Omit<OylPlanComposer, keyof OylPlanComposerAttributes> & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes]?: OylPlanComposer[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `attr:${K}`]?: OylPlanComposerAttributes[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `prop:${K}`]?: OylPlanComposer[K] };
         "oyl-plan-row": OylPlanRow;
         "oyl-planner": Omit<OylPlanner, keyof OylPlannerAttributes> & { [K in keyof OylPlanner & keyof OylPlannerAttributes]?: OylPlanner[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `attr:${K}`]?: OylPlannerAttributes[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `prop:${K}`]?: OylPlanner[K] };
@@ -958,6 +1168,10 @@ declare module "@stencil/core" {
              */
             "oyl-auth-form": LocalJSX.IntrinsicElements["oyl-auth-form"] & JSXBase.HTMLAttributes<HTMLOylAuthFormElement>;
             /**
+             * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
+             */
+            "oyl-consumable-form": LocalJSX.IntrinsicElements["oyl-consumable-form"] & JSXBase.HTMLAttributes<HTMLOylConsumableFormElement>;
+            /**
              * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
              * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
              * region for the screen's announcements. Controlled: the screen owns the day signal and
@@ -984,6 +1198,19 @@ declare module "@stencil/core" {
              */
             "oyl-log-form": LocalJSX.IntrinsicElements["oyl-log-form"] & JSXBase.HTMLAttributes<HTMLOylLogFormElement>;
             "oyl-login": LocalJSX.IntrinsicElements["oyl-login"] & JSXBase.HTMLAttributes<HTMLOylLoginElement>;
+            /**
+             * The meal composer: log from the shared catalog (optionally a specific product) or an
+             * ad-hoc meal with its own nutrients; servings and a `when` prefilled to the shown day.
+             * Builds the Consumption exactly as vanilla does (product → effective facts, catalog →
+             * snapshot, ad-hoc → given nutrients). Native <form> over form-associated primitives.
+             */
+            "oyl-meal-form": LocalJSX.IntrinsicElements["oyl-meal-form"] & JSXBase.HTMLAttributes<HTMLOylMealFormElement>;
+            /**
+             * One logged meal: label + meta | inline Delete → Yes/No (native buttons, the shared
+             * confirm cluster, so the e2e `inlineConfirm` helper applies). The screen resolves the
+             * label (catalog name / note / "Meal" + servings) because only it sees the catalog.
+             */
+            "oyl-meal-row": LocalJSX.IntrinsicElements["oyl-meal-row"] & JSXBase.HTMLAttributes<HTMLOylMealRowElement>;
             "oyl-nav": LocalJSX.IntrinsicElements["oyl-nav"] & JSXBase.HTMLAttributes<HTMLOylNavElement>;
             "oyl-not-found": LocalJSX.IntrinsicElements["oyl-not-found"] & JSXBase.HTMLAttributes<HTMLOylNotFoundElement>;
             /**
@@ -994,6 +1221,12 @@ declare module "@stencil/core" {
              * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
              */
             "oyl-notice-host": LocalJSX.IntrinsicElements["oyl-notice-host"] & JSXBase.HTMLAttributes<HTMLOylNoticeHostElement>;
+            /**
+             * The day-scoped nutrition screen: `oyl-day-nav` (dots on days with meals), five totals
+             * tiles, the meal composer, the day's meals newest first, and the shared consumables
+             * catalog with a collapsed add form. Same lists and totals as vanilla's screen.
+             */
+            "oyl-nutrition": LocalJSX.IntrinsicElements["oyl-nutrition"] & JSXBase.HTMLAttributes<HTMLOylNutritionElement>;
             /**
              * The planner composer: a task (title, due, optional repeat) or an appointment (title,
              * start, optional minutes). Due/start default to the shown day (start at 09:00) and
