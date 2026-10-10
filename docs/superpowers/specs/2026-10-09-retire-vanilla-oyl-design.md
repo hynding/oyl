@@ -1,7 +1,7 @@
 # Cutover part 2 — Retire `apps/vanilla-oyl` — Design
 
 **Date:** 2026-10-09
-**Status:** reviewed (branch `feat/retire-vanilla-oyl`, stacked on `feat/stencil-oyl-deploy`)
+**Status:** implemented on branch `feat/retire-vanilla-oyl` (stacked on `feat/stencil-oyl-deploy`; plan: `docs/superpowers/plans/2026-10-09-retire-vanilla-oyl.md`). Program complete.
 **Program:** Stencil front-end — sub-project 12, the last (see
 `2026-10-06-extract-client-layer-design.md` §Program context). Depends on 11 (stencil-oyl is the
 deployed www).
@@ -112,3 +112,36 @@ moment (their OAuth callback lands on 8043) and are deleted in the same sub-proj
 | A stencil gap surfaces while porting a11y/connection | Fix it in stencil-oyl in this sub-project (small), as the Goals review fixed a vanilla bug; record in amendments. |
 | Something still imported vanilla paths | The root typecheck + `pnpm e2e` + `docker compose config` + a final grep. |
 | Losing the ability to compare against vanilla | The tag; `git show vanilla-oyl/retired-2026-10-09:apps/vanilla-oyl/<path>`. |
+
+## Amendments during implementation
+
+1. **`oyl-router`'s announcer is a class field** (`createLive()`), not created in
+   `componentDidLoad`: a Stencil `@Watch('route')` can fire before `componentDidLoad`, which
+   left `this.live` undefined on the first route change.
+2. **`ui-button` forwards the host `aria-label`** to its inner control (vanilla's a11y spec
+   caught `ui-notice`'s dismiss button and `oyl-day-nav`'s arrows with empty accessible names).
+3. **a11y spec selectors:** `oyl-router > [aria-live="polite"]` (the screens carry their own
+   live regions, so a descendant selector matched several); the inline-confirm and
+   focus assertions read `deepActiveElement` under `expect.poll`. `connection.spec` reads the
+   field error through `deepText` + `input[aria-invalid=true]` (`error` is a prop, not an
+   attribute).
+4. **`?seed` boot test** added to `status.spec.ts` (vanilla's was the only coverage of
+   `compose.ts`'s seed-on-boot branch).
+5. **`tests-stencil/` → `tests/`** is also the first time that tree is type-checked
+   (`tsconfig.json` `include: ["tests/**", "lib/**", …]`); `lib/actions.ts` lost
+   `navTo`/`addNote` (vanilla's) and keeps `inlineConfirm`, `awaitOutboxDrained`,
+   `primeLocalMode`, `deepActiveElement`.
+6. **`scripts/dev.mjs`** is only `pnpm dev [--fresh]`: backend on 1340 + `pnpm --filter
+   @oyl/stencil-oyl dev` on 3344 (the Stencil dev server builds all-of-oyl + ui-oyl itself
+   and does its own SPA fallback). `dev:watch`/`dev:stencil`/`--watch`/`--stencil` are gone;
+   the port-collision hint names the composed `stencil` service.
+7. **strapi-oyl defaults** moved off 8041: `APP_URL` → `http://localhost:3344`
+   (`google-config.ts`, `.env.example`), CORS default `['http://localhost:3344',
+   'http://localhost:5173']`. Two strapi unit tests keep `http://localhost:8041` as an
+   arbitrary explicit value (not a default) — left as is.
+8. **Docker:** `Dockerfile.app` copies `apps/stencil-oyl/package.json` +
+   `packages/ui-oyl/package.json`; the `stencil` service runs `pnpm stencil dev` on
+   `3344:3344`. `docker compose config` validates; `docker compose build` remains an
+   operator check (no Docker in the sandbox).
+9. **`packages/all-of-oyl`'s `dist/` build and `check-no-bare-imports.mjs` stay** (stencil-oyl
+   bundles `dist/`); the guard's comment now says why.
