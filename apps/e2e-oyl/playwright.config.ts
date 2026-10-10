@@ -1,17 +1,14 @@
 import { defineConfig, devices } from '@playwright/test'
-import { APP_URL, APP_PORT, BACKEND_PORT, FAKE_GOOGLE_PORT, STENCIL_APP_URL, STENCIL_APP_PORT } from './lib/urls'
+import { APP_URL, APP_PORT, BACKEND_PORT, FAKE_GOOGLE_PORT } from './lib/urls'
 
 /**
- * E2E stack layout (dedicated ports — never collides with native dev on 8041/1340):
- *   - strapi-oyl backend on :1341 (fresh SQLite DB per server start, CORS opened to :8042)
- *   - vanilla-oyl app via http-server on :8042 (SPA fallback proxy, vendored lib rebuilt first)
+ * E2E stack layout (dedicated ports — never collides with native dev on 3344/1340):
+ *   - strapi-oyl backend on :1341 (fresh SQLite DB per server start, CORS opened to :8043)
+ *   - the app (apps/stencil-oyl) via http-server on :8043 from its production www/ build
+ *     (SPA fallback proxy; the build chains all-of-oyl + ui-oyl)
  *
- * Both servers auto-start (and are reused when already running, so `pnpm e2e` iterates fast).
+ * All servers auto-start (and are reused when already running, so `pnpm e2e` iterates fast).
  * Every test runs on BOTH the desktop and mobile projects unless it opts out.
- *
- * The stencil-oyl shell (apps/stencil-oyl) has its own pair of projects (stencil-desktop /
- * stencil-mobile) over tests-stencil/, served from its www/ build on :8043 against the same
- * backend. Filter with --project to run one app's suite.
  *
  * E2E_BACKEND=php runs the same suite against the camis-generated PHP backend
  * (apps/camis-php-oyl) — the Strapi-compatibility gate.
@@ -47,16 +44,6 @@ export default defineConfig({
       testDir: './tests',
       use: { ...devices['Pixel 7'] },
     },
-    {
-      name: 'stencil-desktop',
-      testDir: './tests-stencil',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 }, baseURL: STENCIL_APP_URL },
-    },
-    {
-      name: 'stencil-mobile',
-      testDir: './tests-stencil',
-      use: { ...devices['Pixel 7'], baseURL: STENCIL_APP_URL },
-    },
   ],
   webServer: [
     {
@@ -76,15 +63,9 @@ export default defineConfig({
       stderr: 'pipe',
     },
     {
-      command: `pnpm -C ../.. vanilla build:lib && pnpm exec http-server ../vanilla-oyl -p ${APP_PORT} -c-1 --proxy "${APP_URL}?" --silent`,
+      // The app: prod build (chains all-of-oyl + ui-oyl builds), then the static www/ with SPA fallback.
+      command: `pnpm -C ../.. stencil build && pnpm exec http-server ../stencil-oyl/www -p ${APP_PORT} -c-1 --proxy "${APP_URL}?" --silent`,
       url: APP_URL,
-      reuseExistingServer: true,
-      timeout: 120_000,
-    },
-    {
-      // stencil-oyl: prod build (chains all-of-oyl + ui-oyl builds), then the static www/ with SPA fallback.
-      command: `pnpm -C ../.. stencil build && pnpm exec http-server ../stencil-oyl/www -p ${STENCIL_APP_PORT} -c-1 --proxy "${STENCIL_APP_URL}?" --silent`,
-      url: STENCIL_APP_URL,
       reuseExistingServer: true,
       timeout: 180_000,
     },

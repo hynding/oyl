@@ -7,17 +7,22 @@ wins; keep them in sync.
 
 ## The shape of the repo
 
-A pnpm workspace monorepo with three members:
+A pnpm workspace monorepo (full member table in `CLAUDE.md`):
 
 - **`@oyl/all-of-oyl`** (`packages/all-of-oyl/src`) — the zero-dependency TypeScript
-  domain core. The **single source of truth** for all shared logic.
-- **`@oyl/vanilla-oyl`** (`apps/vanilla-oyl`) — the flagship app: zero runtime deps,
-  vanilla JS + Web Components, local-first with an offline-first Remote mode.
-- **`@oyl/strapi-oyl-app`** (`apps/strapi-oyl`) — a backend-agnostic Strapi reference
-  backend for the OYL sync protocol (`docs/oyl-sync-protocol-v1.md`).
+  domain core plus the shared client layer (`/client`). The **single source of truth**
+  for all shared logic.
+- **`@oyl/ui-oyl`** (`packages/ui-oyl`) — the domain-agnostic Stencil component library
+  (tokens, themes, `ui-*` primitives).
+- **`@oyl/stencil-oyl`** (`apps/stencil-oyl`) — the app: a Stencil shell + screens;
+  online-first, account-required; what DreamHost serves.
+- **`@oyl/strapi-oyl-app`** (`apps/strapi-oyl`) — the Strapi 5 backend;
+  **`@oyl/camis-php-oyl`** is the same API generated as a Laravel app for shared hosting.
+- **`@oyl/e2e-oyl`** (`apps/e2e-oyl`) — the Playwright browser suite.
 
 (The earlier React/Next/Storybook/Strapi/Playwright stack was removed on 2026-06-16 and
-lives on branch `legacy/2026-06-16`.)
+lives on branch `legacy/2026-06-16`; the vanilla-JS app was retired on 2026-10-09 and
+lives at tag `vanilla-oyl/retired-2026-10-09`.)
 
 ## Setup
 
@@ -29,10 +34,12 @@ pnpm all-of test      # sanity-check the shared lib
 Common dev loops (see `CLAUDE.md` → Dev workflows for the full list and port map):
 
 ```bash
+pnpm dev                # backend on :1340 + the app on :3344, one Ctrl-C stops both
 pnpm all-of test        # Vitest on the shared lib (src/)
-pnpm vanilla dev        # build the lib → vendor it → serve the app on :8041
-pnpm vanilla test       # Vitest (happy-dom) on the app
+pnpm ui test            # ui-oyl component specs
+pnpm stencil test       # stencil-oyl specs (builds all-of-oyl + ui-oyl first)
 pnpm strapi-app develop # Strapi backend on :1340
+pnpm e2e                # Playwright against the real app + backend (auto-started)
 ```
 
 ## Definition of Done
@@ -46,6 +53,8 @@ A change is done when, for every package it touches:
   build has no DOM lib) and, when touching `src/`, the strict `pnpm all-of typecheck:src`.
 - **For `strapi-oyl-app`:** `pnpm --filter @oyl/strapi-oyl-app build` then `test`
   (the booted conformance + smoke suite — the boot harness runs from `dist/`, so build first).
+- **UI-facing or API-facing changes:** `pnpm e2e` green, and every new screen/feature gets
+  (or extends) a spec in `apps/e2e-oyl/tests/`.
 
 **Never commit on a red gate.** The root aggregates everything: `pnpm test`,
 `pnpm lint`, `pnpm typecheck` (across `packages/*` and `apps/*`, `--if-present`).

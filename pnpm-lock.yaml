@@ -132,24 +132,6 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@opentelemetry/api@1.9.0)(@types/node@20.19.39)(happy-dom@20.10.3)(jsdom@25.0.1)(msw@2.14.6(@types/node@20.19.39)(typescript@5.9.3))(vite@8.0.16(@types/node@20.19.39)(esbuild@0.28.2)(jiti@2.6.1)(terser@5.46.1)(tsx@4.22.4)(yaml@2.9.0))
 
-  apps/vanilla-oyl:
-    devDependencies:
-      '@oyl/all-of-oyl':
-        specifier: workspace:*
-        version: link:../../packages/all-of-oyl
-      happy-dom:
-        specifier: ^20
-        version: 20.10.3
-      http-server:
-        specifier: ^14.1.1
-        version: 14.1.1
-      typescript:
-        specifier: ^5
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.10
-        version: 4.1.10(@opentelemetry/api@1.9.0)(@types/node@25.9.1)(happy-dom@20.10.3)(jsdom@25.0.1)(msw@2.14.6(@types/node@25.9.1)(typescript@5.9.3))(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.2)(jiti@2.6.1)(terser@5.46.1)(tsx@4.22.4)(yaml@2.9.0))
-
   packages/all-of-oyl:
     dependencies:
       rrule:

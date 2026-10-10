@@ -13,7 +13,7 @@ export default ({ env }) => [
     // true paired with a specific (non-wildcard) origin. Safe here because `origin` above is
     // already an explicit allowlist, never '*' — Strapi's CORS middleware only ever echoes back
     // one of these specific origins, never a wildcard, when credentials is enabled.
-    config: { origin: env.array('CORS_ORIGINS', ['http://localhost:8041', 'http://localhost:3344', 'http://localhost:5173']), credentials: true },
+    config: { origin: env.array('CORS_ORIGINS', ['http://localhost:3344', 'http://localhost:5173']), credentials: true },
   },
   'strapi::poweredBy',
   'strapi::query',

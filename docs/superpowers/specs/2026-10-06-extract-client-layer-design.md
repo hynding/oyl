@@ -32,7 +32,9 @@ proven by its unit tests and the unchanged e2e suite.
 | 3…n | Redesigned screens, one spec each — **3 Journal implemented** (`2026-10-08-stencil-oyl-journal-design.md`), **4 Planner implemented** (`2026-10-08-stencil-oyl-planner-design.md`), **5 Nutrition implemented** (`2026-10-08-stencil-oyl-nutrition-design.md`), **6 Finance implemented** (`2026-10-08-stencil-oyl-finance-design.md`), **7 Vault implemented** (`2026-10-08-stencil-oyl-vault-design.md`), **8 Goals implemented** (`2026-10-09-stencil-oyl-goals-design.md`), **9 Insights implemented** (`2026-10-09-stencil-oyl-insights-design.md`), **10 Profile implemented** (`2026-10-09-stencil-oyl-profile-design.md`) — every screen is redesigned; no placeholder remains | 2 |
 | n+1 | ~~Prerender/SEO via Stencil hydrate output~~ — **dropped** (account-required app: nothing public to prerender); its remainder (head meta, per-route titles) folds into 11 | 2 |
 | 11 | Cutover part 1 — deploy stencil-oyl to DreamHost (CI builds `www/`, publish-www ships it; straight swap) — **implemented** (spec `2026-10-09-stencil-oyl-deploy-design.md`) | 10 |
-| 12 | Cutover part 2 — retire vanilla-oyl (delete the app and what only it needed; port the Google OAuth e2e journeys; rewrite CLAUDE.md) | 11 |
+| 12 | Cutover part 2 — retire vanilla-oyl (delete the app and what only it needed; port a11y/connection/Google OAuth e2e; rewrite CLAUDE.md) — **implemented** (spec `2026-10-09-retire-vanilla-oyl-design.md`; tag `vanilla-oyl/retired-2026-10-09`) | 11 |
+
+**Program complete (2026-10-09):** `apps/stencil-oyl` is the only front end and the deployed www; `apps/vanilla-oyl` lives on at the tag.
 
 Program decisions already made: side-by-side transition (vanilla-oyl stays prod until
 cutover); the reusable library is a separate package (`packages/ui-oyl`), the app is

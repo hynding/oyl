@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "The Stencil OYL front end (next version of apps/vanilla-oyl)",
+  "description": "The OYL front end (Stencil)",
   "scripts": {
     "lib": "pnpm -C ../.. all-of build && pnpm -C ../.. ui build",
     "dev": "pnpm lib && stencil build --dev --watch --serve",

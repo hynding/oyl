@@ -225,3 +225,9 @@ Two Vitest projects, both under `@stencil/vitest`'s `defineVitestConfig`:
 3. **The dev lazy loader is `dist/ui-oyl/ui-oyl.esm.js`** (Stencil also emits an empty
    `index.esm.js`); `tsconfig.json` must not set `noEmit`, or Stencil's transpile step
    finds no components.
+4. **Cutover part 2 (2026-10-09) retired the parity half of the theme contract.** With
+   `apps/vanilla-oyl` gone, `src/global/themes/` is the source of the eight themes:
+   `themes.unit.ts` asserts the set (eight files), that each declares
+   `:root[data-theme="<its name>"]`, and the 12-colour-token check. The cross-package guard
+   now lives in stencil-oyl's `boot/theme.unit.ts` (its `THEMES` catalog equals this
+   directory's listing and each preview colour is a substring of its theme file).
