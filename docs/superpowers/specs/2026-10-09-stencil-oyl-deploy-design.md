@@ -1,7 +1,7 @@
 # Cutover part 1 — Deploy `apps/stencil-oyl` to DreamHost — Design
 
 **Date:** 2026-10-09
-**Status:** draft (branch `feat/stencil-oyl-deploy`, stacked on `feat/stencil-oyl-profile`)
+**Status:** reviewed (branch `feat/stencil-oyl-deploy`, stacked on `feat/stencil-oyl-profile`)
 **Program:** Stencil front-end — sub-project 11 (see `2026-10-06-extract-client-layer-design.md`
 §Program context: rows n+1 Prerender/SEO and n+2 Cutover). Depends on 10 (every screen
 redesigned). Part 2 (sub-project 12) retires `apps/vanilla-oyl`.
@@ -34,10 +34,17 @@ its useful remainder — a real document `<head>` and per-route titles — lands
 - **`apps/stencil-oyl/deploy/htaccess.template`** — vanilla's, re-scoped:
   - SPA fallback excludes the real asset roots: `RewriteCond %{REQUEST_URI} !^/(build|themes)/`
     and `!^/tokens\.css$` (a typo'd `/build/x.js` must 404, not 200 HTML).
-  - Cache: `/build/p-*.js` and `/build/p-*.css` are content-hashed → `Cache-Control:
-    public, max-age=31536000, immutable`; everything else (`index.html`, `/build/oyl.esm.js`,
-    `/build/oyl.css`, `/build/index.esm.js`, `/tokens.css`, `/themes/*.css`) → `max-age=0,
-    must-revalidate` (`index.html` stays `no-cache`).
+  - Cache: `/build/p-<hash>.js`, `p-<hash>.entry.js` and `p-<hash>.css` are content-hashed →
+    `Cache-Control: public, max-age=31536000, immutable` (regex
+    `^p-[A-Za-z0-9_-]+(\.entry)?\.(js|css)$`); everything else (`index.html`, the unhashed
+    `oyl.esm.js`/`oyl.js`/`index.esm.js`/`oyl.css` — none referenced by the built `index.html`,
+    `/tokens.css`, `/themes/*.css`) → `max-age=0, must-revalidate` (`index.html` stays
+    `no-cache`). mod_headers applies `<FilesMatch>` sections in order and `set` replaces, so the
+    generic `.js|.css` rule comes FIRST and the immutable block after it.
+  - Stencil's www target inlines every root-absolute stylesheet under 3 KB, so the themes and
+    `tokens.css` are `<style>` blocks in the built `index.html` and nothing requests `/themes/`
+    or `/tokens.css` at runtime today; they are still staged as the safety net for a sheet that
+    grows past the limit (it would stay a `<link>`).
   - CSP: unchanged shape — `script-src 'self' <hashes of inline scripts>`; the built
     `index.html` has exactly two scripts: the anti-FOUC inline one (hashed) and Stencil's
     `<script type="module" src="/build/p-….js" data-stencil …>` (`'self'`). Stencil's lazy
@@ -45,22 +52,29 @@ its useful remainder — a real document `<head>` and per-route titles — lands
     already covers the `<style>` blocks Stencil inlines for the linked token/theme sheets and
     the components' adopted stylesheets; `img-src 'self' data:` covers `ui-icon` (inline SVG).
     `connect-src 'self' <api origin>` unchanged.
-- **Shared renderer:** `apps/vanilla-oyl/deploy/{csp-hashes.js,render-htaccess.js}` (+ tests)
-  move to `scripts/dreamhost/lib/` — they are app-agnostic (hash the inline scripts of an HTML
-  file; fill `__CSP_HEADER__`/`__CSP_SCRIPT_HASHES__`/`__API_ORIGIN__` in a template).
-  `scripts/dreamhost/render-htaccess.mjs` replaces `apps/vanilla-oyl/scripts/render-htaccess.mjs`
-  and takes `--template <file>`. Vanilla's `deploy/htaccess.template` stays until part 2 (its
-  own `render-htaccess.mjs` becomes a one-line shim calling the shared one, or is simply
-  deleted since nothing but publish-www used it — **deleted**; vanilla's deploy README notes
-  the move).
+- **Shared renderer:** `apps/vanilla-oyl/deploy/{csp-hashes,render-htaccess}.js` move to
+  `scripts/dreamhost/lib/{csp-hashes,render-htaccess}.mjs` — `.mjs` because the root package
+  has no `"type": "module"` (vanilla's did) and Node 22.0–22.6 would refuse a bare `.js` ESM
+  file at publish time, after the api had already shipped. They are app-agnostic (hash the
+  inline scripts of an HTML file; fill `__CSP_HEADER__`/`__CSP_SCRIPT_HASHES__`/`__API_ORIGIN__`
+  in a template). Their unit tests and the CLI test move to `apps/camis-php-oyl/test/` (which
+  already guards the deploy scripts) importing by relative path — no vitest `include` change
+  (a `../../` include would crawl the whole repo). `scripts/dreamhost/render-htaccess.mjs`
+  replaces `apps/vanilla-oyl/scripts/render-htaccess.mjs` (+ its test) and takes `--template
+  <file>`. Vanilla's `deploy/htaccess.template` stays until part 2; vanilla's deploy README
+  notes the move. Type-checking of the two modules (vanilla's `checkJs`) lapses with the move —
+  accepted; the tests cover them.
 - **`publish-www.sh`** ships a Stencil `www/`:
   - `DH_WWW_SRC` default → `apps/stencil-oyl/www`; `DH_HTACCESS_TEMPLATE` default →
     `apps/stencil-oyl/deploy/htaccess.template` (both remain seams for the tests).
   - Pre-flight: `index.html` + the `oyl-api-base` meta (as today); `build/oyl.esm.js` must exist
-    ("run `pnpm stencil build` first" — replaces the `vendor/all-of-oyl` check).
-  - Staging: `index.html`, `build/`, `themes/`, `tokens.css`; **not** `host.config.json` (a
-    dev-server artifact) and not `*.map` (nothing to debug in production; keeps the upload
-    small — 1.9 MB `build/` is mostly maps). The `*.test.js` sweep goes (nothing emits tests).
+    AND `index.html` must reference the hashed loader (`src="/build/p-`) — a `--dev` build
+    (which `stencil-test`/`pnpm stencil dev` also write to `www/`) is refused ("run `pnpm
+    stencil build` first"; replaces the `vendor/all-of-oyl` check).
+  - Staging: `index.html`, `build/`, `themes/`, `tokens.css`, `favicon.svg`; **not**
+    `host.config.json` (a dev-server artifact at the `www/` root) and not `*.map` (nothing to
+    debug in production; keeps the upload small — 1.9 MB `build/` is mostly maps). The
+    `*.test.js` sweep goes (nothing emits tests).
   - Health checks: `/` 200; `/journal` 200 + contains `<oyl-app`; `/build/does-not-exist.js`
     404; `/DEPLOYED` 403; `nosniff` header present (as today, with the asset-root path changed).
 - **CI + wrapper:** `.github/workflows/deploy.yml` and `scripts/deploy-dreamhost.sh` run
@@ -70,8 +84,10 @@ its useful remainder — a real document `<head>` and per-route titles — lands
 - **Head + titles:** `src/index.html` gets `<meta name="description" content="Organize Your
   Life — journal, plans, nutrition, finance, vault, goals and insights in one place.">`,
   `<meta name="theme-color" …>` (one per `prefers-color-scheme`), `og:title`/`og:description`,
-  and `<link rel="icon" href="/favicon.svg">` with a small SVG favicon copied into `www/` (the
-  `OYL` wordmark glyph; its root is added to the SPA-fallback exclusion as a file).
+  and `<link rel="icon" href="/favicon.svg">` with a small SVG favicon at `src/favicon.svg`
+  copied into `www/` by `stencil.config.ts` (not under `src/assets/`, which Stencil's default
+  copy task would duplicate); the SPA fallback excludes `/favicon.(svg|ico)` so a browser's
+  `/favicon.ico` probe 404s instead of getting HTML.
   `boot/compose.ts`'s route effect sets `document.title` = `${label} · OYL` for nav routes
   (`NAV_ITEMS` labels), `Profile · OYL`, `Sign in · OYL` / `Register · OYL`, `Not found · OYL`;
   pure `titleFor(route)` in `boot/titles.ts` with a unit test; the routing e2e asserts
@@ -101,6 +117,10 @@ its useful remainder — a real document `<head>` and per-route titles — lands
 - **Production acceptance (operator, after the first master push):** the site serves the
   Stencil shell, sign-in works against the api, theme switch persists, a deep link
   (`/journal`) and a typo'd `/build/x.js` behave; the CI summary's health checks pass.
+  Recommended: set the repo variable `DH_CSP_HEADER=Content-Security-Policy-Report-Only` for
+  the first swap push (the e2e serves `www/` without headers, so the rendered CSP is first
+  enforced on the live site), check the browser console, then unset it and re-run the
+  workflow.
 
 ## Risks
 
