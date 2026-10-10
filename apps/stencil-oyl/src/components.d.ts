@@ -5,11 +5,16 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
+import { AccountsWriter } from "./components/oyl-account-form/oyl-account-form";
 import { Signal } from "@oyl/all-of-oyl/client";
 import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
+import { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
+import { Budget, Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+import { BudgetStatus } from "./components/oyl-budget-row/oyl-budget-row";
 import { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
-import { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+import { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
+import { ValueTone } from "./components/oyl-item-row/oyl-item-row";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
@@ -22,11 +27,17 @@ import { Routes } from "./components/oyl-router/oyl-router";
 import { Diagnostics } from "./components/oyl-status/oyl-status";
 import { StatusActions } from "./boot/data-tools.js";
 import { ThemeState } from "./boot/theme.js";
+import { AccountsReader, Direction, TransactionWriter } from "./components/oyl-transaction-form/oyl-transaction-form";
+export { AccountsWriter } from "./components/oyl-account-form/oyl-account-form";
 export { Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
+export { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
+export { Budget, Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+export { BudgetStatus } from "./components/oyl-budget-row/oyl-budget-row";
 export { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
-export { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+export { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
+export { ValueTone } from "./components/oyl-item-row/oyl-item-row";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
@@ -39,7 +50,14 @@ export { Routes } from "./components/oyl-router/oyl-router";
 export { Diagnostics } from "./components/oyl-status/oyl-status";
 export { StatusActions } from "./boot/data-tools.js";
 export { ThemeState } from "./boot/theme.js";
+export { AccountsReader, Direction, TransactionWriter } from "./components/oyl-transaction-form/oyl-transaction-form";
 export namespace Components {
+    /**
+     * Add an account: a name and its currency.
+     */
+    interface OylAccountForm {
+        "store": AccountsWriter;
+    }
     /**
      * Toolbar account menu: Profile link always; Log out when signed in, Sign in when not.
      */
@@ -75,6 +93,21 @@ export namespace Components {
         "mode": 'login' | 'register';
     }
     /**
+     * Add a monthly budget: an expense category, a limit and its currency.
+     */
+    interface OylBudgetForm {
+        "store": BudgetsWriter;
+    }
+    /**
+     * One budget: name (or category), a progress bar of the month's spending against the limit
+     * (warn tone when over), the "spent of limit · left/over by" line, and the inline Delete.
+     * `status` is a fresh object per screen render, which is what re-renders the row.
+     */
+    interface OylBudgetRow {
+        "budget": Budget;
+        "status": BudgetStatus;
+    }
+    /**
      * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
      */
     interface OylConsumableForm {
@@ -108,6 +141,43 @@ export namespace Components {
      */
     interface OylEntryRow {
         "entry": Entry;
+    }
+    /**
+     * The month's finances: spent/income/net tiles per currency, the composer, the ledger with
+     * an account filter, then Budgets and Accounts with collapsed add forms. Lists and math are
+     * vanilla's (`periodWindowOf('month', today)`, `budgetStatus`, `accountBalance/Spend`).
+     */
+    interface OylFinance {
+        "accounts": AccountsStore;
+        "budgets": BudgetsStore;
+        "store": FinanceReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
+    }
+    /**
+     * A generic list row: label + supporting lines | optional mono value | inline Delete →
+     * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
+     * accounts list; Vault reuses it later. `remove` carries `itemId`, so a screen keeps one
+     * stable handler per list.
+     */
+    interface OylItemRow {
+        "itemId": string;
+        "label": string;
+        /**
+          * @default []
+         */
+        "lines": readonly (string | null | undefined)[];
+        /**
+          * aria-label for the Delete button; defaults to "Delete {label}".
+         */
+        "removeLabel"?: string;
+        "tone"?: ValueTone;
+        /**
+          * Right-aligned mono value (an amount, a balance).
+         */
+        "value"?: string;
     }
     /**
      * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
@@ -303,6 +373,21 @@ export namespace Components {
     interface OylThemePicker {
         "themeState": ThemeState;
     }
+    /**
+     * The finance composer: an expense or income with amount (+ currency unless an account is
+     * chosen — the account's currency wins), account, category (per direction), date and note.
+     * Vanilla's validation order (date, then amount) precedes the domain constructor. The
+     * composer owns currency/category/account as state: `ui-select` syncs silently when its
+     * options change, so it never trusts the select for a value it was not told about.
+     */
+    interface OylTransactionForm {
+        "accounts": AccountsReader;
+        "store": TransactionWriter;
+    }
+}
+export interface OylAccountFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylAccountFormElement;
 }
 export interface OylAccountMenuCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -311,6 +396,14 @@ export interface OylAccountMenuCustomEvent<T> extends CustomEvent<T> {
 export interface OylAuthFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylAuthFormElement;
+}
+export interface OylBudgetFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylBudgetFormElement;
+}
+export interface OylBudgetRowCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylBudgetRowElement;
 }
 export interface OylConsumableFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -323,6 +416,10 @@ export interface OylDayNavCustomEvent<T> extends CustomEvent<T> {
 export interface OylEntryRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylEntryRowElement;
+}
+export interface OylItemRowCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylItemRowElement;
 }
 export interface OylLogFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -356,7 +453,31 @@ export interface OylRegisterCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylRegisterElement;
 }
+export interface OylTransactionFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylTransactionFormElement;
+}
 declare global {
+    interface HTMLOylAccountFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add an account: a name and its currency.
+     */
+    interface HTMLOylAccountFormElement extends Components.OylAccountForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylAccountFormElementEventMap>(type: K, listener: (this: HTMLOylAccountFormElement, ev: OylAccountFormCustomEvent<HTMLOylAccountFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylAccountFormElementEventMap>(type: K, listener: (this: HTMLOylAccountFormElement, ev: OylAccountFormCustomEvent<HTMLOylAccountFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylAccountFormElement: {
+        prototype: HTMLOylAccountFormElement;
+        new (): HTMLOylAccountFormElement;
+    };
     interface HTMLOylAccountMenuElementEventMap {
         "logout": void;
     }
@@ -409,6 +530,48 @@ declare global {
     var HTMLOylAuthFormElement: {
         prototype: HTMLOylAuthFormElement;
         new (): HTMLOylAuthFormElement;
+    };
+    interface HTMLOylBudgetFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a monthly budget: an expense category, a limit and its currency.
+     */
+    interface HTMLOylBudgetFormElement extends Components.OylBudgetForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylBudgetFormElementEventMap>(type: K, listener: (this: HTMLOylBudgetFormElement, ev: OylBudgetFormCustomEvent<HTMLOylBudgetFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylBudgetFormElementEventMap>(type: K, listener: (this: HTMLOylBudgetFormElement, ev: OylBudgetFormCustomEvent<HTMLOylBudgetFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylBudgetFormElement: {
+        prototype: HTMLOylBudgetFormElement;
+        new (): HTMLOylBudgetFormElement;
+    };
+    interface HTMLOylBudgetRowElementEventMap {
+        "remove": Id;
+    }
+    /**
+     * One budget: name (or category), a progress bar of the month's spending against the limit
+     * (warn tone when over), the "spent of limit · left/over by" line, and the inline Delete.
+     * `status` is a fresh object per screen render, which is what re-renders the row.
+     */
+    interface HTMLOylBudgetRowElement extends Components.OylBudgetRow, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylBudgetRowElementEventMap>(type: K, listener: (this: HTMLOylBudgetRowElement, ev: OylBudgetRowCustomEvent<HTMLOylBudgetRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylBudgetRowElementEventMap>(type: K, listener: (this: HTMLOylBudgetRowElement, ev: OylBudgetRowCustomEvent<HTMLOylBudgetRowElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylBudgetRowElement: {
+        prototype: HTMLOylBudgetRowElement;
+        new (): HTMLOylBudgetRowElement;
     };
     interface HTMLOylConsumableFormElementEventMap {
         "added": void;
@@ -475,6 +638,40 @@ declare global {
     var HTMLOylEntryRowElement: {
         prototype: HTMLOylEntryRowElement;
         new (): HTMLOylEntryRowElement;
+    };
+    /**
+     * The month's finances: spent/income/net tiles per currency, the composer, the ledger with
+     * an account filter, then Budgets and Accounts with collapsed add forms. Lists and math are
+     * vanilla's (`periodWindowOf('month', today)`, `budgetStatus`, `accountBalance/Spend`).
+     */
+    interface HTMLOylFinanceElement extends Components.OylFinance, HTMLStencilElement {
+    }
+    var HTMLOylFinanceElement: {
+        prototype: HTMLOylFinanceElement;
+        new (): HTMLOylFinanceElement;
+    };
+    interface HTMLOylItemRowElementEventMap {
+        "remove": string;
+    }
+    /**
+     * A generic list row: label + supporting lines | optional mono value | inline Delete →
+     * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
+     * accounts list; Vault reuses it later. `remove` carries `itemId`, so a screen keeps one
+     * stable handler per list.
+     */
+    interface HTMLOylItemRowElement extends Components.OylItemRow, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylItemRowElementEventMap>(type: K, listener: (this: HTMLOylItemRowElement, ev: OylItemRowCustomEvent<HTMLOylItemRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylItemRowElementEventMap>(type: K, listener: (this: HTMLOylItemRowElement, ev: OylItemRowCustomEvent<HTMLOylItemRowElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylItemRowElement: {
+        prototype: HTMLOylItemRowElement;
+        new (): HTMLOylItemRowElement;
     };
     /**
      * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
@@ -747,13 +944,42 @@ declare global {
         prototype: HTMLOylThemePickerElement;
         new (): HTMLOylThemePickerElement;
     };
+    interface HTMLOylTransactionFormElementEventMap {
+        "added": Direction;
+    }
+    /**
+     * The finance composer: an expense or income with amount (+ currency unless an account is
+     * chosen — the account's currency wins), account, category (per direction), date and note.
+     * Vanilla's validation order (date, then amount) precedes the domain constructor. The
+     * composer owns currency/category/account as state: `ui-select` syncs silently when its
+     * options change, so it never trusts the select for a value it was not told about.
+     */
+    interface HTMLOylTransactionFormElement extends Components.OylTransactionForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylTransactionFormElementEventMap>(type: K, listener: (this: HTMLOylTransactionFormElement, ev: OylTransactionFormCustomEvent<HTMLOylTransactionFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylTransactionFormElementEventMap>(type: K, listener: (this: HTMLOylTransactionFormElement, ev: OylTransactionFormCustomEvent<HTMLOylTransactionFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylTransactionFormElement: {
+        prototype: HTMLOylTransactionFormElement;
+        new (): HTMLOylTransactionFormElement;
+    };
     interface HTMLElementTagNameMap {
+        "oyl-account-form": HTMLOylAccountFormElement;
         "oyl-account-menu": HTMLOylAccountMenuElement;
         "oyl-app": HTMLOylAppElement;
         "oyl-auth-form": HTMLOylAuthFormElement;
+        "oyl-budget-form": HTMLOylBudgetFormElement;
+        "oyl-budget-row": HTMLOylBudgetRowElement;
         "oyl-consumable-form": HTMLOylConsumableFormElement;
         "oyl-day-nav": HTMLOylDayNavElement;
         "oyl-entry-row": HTMLOylEntryRowElement;
+        "oyl-finance": HTMLOylFinanceElement;
+        "oyl-item-row": HTMLOylItemRowElement;
         "oyl-journal": HTMLOylJournalElement;
         "oyl-log-form": HTMLOylLogFormElement;
         "oyl-login": HTMLOylLoginElement;
@@ -772,11 +998,22 @@ declare global {
         "oyl-shell": HTMLOylShellElement;
         "oyl-status": HTMLOylStatusElement;
         "oyl-theme-picker": HTMLOylThemePickerElement;
+        "oyl-transaction-form": HTMLOylTransactionFormElement;
     }
 }
 declare namespace LocalJSX {
     type OneOf<K extends string, PropT, AttrT = PropT> = { [P in K]: PropT } & { [P in `attr:${K}`]?: never } | { [P in `attr:${K}`]: AttrT } & { [P in K]?: never };
 
+    /**
+     * Add an account: a name and its currency.
+     */
+    interface OylAccountForm {
+        /**
+          * An account was added through the store.
+         */
+        "onAdded"?: (event: OylAccountFormCustomEvent<void>) => void;
+        "store": AccountsWriter;
+    }
     /**
      * Toolbar account menu: Profile link always; Log out when signed in, Sign in when not.
      */
@@ -815,6 +1052,29 @@ declare namespace LocalJSX {
          */
         "mode"?: 'login' | 'register';
         "onSuccess"?: (event: OylAuthFormCustomEvent<void>) => void;
+    }
+    /**
+     * Add a monthly budget: an expense category, a limit and its currency.
+     */
+    interface OylBudgetForm {
+        /**
+          * A budget was added through the store.
+         */
+        "onAdded"?: (event: OylBudgetFormCustomEvent<void>) => void;
+        "store": BudgetsWriter;
+    }
+    /**
+     * One budget: name (or category), a progress bar of the month's spending against the limit
+     * (warn tone when over), the "spent of limit · left/over by" line, and the inline Delete.
+     * `status` is a fresh object per screen render, which is what re-renders the row.
+     */
+    interface OylBudgetRow {
+        "budget": Budget;
+        /**
+          * The user confirmed deletion of this budget.
+         */
+        "onRemove"?: (event: OylBudgetRowCustomEvent<Id>) => void;
+        "status": BudgetStatus;
     }
     /**
      * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
@@ -858,6 +1118,47 @@ declare namespace LocalJSX {
           * The user confirmed deletion of this entry.
          */
         "onRemove"?: (event: OylEntryRowCustomEvent<Id>) => void;
+    }
+    /**
+     * The month's finances: spent/income/net tiles per currency, the composer, the ledger with
+     * an account filter, then Budgets and Accounts with collapsed add forms. Lists and math are
+     * vanilla's (`periodWindowOf('month', today)`, `budgetStatus`, `accountBalance/Spend`).
+     */
+    interface OylFinance {
+        "accounts": AccountsStore;
+        "budgets": BudgetsStore;
+        "store": FinanceReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
+    }
+    /**
+     * A generic list row: label + supporting lines | optional mono value | inline Delete →
+     * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
+     * accounts list; Vault reuses it later. `remove` carries `itemId`, so a screen keeps one
+     * stable handler per list.
+     */
+    interface OylItemRow {
+        "itemId": string;
+        "label": string;
+        /**
+          * @default []
+         */
+        "lines"?: readonly (string | null | undefined)[];
+        /**
+          * The user confirmed deletion; detail = `itemId`.
+         */
+        "onRemove"?: (event: OylItemRowCustomEvent<string>) => void;
+        /**
+          * aria-label for the Delete button; defaults to "Delete {label}".
+         */
+        "removeLabel"?: string;
+        "tone"?: ValueTone;
+        /**
+          * Right-aligned mono value (an amount, a balance).
+         */
+        "value"?: string;
     }
     /**
      * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
@@ -1084,12 +1385,37 @@ declare namespace LocalJSX {
     interface OylThemePicker {
         "themeState": ThemeState;
     }
+    /**
+     * The finance composer: an expense or income with amount (+ currency unless an account is
+     * chosen — the account's currency wins), account, category (per direction), date and note.
+     * Vanilla's validation order (date, then amount) precedes the domain constructor. The
+     * composer owns currency/category/account as state: `ui-select` syncs silently when its
+     * options change, so it never trusts the select for a value it was not told about.
+     */
+    interface OylTransactionForm {
+        "accounts": AccountsReader;
+        /**
+          * A transaction was added; detail = its direction.
+         */
+        "onAdded"?: (event: OylTransactionFormCustomEvent<Direction>) => void;
+        "store": TransactionWriter;
+    }
 
     interface OylAuthFormAttributes {
         "mode": 'login' | 'register';
     }
     interface OylDayNavAttributes {
         "announcement": string;
+    }
+    interface OylFinanceAttributes {
+        "tz": string;
+    }
+    interface OylItemRowAttributes {
+        "itemId": string;
+        "label": string;
+        "value": string;
+        "tone": ValueTone;
+        "removeLabel": string;
     }
     interface OylJournalAttributes {
         "tz": string;
@@ -1121,12 +1447,17 @@ declare namespace LocalJSX {
     }
 
     interface IntrinsicElements {
+        "oyl-account-form": OylAccountForm;
         "oyl-account-menu": OylAccountMenu;
         "oyl-app": OylApp;
         "oyl-auth-form": Omit<OylAuthForm, keyof OylAuthFormAttributes> & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes]?: OylAuthForm[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `attr:${K}`]?: OylAuthFormAttributes[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `prop:${K}`]?: OylAuthForm[K] };
+        "oyl-budget-form": OylBudgetForm;
+        "oyl-budget-row": OylBudgetRow;
         "oyl-consumable-form": OylConsumableForm;
         "oyl-day-nav": Omit<OylDayNav, keyof OylDayNavAttributes> & { [K in keyof OylDayNav & keyof OylDayNavAttributes]?: OylDayNav[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `attr:${K}`]?: OylDayNavAttributes[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `prop:${K}`]?: OylDayNav[K] };
         "oyl-entry-row": OylEntryRow;
+        "oyl-finance": Omit<OylFinance, keyof OylFinanceAttributes> & { [K in keyof OylFinance & keyof OylFinanceAttributes]?: OylFinance[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `attr:${K}`]?: OylFinanceAttributes[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `prop:${K}`]?: OylFinance[K] };
+        "oyl-item-row": Omit<OylItemRow, keyof OylItemRowAttributes> & { [K in keyof OylItemRow & keyof OylItemRowAttributes]?: OylItemRow[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `attr:${K}`]?: OylItemRowAttributes[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `prop:${K}`]?: OylItemRow[K] } & OneOf<"itemId", OylItemRow["itemId"], OylItemRowAttributes["itemId"]> & OneOf<"label", OylItemRow["label"], OylItemRowAttributes["label"]>;
         "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
         "oyl-log-form": OylLogForm;
         "oyl-login": OylLogin;
@@ -1145,12 +1476,17 @@ declare namespace LocalJSX {
         "oyl-shell": Omit<OylShell, keyof OylShellAttributes> & { [K in keyof OylShell & keyof OylShellAttributes]?: OylShell[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `attr:${K}`]?: OylShellAttributes[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `prop:${K}`]?: OylShell[K] };
         "oyl-status": OylStatus;
         "oyl-theme-picker": OylThemePicker;
+        "oyl-transaction-form": OylTransactionForm;
     }
 }
 export { LocalJSX as JSX };
 declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
+            /**
+             * Add an account: a name and its currency.
+             */
+            "oyl-account-form": LocalJSX.IntrinsicElements["oyl-account-form"] & JSXBase.HTMLAttributes<HTMLOylAccountFormElement>;
             /**
              * Toolbar account menu: Profile link always; Log out when signed in, Sign in when not.
              */
@@ -1167,6 +1503,16 @@ declare module "@stencil/core" {
              * after the auth call resolves; a rejection renders inline as a polite live region.
              */
             "oyl-auth-form": LocalJSX.IntrinsicElements["oyl-auth-form"] & JSXBase.HTMLAttributes<HTMLOylAuthFormElement>;
+            /**
+             * Add a monthly budget: an expense category, a limit and its currency.
+             */
+            "oyl-budget-form": LocalJSX.IntrinsicElements["oyl-budget-form"] & JSXBase.HTMLAttributes<HTMLOylBudgetFormElement>;
+            /**
+             * One budget: name (or category), a progress bar of the month's spending against the limit
+             * (warn tone when over), the "spent of limit · left/over by" line, and the inline Delete.
+             * `status` is a fresh object per screen render, which is what re-renders the row.
+             */
+            "oyl-budget-row": LocalJSX.IntrinsicElements["oyl-budget-row"] & JSXBase.HTMLAttributes<HTMLOylBudgetRowElement>;
             /**
              * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
              */
@@ -1185,6 +1531,19 @@ declare module "@stencil/core" {
              * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
              */
             "oyl-entry-row": LocalJSX.IntrinsicElements["oyl-entry-row"] & JSXBase.HTMLAttributes<HTMLOylEntryRowElement>;
+            /**
+             * The month's finances: spent/income/net tiles per currency, the composer, the ledger with
+             * an account filter, then Budgets and Accounts with collapsed add forms. Lists and math are
+             * vanilla's (`periodWindowOf('month', today)`, `budgetStatus`, `accountBalance/Spend`).
+             */
+            "oyl-finance": LocalJSX.IntrinsicElements["oyl-finance"] & JSXBase.HTMLAttributes<HTMLOylFinanceElement>;
+            /**
+             * A generic list row: label + supporting lines | optional mono value | inline Delete →
+             * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
+             * accounts list; Vault reuses it later. `remove` carries `itemId`, so a screen keeps one
+             * stable handler per list.
+             */
+            "oyl-item-row": LocalJSX.IntrinsicElements["oyl-item-row"] & JSXBase.HTMLAttributes<HTMLOylItemRowElement>;
             /**
              * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
              * measurements newest first (finance and nutrition rows belong to their own screens).
@@ -1276,6 +1635,14 @@ declare module "@stencil/core" {
              * radiogroup with roving tabindex and aria-checked, not actions.
              */
             "oyl-theme-picker": LocalJSX.IntrinsicElements["oyl-theme-picker"] & JSXBase.HTMLAttributes<HTMLOylThemePickerElement>;
+            /**
+             * The finance composer: an expense or income with amount (+ currency unless an account is
+             * chosen — the account's currency wins), account, category (per direction), date and note.
+             * Vanilla's validation order (date, then amount) precedes the domain constructor. The
+             * composer owns currency/category/account as state: `ui-select` syncs silently when its
+             * options change, so it never trusts the select for a value it was not told about.
+             */
+            "oyl-transaction-form": LocalJSX.IntrinsicElements["oyl-transaction-form"] & JSXBase.HTMLAttributes<HTMLOylTransactionFormElement>;
         }
     }
 }
