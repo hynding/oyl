@@ -6,7 +6,7 @@
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { AccountsWriter } from "./components/oyl-account-form/oyl-account-form";
-import { Signal } from "@oyl/all-of-oyl/client";
+import { ProfilePatch, Signal } from "@oyl/all-of-oyl/client";
 import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
 import { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
@@ -38,7 +38,7 @@ import { ThemeState } from "./boot/theme.js";
 import { AccountsReader, Direction, TransactionWriter } from "./components/oyl-transaction-form/oyl-transaction-form";
 import { VaultStore } from "./components/oyl-vault/oyl-vault";
 export { AccountsWriter } from "./components/oyl-account-form/oyl-account-form";
-export { Signal } from "@oyl/all-of-oyl/client";
+export { ProfilePatch, Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
 export { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
@@ -398,6 +398,25 @@ export namespace Components {
         "store": PossessionsWriter;
     }
     /**
+     * The editable profile: timezone (IANA select, or a text field when the platform has no zone
+     * list), units, birthday, location, weight/height in the chosen units, gender with an "Other"
+     * self-describe field. Text fields render `value={seed.x}` from a seed recomputed only when
+     * `value` changes, so a parent re-render never re-applies a value over the user's typing; the
+     * selects are owned as state (the `ui-select` rule). Submit emits vanilla's patch.
+     */
+    interface OylProfileForm {
+        /**
+          * The current profile's editable slice (`toPatch(user)`), `{}` for none.
+          * @default {}
+         */
+        "value": ProfilePatch;
+        /**
+          * IANA zones for the timezone select; `null` → text field. Defaults to the platform list.
+          * @default systemZones()
+         */
+        "zones": readonly string[] | null;
+    }
+    /**
      * One tracked thing (a goal, a budget): name (+ optional met check), a progress bar with a
      * tone, a status label, an optional secondary action (Pause / Resume) and the inline
      * Delete → Yes/No confirm. Purely presentational: every prop is a primitive the screen
@@ -605,6 +624,10 @@ export interface OylPlanRowCustomEvent<T> extends CustomEvent<T> {
 export interface OylPossessionFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylPossessionFormElement;
+}
+export interface OylProfileFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylProfileFormElement;
 }
 export interface OylProgressRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -1155,6 +1178,30 @@ declare global {
         prototype: HTMLOylPossessionFormElement;
         new (): HTMLOylPossessionFormElement;
     };
+    interface HTMLOylProfileFormElementEventMap {
+        "save": ProfilePatch;
+    }
+    /**
+     * The editable profile: timezone (IANA select, or a text field when the platform has no zone
+     * list), units, birthday, location, weight/height in the chosen units, gender with an "Other"
+     * self-describe field. Text fields render `value={seed.x}` from a seed recomputed only when
+     * `value` changes, so a parent re-render never re-applies a value over the user's typing; the
+     * selects are owned as state (the `ui-select` rule). Submit emits vanilla's patch.
+     */
+    interface HTMLOylProfileFormElement extends Components.OylProfileForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylProfileFormElementEventMap>(type: K, listener: (this: HTMLOylProfileFormElement, ev: OylProfileFormCustomEvent<HTMLOylProfileFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylProfileFormElementEventMap>(type: K, listener: (this: HTMLOylProfileFormElement, ev: OylProfileFormCustomEvent<HTMLOylProfileFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylProfileFormElement: {
+        prototype: HTMLOylProfileFormElement;
+        new (): HTMLOylProfileFormElement;
+    };
     interface HTMLOylProgressRowElementEventMap {
         "remove": string;
         "act": { act: string; itemId: string };
@@ -1332,6 +1379,7 @@ declare global {
         "oyl-plan-row": HTMLOylPlanRowElement;
         "oyl-planner": HTMLOylPlannerElement;
         "oyl-possession-form": HTMLOylPossessionFormElement;
+        "oyl-profile-form": HTMLOylProfileFormElement;
         "oyl-progress-row": HTMLOylProgressRowElement;
         "oyl-register": HTMLOylRegisterElement;
         "oyl-router": HTMLOylRouterElement;
@@ -1750,6 +1798,29 @@ declare namespace LocalJSX {
         "store": PossessionsWriter;
     }
     /**
+     * The editable profile: timezone (IANA select, or a text field when the platform has no zone
+     * list), units, birthday, location, weight/height in the chosen units, gender with an "Other"
+     * self-describe field. Text fields render `value={seed.x}` from a seed recomputed only when
+     * `value` changes, so a parent re-render never re-applies a value over the user's typing; the
+     * selects are owned as state (the `ui-select` rule). Submit emits vanilla's patch.
+     */
+    interface OylProfileForm {
+        /**
+          * The user submitted; detail = the patch to save.
+         */
+        "onSave"?: (event: OylProfileFormCustomEvent<ProfilePatch>) => void;
+        /**
+          * The current profile's editable slice (`toPatch(user)`), `{}` for none.
+          * @default {}
+         */
+        "value"?: ProfilePatch;
+        /**
+          * IANA zones for the timezone select; `null` → text field. Defaults to the platform list.
+          * @default systemZones()
+         */
+        "zones"?: readonly string[] | null;
+    }
+    /**
      * One tracked thing (a goal, a budget): name (+ optional met check), a progress bar with a
      * tone, a status label, an optional secondary action (Pause / Resume) and the inline
      * Delete → Yes/No confirm. Purely presentational: every prop is a primitive the screen
@@ -1992,6 +2063,7 @@ declare namespace LocalJSX {
         "oyl-plan-row": OylPlanRow;
         "oyl-planner": Omit<OylPlanner, keyof OylPlannerAttributes> & { [K in keyof OylPlanner & keyof OylPlannerAttributes]?: OylPlanner[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `attr:${K}`]?: OylPlannerAttributes[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `prop:${K}`]?: OylPlanner[K] };
         "oyl-possession-form": OylPossessionForm;
+        "oyl-profile-form": OylProfileForm;
         "oyl-progress-row": Omit<OylProgressRow, keyof OylProgressRowAttributes> & { [K in keyof OylProgressRow & keyof OylProgressRowAttributes]?: OylProgressRow[K] } & { [K in keyof OylProgressRow & keyof OylProgressRowAttributes as `attr:${K}`]?: OylProgressRowAttributes[K] } & { [K in keyof OylProgressRow & keyof OylProgressRowAttributes as `prop:${K}`]?: OylProgressRow[K] } & OneOf<"itemId", OylProgressRow["itemId"], OylProgressRowAttributes["itemId"]> & OneOf<"name", OylProgressRow["name"], OylProgressRowAttributes["name"]>;
         "oyl-register": OylRegister;
         "oyl-router": OylRouter;
@@ -2166,6 +2238,14 @@ declare module "@stencil/core" {
              * Add a possession: name plus optional location, warranty, price and purchase day.
              */
             "oyl-possession-form": LocalJSX.IntrinsicElements["oyl-possession-form"] & JSXBase.HTMLAttributes<HTMLOylPossessionFormElement>;
+            /**
+             * The editable profile: timezone (IANA select, or a text field when the platform has no zone
+             * list), units, birthday, location, weight/height in the chosen units, gender with an "Other"
+             * self-describe field. Text fields render `value={seed.x}` from a seed recomputed only when
+             * `value` changes, so a parent re-render never re-applies a value over the user's typing; the
+             * selects are owned as state (the `ui-select` rule). Submit emits vanilla's patch.
+             */
+            "oyl-profile-form": LocalJSX.IntrinsicElements["oyl-profile-form"] & JSXBase.HTMLAttributes<HTMLOylProfileFormElement>;
             /**
              * One tracked thing (a goal, a budget): name (+ optional met check), a progress bar with a
              * tone, a status label, an optional secondary action (Pause / Resume) and the inline
