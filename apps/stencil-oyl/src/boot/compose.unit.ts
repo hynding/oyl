@@ -38,7 +38,7 @@ function fakeWindow(initialPath: string, opts: { storage?: Storage; fetch?: type
     },
     URL,
     navigator: { onLine: true },
-    document: { querySelector: () => null, documentElement: { dataset: {}, style: { colorScheme: '' } }, addEventListener() {}, removeEventListener() {} },
+    document: { title: '', querySelector: () => null, documentElement: { dataset: {}, style: { colorScheme: '' } }, addEventListener() {}, removeEventListener() {} },
     localStorage: opts.storage ?? memoryStorage(),
     sessionStorage: memoryStorage(),
     fetch: opts.fetch ?? (async () => new Response('{}', { status: 404 })),

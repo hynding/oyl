@@ -5,10 +5,11 @@
 import { test, expect } from '../lib/fixtures'
 import { deepText, navTo } from './lib'
 
-test('deep link straight to /journal renders the journal screen', async ({ page, signIn }) => {
+test('deep link straight to /journal renders the journal screen and titles the document', async ({ page, signIn }) => {
   await signIn('/journal')
   await expect(page).toHaveURL('/journal')
   await expect(page.locator('oyl-journal oyl-log-form')).toBeVisible()
+  await expect(page).toHaveTitle('Journal · OYL')
 })
 
 test('deep link straight to /profile renders the profile screen', async ({ page, signIn, user }) => {
@@ -29,6 +30,7 @@ test('nav clicks are intercepted client-side (no full page reload)', async ({ pa
 test('browser back/forward walk the route history and update the active nav link', async ({ page, signIn }) => {
   await signIn('/status')
   await navTo(page, 'goals')
+  await expect(page).toHaveTitle('Goals · OYL')
   await navTo(page, 'vault')
   await page.goBack()
   await expect(page).toHaveURL('/goals')
@@ -41,6 +43,7 @@ test('browser back/forward walk the route history and update the active nav link
 test('unknown route renders a Not found view', async ({ page, signIn }) => {
   await signIn('/nope')
   expect(await deepText(page.locator('oyl-not-found'))).toContain('/nope')
+  await expect(page).toHaveTitle('Not found · OYL')
   await expect(page.locator('oyl-nav ui-nav a[aria-current="page"]')).toHaveCount(0)
 })
 
