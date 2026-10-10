@@ -1,8 +1,8 @@
 # @oyl/e2e-oyl
 
-Browser end-to-end suite for the whole OYL stack: the real `apps/vanilla-oyl` app served
-by `http-server`, driving the real `apps/strapi-oyl` backend (fresh SQLite DB per server
-start). Playwright, desktop + mobile projects.
+Browser end-to-end suite for the whole OYL stack: the real app (`apps/stencil-oyl`'s
+production `www/` build) served by `http-server`, driving the real `apps/strapi-oyl` backend
+(fresh SQLite DB per server start). Playwright, desktop + mobile projects.
 
 ```bash
 pnpm e2e                 # from the repo root — full suite, both projects
@@ -15,14 +15,14 @@ pnpm --filter @oyl/e2e-oyl report     # open the last HTML report
 (`apps/camis-php-oyl`, built with `pnpm php-app build`). It is the Strapi-compatibility gate
 for that backend; `google-auth.spec.ts` is skipped there because Google OAuth stays on Strapi.
 
-Both servers auto-start on dedicated ports (app `:8042`, backend `:1341` — never collides
-with native dev on 8041/1340) and are reused across runs for fast iteration. Reuse is by port
+All servers auto-start on dedicated ports (app `:8043`, backend `:1341`, fake Google `:1342`
+— never collides with native dev on 3344/1340) and are reused across runs for fast iteration. Reuse is by port
 alone, so when switching between the two backends kill whatever holds `:1341` first — Playwright
 would otherwise silently run the suite against the backend you just switched away from. The backend
 boot script rebuilds `strapi dist/` only when missing; after changing strapi `src/`, run
 `pnpm strapi-app build` and restart (kill the process on :1341, the next run reboots it).
-After changing `all-of-oyl/src`, the app webServer re-runs `vanilla build:lib` on next
-cold start — or run it yourself if the server is already up.
+The app webServer runs `pnpm stencil build` (all-of-oyl + ui-oyl + the app) on a cold start —
+after changing any of those, kill the process on :8043 so the next run rebuilds.
 
 ## Conventions (read before adding tests)
 
@@ -43,9 +43,15 @@ cold start — or run it yourself if the server is already up.
   are in-session only until they gain backends — when they do, add round-trip tests.
 - **Both projects run every spec**: desktop (1280×800) and mobile (Pixel 7). Guard
   mobile-only assertions with `test.skip(!isMobile, ...)`. Playwright CSS pierces the
-  app's open shadow roots — plain selectors like `oyl-journal textarea[name="text"]` work.
-- Shared helpers live in `lib/actions.ts` (`navTo`, `addNote`, `inlineConfirm`,
-  `awaitOutboxDrained`, `primeLocalMode`, `deepActiveElement`).
-- `seed.spec.ts` covers the account demo-seed journey (Status → Load demo data, and
-  `?seed`); it drains ~280 writes, so it uses `awaitOutboxDrained(page, 90_000)` and a
-  raised per-test timeout. Seeded ids are re-minted per account, so it is parallel-safe.
+  app's open shadow roots — selectors reach into the primitives: `ui-field[name=…] input`,
+  `ui-select[name=…] select`, `ui-button[data-act=…] button`. Text on a shadow host needs
+  `deepText()` (Playwright's `textContent` stops at shadow roots), and a `deepText` read right
+  after a `toHaveCount` must `expect.poll` (the host exists before its shadow root renders).
+- Shared helpers live in `tests/lib.ts` (`navTo`, `addNote`, `addTask`, `addExpense`, `addGoal`,
+  `deepText`, …) and `lib/actions.ts` (`inlineConfirm`, `awaitOutboxDrained`, `primeLocalMode`,
+  `deepActiveElement`).
+- `status.spec.ts` covers the account demo-seed journeys (Status → Load demo data, and
+  `?seed`); they drain ~280 writes, so they use `awaitOutboxDrained(page, 120_000)` and a
+  raised per-test timeout. Seeded ids are re-minted per account, so they are parallel-safe.
+- `google-auth.spec.ts` drives the fake-Google fixture through the real backend; the e2e
+  backend's `APP_URL` is this app's origin, so the OAuth callback lands back here.

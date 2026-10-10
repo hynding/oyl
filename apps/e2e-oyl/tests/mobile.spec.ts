@@ -1,70 +1,53 @@
 /**
- * Mobile-specific UX (runs only on the mobile project; desktop asserts the inverse):
- * the ≤640px fixed bottom tab bar, horizontal tab scrolling, reserved page padding,
- * no horizontal page overflow, and touch-driven form entry.
+ * Mobile UX on the stencil shell (mobile project asserts, desktop asserts the inverse):
+ * the ≤640px fixed bottom tab bar, reserved page padding, no horizontal overflow, tap targets.
  */
 import { test, expect } from '../lib/fixtures'
-import { addNote } from '../lib/actions'
+import { deepText } from './lib'
 
 test('nav docks as a fixed bottom tab bar on mobile (and stays in the header on desktop)', async ({ page, signIn, isMobile }) => {
   await signIn('/')
-  const nav = page.locator('oyl-nav nav')
-  const pos = await nav.evaluate((el) => {
-    const s = getComputedStyle(el)
-    return { position: s.position, bottom: s.bottom }
-  })
+  const bar = page.locator('oyl-nav ui-nav')
+  const position = await bar.evaluate((el) => getComputedStyle(el).position)
   if (isMobile) {
-    expect(pos.position).toBe('fixed')
-    // The shell must reserve space so the tab bar never covers page content.
-    const pagePadding = await page.locator('oyl-shell').evaluate((el) => {
-      const pageEl = el.shadowRoot?.querySelector('.page')
-      return pageEl ? parseFloat(getComputedStyle(pageEl).paddingBottom) : 0
-    })
-    expect(pagePadding).toBeGreaterThan(0)
+    expect(position).toBe('fixed')
+    const padding = await page.locator('oyl-shell').evaluate((el) => parseFloat(getComputedStyle(el.shadowRoot!.querySelector('.page')!).paddingBottom))
+    expect(padding).toBeGreaterThan(60)
   } else {
-    expect(pos.position).not.toBe('fixed')
+    expect(position).not.toBe('fixed')
   }
 })
 
 test('no horizontal page overflow on any screen', async ({ page, signIn }) => {
-  for (const route of ['/status', '/journal', '/nutrition', '/planner', '/vault', '/goals', '/insights', '/finance', '/profile']) {
-    await signIn(route)
-    const overflow = await page.evaluate(() => {
-      const el = document.scrollingElement
-      return el ? el.scrollWidth - el.clientWidth : 0
-    })
-    expect(overflow, `${route} must not scroll horizontally`).toBeLessThanOrEqual(0)
+  await signIn('/status')
+  for (const route of ['/status', '/journal', '/nutrition', '/planner', '/vault', '/goals', '/insights', '/finance', '/profile', '/login']) {
+    await page.goto(route)
+    await expect(page.locator('oyl-shell')).toBeVisible()
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
+    expect(overflow, route).toBe(false)
   }
 })
 
-test('every nav tab is reachable and tappable on mobile', async ({ page, signIn, isMobile }) => {
-  test.skip(!isMobile, 'mobile-only: exercises the horizontally scrollable tab bar')
-  await signIn('/')
-  // The last tab may start offscreen in the scrollable bar — tapping must still work.
-  for (const route of ['finance', 'insights', 'journal']) {
-    await page.locator(`oyl-nav a[data-route="${route}"]`).click()
-    await expect(page).toHaveURL(`/${route}`)
-    await expect(page.locator(`oyl-nav a[data-route="${route}"]`)).toHaveAttribute('aria-current', 'page')
+test('every nav tab is reachable and tappable with a ≥44px target on mobile', async ({ page, signIn, isMobile }) => {
+  test.skip(!isMobile, 'mobile only')
+  await signIn('/status')
+  const tabs = page.locator('oyl-nav ui-nav a')
+  await expect(tabs).toHaveCount(8)
+  for (let i = 0; i < 8; i++) {
+    const box = await tabs.nth(i).boundingBox()
+    expect(box?.height ?? 0, `tab ${i}`).toBeGreaterThanOrEqual(44)
   }
-})
-
-test('nav tap targets meet a minimum touch size on mobile', async ({ page, signIn, isMobile }) => {
-  test.skip(!isMobile, 'mobile-only: touch target audit')
-  await signIn('/')
-  const sizes = await page.locator('oyl-nav a').evaluateAll((els) =>
-    els.map((el) => {
-      const r = el.getBoundingClientRect()
-      return { h: r.height, route: el.getAttribute('data-route') }
-    }),
-  )
-  for (const s of sizes) {
-    expect(s.h, `nav tab ${s.route} touch height`).toBeGreaterThanOrEqual(32)
-  }
+  await tabs.filter({ hasText: 'Vault' }).tap()
+  await expect(page).toHaveURL('/vault')
 })
 
 test('logging a journal note works with touch input', async ({ page, signIn, isMobile }) => {
-  test.skip(!isMobile, 'mobile-only: end-to-end touch form entry')
+  test.skip(!isMobile, 'mobile only')
   await signIn('/journal')
-  await addNote(page, 'Logged from a phone')
-  await expect(page.locator('oyl-entry-row')).toContainText('Logged from a phone')
+  const form = page.locator('oyl-log-form')
+  await form.locator('ui-textarea[name="text"] textarea').tap()
+  await form.locator('ui-textarea[name="text"] textarea').fill('Tapped in')
+  await form.locator('ui-button[type="submit"] button').tap()
+  await expect(page.locator('oyl-entry-row')).toHaveCount(1)
+  expect(await deepText(page.locator('oyl-entry-row'))).toContain('Tapped in')
 })
