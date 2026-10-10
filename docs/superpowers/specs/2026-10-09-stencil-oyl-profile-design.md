@@ -35,7 +35,7 @@ Google Drive link, and Log out. Same stores and rules as vanilla's `oyl-profile`
       reconnect-needed: p[data-role=google-reconnect] "Google access expired — reconnect to keep using Drive."  ui-button[data-act=google-connect] "Reconnect"
       disconnected:     ui-button[data-act=google-connect] "Connect Google Drive"
   p.note              "Connection settings and backups live on <a href=/status>Status</a>."
-  button.danger[data-act=logout] "Log out"   (native button styled like vanilla's — ui-button has no danger variant and ui-oyl stays untouched)
+  ui-button variant=danger data-act=logout "Log out"   (centered, under the note)
 ```
 
 - Props: `session: Signal<Session | null>` and `profile: Signal<User | null>` mirrored through
