@@ -135,3 +135,14 @@ export function act(scope: Locator | Page, name: string): Locator {
 }
 
 
+
+/** Add a goal through the Goals screen's disclosure form (preset by label; period only when given). */
+export async function addGoal(page: Page, opts: { preset?: string; name?: string; target: string; period?: string }): Promise<void> {
+  await openDetails(page.locator('oyl-goals details'))
+  const form = page.locator('oyl-goal-form')
+  if (opts.preset) await form.locator('ui-select[name="preset"] select').selectOption({ label: opts.preset })
+  if (opts.name) await form.locator('ui-field[name="name"] input').fill(opts.name)
+  await form.locator('ui-field[name="target"] input').fill(opts.target)
+  if (opts.period) await form.locator('ui-select[name="period"] select').selectOption(opts.period)
+  await form.locator('ui-button[type="submit"] button').click()
+}

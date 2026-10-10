@@ -10,13 +10,14 @@ import { Signal } from "@oyl/all-of-oyl/client";
 import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
 import { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
-import { Budget, Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
-import { BudgetStatus } from "./components/oyl-budget-row/oyl-budget-row";
 import { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
 import { ContactsWriter } from "./components/oyl-contact-form/oyl-contact-form";
+import { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 import { DocumentsWriter } from "./components/oyl-document-form/oyl-document-form";
 import { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
 import { GiftIdeasWriter } from "./components/oyl-gift-idea-form/oyl-gift-idea-form";
+import { GoalsWriter } from "./components/oyl-goal-form/oyl-goal-form";
+import { GoalsJournal, GoalsStore } from "./components/oyl-goals/oyl-goals";
 import { RowAction, ValueTone } from "./components/oyl-item-row/oyl-item-row";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
@@ -27,6 +28,8 @@ import { ConsumableProductsReader as ConsumableProductsReader1 } from "./compone
 import { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
 import { PlannerReader } from "./components/oyl-planner/oyl-planner";
 import { PossessionsWriter } from "./components/oyl-possession-form/oyl-possession-form";
+import { ProgressTone } from "./components/oyl-progress-row/oyl-progress-row";
+import { RowAction as RowAction1 } from "./components/oyl-item-row/oyl-item-row.js";
 import { Routes } from "./components/oyl-router/oyl-router";
 import { Diagnostics } from "./components/oyl-status/oyl-status";
 import { StatusActions } from "./boot/data-tools.js";
@@ -39,13 +42,14 @@ export { Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
 export { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
-export { Budget, Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
-export { BudgetStatus } from "./components/oyl-budget-row/oyl-budget-row";
 export { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
 export { ContactsWriter } from "./components/oyl-contact-form/oyl-contact-form";
+export { Consumption, DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
 export { DocumentsWriter } from "./components/oyl-document-form/oyl-document-form";
 export { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
 export { GiftIdeasWriter } from "./components/oyl-gift-idea-form/oyl-gift-idea-form";
+export { GoalsWriter } from "./components/oyl-goal-form/oyl-goal-form";
+export { GoalsJournal, GoalsStore } from "./components/oyl-goals/oyl-goals";
 export { RowAction, ValueTone } from "./components/oyl-item-row/oyl-item-row";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
@@ -56,6 +60,8 @@ export { ConsumableProductsReader as ConsumableProductsReader1 } from "./compone
 export { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
 export { PlannerReader } from "./components/oyl-planner/oyl-planner";
 export { PossessionsWriter } from "./components/oyl-possession-form/oyl-possession-form";
+export { ProgressTone } from "./components/oyl-progress-row/oyl-progress-row";
+export { RowAction as RowAction1 } from "./components/oyl-item-row/oyl-item-row.js";
 export { Routes } from "./components/oyl-router/oyl-router";
 export { Diagnostics } from "./components/oyl-status/oyl-status";
 export { StatusActions } from "./boot/data-tools.js";
@@ -109,15 +115,6 @@ export namespace Components {
      */
     interface OylBudgetForm {
         "store": BudgetsWriter;
-    }
-    /**
-     * One budget: name (or category), a progress bar of the month's spending against the limit
-     * (warn tone when over), the "spent of limit · left/over by" line, and the inline Delete.
-     * `status` is a fresh object per screen render, which is what re-renders the row.
-     */
-    interface OylBudgetRow {
-        "budget": Budget;
-        "status": BudgetStatus;
     }
     /**
      * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
@@ -187,6 +184,31 @@ export namespace Components {
      */
     interface OylGiftIdeaForm {
         "store": GiftIdeasWriter;
+    }
+    /**
+     * Add a goal from a metric preset: the preset fixes metric/direction/aggregation and proposes
+     * a period and a unit hint; the user supplies the target, an optional name and may override
+     * the period. The form owns `presetIndex` and `period` (the `ui-select` rule), and re-derives
+     * the period from each newly chosen preset.
+     */
+    interface OylGoalForm {
+        "store": GoalsWriter;
+    }
+    /**
+     * Goals: a summary line, a collapsed "New goal" form, and one `oyl-progress-row` per goal
+     * tracked against the journal. One effect over the goals store and the journal revision
+     * (`progressOf` reads it) mirrors fresh `goals` + `progress` arrays into state; row props
+     * derive in `render()`. The Pause/Resume action follows the goal's open pause, not
+     * `progress.paused`: a same-day resume closes the range inclusively, so the period stays
+     * paused through today while there is nothing left to resume.
+     */
+    interface OylGoals {
+        "journal": GoalsJournal;
+        "store": GoalsStore;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
     }
     /**
      * A generic list row: label + supporting lines | optional mono value | inline Delete →
@@ -359,6 +381,43 @@ export namespace Components {
     interface OylPossessionForm {
         "store": PossessionsWriter;
     }
+    /**
+     * One tracked thing (a goal, a budget): name (+ optional met check), a progress bar with a
+     * tone, a status label, an optional secondary action (Pause / Resume) and the inline
+     * Delete → Yes/No confirm. Purely presentational: every prop is a primitive the screen
+     * derives per render, so in-place domain mutations still re-render the row. `act` and
+     * `remove` carry `itemId`, so a screen keeps one stable handler per list.
+     */
+    interface OylProgressRow {
+        /**
+          * An optional secondary action rendered before Delete.
+         */
+        "action"?: RowAction1;
+        "itemId": string;
+        /**
+          * The status line under the bar.
+          * @default ''
+         */
+        "label": string;
+        /**
+          * Renders a check after the name.
+         */
+        "met"?: boolean;
+        /**
+          * The heading (user text — rendered verbatim).
+         */
+        "name": string;
+        /**
+          * 0–1 fill of the bar.
+          * @default 0
+         */
+        "ratio": number;
+        /**
+          * aria-label for the Delete button; defaults to "Delete {name}".
+         */
+        "removeLabel"?: string;
+        "tone"?: ProgressTone;
+    }
     interface OylRegister {
         "auth": AuthApi1;
         "googleAuth"?: Signal<{ href: string } | null>;
@@ -467,10 +526,6 @@ export interface OylBudgetFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylBudgetFormElement;
 }
-export interface OylBudgetRowCustomEvent<T> extends CustomEvent<T> {
-    detail: T;
-    target: HTMLOylBudgetRowElement;
-}
 export interface OylConsumableFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylConsumableFormElement;
@@ -494,6 +549,10 @@ export interface OylEntryRowCustomEvent<T> extends CustomEvent<T> {
 export interface OylGiftIdeaFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylGiftIdeaFormElement;
+}
+export interface OylGoalFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylGoalFormElement;
 }
 export interface OylItemRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -530,6 +589,10 @@ export interface OylPlanRowCustomEvent<T> extends CustomEvent<T> {
 export interface OylPossessionFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylPossessionFormElement;
+}
+export interface OylProgressRowCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylProgressRowElement;
 }
 export interface OylRegisterCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -636,28 +699,6 @@ declare global {
     var HTMLOylBudgetFormElement: {
         prototype: HTMLOylBudgetFormElement;
         new (): HTMLOylBudgetFormElement;
-    };
-    interface HTMLOylBudgetRowElementEventMap {
-        "remove": Id;
-    }
-    /**
-     * One budget: name (or category), a progress bar of the month's spending against the limit
-     * (warn tone when over), the "spent of limit · left/over by" line, and the inline Delete.
-     * `status` is a fresh object per screen render, which is what re-renders the row.
-     */
-    interface HTMLOylBudgetRowElement extends Components.OylBudgetRow, HTMLStencilElement {
-        addEventListener<K extends keyof HTMLOylBudgetRowElementEventMap>(type: K, listener: (this: HTMLOylBudgetRowElement, ev: OylBudgetRowCustomEvent<HTMLOylBudgetRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
-        removeEventListener<K extends keyof HTMLOylBudgetRowElementEventMap>(type: K, listener: (this: HTMLOylBudgetRowElement, ev: OylBudgetRowCustomEvent<HTMLOylBudgetRowElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
-    }
-    var HTMLOylBudgetRowElement: {
-        prototype: HTMLOylBudgetRowElement;
-        new (): HTMLOylBudgetRowElement;
     };
     interface HTMLOylConsumableFormElementEventMap {
         "added": void;
@@ -797,6 +838,43 @@ declare global {
     var HTMLOylGiftIdeaFormElement: {
         prototype: HTMLOylGiftIdeaFormElement;
         new (): HTMLOylGiftIdeaFormElement;
+    };
+    interface HTMLOylGoalFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a goal from a metric preset: the preset fixes metric/direction/aggregation and proposes
+     * a period and a unit hint; the user supplies the target, an optional name and may override
+     * the period. The form owns `presetIndex` and `period` (the `ui-select` rule), and re-derives
+     * the period from each newly chosen preset.
+     */
+    interface HTMLOylGoalFormElement extends Components.OylGoalForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylGoalFormElementEventMap>(type: K, listener: (this: HTMLOylGoalFormElement, ev: OylGoalFormCustomEvent<HTMLOylGoalFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylGoalFormElementEventMap>(type: K, listener: (this: HTMLOylGoalFormElement, ev: OylGoalFormCustomEvent<HTMLOylGoalFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylGoalFormElement: {
+        prototype: HTMLOylGoalFormElement;
+        new (): HTMLOylGoalFormElement;
+    };
+    /**
+     * Goals: a summary line, a collapsed "New goal" form, and one `oyl-progress-row` per goal
+     * tracked against the journal. One effect over the goals store and the journal revision
+     * (`progressOf` reads it) mirrors fresh `goals` + `progress` arrays into state; row props
+     * derive in `render()`. The Pause/Resume action follows the goal's open pause, not
+     * `progress.paused`: a same-day resume closes the range inclusively, so the period stays
+     * paused through today while there is nothing left to resume.
+     */
+    interface HTMLOylGoalsElement extends Components.OylGoals, HTMLStencilElement {
+    }
+    var HTMLOylGoalsElement: {
+        prototype: HTMLOylGoalsElement;
+        new (): HTMLOylGoalsElement;
     };
     interface HTMLOylItemRowElementEventMap {
         "remove": string;
@@ -1049,6 +1127,31 @@ declare global {
         prototype: HTMLOylPossessionFormElement;
         new (): HTMLOylPossessionFormElement;
     };
+    interface HTMLOylProgressRowElementEventMap {
+        "remove": string;
+        "act": { act: string; itemId: string };
+    }
+    /**
+     * One tracked thing (a goal, a budget): name (+ optional met check), a progress bar with a
+     * tone, a status label, an optional secondary action (Pause / Resume) and the inline
+     * Delete → Yes/No confirm. Purely presentational: every prop is a primitive the screen
+     * derives per render, so in-place domain mutations still re-render the row. `act` and
+     * `remove` carry `itemId`, so a screen keeps one stable handler per list.
+     */
+    interface HTMLOylProgressRowElement extends Components.OylProgressRow, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylProgressRowElementEventMap>(type: K, listener: (this: HTMLOylProgressRowElement, ev: OylProgressRowCustomEvent<HTMLOylProgressRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylProgressRowElementEventMap>(type: K, listener: (this: HTMLOylProgressRowElement, ev: OylProgressRowCustomEvent<HTMLOylProgressRowElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylProgressRowElement: {
+        prototype: HTMLOylProgressRowElement;
+        new (): HTMLOylProgressRowElement;
+    };
     interface HTMLOylRegisterElementEventMap {
         "authenticated": void;
     }
@@ -1176,7 +1279,6 @@ declare global {
         "oyl-app": HTMLOylAppElement;
         "oyl-auth-form": HTMLOylAuthFormElement;
         "oyl-budget-form": HTMLOylBudgetFormElement;
-        "oyl-budget-row": HTMLOylBudgetRowElement;
         "oyl-consumable-form": HTMLOylConsumableFormElement;
         "oyl-contact-form": HTMLOylContactFormElement;
         "oyl-day-nav": HTMLOylDayNavElement;
@@ -1184,6 +1286,8 @@ declare global {
         "oyl-entry-row": HTMLOylEntryRowElement;
         "oyl-finance": HTMLOylFinanceElement;
         "oyl-gift-idea-form": HTMLOylGiftIdeaFormElement;
+        "oyl-goal-form": HTMLOylGoalFormElement;
+        "oyl-goals": HTMLOylGoalsElement;
         "oyl-item-row": HTMLOylItemRowElement;
         "oyl-journal": HTMLOylJournalElement;
         "oyl-log-form": HTMLOylLogFormElement;
@@ -1199,6 +1303,7 @@ declare global {
         "oyl-plan-row": HTMLOylPlanRowElement;
         "oyl-planner": HTMLOylPlannerElement;
         "oyl-possession-form": HTMLOylPossessionFormElement;
+        "oyl-progress-row": HTMLOylProgressRowElement;
         "oyl-register": HTMLOylRegisterElement;
         "oyl-router": HTMLOylRouterElement;
         "oyl-shell": HTMLOylShellElement;
@@ -1270,19 +1375,6 @@ declare namespace LocalJSX {
          */
         "onAdded"?: (event: OylBudgetFormCustomEvent<void>) => void;
         "store": BudgetsWriter;
-    }
-    /**
-     * One budget: name (or category), a progress bar of the month's spending against the limit
-     * (warn tone when over), the "spent of limit · left/over by" line, and the inline Delete.
-     * `status` is a fresh object per screen render, which is what re-renders the row.
-     */
-    interface OylBudgetRow {
-        "budget": Budget;
-        /**
-          * The user confirmed deletion of this budget.
-         */
-        "onRemove"?: (event: OylBudgetRowCustomEvent<Id>) => void;
-        "status": BudgetStatus;
     }
     /**
      * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
@@ -1372,6 +1464,35 @@ declare namespace LocalJSX {
          */
         "onAdded"?: (event: OylGiftIdeaFormCustomEvent<void>) => void;
         "store": GiftIdeasWriter;
+    }
+    /**
+     * Add a goal from a metric preset: the preset fixes metric/direction/aggregation and proposes
+     * a period and a unit hint; the user supplies the target, an optional name and may override
+     * the period. The form owns `presetIndex` and `period` (the `ui-select` rule), and re-derives
+     * the period from each newly chosen preset.
+     */
+    interface OylGoalForm {
+        /**
+          * A goal was added through the store.
+         */
+        "onAdded"?: (event: OylGoalFormCustomEvent<void>) => void;
+        "store": GoalsWriter;
+    }
+    /**
+     * Goals: a summary line, a collapsed "New goal" form, and one `oyl-progress-row` per goal
+     * tracked against the journal. One effect over the goals store and the journal revision
+     * (`progressOf` reads it) mirrors fresh `goals` + `progress` arrays into state; row props
+     * derive in `render()`. The Pause/Resume action follows the goal's open pause, not
+     * `progress.paused`: a same-day resume closes the range inclusively, so the period stays
+     * paused through today while there is nothing left to resume.
+     */
+    interface OylGoals {
+        "journal": GoalsJournal;
+        "store": GoalsStore;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
     }
     /**
      * A generic list row: label + supporting lines | optional mono value | inline Delete →
@@ -1583,6 +1704,51 @@ declare namespace LocalJSX {
         "onAdded"?: (event: OylPossessionFormCustomEvent<void>) => void;
         "store": PossessionsWriter;
     }
+    /**
+     * One tracked thing (a goal, a budget): name (+ optional met check), a progress bar with a
+     * tone, a status label, an optional secondary action (Pause / Resume) and the inline
+     * Delete → Yes/No confirm. Purely presentational: every prop is a primitive the screen
+     * derives per render, so in-place domain mutations still re-render the row. `act` and
+     * `remove` carry `itemId`, so a screen keeps one stable handler per list.
+     */
+    interface OylProgressRow {
+        /**
+          * An optional secondary action rendered before Delete.
+         */
+        "action"?: RowAction1;
+        "itemId": string;
+        /**
+          * The status line under the bar.
+          * @default ''
+         */
+        "label"?: string;
+        /**
+          * Renders a check after the name.
+         */
+        "met"?: boolean;
+        /**
+          * The heading (user text — rendered verbatim).
+         */
+        "name": string;
+        /**
+          * The secondary action was clicked.
+         */
+        "onAct"?: (event: OylProgressRowCustomEvent<{ act: string; itemId: string }>) => void;
+        /**
+          * The user confirmed deletion; detail = `itemId`.
+         */
+        "onRemove"?: (event: OylProgressRowCustomEvent<string>) => void;
+        /**
+          * 0–1 fill of the bar.
+          * @default 0
+         */
+        "ratio"?: number;
+        /**
+          * aria-label for the Delete button; defaults to "Delete {name}".
+         */
+        "removeLabel"?: string;
+        "tone"?: ProgressTone;
+    }
     interface OylRegister {
         "auth": AuthApi1;
         "googleAuth"?: Signal<{ href: string } | null>;
@@ -1696,6 +1862,9 @@ declare namespace LocalJSX {
     interface OylFinanceAttributes {
         "tz": string;
     }
+    interface OylGoalsAttributes {
+        "tz": string;
+    }
     interface OylItemRowAttributes {
         "itemId": string;
         "label": string;
@@ -1728,6 +1897,15 @@ declare namespace LocalJSX {
     interface OylPlannerAttributes {
         "tz": string;
     }
+    interface OylProgressRowAttributes {
+        "itemId": string;
+        "name": string;
+        "met": boolean;
+        "ratio": number;
+        "tone": ProgressTone;
+        "label": string;
+        "removeLabel": string;
+    }
     interface OylShellAttributes {
         "docked": boolean;
     }
@@ -1741,7 +1919,6 @@ declare namespace LocalJSX {
         "oyl-app": OylApp;
         "oyl-auth-form": Omit<OylAuthForm, keyof OylAuthFormAttributes> & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes]?: OylAuthForm[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `attr:${K}`]?: OylAuthFormAttributes[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `prop:${K}`]?: OylAuthForm[K] };
         "oyl-budget-form": OylBudgetForm;
-        "oyl-budget-row": OylBudgetRow;
         "oyl-consumable-form": OylConsumableForm;
         "oyl-contact-form": OylContactForm;
         "oyl-day-nav": Omit<OylDayNav, keyof OylDayNavAttributes> & { [K in keyof OylDayNav & keyof OylDayNavAttributes]?: OylDayNav[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `attr:${K}`]?: OylDayNavAttributes[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `prop:${K}`]?: OylDayNav[K] };
@@ -1749,6 +1926,8 @@ declare namespace LocalJSX {
         "oyl-entry-row": OylEntryRow;
         "oyl-finance": Omit<OylFinance, keyof OylFinanceAttributes> & { [K in keyof OylFinance & keyof OylFinanceAttributes]?: OylFinance[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `attr:${K}`]?: OylFinanceAttributes[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `prop:${K}`]?: OylFinance[K] };
         "oyl-gift-idea-form": OylGiftIdeaForm;
+        "oyl-goal-form": OylGoalForm;
+        "oyl-goals": Omit<OylGoals, keyof OylGoalsAttributes> & { [K in keyof OylGoals & keyof OylGoalsAttributes]?: OylGoals[K] } & { [K in keyof OylGoals & keyof OylGoalsAttributes as `attr:${K}`]?: OylGoalsAttributes[K] } & { [K in keyof OylGoals & keyof OylGoalsAttributes as `prop:${K}`]?: OylGoals[K] };
         "oyl-item-row": Omit<OylItemRow, keyof OylItemRowAttributes> & { [K in keyof OylItemRow & keyof OylItemRowAttributes]?: OylItemRow[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `attr:${K}`]?: OylItemRowAttributes[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `prop:${K}`]?: OylItemRow[K] } & OneOf<"itemId", OylItemRow["itemId"], OylItemRowAttributes["itemId"]> & OneOf<"label", OylItemRow["label"], OylItemRowAttributes["label"]>;
         "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
         "oyl-log-form": OylLogForm;
@@ -1764,6 +1943,7 @@ declare namespace LocalJSX {
         "oyl-plan-row": OylPlanRow;
         "oyl-planner": Omit<OylPlanner, keyof OylPlannerAttributes> & { [K in keyof OylPlanner & keyof OylPlannerAttributes]?: OylPlanner[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `attr:${K}`]?: OylPlannerAttributes[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `prop:${K}`]?: OylPlanner[K] };
         "oyl-possession-form": OylPossessionForm;
+        "oyl-progress-row": Omit<OylProgressRow, keyof OylProgressRowAttributes> & { [K in keyof OylProgressRow & keyof OylProgressRowAttributes]?: OylProgressRow[K] } & { [K in keyof OylProgressRow & keyof OylProgressRowAttributes as `attr:${K}`]?: OylProgressRowAttributes[K] } & { [K in keyof OylProgressRow & keyof OylProgressRowAttributes as `prop:${K}`]?: OylProgressRow[K] } & OneOf<"itemId", OylProgressRow["itemId"], OylProgressRowAttributes["itemId"]> & OneOf<"name", OylProgressRow["name"], OylProgressRowAttributes["name"]>;
         "oyl-register": OylRegister;
         "oyl-router": OylRouter;
         "oyl-shell": Omit<OylShell, keyof OylShellAttributes> & { [K in keyof OylShell & keyof OylShellAttributes]?: OylShell[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `attr:${K}`]?: OylShellAttributes[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `prop:${K}`]?: OylShell[K] };
@@ -1803,12 +1983,6 @@ declare module "@stencil/core" {
              */
             "oyl-budget-form": LocalJSX.IntrinsicElements["oyl-budget-form"] & JSXBase.HTMLAttributes<HTMLOylBudgetFormElement>;
             /**
-             * One budget: name (or category), a progress bar of the month's spending against the limit
-             * (warn tone when over), the "spent of limit · left/over by" line, and the inline Delete.
-             * `status` is a fresh object per screen render, which is what re-renders the row.
-             */
-            "oyl-budget-row": LocalJSX.IntrinsicElements["oyl-budget-row"] & JSXBase.HTMLAttributes<HTMLOylBudgetRowElement>;
-            /**
              * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
              */
             "oyl-consumable-form": LocalJSX.IntrinsicElements["oyl-consumable-form"] & JSXBase.HTMLAttributes<HTMLOylConsumableFormElement>;
@@ -1846,6 +2020,22 @@ declare module "@stencil/core" {
              * present, else the first contact) because `ui-select` syncs its own value silently.
              */
             "oyl-gift-idea-form": LocalJSX.IntrinsicElements["oyl-gift-idea-form"] & JSXBase.HTMLAttributes<HTMLOylGiftIdeaFormElement>;
+            /**
+             * Add a goal from a metric preset: the preset fixes metric/direction/aggregation and proposes
+             * a period and a unit hint; the user supplies the target, an optional name and may override
+             * the period. The form owns `presetIndex` and `period` (the `ui-select` rule), and re-derives
+             * the period from each newly chosen preset.
+             */
+            "oyl-goal-form": LocalJSX.IntrinsicElements["oyl-goal-form"] & JSXBase.HTMLAttributes<HTMLOylGoalFormElement>;
+            /**
+             * Goals: a summary line, a collapsed "New goal" form, and one `oyl-progress-row` per goal
+             * tracked against the journal. One effect over the goals store and the journal revision
+             * (`progressOf` reads it) mirrors fresh `goals` + `progress` arrays into state; row props
+             * derive in `render()`. The Pause/Resume action follows the goal's open pause, not
+             * `progress.paused`: a same-day resume closes the range inclusively, so the period stays
+             * paused through today while there is nothing left to resume.
+             */
+            "oyl-goals": LocalJSX.IntrinsicElements["oyl-goals"] & JSXBase.HTMLAttributes<HTMLOylGoalsElement>;
             /**
              * A generic list row: label + supporting lines | optional mono value | inline Delete →
              * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
@@ -1920,6 +2110,14 @@ declare module "@stencil/core" {
              * Add a possession: name plus optional location, warranty, price and purchase day.
              */
             "oyl-possession-form": LocalJSX.IntrinsicElements["oyl-possession-form"] & JSXBase.HTMLAttributes<HTMLOylPossessionFormElement>;
+            /**
+             * One tracked thing (a goal, a budget): name (+ optional met check), a progress bar with a
+             * tone, a status label, an optional secondary action (Pause / Resume) and the inline
+             * Delete → Yes/No confirm. Purely presentational: every prop is a primitive the screen
+             * derives per render, so in-place domain mutations still re-render the row. `act` and
+             * `remove` carry `itemId`, so a screen keeps one stable handler per list.
+             */
+            "oyl-progress-row": LocalJSX.IntrinsicElements["oyl-progress-row"] & JSXBase.HTMLAttributes<HTMLOylProgressRowElement>;
             "oyl-register": LocalJSX.IntrinsicElements["oyl-register"] & JSXBase.HTMLAttributes<HTMLOylRegisterElement>;
             /**
              * Switches one screen element on the route signal. Screens are created by the `routes`
