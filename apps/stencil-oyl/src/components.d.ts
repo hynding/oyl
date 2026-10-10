@@ -6,13 +6,13 @@
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
 import { AccountsWriter } from "./components/oyl-account-form/oyl-account-form";
-import { ProfilePatch, Signal } from "@oyl/all-of-oyl/client";
+import { AuthSession, ProfilePatch, Signal } from "@oyl/all-of-oyl/client";
 import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
 import { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
 import { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
 import { ContactsWriter } from "./components/oyl-contact-form/oyl-contact-form";
-import { Consumption, DayKey, DayRange, Entry, Id, Plan, Review } from "@oyl/all-of-oyl";
+import { Consumption, DayKey, DayRange, Entry, Id, Plan, Review, User } from "@oyl/all-of-oyl";
 import { DocumentsWriter } from "./components/oyl-document-form/oyl-document-form";
 import { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
 import { GiftIdeasWriter } from "./components/oyl-gift-idea-form/oyl-gift-idea-form";
@@ -28,6 +28,7 @@ import { ConsumableProductsReader as ConsumableProductsReader1 } from "./compone
 import { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
 import { PlannerReader } from "./components/oyl-planner/oyl-planner";
 import { PossessionsWriter } from "./components/oyl-possession-form/oyl-possession-form";
+import { GoogleLink } from "./components/oyl-profile/oyl-profile";
 import { ProgressTone } from "./components/oyl-progress-row/oyl-progress-row";
 import { RowAction as RowAction1 } from "./components/oyl-item-row/oyl-item-row.js";
 import { Routes } from "./components/oyl-router/oyl-router";
@@ -38,13 +39,13 @@ import { ThemeState } from "./boot/theme.js";
 import { AccountsReader, Direction, TransactionWriter } from "./components/oyl-transaction-form/oyl-transaction-form";
 import { VaultStore } from "./components/oyl-vault/oyl-vault";
 export { AccountsWriter } from "./components/oyl-account-form/oyl-account-form";
-export { ProfilePatch, Signal } from "@oyl/all-of-oyl/client";
+export { AuthSession, ProfilePatch, Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
 export { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
 export { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
 export { ContactsWriter } from "./components/oyl-contact-form/oyl-contact-form";
-export { Consumption, DayKey, DayRange, Entry, Id, Plan, Review } from "@oyl/all-of-oyl";
+export { Consumption, DayKey, DayRange, Entry, Id, Plan, Review, User } from "@oyl/all-of-oyl";
 export { DocumentsWriter } from "./components/oyl-document-form/oyl-document-form";
 export { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
 export { GiftIdeasWriter } from "./components/oyl-gift-idea-form/oyl-gift-idea-form";
@@ -60,6 +61,7 @@ export { ConsumableProductsReader as ConsumableProductsReader1 } from "./compone
 export { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
 export { PlannerReader } from "./components/oyl-planner/oyl-planner";
 export { PossessionsWriter } from "./components/oyl-possession-form/oyl-possession-form";
+export { GoogleLink } from "./components/oyl-profile/oyl-profile";
 export { ProgressTone } from "./components/oyl-progress-row/oyl-progress-row";
 export { RowAction as RowAction1 } from "./components/oyl-item-row/oyl-item-row.js";
 export { Routes } from "./components/oyl-router/oyl-router";
@@ -398,6 +400,26 @@ export namespace Components {
         "store": PossessionsWriter;
     }
     /**
+     * Profile: who is signed in (+ a body summary), the editable profile form, the Google Drive
+     * link, a pointer to Status (connection + backups live there) and Log out. Three signals are
+     * mirrored into state; the form's `value` is derived in the profile mirror — never in render —
+     * so a Google-status change does not hand the form a fresh patch and re-seed it mid-edit.
+     */
+    interface OylProfile {
+        "google": GoogleLink;
+        "profile": Signal<User | null>;
+        "session": Signal<AuthSession>;
+        /**
+          * Today as YYYY-MM-DD in the effective timezone (for the age).
+          * @default ''
+         */
+        "today": string;
+        /**
+          * Passed through to the form (tests inject a short list).
+         */
+        "zones"?: readonly string[] | null;
+    }
+    /**
      * The editable profile: timezone (IANA select, or a text field when the platform has no zone
      * list), units, birthday, location, weight/height in the chosen units, gender with an "Other"
      * self-describe field. Text fields render `value={seed.x}` from a seed recomputed only when
@@ -624,6 +646,10 @@ export interface OylPlanRowCustomEvent<T> extends CustomEvent<T> {
 export interface OylPossessionFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylPossessionFormElement;
+}
+export interface OylProfileCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylProfileElement;
 }
 export interface OylProfileFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -1178,6 +1204,30 @@ declare global {
         prototype: HTMLOylPossessionFormElement;
         new (): HTMLOylPossessionFormElement;
     };
+    interface HTMLOylProfileElementEventMap {
+        "saveProfile": ProfilePatch;
+        "logout": void;
+    }
+    /**
+     * Profile: who is signed in (+ a body summary), the editable profile form, the Google Drive
+     * link, a pointer to Status (connection + backups live there) and Log out. Three signals are
+     * mirrored into state; the form's `value` is derived in the profile mirror — never in render —
+     * so a Google-status change does not hand the form a fresh patch and re-seed it mid-edit.
+     */
+    interface HTMLOylProfileElement extends Components.OylProfile, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylProfileElementEventMap>(type: K, listener: (this: HTMLOylProfileElement, ev: OylProfileCustomEvent<HTMLOylProfileElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylProfileElementEventMap>(type: K, listener: (this: HTMLOylProfileElement, ev: OylProfileCustomEvent<HTMLOylProfileElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylProfileElement: {
+        prototype: HTMLOylProfileElement;
+        new (): HTMLOylProfileElement;
+    };
     interface HTMLOylProfileFormElementEventMap {
         "save": ProfilePatch;
     }
@@ -1379,6 +1429,7 @@ declare global {
         "oyl-plan-row": HTMLOylPlanRowElement;
         "oyl-planner": HTMLOylPlannerElement;
         "oyl-possession-form": HTMLOylPossessionFormElement;
+        "oyl-profile": HTMLOylProfileElement;
         "oyl-profile-form": HTMLOylProfileFormElement;
         "oyl-progress-row": HTMLOylProgressRowElement;
         "oyl-register": HTMLOylRegisterElement;
@@ -1798,6 +1849,34 @@ declare namespace LocalJSX {
         "store": PossessionsWriter;
     }
     /**
+     * Profile: who is signed in (+ a body summary), the editable profile form, the Google Drive
+     * link, a pointer to Status (connection + backups live there) and Log out. Three signals are
+     * mirrored into state; the form's `value` is derived in the profile mirror — never in render —
+     * so a Google-status change does not hand the form a fresh patch and re-seed it mid-edit.
+     */
+    interface OylProfile {
+        "google": GoogleLink;
+        /**
+          * The user asked to log out.
+         */
+        "onLogout"?: (event: OylProfileCustomEvent<void>) => void;
+        /**
+          * The user submitted the profile form; detail = the patch.
+         */
+        "onSaveProfile"?: (event: OylProfileCustomEvent<ProfilePatch>) => void;
+        "profile": Signal<User | null>;
+        "session": Signal<AuthSession>;
+        /**
+          * Today as YYYY-MM-DD in the effective timezone (for the age).
+          * @default ''
+         */
+        "today"?: string;
+        /**
+          * Passed through to the form (tests inject a short list).
+         */
+        "zones"?: readonly string[] | null;
+    }
+    /**
      * The editable profile: timezone (IANA select, or a text field when the platform has no zone
      * list), units, birthday, location, weight/height in the chosen units, gender with an "Other"
      * self-describe field. Text fields render `value={seed.x}` from a seed recomputed only when
@@ -2016,6 +2095,9 @@ declare namespace LocalJSX {
     interface OylPlannerAttributes {
         "tz": string;
     }
+    interface OylProfileAttributes {
+        "today": string;
+    }
     interface OylProgressRowAttributes {
         "itemId": string;
         "name": string;
@@ -2063,6 +2145,7 @@ declare namespace LocalJSX {
         "oyl-plan-row": OylPlanRow;
         "oyl-planner": Omit<OylPlanner, keyof OylPlannerAttributes> & { [K in keyof OylPlanner & keyof OylPlannerAttributes]?: OylPlanner[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `attr:${K}`]?: OylPlannerAttributes[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `prop:${K}`]?: OylPlanner[K] };
         "oyl-possession-form": OylPossessionForm;
+        "oyl-profile": Omit<OylProfile, keyof OylProfileAttributes> & { [K in keyof OylProfile & keyof OylProfileAttributes]?: OylProfile[K] } & { [K in keyof OylProfile & keyof OylProfileAttributes as `attr:${K}`]?: OylProfileAttributes[K] } & { [K in keyof OylProfile & keyof OylProfileAttributes as `prop:${K}`]?: OylProfile[K] };
         "oyl-profile-form": OylProfileForm;
         "oyl-progress-row": Omit<OylProgressRow, keyof OylProgressRowAttributes> & { [K in keyof OylProgressRow & keyof OylProgressRowAttributes]?: OylProgressRow[K] } & { [K in keyof OylProgressRow & keyof OylProgressRowAttributes as `attr:${K}`]?: OylProgressRowAttributes[K] } & { [K in keyof OylProgressRow & keyof OylProgressRowAttributes as `prop:${K}`]?: OylProgressRow[K] } & OneOf<"itemId", OylProgressRow["itemId"], OylProgressRowAttributes["itemId"]> & OneOf<"name", OylProgressRow["name"], OylProgressRowAttributes["name"]>;
         "oyl-register": OylRegister;
@@ -2238,6 +2321,13 @@ declare module "@stencil/core" {
              * Add a possession: name plus optional location, warranty, price and purchase day.
              */
             "oyl-possession-form": LocalJSX.IntrinsicElements["oyl-possession-form"] & JSXBase.HTMLAttributes<HTMLOylPossessionFormElement>;
+            /**
+             * Profile: who is signed in (+ a body summary), the editable profile form, the Google Drive
+             * link, a pointer to Status (connection + backups live there) and Log out. Three signals are
+             * mirrored into state; the form's `value` is derived in the profile mirror — never in render —
+             * so a Google-status change does not hand the form a fresh patch and re-seed it mid-edit.
+             */
+            "oyl-profile": LocalJSX.IntrinsicElements["oyl-profile"] & JSXBase.HTMLAttributes<HTMLOylProfileElement>;
             /**
              * The editable profile: timezone (IANA select, or a text field when the platform has no zone
              * list), units, birthday, location, weight/height in the chosen units, gender with an "Other"
