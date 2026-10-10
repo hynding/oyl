@@ -20,7 +20,7 @@ const APP_DIR = path.resolve(__dirname, '..', '..', 'strapi-oyl')
 const DIST_DIR = path.join(APP_DIR, 'dist')
 
 const PORT = Number(process.env.E2E_BACKEND_PORT ?? 1341)
-const APP_ORIGIN = process.env.E2E_APP_ORIGIN ?? 'http://localhost:8042'
+const APP_ORIGIN = process.env.E2E_APP_ORIGIN ?? 'http://localhost:8043'
 // The stencil-oyl e2e projects serve on :8043 (apps/e2e-oyl/lib/urls.ts).
 const STENCIL_ORIGIN = 'http://localhost:8043'
 

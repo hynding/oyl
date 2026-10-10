@@ -29,6 +29,21 @@ test('seeding an empty account raises the counts live and drains the outbox', as
   await expect(page.locator('oyl-status dt:text-is("notes") + dd')).not.toHaveText('0')
 })
 
+test('the ?seed query populates an empty account at boot and never duplicates', async ({ page, signIn, user }) => {
+  test.setTimeout(SEED_TIMEOUT)
+  await signIn('/status')
+  await page.goto('/goals?seed')
+  await expect(page.locator('oyl-goals ol.goals oyl-progress-row')).toHaveCount(4, { timeout: 20_000 })
+  await awaitOutboxDrained(page, 120_000)
+  // A second boot with ?seed must not double the data (a non-empty account is left alone).
+  await page.goto('/goals?seed')
+  await expect(page.locator('oyl-goals ol.goals oyl-progress-row')).toHaveCount(4)
+  // And the seeded goals belong to this user server-side.
+  const res = await page.request.get('http://localhost:1341/api/goals', { headers: { Authorization: `Bearer ${user.jwt}` } })
+  const body = (await res.json()) as { data: unknown[] }
+  expect(body.data).toHaveLength(4)
+})
+
 test('remote mode enables the account tools and gates the local reset', async ({ page, signIn }) => {
   await signIn('/status')
   const panel = page.locator('oyl-status')
