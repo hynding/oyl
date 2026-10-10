@@ -37,9 +37,11 @@ export async function registerUser(request: APIRequestContext): Promise<TestUser
   const email = `${username}@example.com`
   const password = 'e2e-Password-1'
   const post = () => request.post(`${API_URL}/auth/local/register`, { data: { username, email, password } })
-  // Under load the backend occasionally resets a fresh connection before answering; the
-  // registration never happened, so one retry is safe (a second user is never created).
-  const res = await post().catch((err: unknown) => (String(err).includes('ECONNRESET') ? post() : Promise.reject(err)))
+  // Under load the backend occasionally drops a fresh connection before answering (ECONNRESET
+  // or a bare "socket hang up"); the registration never happened, so one retry is safe (a
+  // second user is never created).
+  const transient = (err: unknown) => /ECONNRESET|socket hang up/.test(String(err))
+  const res = await post().catch((err: unknown) => (transient(err) ? post() : Promise.reject(err)))
   expect(res.ok(), `register ${username}: ${res.status()} ${await res.text().catch(() => '')}`).toBe(true)
   const body = (await res.json()) as { jwt: string; user: { id: number } }
   return { username, email, password, jwt: body.jwt, id: body.user.id }
