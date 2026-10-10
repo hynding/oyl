@@ -70,7 +70,7 @@ jobs:
       # Both builds run BEFORE the deploy key is loaded: no third-party build code (pnpm/composer
       # dependencies, camis) ever runs while the key sits in the ssh-agent.
       - run: pnpm php-app build
-      - run: pnpm vanilla build:lib
+      - run: pnpm stencil build
 
       # Always run: deploys are idempotent and cancel-in-progress:false means a superseded
       # or failed run's per-push diff is unreliable — every run deploys both targets.

@@ -118,16 +118,16 @@ describe(".github/workflows/deploy.yml", () => {
   it("builds both targets after the gate and before the deploy key is loaded (no build code runs with the key in the agent)", () => {
     const i = (s: string) => { const k = yml.indexOf(s); expect(k, s).toBeGreaterThan(-1); return k }
     expect(i("run: pnpm typecheck")).toBeLessThan(i("run: pnpm php-app build"))
-    expect(i("run: pnpm php-app build")).toBeLessThan(i("run: pnpm vanilla build:lib"))
+    expect(i("run: pnpm php-app build")).toBeLessThan(i("run: pnpm stencil build"))
     expect(i("run: pnpm php-app build")).toBeLessThan(i("webfactory/ssh-agent"))
-    expect(i("run: pnpm vanilla build:lib")).toBeLessThan(i("webfactory/ssh-agent"))
+    expect(i("run: pnpm stencil build")).toBeLessThan(i("webfactory/ssh-agent"))
     expect(i("webfactory/ssh-agent")).toBeLessThan(i("name: Pin the DreamHost host key"))
     expect(i("name: Pin the DreamHost host key")).toBeLessThan(i("name: Publish api"))
     expect(i("name: Publish api")).toBeLessThan(i("name: Publish www"))
     // The publish steps only publish: no build re-runs after the key is loaded.
     const afterKey = yml.slice(i("webfactory/ssh-agent"))
     expect(afterKey).not.toContain("pnpm php-app build")
-    expect(afterKey).not.toContain("pnpm vanilla build:lib")
+    expect(afterKey).not.toContain("pnpm stencil build")
     expect(afterKey).toContain("run: bash scripts/dreamhost/publish-api.sh")
     expect(afterKey).toContain("run: bash scripts/dreamhost/publish-www.sh")
   })

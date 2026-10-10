@@ -34,7 +34,7 @@ describe("scripts/deploy-dreamhost.sh (local wrapper)", () => {
     const s = src()
     const dirty = s.indexOf("git status --porcelain")
     expect(dirty).toBeGreaterThan(-1)
-    for (const later of ["pnpm vanilla build:lib", "pnpm php-app build", "dreamhost/publish-www.sh", "dreamhost/publish-api.sh"]) {
+    for (const later of ["pnpm stencil build", "pnpm php-app build", "dreamhost/publish-www.sh", "dreamhost/publish-api.sh"]) {
       expect(s.indexOf(later), later).toBeGreaterThan(dirty)
     }
     expect(s).not.toContain("rsync ")
@@ -47,7 +47,7 @@ describe("scripts/deploy-dreamhost.sh (local wrapper)", () => {
     expect(api).toBeGreaterThan(-1)
     expect(www).toBeGreaterThan(api)
     const apiBuild = s.indexOf("pnpm php-app build")
-    const wwwBuild = s.indexOf("pnpm vanilla build:lib")
+    const wwwBuild = s.indexOf("pnpm stencil build")
     expect(apiBuild).toBeGreaterThan(-1)
     expect(wwwBuild).toBeGreaterThan(apiBuild)
     expect(wwwBuild).toBeLessThan(Math.min(api, www))
@@ -157,8 +157,8 @@ exit 0
   it("on a clean tree builds api then www, then publishes api first (its failure stops www)", () => {
     const { res, out, pnpm } = cleanRun(["--dry-run"])
     expect(pnpm).toContain("php-app build")
-    expect(pnpm).toContain("vanilla build:lib")
-    expect(pnpm.indexOf("php-app build")).toBeLessThan(pnpm.indexOf("vanilla build:lib"))
+    expect(pnpm).toContain("stencil build")
+    expect(pnpm.indexOf("php-app build")).toBeLessThan(pnpm.indexOf("stencil build"))
     expect(res.status).not.toBe(0)
     const api = out.indexOf("publish-api")
     expect(api).toBeGreaterThan(-1)
@@ -168,7 +168,7 @@ exit 0
 
   it("--only www builds and publishes www alone", () => {
     const { res, out, pnpm } = cleanRun(["--dry-run", "--only", "www"])
-    expect(pnpm).toContain("vanilla build:lib")
+    expect(pnpm).toContain("stencil build")
     expect(pnpm).not.toContain("php-app build")
     expect(res.status).not.toBe(0)
     expect(out).toContain("publish-www")

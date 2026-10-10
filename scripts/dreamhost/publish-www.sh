@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Publish the static vanilla-oyl app to DreamHost: stage the four asset roots, inject the API
-# base, render .htaccess (scoped SPA fallback + hashed CSP), rsync, health-check.
+# Publish the static stencil-oyl app (its built www/) to DreamHost: stage the asset roots, inject
+# the API base, render .htaccess (scoped SPA fallback + hashed CSP), rsync, health-check.
 # Shared by .github/workflows/deploy.yml and scripts/deploy-dreamhost.sh — all config comes from
 # the environment; this file is git-tracked and must never hold a host, user, path or secret.
 #
@@ -11,8 +11,8 @@
 #   DH_CSP_HEADER  Content-Security-Policy (default) | Content-Security-Policy-Report-Only
 #   DH_API_ROOT    the api's root (optional) — refused if it overlaps DH_WWW_ROOT (--delete)
 #   DH_FIRST_DEPLOY=1  publish into a root that is neither empty nor a previous deploy (once)
-#   DH_WWW_SRC     app source dir (default apps/vanilla-oyl; a test seam)
-#   DH_HTACCESS_TEMPLATE  the app's htaccess.template (default apps/vanilla-oyl/deploy/htaccess.template)
+#   DH_WWW_SRC     the built app dir (default apps/stencil-oyl/www — run `pnpm stencil build` first; a test seam)
+#   DH_HTACCESS_TEMPLATE  the app's htaccess.template (default apps/stencil-oyl/deploy/htaccess.template)
 #
 # Usage: publish-www.sh [--dry-run]
 set -euo pipefail
@@ -33,8 +33,8 @@ fi
 DH_SSH="${DH_SSH:-}"; DH_WWW_ROOT="${DH_WWW_ROOT:-}"; DH_API_BASE="${DH_API_BASE:-}"
 DH_SITE_URL="${DH_SITE_URL:-}"; DH_API_ROOT="${DH_API_ROOT:-}"; DH_FIRST_DEPLOY="${DH_FIRST_DEPLOY:-}"
 CSP_HEADER="${DH_CSP_HEADER:-Content-Security-Policy}"
-SRC="${DH_WWW_SRC:-$REPO_ROOT/apps/vanilla-oyl}"
-TEMPLATE="${DH_HTACCESS_TEMPLATE:-$REPO_ROOT/apps/vanilla-oyl/deploy/htaccess.template}"
+SRC="${DH_WWW_SRC:-$REPO_ROOT/apps/stencil-oyl/www}"
+TEMPLATE="${DH_HTACCESS_TEMPLATE:-$REPO_ROOT/apps/stencil-oyl/deploy/htaccess.template}"
 missing=()
 if [[ -z "$DH_SSH" ]]; then missing+=(DH_SSH); fi
 if [[ -z "$DH_WWW_ROOT" ]]; then missing+=(DH_WWW_ROOT); fi
@@ -75,8 +75,14 @@ if [[ ! -f "$SRC/index.html" ]]; then
   echo "publish-www: $SRC/index.html not found." >&2
   exit 1
 fi
-if [[ ! -f "$SRC/vendor/all-of-oyl/index.js" ]]; then
-  echo "publish-www: $SRC/vendor/all-of-oyl is missing — run 'pnpm vanilla build:lib' first." >&2
+if [[ ! -f "$SRC/build/oyl.esm.js" ]]; then
+  echo "publish-www: $SRC/build is missing — run 'pnpm stencil build' first." >&2
+  exit 1
+fi
+# A prod build rewrites the module script to the content-hashed loader; a --dev build (which
+# stencil-test / pnpm stencil dev also write to www/) keeps /build/oyl.esm.js and must not ship.
+if ! grep -q 'src="/build/p-' "$SRC/index.html"; then
+  echo "publish-www: $SRC/index.html is not a production build (no hashed loader) — run 'pnpm stencil build' first." >&2
   exit 1
 fi
 if ! grep -q '<meta name="oyl-api-base"' "$SRC/index.html"; then
@@ -94,12 +100,12 @@ ssh "${SSH_OPTS[@]}" "$DH_SSH" true \
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
-echo "==> Staging index.html, src/, styles/, vendor/ from $SRC (without *.test.js)"
+echo "==> Staging index.html, build/, themes/, tokens.css, favicon.svg from $SRC (without source maps)"
 cp "$SRC/index.html" "$STAGE/index.html"
-for root in src styles vendor; do
-  cp -R "$SRC/$root" "$STAGE/$root"
+for root in build themes tokens.css favicon.svg; do
+  if [[ -e "$SRC/$root" ]]; then cp -R "$SRC/$root" "$STAGE/$root"; fi
 done
-find "$STAGE" -name '*.test.js' -type f -delete
+find "$STAGE" -name '*.map' -type f -delete
 
 echo "==> Injecting API base: $DH_API_BASE"
 node -e '
@@ -154,9 +160,9 @@ if [[ -n "$DH_SITE_URL" ]]; then
   [[ "$code" == "200" ]] || { echo "publish-www: GET / returned HTTP $code." >&2; exit 1; }
   body="$(curl -s --max-time 20 -w '\n%{http_code}' "$DH_SITE_URL/journal" || true)"
   code="${body##*$'\n'}"
-  [[ "$code" == "200" && "$body" == *'type="importmap"'* ]] \
+  [[ "$code" == "200" && "$body" == *'<oyl-app'* ]] \
     || { echo "publish-www: deep link /journal returned HTTP $code without index.html (SPA fallback broken)." >&2; exit 1; }
-  code="$(curl -s --max-time 20 -o /dev/null -w '%{http_code}' "$DH_SITE_URL/vendor/does-not-exist.js" || true)"
+  code="$(curl -s --max-time 20 -o /dev/null -w '%{http_code}' "$DH_SITE_URL/build/does-not-exist.js" || true)"
   [[ "$code" == "404" ]] || { echo "publish-www: missing asset returned HTTP $code, expected 404 (fallback not scoped)." >&2; exit 1; }
   code="$(curl -s --max-time 20 -o /dev/null -w '%{http_code}' "$DH_SITE_URL/DEPLOYED" || true)"
   [[ "$code" == "403" ]] || { echo "publish-www: /DEPLOYED returned HTTP $code, expected 403." >&2; exit 1; }

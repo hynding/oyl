@@ -1,15 +1,6 @@
-# deploy/ — DreamHost publish inputs for the static app
+# deploy/ — no longer deployed
 
-Nothing here ships as-is. `scripts/dreamhost/publish-www.sh` (repo root) stages `index.html`,
-`src/`, `styles/`, `vendor/` (minus `*.test.js`), then:
-
-1. fills `<meta name="oyl-api-base" content="">` in the staged `index.html` with `DH_API_BASE`
-   (`packages/all-of-oyl/src/client/storage/config.ts` (shared package, not vanilla) reads it first; empty = hostname rules, so dev and tests are unaffected);
-2. runs `node scripts/dreamhost/render-htaccess.mjs --template deploy/htaccess.template` (the shared renderer under `scripts/dreamhost/lib/`) → `.htaccess`: scoped SPA
-   fallback (asset roots stay 404), `Cache-Control`, security headers and a CSP whose
-   `script-src` carries one `sha256-` hash per inline `<script>` in `index.html`
-   (`scripts/dreamhost/lib/csp-hashes.mjs`) and whose `connect-src` is the API origin.
-
-Adding an inline `<script>` to `index.html` needs no manual step — the hashes are recomputed on
-every publish. `DH_CSP_HEADER=Content-Security-Policy-Report-Only` renders a report-only policy
-for a first deploy.
+Since cutover part 1 (`docs/superpowers/specs/2026-10-09-stencil-oyl-deploy-design.md`) the
+DreamHost www target is `apps/stencil-oyl` — see `apps/stencil-oyl/deploy/README.md`. This
+`htaccess.template` is kept only until part 2 retires vanilla-oyl; the shared renderer lives
+under `scripts/dreamhost/lib/`. Vanilla still runs locally (`pnpm vanilla dev`) with no deploy.
