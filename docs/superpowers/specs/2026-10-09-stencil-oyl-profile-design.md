@@ -1,7 +1,7 @@
 # `apps/stencil-oyl` Profile screen — Design
 
 **Date:** 2026-10-09
-**Status:** reviewed (branch `feat/stencil-oyl-profile`, stacked on `feat/stencil-oyl-insights`)
+**Status:** implemented on branch feat/stencil-oyl-profile (stacked on feat/stencil-oyl-insights; plan: `docs/superpowers/plans/2026-10-09-stencil-oyl-profile.md`)
 **Program:** Stencil front-end — sub-project 10, the last redesigned screen (see
 `2026-10-06-extract-client-layer-design.md` §Program context). After it, no `oyl-not-yet`
 placeholder remains and the program moves to cutover work.
@@ -156,3 +156,10 @@ Google Drive link, and Log out. Same stores and rules as vanilla's `oyl-profile`
 | Reload after save in the e2e | `waitForURL('**/profile')` is satisfied before any reload (already on `/profile`) — vanilla's test has that hole. The stencil test awaits `page.waitForEvent('load')` around the submit and asserts the weight input is **empty** afterwards (`users` is unbacked, so the profile is `null` after a reload) — a deterministic reload signal that inverts when `users` gains a backend. |
 | Google card reacts to a signal | `bindSignal` mirrors (bound in `connectedCallback`, as every mirror in the shell) → `@State`; the card is derived in `render()`. |
 | Long IANA names widen the 2-column grid at Pixel 7 width | `grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)`; the mobile overflow spec already visits `/profile`. |
+
+## Amendments during implementation
+
+1. The pre-build review's findings (the form's `value` derived in the profile mirror, seed-controlled fields, timezone options from the seeded zone, a notice on a failed save, the load-event reload assertion, OAuth journeys left on vanilla's e2e) were folded in before any code.
+2. The Google card's three buttons share ONE stable handler that branches on the mirrored state (`connected` → disconnect, else connect): the vdom patches the same `ui-button` element across states and a `ui-*` host keeps its first render's listener (the known gotcha, caught by the screen spec).
+3. `bodySummary` shows height whole in metric (`formatHeight` rounds): "81.5 kg · 180 cm · 36 yrs".
+4. e2e: the heading selector is `oyl-profile h2[tabindex="-1"]` — `ui-card` headings are `h2`s too.
