@@ -1,6 +1,6 @@
 /**
  * History-API routing on the stencil shell: deep links, intercepted nav clicks, back/forward,
- * the not-found view, and the placeholder for screens the redesign has not reached.
+ * the not-found view, and the profile deep link.
  */
 import { test, expect } from '../lib/fixtures'
 import { deepText, navTo } from './lib'
@@ -11,9 +11,10 @@ test('deep link straight to /journal renders the journal screen', async ({ page,
   await expect(page.locator('oyl-journal oyl-log-form')).toBeVisible()
 })
 
-test('deep link to a screen the redesign has not reached renders its placeholder', async ({ page, signIn }) => {
+test('deep link straight to /profile renders the profile screen', async ({ page, signIn, user }) => {
   await signIn('/profile')
-  expect(await deepText(page.locator('oyl-not-yet'))).toContain('Profile is coming to the new OYL')
+  await expect(page.locator('oyl-profile')).toBeVisible()
+  await expect.poll(() => deepText(page.locator('oyl-profile [data-role="identity"]'))).toContain(user.username)
 })
 
 test('nav clicks are intercepted client-side (no full page reload)', async ({ page, signIn }) => {
