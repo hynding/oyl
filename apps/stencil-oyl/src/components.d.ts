@@ -322,16 +322,6 @@ export namespace Components {
         "route": string;
     }
     /**
-     * Placeholder for a screen the redesign has not reached yet (sub-projects 3…n replace these).
-     */
-    interface OylNotYet {
-        /**
-          * The classic app's URL for this screen; omit to hide the link.
-         */
-        "classicUrl"?: string;
-        "name": string;
-    }
-    /**
      * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
      */
     interface OylNoticeHost {
@@ -1085,15 +1075,6 @@ declare global {
         prototype: HTMLOylNotFoundElement;
         new (): HTMLOylNotFoundElement;
     };
-    /**
-     * Placeholder for a screen the redesign has not reached yet (sub-projects 3…n replace these).
-     */
-    interface HTMLOylNotYetElement extends Components.OylNotYet, HTMLStencilElement {
-    }
-    var HTMLOylNotYetElement: {
-        prototype: HTMLOylNotYetElement;
-        new (): HTMLOylNotYetElement;
-    };
     interface HTMLOylNoticeHostElementEventMap {
         "dismiss": void;
     }
@@ -1422,7 +1403,6 @@ declare global {
         "oyl-meal-row": HTMLOylMealRowElement;
         "oyl-nav": HTMLOylNavElement;
         "oyl-not-found": HTMLOylNotFoundElement;
-        "oyl-not-yet": HTMLOylNotYetElement;
         "oyl-notice-host": HTMLOylNoticeHostElement;
         "oyl-nutrition": HTMLOylNutritionElement;
         "oyl-plan-composer": HTMLOylPlanComposerElement;
@@ -1756,16 +1736,6 @@ declare namespace LocalJSX {
         "route"?: string;
     }
     /**
-     * Placeholder for a screen the redesign has not reached yet (sub-projects 3…n replace these).
-     */
-    interface OylNotYet {
-        /**
-          * The classic app's URL for this screen; omit to hide the link.
-         */
-        "classicUrl"?: string;
-        "name": string;
-    }
-    /**
      * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
      */
     interface OylNoticeHost {
@@ -2082,10 +2052,6 @@ declare namespace LocalJSX {
     interface OylNotFoundAttributes {
         "route": string;
     }
-    interface OylNotYetAttributes {
-        "name": string;
-        "classicUrl": string;
-    }
     interface OylNutritionAttributes {
         "tz": string;
     }
@@ -2138,7 +2104,6 @@ declare namespace LocalJSX {
         "oyl-meal-row": Omit<OylMealRow, keyof OylMealRowAttributes> & { [K in keyof OylMealRow & keyof OylMealRowAttributes]?: OylMealRow[K] } & { [K in keyof OylMealRow & keyof OylMealRowAttributes as `attr:${K}`]?: OylMealRowAttributes[K] } & { [K in keyof OylMealRow & keyof OylMealRowAttributes as `prop:${K}`]?: OylMealRow[K] } & OneOf<"label", OylMealRow["label"], OylMealRowAttributes["label"]>;
         "oyl-nav": Omit<OylNav, keyof OylNavAttributes> & { [K in keyof OylNav & keyof OylNavAttributes]?: OylNav[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `attr:${K}`]?: OylNavAttributes[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `prop:${K}`]?: OylNav[K] };
         "oyl-not-found": Omit<OylNotFound, keyof OylNotFoundAttributes> & { [K in keyof OylNotFound & keyof OylNotFoundAttributes]?: OylNotFound[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `attr:${K}`]?: OylNotFoundAttributes[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `prop:${K}`]?: OylNotFound[K] };
-        "oyl-not-yet": Omit<OylNotYet, keyof OylNotYetAttributes> & { [K in keyof OylNotYet & keyof OylNotYetAttributes]?: OylNotYet[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `attr:${K}`]?: OylNotYetAttributes[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `prop:${K}`]?: OylNotYet[K] } & OneOf<"name", OylNotYet["name"], OylNotYetAttributes["name"]>;
         "oyl-notice-host": OylNoticeHost;
         "oyl-nutrition": Omit<OylNutrition, keyof OylNutritionAttributes> & { [K in keyof OylNutrition & keyof OylNutritionAttributes]?: OylNutrition[K] } & { [K in keyof OylNutrition & keyof OylNutritionAttributes as `attr:${K}`]?: OylNutritionAttributes[K] } & { [K in keyof OylNutrition & keyof OylNutritionAttributes as `prop:${K}`]?: OylNutrition[K] };
         "oyl-plan-composer": Omit<OylPlanComposer, keyof OylPlanComposerAttributes> & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes]?: OylPlanComposer[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `attr:${K}`]?: OylPlanComposerAttributes[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `prop:${K}`]?: OylPlanComposer[K] };
@@ -2283,10 +2248,6 @@ declare module "@stencil/core" {
             "oyl-meal-row": LocalJSX.IntrinsicElements["oyl-meal-row"] & JSXBase.HTMLAttributes<HTMLOylMealRowElement>;
             "oyl-nav": LocalJSX.IntrinsicElements["oyl-nav"] & JSXBase.HTMLAttributes<HTMLOylNavElement>;
             "oyl-not-found": LocalJSX.IntrinsicElements["oyl-not-found"] & JSXBase.HTMLAttributes<HTMLOylNotFoundElement>;
-            /**
-             * Placeholder for a screen the redesign has not reached yet (sub-projects 3…n replace these).
-             */
-            "oyl-not-yet": LocalJSX.IntrinsicElements["oyl-not-yet"] & JSXBase.HTMLAttributes<HTMLOylNotYetElement>;
             /**
              * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
              */
