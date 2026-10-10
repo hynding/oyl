@@ -1,7 +1,7 @@
 # `apps/stencil-oyl` Profile screen — Design
 
 **Date:** 2026-10-09
-**Status:** draft (branch `feat/stencil-oyl-profile`, stacked on `feat/stencil-oyl-insights`)
+**Status:** reviewed (branch `feat/stencil-oyl-profile`, stacked on `feat/stencil-oyl-insights`)
 **Program:** Stencil front-end — sub-project 10, the last redesigned screen (see
 `2026-10-06-extract-client-layer-design.md` §Program context). After it, no `oyl-not-yet`
 placeholder remains and the program moves to cutover work.
@@ -65,16 +65,27 @@ Google Drive link, and Log out. Same stores and rules as vanilla's `oyl-profile`
   **display values** are derived from `value` once (`componentWillLoad`) in the stored units
   (imperial → `round1(kg / 0.45359237)`, `round1(cm / 2.54)`), and the hints follow `units` live —
   changing units does NOT convert the typed numbers (vanilla relabels only).
+- `ui-field` has no `step` prop, so the inner number inputs keep the browser's default step
+  (`:invalid` for decimals, invisibly — the shadow input is not a control of the light form, so
+  `requestSubmit` never runs its constraint validation; decimals submit as in Finance). Vanilla's
+  `step="any"` is therefore not reproduced — a known divergence, no ui-oyl change.
 - Submit (`ui-button type=submit variant=primary` "Save profile", native `<form>` submit) builds
   vanilla's patch: `{ timezone, units }` always; `birthday` when non-empty; `weightKg`/`heightCm`
   when the field is non-empty, finite and > 0, converted from imperial when selected and rounded
   to 0.1; `gender` = the select value, or the trimmed self-describe text when `__other__` (omitted
   when empty); `location` when non-empty. Emits `save`.
-- `value` changes after first render (the profile signal re-hydrating) re-seed the fields via
-  `@Watch('value')` — the same conversion, only when the user has not started editing? **No:**
-  keep it simple as vanilla does (vanilla re-renders the whole form on every signal change): the
-  watch re-seeds unconditionally; the only post-save change triggers either a reload or no
-  profile change at all (save is persist-first and `profile.set` happens before the notice).
+- Fields are rendered with `value={seed.x}` from a `@State seed` recomputed only in
+  `@Watch('value')` (and once at load), so Stencil's vnode diff re-applies a field's value only
+  when the seeded value itself changes; the user's typing survives unrelated parent re-renders.
+  The screen passes a `value` object that is **derived in the `profile` mirror, not in
+  `render()`** — the Google connection signal resolves after mount (`probe → loadStatus`) and
+  re-renders the screen; a fresh `toPatch()` per render would re-seed the form mid-edit.
+- The self-describe field is controlled the same way (`value={seed.genderOther}`), so a re-seed
+  with a custom gender seeds it even though the field mounts in that same render.
+- Timezone options are recomputed from the **seeded** timezone (`timezoneOptions(zones,
+  seed.timezone)`), so a re-seed to another unlisted zone keeps its own option; the seeded
+  timezone defaults to the browser zone (`defaultTimezone()` from the client layer) when the
+  profile has none — a `UTC` system zone stays `UTC`.
 
 ## Shared code
 
@@ -91,10 +102,13 @@ Google Drive link, and Log out. Same stores and rules as vanilla's `oyl-profile`
   `disconnect` = `disconnect() → notice 'Google disconnected.'` (`catch` → "Disconnect failed — try
   again."); `onSaveProfile` = vanilla's rule (`tzChanged = patch.timezone !== app.tz`,
   `unitsChanged = patch.units !== profile.units`; `save` then `win.location.assign('/profile')` or
-  the notice); `onLogout` = `app.authState.logout()`. `NOT_YET` becomes empty and is removed with
-  `notYet`; `oyl-not-yet` stays as a component only if something else renders it — otherwise
-  delete it and its registration/spec. The routing spec's "placeholder" test is replaced by a
-  "deep link to /profile renders the profile screen" test.
+  the notice "Profile saved."; a rejected save — `new User` throws on an invalid zone typed into
+  the text fallback — shows "Could not save profile." instead of an unhandled rejection). The
+  notice path is only reachable on a second save within one session: `users` is unbacked, so
+  after any reload the profile is `null` again and a first save always counts as a units change.
+  `onLogout` = `app.authState.logout()`. `NOT_YET`/`notYet` go away and `oyl-not-yet` (only the
+  routes rendered it) is deleted with its spec. The routing spec's "placeholder" test is
+  replaced by a "deep link to /profile renders the profile screen" test.
 - The `users` collection is **not backed** (`BACKED` in `bootstrap.ts`), so the profile persists
   in-session only, as in vanilla; the e2e asserts the save round-trip through the reload only as
   far as vanilla's does (the screen re-renders), not values surviving.
@@ -116,9 +130,15 @@ Google Drive link, and Log out. Same stores and rules as vanilla's `oyl-profile`
   username + email; save with decimals reloads `/profile` (first save = units change) and the
   form is back; gender Other reveals `ui-field[name=genderOther]`; **the Status note replaces the
   connection-card test** (link `a[href="/status"]`); log out → `/login` and `oyl/auth` cleared.
-  Plus `tests-stencil/google-auth.spec.ts`, a port of vanilla's three Google journeys (the
-  stencil `auth.spec.ts` has none today): sign in with Google from `/login`, link from Profile +
-  disconnect, email collision does not auto-link; skipped under `E2E_BACKEND=php` as vanilla's.
+  The Google card's **configured, disconnected** state is asserted on the stencil projects
+  (the e2e backend has Google configured: `ui-button[data-act=google-connect]` visible; skipped
+  under `E2E_BACKEND=php`). The OAuth journeys themselves (sign in with Google, link from
+  Profile + disconnect, no auto-link) stay on vanilla's `tests/google-auth.spec.ts`: the
+  backend's OAuth callback redirects to the single `APP_URL` (`apps/strapi-oyl/src/utils/
+  google-config.ts`), which the e2e backend sets to vanilla's origin (8042), so a stencil-origin
+  journey cannot land back on 8043 without a multi-origin state change in the backend. That
+  change (the requesting origin carried in the signed OAuth state against an `APP_URLS`
+  allowlist) belongs to the cutover sub-project, where `APP_URL` moves to the stencil app anyway.
 - Definition of Done per CLAUDE.md: `pnpm stencil test|typecheck|build`, stencil e2e projects
   green; ui-oyl and vanilla untouched.
 
@@ -133,5 +153,6 @@ Google Drive link, and Log out. Same stores and rules as vanilla's `oyl-profile`
 |---|---|
 | `Intl.supportedValuesOf` lists ~420 zones | `ui-select` renders native `<option>`s — fine; the list is built once in `componentWillLoad`. |
 | A stored timezone absent from the list (`UTC`, aliases) | Prepended as its own option so a save never silently rewrites it (vanilla's rule, unit-tested). |
-| Reload after save in the e2e | `page.waitForURL('**/profile')` + the form visible again, as vanilla's test. |
-| Google card reacts to a signal | `bindSignal` mirror → `@State`; the card is derived in `render()`. |
+| Reload after save in the e2e | `waitForURL('**/profile')` is satisfied before any reload (already on `/profile`) — vanilla's test has that hole. The stencil test awaits `page.waitForEvent('load')` around the submit and asserts the weight input is **empty** afterwards (`users` is unbacked, so the profile is `null` after a reload) — a deterministic reload signal that inverts when `users` gains a backend. |
+| Google card reacts to a signal | `bindSignal` mirrors (bound in `connectedCallback`, as every mirror in the shell) → `@State`; the card is derived in `render()`. |
+| Long IANA names widen the 2-column grid at Pixel 7 width | `grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)`; the mobile overflow spec already visits `/profile`. |
