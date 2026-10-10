@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { renderHtaccess } from './render-htaccess.js'
+import { renderHtaccess } from '../../../scripts/dreamhost/lib/render-htaccess.mjs'
 
 const TEMPLATE = [
   'Header always set __CSP_HEADER__ "script-src \'self\' __CSP_SCRIPT_HASHES__; connect-src \'self\' __API_ORIGIN__"',

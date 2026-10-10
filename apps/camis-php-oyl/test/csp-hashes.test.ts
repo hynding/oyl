@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { hashInlineScripts } from './csp-hashes.js'
+import { hashInlineScripts } from '../../../scripts/dreamhost/lib/csp-hashes.mjs'
 
 // SHA-256 of the empty string, base64 — the one vector everyone can verify by hand.
 const EMPTY = 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='

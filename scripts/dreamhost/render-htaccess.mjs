@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-// Render deploy/htaccess.template for a staged index.html.
-// Usage: node scripts/render-htaccess.mjs --html <staged index.html> --api-origin <https://host> \
+// Render an app's deploy/htaccess.template for a staged index.html (CSP inline-script hashes +
+// the API origin). Shared by scripts/dreamhost/publish-www.sh for whichever app it ships.
+// Usage: node scripts/dreamhost/render-htaccess.mjs --template <htaccess.template> \
+//        --html <staged index.html> --api-origin <https://host> \
 //        [--csp-header Content-Security-Policy|Content-Security-Policy-Report-Only] --out <file>
 import { readFile, writeFile } from 'node:fs/promises'
-import { hashInlineScripts } from '../deploy/csp-hashes.js'
-import { renderHtaccess } from '../deploy/render-htaccess.js'
+import { hashInlineScripts } from './lib/csp-hashes.mjs'
+import { renderHtaccess } from './lib/render-htaccess.mjs'
 
 const args = new Map()
 const argv = process.argv.slice(2)
@@ -25,11 +27,11 @@ for (let i = 0; i < argv.length; i += 2) {
   }
   args.set(name, v)
 }
-for (const k of ['html', 'api-origin', 'out']) {
+for (const k of ['template', 'html', 'api-origin', 'out']) {
   if (!args.get(k)) { console.error(`render-htaccess: --${k} is required`); process.exit(2) }
 }
 
-const template = await readFile(new URL('../deploy/htaccess.template', import.meta.url), 'utf8')
+const template = await readFile(args.get('template'), 'utf8')
 const html = await readFile(args.get('html'), 'utf8')
 const hashes = await hashInlineScripts(html)
 const out = renderHtaccess(template, {

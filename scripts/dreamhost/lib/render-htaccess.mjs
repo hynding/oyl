@@ -1,4 +1,4 @@
-// Pure template renderer for deploy/htaccess.template. No node:* imports (see csp-hashes.js).
+// Pure renderer for an app's deploy/htaccess.template (tested in apps/camis-php-oyl/test/render-htaccess.test.ts).
 
 const HEADER_NAMES = /^Content-Security-Policy(-Report-Only)?$/
 // scheme://host[:port] — nothing after the authority; CSP connect-src wants an origin.

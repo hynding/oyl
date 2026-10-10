@@ -12,6 +12,7 @@
 #   DH_API_ROOT    the api's root (optional) — refused if it overlaps DH_WWW_ROOT (--delete)
 #   DH_FIRST_DEPLOY=1  publish into a root that is neither empty nor a previous deploy (once)
 #   DH_WWW_SRC     app source dir (default apps/vanilla-oyl; a test seam)
+#   DH_HTACCESS_TEMPLATE  the app's htaccess.template (default apps/vanilla-oyl/deploy/htaccess.template)
 #
 # Usage: publish-www.sh [--dry-run]
 set -euo pipefail
@@ -33,6 +34,7 @@ DH_SSH="${DH_SSH:-}"; DH_WWW_ROOT="${DH_WWW_ROOT:-}"; DH_API_BASE="${DH_API_BASE
 DH_SITE_URL="${DH_SITE_URL:-}"; DH_API_ROOT="${DH_API_ROOT:-}"; DH_FIRST_DEPLOY="${DH_FIRST_DEPLOY:-}"
 CSP_HEADER="${DH_CSP_HEADER:-Content-Security-Policy}"
 SRC="${DH_WWW_SRC:-$REPO_ROOT/apps/vanilla-oyl}"
+TEMPLATE="${DH_HTACCESS_TEMPLATE:-$REPO_ROOT/apps/vanilla-oyl/deploy/htaccess.template}"
 missing=()
 if [[ -z "$DH_SSH" ]]; then missing+=(DH_SSH); fi
 if [[ -z "$DH_WWW_ROOT" ]]; then missing+=(DH_WWW_ROOT); fi
@@ -65,6 +67,10 @@ fi
 # Trim trailing slashes — config.js normalizes too, but the shipped HTML should already be clean.
 while [[ "$DH_API_BASE" == */ ]]; do DH_API_BASE="${DH_API_BASE%/}"; done
 
+if [[ ! -f "$TEMPLATE" ]]; then
+  echo "publish-www: htaccess template $TEMPLATE not found." >&2
+  exit 1
+fi
 if [[ ! -f "$SRC/index.html" ]]; then
   echo "publish-www: $SRC/index.html not found." >&2
   exit 1
@@ -107,7 +113,7 @@ node -e '
 
 API_ORIGIN="$(node -e 'console.log(new URL(process.argv[1]).origin)' "$DH_API_BASE")"
 echo "==> Rendering .htaccess ($CSP_HEADER; connect-src $API_ORIGIN)"
-node "$REPO_ROOT/apps/vanilla-oyl/scripts/render-htaccess.mjs" \
+node "$REPO_ROOT/scripts/dreamhost/render-htaccess.mjs" --template "$TEMPLATE" \
   --html "$STAGE/index.html" --api-origin "$API_ORIGIN" --csp-header "$CSP_HEADER" --out "$STAGE/.htaccess"
 
 printf 'sha=%s\ndeployed_utc=%s\n' "$(git -C "$REPO_ROOT" rev-parse HEAD)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STAGE/DEPLOYED"

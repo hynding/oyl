@@ -1,6 +1,6 @@
-// DOM-free, Node-free CSP helper: hashes inline <script> bodies the way a browser computes
-// 'sha256-…' source expressions. Used by scripts/render-htaccess.mjs at publish time and
-// unit-tested here; it must not import node:* (apps/vanilla-oyl typechecks with types: []).
+// DOM-free CSP helper: hashes inline <script> bodies the way a browser computes 'sha256-…'
+// source expressions. Used by scripts/dreamhost/render-htaccess.mjs at publish time; tested in
+// apps/camis-php-oyl/test/csp-hashes.test.ts.
 
 // Matches <script> tags with attributes, handling quoted > inside attribute values.
 // Capture group 1: attributes string; group 2: body.
