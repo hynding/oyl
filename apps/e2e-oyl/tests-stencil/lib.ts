@@ -94,6 +94,41 @@ export async function addBudget(page: Page, category: string, limit: string): Pr
   await form.locator('ui-button[type="submit"] button').click()
 }
 
+export type VaultKind = 'documents' | 'possessions' | 'subscriptions' | 'contacts'
+
+/** Show a vault kind (segment) and open its "New …" disclosure form. */
+export async function vaultKind(page: Page, kind: VaultKind): Promise<void> {
+  await page.locator(`oyl-vault ui-segment [data-value="${kind}"]`).click()
+  await openDetails(page.locator(`oyl-vault section.${kind} details`))
+}
+
+export async function addDocument(page: Page, name: string, kind: string, expiresOn?: string): Promise<void> {
+  await vaultKind(page, 'documents')
+  const form = page.locator('oyl-document-form')
+  await form.locator('ui-field[name="name"] input').fill(name)
+  await form.locator('ui-field[name="kind"] input').fill(kind)
+  if (expiresOn) await form.locator('ui-field[name="expiresOn"] input').fill(expiresOn)
+  await form.locator('ui-button[type="submit"] button').click()
+}
+
+export async function addSubscription(page: Page, name: string, amount: string, anchor: string, opts: { unit?: string; category?: string } = {}): Promise<void> {
+  await vaultKind(page, 'subscriptions')
+  const form = page.locator('oyl-subscription-form')
+  await form.locator('ui-field[name="name"] input').fill(name)
+  await form.locator('ui-field[name="amount"] input').fill(amount)
+  if (opts.unit) await form.locator('ui-select[name="cadenceUnit"] select').selectOption(opts.unit)
+  await form.locator('ui-field[name="anchor"] input').fill(anchor)
+  if (opts.category) await form.locator('ui-select[name="category"] select').selectOption(opts.category)
+  await form.locator('ui-button[type="submit"] button').click()
+}
+
+export async function addContact(page: Page, name: string): Promise<void> {
+  await vaultKind(page, 'contacts')
+  const form = page.locator('oyl-contact-form')
+  await form.locator('ui-field[name="name"] input').fill(name)
+  await form.locator('ui-button[type="submit"] button').click()
+}
+
 /** Click a ui-button by its data-act (the inner control, as a user would). */
 export function act(scope: Locator | Page, name: string): Locator {
   return scope.locator(`ui-button[data-act="${name}"] button`)

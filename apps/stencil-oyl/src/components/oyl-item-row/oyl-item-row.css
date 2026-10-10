@@ -29,7 +29,8 @@ button {
   min-block-size: 2rem;
   padding: 0 var(--space-2);
 }
-.del { color: var(--color-muted); }
+.quiet, .del { color: var(--color-muted); }
+.quiet:hover { color: var(--color-text); background: var(--color-surface-2); }
 .del:hover { color: var(--color-danger); background: var(--color-surface-2); }
 .confirm { display: inline-flex; gap: var(--space-1); align-items: center; font-size: var(--step--1); color: var(--color-danger); }
 .confirm .yes { color: var(--color-on-accent); background: var(--color-danger); font-weight: 500; }
