@@ -1,7 +1,7 @@
 # Cutover part 2 — Retire `apps/vanilla-oyl` — Design
 
 **Date:** 2026-10-09
-**Status:** draft (branch `feat/retire-vanilla-oyl`, stacked on `feat/stencil-oyl-deploy`)
+**Status:** reviewed (branch `feat/retire-vanilla-oyl`, stacked on `feat/stencil-oyl-deploy`)
 **Program:** Stencil front-end — sub-project 12, the last (see
 `2026-10-06-extract-client-layer-design.md` §Program context). Depends on 11 (stencil-oyl is the
 deployed www).
@@ -12,7 +12,8 @@ Delete `apps/vanilla-oyl` and everything that existed only for it, so the repo h
 The app is preserved in git history (tag `vanilla-oyl/retired-2026-10-09` on the last commit that
 has it, as `legacy/2026-06-16` preserves the earlier stack). Coverage vanilla's e2e had and
 stencil's did not is ported first; the e2e backend's `APP_URL` becomes the stencil origin so the
-Google OAuth journeys run against the stencil app.
+Google OAuth journeys run against the stencil app. Vanilla's own e2e projects are dead from that
+moment (their OAuth callback lands on 8043) and are deleted in the same sub-project.
 
 ## Decisions (from brainstorming)
 
@@ -25,21 +26,32 @@ Google OAuth journeys run against the stencil app.
 ## What goes
 
 - `apps/vanilla-oyl/` entirely (src, styles, test, deploy, scripts, vendor, Dockerfile bits).
-- Root `package.json`: the `vanilla` filter shortcut, `dev:watch`, `dev:stencil`.
+- Root `package.json`: the `vanilla` filter shortcut, `dev:watch`, `dev:stencil`; `dev:fresh`
+  loses its `--watch`.
 - `scripts/dev.mjs`: the vanilla branch (vendoring, `--watch`, `--stencil`); it always serves
   stencil on 3344 and checks that port.
 - `docker-compose.yaml` + `Dockerfile.app`: the `vanilla` service and its `COPY`; a `stencil`
-  service (`pnpm stencil dev`, port 3344) in its place; the Dockerfile copies
-  `apps/stencil-oyl/package.json` and `packages/ui-oyl/package.json` instead.
+  service (`pnpm stencil dev`, port 3344 — Stencil's dev server binds `0.0.0.0` by default) in
+  its place; the Dockerfile copies `apps/stencil-oyl/package.json` and
+  `packages/ui-oyl/package.json` instead (never `camis-php-oyl`'s — its `link:` dependency has
+  no target in the image). `docker compose build` cannot run in the sandbox — an operator check.
 - `apps/e2e-oyl`: the vanilla `desktop`/`mobile` projects, the `tests/` tree, the vanilla
-  web server (`http-server ../vanilla-oyl` on 8042) and `APP_PORT`/`APP_URL` for it;
-  `lib/actions.ts` helpers only vanilla's specs used (keep what `tests-stencil/` imports:
-  `awaitOutboxDrained`, `inlineConfirm`, …); the backend's `E2E_APP_ORIGIN` default and
-  `APP_URL` become the stencil origin (8043), CORS keeps both 8043 forms.
+  web server (`http-server ../vanilla-oyl` on 8042) and `APP_PORT`/`APP_URL` for it. The
+  stencil suite becomes THE suite: `tests-stencil/` → `tests/`, projects `stencil-desktop`/
+  `stencil-mobile` → `desktop`/`mobile`, one top-level `baseURL` (8043), and `tsconfig.json`
+  includes `tests/**` (today `tests-stencil/` is not type-checked at all). `lib/actions.ts`
+  keeps exactly what the stencil specs import (`inlineConfirm`, `awaitOutboxDrained`,
+  `primeLocalMode`, `deepActiveElement`); `navTo`/`addNote` there are vanilla's (the stencil
+  `lib.ts` has its own). The backend's `E2E_APP_ORIGIN` default and `APP_URL` become the stencil
+  origin (8043); CORS lists the 8043 forms only.
 - `packages/ui-oyl/src/global/themes.unit.ts`: the byte-equality test against vanilla's theme
-  files and the theme-manager name list → the library's own theme list is asserted (eight named
-  themes, each file present and parseable, `data-theme` selectors); ui-oyl becomes the source
-  of the themes.
+  files and the theme-manager name list → the library's own list is asserted (the eight theme
+  files, each declaring `:root[data-theme="<its name>"]`, the existing colour-token check);
+  ui-oyl becomes the source of the themes. The cross-package drift guard moves to stencil-oyl's
+  `boot/theme.unit.ts` (which today reads vanilla's `theme-catalog.js`): `THEMES` equals the
+  ui-oyl `themes/` listing and each catalog preview colour is a substring of its theme file.
+- `apps/strapi-oyl` defaults that named vanilla's dev port: `APP_URL` default (`google-config.ts`)
+  and `.env.example` → `http://localhost:3344`; the CORS default drops 8041 (3344 is listed).
 - `packages/all-of-oyl`: the `dist/` build and `scripts/check-no-bare-imports.mjs` **stay** —
   stencil-oyl bundles from `dist/` (the Rollup resolver) and the guard is cheap insurance; the
   README/CLAUDE.md wording "consumed only by vanilla via an importmap" changes to "bundled by
@@ -57,15 +69,27 @@ Google OAuth journeys run against the stencil app.
 
 - **`a11y.spec.ts`** (from `tests/a11y.spec.ts`): `html[lang=en]`; `oyl-nav` / `oyl-account-menu`
   nav landmarks labelled "Primary"/"Account" (stencil's `ui-nav` renders the `<nav>` — the
-  selector adapts); `oyl-router main` visible; navigating announces the route in the router's
-  live region and moves focus to the screen's `h2[tabindex=-1]`; focus-visible ring on a nav
-  link; the inline-confirm cluster focuses **No** first (on `oyl-item-row` after adding a
-  transaction via `addExpense`).
+  selector adapts); `oyl-shell main` visible; navigating announces the route in the router's
+  live region and moves focus to the screen's `h2[tabindex=-1]`; the active nav link carries
+  `aria-current=page`; the inline-confirm cluster focuses **No** first (on `oyl-item-row` after
+  `addExpense`); form controls expose accessible names; the boot-failure notice is visible with a
+  dismiss control named "Dismiss" that hides it. Two stencil gaps this exposes are closed here:
+  `oyl-router` gains a persistent polite live region ("Navigated to <route>", sr-only by inline
+  style — the router has no shadow/stylesheet) and focuses the first `h2[tabindex=-1]` found by
+  walking open shadow roots after the screen's `componentOnReady()` (Journal/Planner/Nutrition
+  keep theirs inside `oyl-day-nav`'s shadow), on route changes only, bailing if the route moved
+  on meanwhile; `ui-button` forwards the host's `aria-label` to its inner control (today
+  `ui-notice`'s dismiss button and `oyl-day-nav`'s arrows have EMPTY accessible names — a real
+  a11y defect). The notice stays `role=status` (its tone is `warn`; `ui-notice` reserves
+  `alert` for `danger`).
 - **`connection.spec.ts`** (from `tests/connection.spec.ts`): on `/status`, an invalid URL is
-  rejected inline (`ui-field[name=apiBaseUrl]` error) without applying; the mode segment
-  reflects the active mode; Apply & reload with an equivalent URL persists `oyl/api-base` and the
-  app reboots signed in. (Check what stencil's `oyl-status` validates today; if it lacks the
-  inline URL validation vanilla had, add it — `normalizeBaseUrl` throws → `error` on the field.)
+  rejected inline (`ui-field[name=apiBaseUrl]` error "Enter a valid http(s) URL.") without
+  applying — stencil's `oyl-status` validates nothing today, so it gains vanilla's rule
+  (`new URL(u).protocol` is http/https; an empty URL is allowed and clears the key → default);
+  the mode `select[name=mode]` reflects the active mode; Apply & reload with an equivalent URL
+  (`http://127.0.0.1:1341/api`) persists `oyl/api-base-url` and the app reboots signed in.
+- **`status.spec.ts`** gains vanilla's `?seed` boot test (an empty account is seeded at boot,
+  never twice) — `compose.ts` implements it and nothing covered it.
 - **`google-auth.spec.ts`** (from `tests/google-auth.spec.ts`, verbatim journeys on stencil
   selectors: `oyl-login oyl-auth-form a[data-act=google]`, `oyl-account-menu ui-button[data-act=
   logout]`, `oyl-profile ui-button[data-act=google-connect] button`, `[data-role=google-drive]`
