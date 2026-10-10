@@ -7,11 +7,18 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest"
 const SCRIPT = resolve(__dirname, "..", "..", "..", "scripts", "dreamhost", "publish-www.sh")
 const src = () => readFileSync(SCRIPT, "utf8")
 
+// A Stencil prod build's index.html: the anti-FOUC inline script, the hashed module loader and
+// the deploy meta exactly as Stencil emits it (no self-closing slash).
 const INDEX = `<!doctype html><html><head>
 <script>(function(){})()</script>
-<script type="importmap">{"imports":{"@oyl/all-of-oyl":"/vendor/all-of-oyl/index.js"}}</script>
-<meta name="oyl-api-base" content="" />
-</head><body><script type="module" src="/src/main.js"></script></body></html>`
+<meta name="oyl-api-base" content="">
+<script type="module" src="/build/p-1.js" data-stencil data-resources-url="/build/" data-stencil-namespace="oyl"></script>
+</head><body><oyl-app></oyl-app></body></html>`
+const TEMPLATE = [
+  "RewriteCond %{REQUEST_URI} !^/(build|themes)/",
+  "Header always set __CSP_HEADER__ \"script-src 'self' __CSP_SCRIPT_HASHES__; connect-src 'self' __API_ORIGIN__;\"",
+  "",
+].join("\n")
 
 let tmp: string
 let fixture: string
@@ -23,14 +30,17 @@ const writeExec = (path: string, body: string) => { writeFileSync(path, body); c
 beforeEach(() => {
   tmp = mkdtempSync(join(tmpdir(), "publish-www-"))
   fixture = join(tmp, "app"); bin = join(tmp, "bin"); capture = join(tmp, "capture")
-  for (const d of ["src", "styles", "vendor/all-of-oyl"]) mkdirSync(join(fixture, d), { recursive: true })
+  for (const d of ["build", "themes"]) mkdirSync(join(fixture, d), { recursive: true })
   mkdirSync(bin); mkdirSync(capture)
   writeFileSync(join(fixture, "index.html"), INDEX)
-  writeFileSync(join(fixture, "src", "a.js"), "export const a = 1\n")
-  writeFileSync(join(fixture, "src", "a.test.js"), "// must not ship\n")
-  writeFileSync(join(fixture, "styles", "x.css"), "body{}\n")
-  writeFileSync(join(fixture, "vendor", "all-of-oyl", "index.js"), "export {}\n")
-  writeFileSync(join(fixture, "package.json"), "{}\n")
+  writeFileSync(join(fixture, "build", "oyl.esm.js"), "export {}\n")
+  writeFileSync(join(fixture, "build", "p-1.js"), "export const a = 1\n")
+  writeFileSync(join(fixture, "build", "p-1.js.map"), "{}\n")
+  writeFileSync(join(fixture, "host.config.json"), "{}\n")
+  writeFileSync(join(fixture, "themes", "classic.css"), "body{}\n")
+  writeFileSync(join(fixture, "tokens.css"), ":root{}\n")
+  writeFileSync(join(fixture, "favicon.svg"), "<svg/>\n")
+  writeFileSync(join(fixture, "htaccess.template"), TEMPLATE)
   writeExec(join(bin, "ssh"), "#!/usr/bin/env bash\nprintf '%s\\n' \"$@\" >> \"$FAKE_CAPTURE/ssh\"\nexit 0\n")
   // The push: record argv, the staged file list and the two rendered files before the script's trap removes the stage.
   writeExec(join(bin, "rsync"), [
@@ -53,7 +63,7 @@ const run = (args: string[], env: Record<string, string>) =>
     env: { PATH: `${bin}:${process.env.PATH ?? ""}`, HOME: "/nonexistent", FAKE_CAPTURE: capture, ...env },
     encoding: "utf8",
   })
-const good = () => ({ DH_SSH: "x@y", DH_WWW_ROOT: "www", DH_API_BASE: "https://api.example.test/api" })
+const good = () => ({ DH_SSH: "x@y", DH_WWW_ROOT: "www", DH_API_BASE: "https://api.example.test/api", DH_HTACCESS_TEMPLATE: join(fixture, "htaccess.template") })
 
 describe("scripts/dreamhost/publish-www.sh", () => {
   it("parses", () => {
@@ -69,11 +79,22 @@ describe("scripts/dreamhost/publish-www.sh", () => {
     expect(res.status).toBe(1)
     expect(res.stderr).toContain("unknown argument")
   })
-  it("refuses an unbuilt source (vendor/all-of-oyl/index.js missing → run build:lib)", () => {
-    rmSync(join(fixture, "vendor"), { recursive: true })
+  it("refuses an unbuilt source (build/oyl.esm.js missing → run pnpm stencil build)", () => {
+    rmSync(join(fixture, "build"), { recursive: true })
     const res = run([], { ...good(), DH_WWW_SRC: fixture })
     expect(res.status).toBe(1)
-    expect(res.stderr).toContain("build:lib")
+    expect(res.stderr).toContain("pnpm stencil build")
+  })
+  it("refuses a dev build (index.html without the hashed loader → run pnpm stencil build)", () => {
+    writeFileSync(join(fixture, "index.html"), INDEX.replace('src="/build/p-1.js"', 'src="/build/oyl.esm.js"'))
+    const res = run([], { ...good(), DH_WWW_SRC: fixture })
+    expect(res.status).toBe(1)
+    expect(res.stderr).toContain("pnpm stencil build")
+  })
+  it("refuses a missing htaccess template", () => {
+    const res = run([], { ...good(), DH_WWW_SRC: fixture, DH_HTACCESS_TEMPLATE: join(fixture, "nope.template") })
+    expect(res.status).toBe(1)
+    expect(res.stderr).toContain("template")
   })
   it("refuses an index.html without the oyl-api-base meta (it would silently fall back to same-origin /api)", () => {
     writeFileSync(join(fixture, "index.html"), INDEX.replace(/<meta name="oyl-api-base"[^>]*>/, ""))
@@ -81,17 +102,17 @@ describe("scripts/dreamhost/publish-www.sh", () => {
     expect(res.status).toBe(1)
     expect(res.stderr).toContain("oyl-api-base")
   })
-  it("stages exactly the four asset roots + .htaccess + DEPLOYED, without *.test.js, injects the base and pushes with --delete", () => {
+  it("stages exactly the Stencil asset roots + .htaccess + DEPLOYED, without source maps or host.config.json, injects the base and pushes with --delete", () => {
     const res = run([], { ...good(), DH_API_BASE: "https://api.example.test/api/", DH_WWW_SRC: fixture })
     expect(res.status, res.stderr).toBe(0)
     const files = readFileSync(join(capture, "files"), "utf8").trim().split("\n")
     expect(files).toEqual([
-      "./.htaccess", "./DEPLOYED", "./index.html", "./src/a.js", "./styles/x.css", "./vendor/all-of-oyl/index.js",
+      "./.htaccess", "./DEPLOYED", "./build/oyl.esm.js", "./build/p-1.js", "./favicon.svg", "./index.html", "./themes/classic.css", "./tokens.css",
     ])
     const html = readFileSync(join(capture, "index.html"), "utf8")
     expect(html).toContain('<meta name="oyl-api-base" content="https://api.example.test/api" />')
     const htaccess = readFileSync(join(capture, "htaccess"), "utf8")
-    expect(htaccess.match(/'sha256-[A-Za-z0-9+/=]+'/g)).toHaveLength(2)
+    expect(htaccess.match(/'sha256-[A-Za-z0-9+/=]+'/g)).toHaveLength(1)
     expect(htaccess).toContain("connect-src 'self' https://api.example.test;")
     expect(htaccess).toContain("Header always set Content-Security-Policy ")
     const argv = readFileSync(join(capture, "argv"), "utf8").trim().split("\n")
@@ -200,8 +221,8 @@ describe("scripts/dreamhost/publish-www.sh", () => {
       "url=\"${@: -1}\"",
       "if [[ \" $* \" == *\" -sI \"* ]]; then printf '%s' \"$FAKE_HEADERS\"; exit 0; fi",
       "case \"$url\" in",
-      "  */journal) printf '%s\\n%s' '<script type=\"importmap\">' \"${FAKE_JOURNAL_CODE:-200}\" ;;",
-      "  */vendor/does-not-exist.js) printf 404 ;;",
+      "  */journal) printf '%s\\n%s' '<oyl-app></oyl-app>' \"${FAKE_JOURNAL_CODE:-200}\" ;;",
+      "  */build/does-not-exist.js) printf 404 ;;",
       "  */DEPLOYED) printf 403 ;;",
       "  */) printf 200 ;;",
       "esac",

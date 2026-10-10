@@ -1,0 +1,44 @@
+# Rendered by scripts/dreamhost/render-htaccess.mjs at publish time. Do not edit on the host.
+Options -MultiViews -Indexes
+
+# Deploy marker is for the operator over SSH, not the public.
+<Files "DEPLOYED">
+  Require all denied
+</Files>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # History-API SPA fallback, scoped: unknown paths serve index.html, but the asset roots stay
+  # real 404s (a typo'd /build/… must not come back as 200 HTML; a /favicon.ico probe neither).
+  RewriteCond %{REQUEST_URI} !^/(build|themes)/
+  RewriteCond %{REQUEST_URI} !^/(tokens\.css|favicon\.(svg|ico))$
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ /index.html [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "DENY"
+  # HSTS for this host only: sibling subdomains are not ours to pin, so no subdomain/list directives.
+  Header always set Strict-Transport-Security "max-age=31536000"
+  # script-src: 'self' (Stencil's module loader + its hashed chunks via import()) plus the hash of
+  # the anti-FOUC inline script. style-src keeps 'unsafe-inline' (Stencil inlines the token/theme
+  # sheets as <style> and components adopt stylesheets, which CSP does not govern). connect-src is
+  # the API origin only; img-src data: covers the inline SVG icons.
+  Header always set __CSP_HEADER__ "default-src 'self'; script-src 'self' __CSP_SCRIPT_HASHES__; style-src 'self' 'unsafe-inline'; connect-src 'self' __API_ORIGIN__; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+  # Unhashed assets always revalidate; the generic rule comes FIRST because mod_headers applies
+  # sections in order and `set` replaces — the content-hashed chunks below override it.
+  <FilesMatch "\.(js|css)$">
+    Header always set Cache-Control "max-age=0, must-revalidate"
+  </FilesMatch>
+  # Stencil's chunks are content-hashed (p-<hash>.js, p-<hash>.entry.js, p-<hash>.css): immutable.
+  <FilesMatch "^p-[A-Za-z0-9_-]+(\.entry)?\.(js|css)$">
+    Header always set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  # Never cache the shell.
+  <Files "index.html">
+    Header always set Cache-Control "no-cache"
+  </Files>
+</IfModule>

@@ -10,6 +10,7 @@ import {
 } from '@oyl/all-of-oyl/client'
 import { createThemeApplier, createThemeState } from './theme.js'
 import { interceptLinks } from './link-interceptor.js'
+import { titleFor } from './titles.js'
 import { browserDataPorts, type GlobalLike } from './ports.js'
 import type { App, BootDeps, BootWindow } from './types.js'
 
@@ -66,6 +67,7 @@ export async function createApp(win: BootWindow, deps: BootDeps = {}): Promise<A
   const applyThemeSettings = createThemeApplier(doc)
   effect(() => applyThemeSettings(themeState.settings.get()))
   routeState.start()
+  effect(() => { doc.title = titleFor(routeState.route.get()) })
 
   // Hash-adopted sign-ins never go through the login form, so onAuthenticated never fires —
   // send the user off /login (or /, already redirected to /status by start() above) into the app.

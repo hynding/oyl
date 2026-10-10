@@ -1,0 +1,32 @@
+:host { display: block; container-type: inline-size; }
+.screen { display: grid; gap: var(--space-4); }
+h2 { margin: 0; text-align: center; font-size: var(--step-2); font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; }
+h2:focus-visible { outline: var(--focus-ring); outline-offset: 4px; border-radius: var(--radius-1); }
+ui-segment { justify-self: center; }
+.totals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); max-inline-size: 36rem; margin-inline: auto; inline-size: 100%; }
+.tile {
+  display: grid; gap: 0; justify-items: center; text-align: center; min-inline-size: 0; overflow-wrap: anywhere;
+  padding: var(--space-2) var(--space-1);
+  background: var(--color-surface); border: var(--line-1) solid var(--color-border); border-radius: var(--radius-1);
+}
+.tile b { font-family: var(--font-mono); font-weight: 500; font-size: var(--step-1); font-variant-numeric: tabular-nums; line-height: 1.2; }
+.tile small { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted); white-space: nowrap; }
+.tile .delta { font-size: var(--step--1); color: var(--color-muted); font-variant-numeric: tabular-nums; min-block-size: 1.2em; }
+section { display: grid; gap: var(--space-1); }
+.section-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 500; color: var(--color-muted); }
+ol { list-style: none; margin: 0; padding: 0; }
+li { padding: var(--space-2) 0; border-block-start: var(--line-1) solid var(--color-border); }
+li, .area .head { display: flex; justify-content: space-between; gap: var(--space-3); align-items: baseline; }
+li.area { display: block; }
+.k { color: var(--color-text); overflow-wrap: anywhere; }
+.v { color: var(--color-muted); font-size: var(--step--1); text-align: end; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.v.mono { font-family: var(--font-mono); color: var(--color-text); }
+.bar { block-size: 0.35rem; background: var(--color-surface-2); border-radius: var(--radius-pill); overflow: hidden; margin-block-start: var(--space-1); }
+.fill { block-size: 100%; inline-size: 0; background: var(--color-accent); transition: inline-size var(--dur-base) var(--ease-out); }
+.empty { color: var(--color-muted); padding: var(--space-3) 0; text-align: center; border-block-start: var(--line-1) solid var(--color-border); }
+@container (max-width: 30rem) {
+  .totals { gap: var(--space-1); }
+  .tile { padding-inline: 0; }
+  .tile b { font-size: var(--step-0); }
+  .tile small { font-size: 0.56rem; letter-spacing: 0.02em; }
+}

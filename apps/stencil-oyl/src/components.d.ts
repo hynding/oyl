@@ -5,33 +5,79 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { Signal } from "@oyl/all-of-oyl/client";
+import { AccountsWriter } from "./components/oyl-account-form/oyl-account-form";
+import { AuthSession, ProfilePatch, Signal } from "@oyl/all-of-oyl/client";
 import { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 import { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
-import { DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+import { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
+import { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
+import { ContactsWriter } from "./components/oyl-contact-form/oyl-contact-form";
+import { Consumption, DayKey, DayRange, Entry, Id, Plan, Review, User } from "@oyl/all-of-oyl";
+import { DocumentsWriter } from "./components/oyl-document-form/oyl-document-form";
+import { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
+import { GiftIdeasWriter } from "./components/oyl-gift-idea-form/oyl-gift-idea-form";
+import { GoalsWriter } from "./components/oyl-goal-form/oyl-goal-form";
+import { GoalsJournal, GoalsStore } from "./components/oyl-goals/oyl-goals";
+import { RowAction, ValueTone } from "./components/oyl-item-row/oyl-item-row";
 import { JournalReader } from "./components/oyl-journal/oyl-journal";
 import { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 import { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
+import { ConsumableProductsReader, ConsumablesReader, MealWriter } from "./components/oyl-meal-form/oyl-meal-form";
+import { ConsumablesStore, NutritionReader } from "./components/oyl-nutrition/oyl-nutrition";
+import { ConsumableProductsReader as ConsumableProductsReader1 } from "./components/oyl-meal-form/oyl-meal-form.js";
 import { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
 import { PlannerReader } from "./components/oyl-planner/oyl-planner";
+import { PossessionsWriter } from "./components/oyl-possession-form/oyl-possession-form";
+import { GoogleLink } from "./components/oyl-profile/oyl-profile";
+import { ProgressTone } from "./components/oyl-progress-row/oyl-progress-row";
+import { RowAction as RowAction1 } from "./components/oyl-item-row/oyl-item-row.js";
 import { Routes } from "./components/oyl-router/oyl-router";
 import { Diagnostics } from "./components/oyl-status/oyl-status";
 import { StatusActions } from "./boot/data-tools.js";
+import { SubscriptionsWriter } from "./components/oyl-subscription-form/oyl-subscription-form";
 import { ThemeState } from "./boot/theme.js";
-export { Signal } from "@oyl/all-of-oyl/client";
+import { AccountsReader, Direction, TransactionWriter } from "./components/oyl-transaction-form/oyl-transaction-form";
+import { VaultStore } from "./components/oyl-vault/oyl-vault";
+export { AccountsWriter } from "./components/oyl-account-form/oyl-account-form";
+export { AuthSession, ProfilePatch, Signal } from "@oyl/all-of-oyl/client";
 export { App, BootWindow, ConnectionSettings } from "./boot/types.js";
 export { AuthApi } from "./components/oyl-auth-form/oyl-auth-form";
-export { DayKey, Entry, Id, Plan } from "@oyl/all-of-oyl";
+export { BudgetsWriter } from "./components/oyl-budget-form/oyl-budget-form";
+export { ConsumablesWriter } from "./components/oyl-consumable-form/oyl-consumable-form";
+export { ContactsWriter } from "./components/oyl-contact-form/oyl-contact-form";
+export { Consumption, DayKey, DayRange, Entry, Id, Plan, Review, User } from "@oyl/all-of-oyl";
+export { DocumentsWriter } from "./components/oyl-document-form/oyl-document-form";
+export { AccountsStore, BudgetsStore, FinanceReader } from "./components/oyl-finance/oyl-finance";
+export { GiftIdeasWriter } from "./components/oyl-gift-idea-form/oyl-gift-idea-form";
+export { GoalsWriter } from "./components/oyl-goal-form/oyl-goal-form";
+export { GoalsJournal, GoalsStore } from "./components/oyl-goals/oyl-goals";
+export { RowAction, ValueTone } from "./components/oyl-item-row/oyl-item-row";
 export { JournalReader } from "./components/oyl-journal/oyl-journal";
 export { JournalWriter } from "./components/oyl-log-form/oyl-log-form";
 export { AuthApi as AuthApi1 } from "./components/oyl-auth-form/oyl-auth-form.js";
+export { ConsumableProductsReader, ConsumablesReader, MealWriter } from "./components/oyl-meal-form/oyl-meal-form";
+export { ConsumablesStore, NutritionReader } from "./components/oyl-nutrition/oyl-nutrition";
+export { ConsumableProductsReader as ConsumableProductsReader1 } from "./components/oyl-meal-form/oyl-meal-form.js";
 export { PlannerWriter } from "./components/oyl-plan-composer/oyl-plan-composer";
 export { PlannerReader } from "./components/oyl-planner/oyl-planner";
+export { PossessionsWriter } from "./components/oyl-possession-form/oyl-possession-form";
+export { GoogleLink } from "./components/oyl-profile/oyl-profile";
+export { ProgressTone } from "./components/oyl-progress-row/oyl-progress-row";
+export { RowAction as RowAction1 } from "./components/oyl-item-row/oyl-item-row.js";
 export { Routes } from "./components/oyl-router/oyl-router";
 export { Diagnostics } from "./components/oyl-status/oyl-status";
 export { StatusActions } from "./boot/data-tools.js";
+export { SubscriptionsWriter } from "./components/oyl-subscription-form/oyl-subscription-form";
 export { ThemeState } from "./boot/theme.js";
+export { AccountsReader, Direction, TransactionWriter } from "./components/oyl-transaction-form/oyl-transaction-form";
+export { VaultStore } from "./components/oyl-vault/oyl-vault";
 export namespace Components {
+    /**
+     * Add an account: a name and its currency.
+     */
+    interface OylAccountForm {
+        "store": AccountsWriter;
+    }
     /**
      * Toolbar account menu: Profile link always; Log out when signed in, Sign in when not.
      */
@@ -67,6 +113,24 @@ export namespace Components {
         "mode": 'login' | 'register';
     }
     /**
+     * Add a monthly budget: an expense category, a limit and its currency.
+     */
+    interface OylBudgetForm {
+        "store": BudgetsWriter;
+    }
+    /**
+     * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
+     */
+    interface OylConsumableForm {
+        "store": ConsumablesWriter;
+    }
+    /**
+     * Add a contact: name, optional birthday (a yearly occasion) and last-contacted day.
+     */
+    interface OylContactForm {
+        "store": ContactsWriter;
+    }
+    /**
      * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
      * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
      * region for the screen's announcements. Controlled: the screen owns the day signal and
@@ -88,12 +152,109 @@ export namespace Components {
         "today": DayKey;
     }
     /**
+     * Add a document: name, kind and an optional expiry (which feeds the Upcoming feed).
+     */
+    interface OylDocumentForm {
+        "store": DocumentsWriter;
+    }
+    /**
      * One journal entry: time | body | actions. Delete is a two-step inline confirm
      * (Delete → "Delete?" Yes/No) on native buttons — a confirm cluster, like the theme
      * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
      */
     interface OylEntryRow {
         "entry": Entry;
+    }
+    /**
+     * The month's finances: spent/income/net tiles per currency, the composer, the ledger with
+     * an account filter, then Budgets and Accounts with collapsed add forms. Lists and math are
+     * vanilla's (`periodWindowOf('month', today)`, `budgetStatus`, `accountBalance/Spend`).
+     */
+    interface OylFinance {
+        "accounts": AccountsStore;
+        "budgets": BudgetsStore;
+        "store": FinanceReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
+    }
+    /**
+     * Add a gift idea for a contact. Without contacts it shows a hint instead of the fields.
+     * The form owns `contactId` and re-derives it when the contact list changes (kept when still
+     * present, else the first contact) because `ui-select` syncs its own value silently.
+     */
+    interface OylGiftIdeaForm {
+        "store": GiftIdeasWriter;
+    }
+    /**
+     * Add a goal from a metric preset: the preset fixes metric/direction/aggregation and proposes
+     * a period and a unit hint; the user supplies the target, an optional name and may override
+     * the period. The form owns `presetIndex` and `period` (the `ui-select` rule), and re-derives
+     * the period from each newly chosen preset.
+     */
+    interface OylGoalForm {
+        "store": GoalsWriter;
+    }
+    /**
+     * Goals: a summary line, a collapsed "New goal" form, and one `oyl-progress-row` per goal
+     * tracked against the journal. One effect over the goals store and the journal revision
+     * (`progressOf` reads it) mirrors fresh `goals` + `progress` arrays into state; row props
+     * derive in `render()`. The Pause/Resume action follows the goal's open pause, not
+     * `progress.paused`: a same-day resume closes the range inclusively, so the period stays
+     * paused through today while there is nothing left to resume.
+     */
+    interface OylGoals {
+        "journal": GoalsJournal;
+        "store": GoalsStore;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
+    }
+    /**
+     * The read-only review of a period: a week/month segment, four tiles with period-over-period
+     * deltas, then goals, top spending, activity and the life-area rollup as plain rows. The period
+     * is a bundle signal read inside the one effect (with today), which calls `review(range)` —
+     * every store the review touches bumps a revision it reads, so the screen follows any change.
+     */
+    interface OylInsights {
+        /**
+          * `dataState.reviewOn`.
+         */
+        "review": (range: DayRange) => Review;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
+    }
+    /**
+     * A generic list row: label + supporting lines | optional mono value | inline Delete →
+     * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
+     * accounts list, and every Vault list. `remove` and `act` carry `itemId`, so a screen keeps
+     * one stable handler per list. An optional secondary `action` (Renew, Log contact) renders
+     * before Delete and emits `act` without touching the confirm.
+     */
+    interface OylItemRow {
+        /**
+          * An optional secondary action rendered before Delete.
+         */
+        "action"?: RowAction;
+        "itemId": string;
+        "label": string;
+        /**
+          * @default []
+         */
+        "lines": readonly (string | null | undefined)[];
+        /**
+          * aria-label for the Delete button; defaults to "Delete {label}".
+         */
+        "removeLabel"?: string;
+        "tone"?: ValueTone;
+        /**
+          * Right-aligned mono value (an amount, a balance).
+         */
+        "value"?: string;
     }
     /**
      * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
@@ -123,6 +284,30 @@ export namespace Components {
         "auth": AuthApi1;
         "googleAuth"?: Signal<{ href: string } | null>;
     }
+    /**
+     * The meal composer: log from the shared catalog (optionally a specific product) or an
+     * ad-hoc meal with its own nutrients; servings and a `when` prefilled to the shown day.
+     * Builds the Consumption exactly as vanilla does (product → effective facts, catalog →
+     * snapshot, ad-hoc → given nutrients). Native <form> over form-associated primitives.
+     */
+    interface OylMealForm {
+        "consumableProducts"?: ConsumableProductsReader;
+        "consumables": ConsumablesReader;
+        /**
+          * The day new meals default to (the screen's shown day).
+         */
+        "day": DayKey;
+        "store": MealWriter;
+    }
+    /**
+     * One logged meal: label + meta | inline Delete → Yes/No (native buttons, the shared
+     * confirm cluster, so the e2e `inlineConfirm` helper applies). The screen resolves the
+     * label (catalog name / note / "Meal" + servings) because only it sees the catalog.
+     */
+    interface OylMealRow {
+        "consumption": Consumption;
+        "label": string;
+    }
     interface OylNav {
         /**
           * @default 'top'
@@ -137,20 +322,24 @@ export namespace Components {
         "route": string;
     }
     /**
-     * Placeholder for a screen the redesign has not reached yet (sub-projects 3…n replace these).
-     */
-    interface OylNotYet {
-        /**
-          * The classic app's URL for this screen; omit to hide the link.
-         */
-        "classicUrl"?: string;
-        "name": string;
-    }
-    /**
      * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
      */
     interface OylNoticeHost {
         "notice": Signal<string | null>;
+    }
+    /**
+     * The day-scoped nutrition screen: `oyl-day-nav` (dots on days with meals), five totals
+     * tiles, the meal composer, the day's meals newest first, and the shared consumables
+     * catalog with a collapsed add form. Same lists and totals as vanilla's screen.
+     */
+    interface OylNutrition {
+        "consumableProducts"?: ConsumableProductsReader1;
+        "consumables": ConsumablesStore;
+        "store": NutritionReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
     }
     /**
      * The planner composer: a task (title, due, optional repeat) or an appointment (title,
@@ -193,6 +382,88 @@ export namespace Components {
           * @default 'UTC'
          */
         "tz": string;
+    }
+    /**
+     * Add a possession: name plus optional location, warranty, price and purchase day.
+     */
+    interface OylPossessionForm {
+        "store": PossessionsWriter;
+    }
+    /**
+     * Profile: who is signed in (+ a body summary), the editable profile form, the Google Drive
+     * link, a pointer to Status (connection + backups live there) and Log out. Three signals are
+     * mirrored into state; the form's `value` is derived in the profile mirror — never in render —
+     * so a Google-status change does not hand the form a fresh patch and re-seed it mid-edit.
+     */
+    interface OylProfile {
+        "google": GoogleLink;
+        "profile": Signal<User | null>;
+        "session": Signal<AuthSession>;
+        /**
+          * Today as YYYY-MM-DD in the effective timezone (for the age).
+          * @default ''
+         */
+        "today": string;
+        /**
+          * Passed through to the form (tests inject a short list).
+         */
+        "zones"?: readonly string[] | null;
+    }
+    /**
+     * The editable profile: timezone (IANA select, or a text field when the platform has no zone
+     * list), units, birthday, location, weight/height in the chosen units, gender with an "Other"
+     * self-describe field. Text fields render `value={seed.x}` from a seed recomputed only when
+     * `value` changes, so a parent re-render never re-applies a value over the user's typing; the
+     * selects are owned as state (the `ui-select` rule). Submit emits vanilla's patch.
+     */
+    interface OylProfileForm {
+        /**
+          * The current profile's editable slice (`toPatch(user)`), `{}` for none.
+          * @default {}
+         */
+        "value": ProfilePatch;
+        /**
+          * IANA zones for the timezone select; `null` → text field. Defaults to the platform list.
+          * @default systemZones()
+         */
+        "zones": readonly string[] | null;
+    }
+    /**
+     * One tracked thing (a goal, a budget): name (+ optional met check), a progress bar with a
+     * tone, a status label, an optional secondary action (Pause / Resume) and the inline
+     * Delete → Yes/No confirm. Purely presentational: every prop is a primitive the screen
+     * derives per render, so in-place domain mutations still re-render the row. `act` and
+     * `remove` carry `itemId`, so a screen keeps one stable handler per list.
+     */
+    interface OylProgressRow {
+        /**
+          * An optional secondary action rendered before Delete.
+         */
+        "action"?: RowAction1;
+        "itemId": string;
+        /**
+          * The status line under the bar.
+          * @default ''
+         */
+        "label": string;
+        /**
+          * Renders a check after the name.
+         */
+        "met"?: boolean;
+        /**
+          * The heading (user text — rendered verbatim).
+         */
+        "name": string;
+        /**
+          * 0–1 fill of the bar.
+          * @default 0
+         */
+        "ratio": number;
+        /**
+          * aria-label for the Delete button; defaults to "Delete {name}".
+         */
+        "removeLabel"?: string;
+        "tone"?: ProgressTone;
     }
     interface OylRegister {
         "auth": AuthApi1;
@@ -241,6 +512,12 @@ export namespace Components {
         "tick"?: Signal<number>;
     }
     /**
+     * Add a subscription: name, amount + currency, cadence, the day it renews on, category.
+     */
+    interface OylSubscriptionForm {
+        "store": SubscriptionsWriter;
+    }
+    /**
      * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
      * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
      * a System/Light/Dark segmented control. Selection applies instantly and the panel stays open,
@@ -251,6 +528,38 @@ export namespace Components {
     interface OylThemePicker {
         "themeState": ThemeState;
     }
+    /**
+     * The finance composer: an expense or income with amount (+ currency unless an account is
+     * chosen — the account's currency wins), account, category (per direction), date and note.
+     * Vanilla's validation order (date, then amount) precedes the domain constructor. The
+     * composer owns currency/category/account as state: `ui-select` syncs silently when its
+     * options change, so it never trusts the select for a value it was not told about.
+     */
+    interface OylTransactionForm {
+        "accounts": AccountsReader;
+        "store": TransactionWriter;
+    }
+    /**
+     * The vault: an Upcoming feed over a horizon, then one kind at a time (documents,
+     * possessions, subscriptions, contacts — gift ideas under contacts), each with a collapsed
+     * add form and a list of `oyl-item-row`s. Lists and callbacks are vanilla's; the horizon is a
+     * bundle signal so the effect re-computes the feed when it changes.
+     */
+    interface OylVault {
+        /**
+          * `dataState.renewSubscription`: renews and records the finance expense.
+         */
+        "renew": (id: Id, on: DayKey) => Promise<unknown>;
+        "store": VaultStore;
+        /**
+          * @default 'UTC'
+         */
+        "tz": string;
+    }
+}
+export interface OylAccountFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylAccountFormElement;
 }
 export interface OylAccountMenuCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -260,13 +569,41 @@ export interface OylAuthFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylAuthFormElement;
 }
+export interface OylBudgetFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylBudgetFormElement;
+}
+export interface OylConsumableFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylConsumableFormElement;
+}
+export interface OylContactFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylContactFormElement;
+}
 export interface OylDayNavCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylDayNavElement;
 }
+export interface OylDocumentFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylDocumentFormElement;
+}
 export interface OylEntryRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylEntryRowElement;
+}
+export interface OylGiftIdeaFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylGiftIdeaFormElement;
+}
+export interface OylGoalFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylGoalFormElement;
+}
+export interface OylItemRowCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylItemRowElement;
 }
 export interface OylLogFormCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -275,6 +612,14 @@ export interface OylLogFormCustomEvent<T> extends CustomEvent<T> {
 export interface OylLoginCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylLoginElement;
+}
+export interface OylMealFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylMealFormElement;
+}
+export interface OylMealRowCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylMealRowElement;
 }
 export interface OylNoticeHostCustomEvent<T> extends CustomEvent<T> {
     detail: T;
@@ -288,11 +633,55 @@ export interface OylPlanRowCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylPlanRowElement;
 }
+export interface OylPossessionFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylPossessionFormElement;
+}
+export interface OylProfileCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylProfileElement;
+}
+export interface OylProfileFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylProfileFormElement;
+}
+export interface OylProgressRowCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylProgressRowElement;
+}
 export interface OylRegisterCustomEvent<T> extends CustomEvent<T> {
     detail: T;
     target: HTMLOylRegisterElement;
 }
+export interface OylSubscriptionFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylSubscriptionFormElement;
+}
+export interface OylTransactionFormCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLOylTransactionFormElement;
+}
 declare global {
+    interface HTMLOylAccountFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add an account: a name and its currency.
+     */
+    interface HTMLOylAccountFormElement extends Components.OylAccountForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylAccountFormElementEventMap>(type: K, listener: (this: HTMLOylAccountFormElement, ev: OylAccountFormCustomEvent<HTMLOylAccountFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylAccountFormElementEventMap>(type: K, listener: (this: HTMLOylAccountFormElement, ev: OylAccountFormCustomEvent<HTMLOylAccountFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylAccountFormElement: {
+        prototype: HTMLOylAccountFormElement;
+        new (): HTMLOylAccountFormElement;
+    };
     interface HTMLOylAccountMenuElementEventMap {
         "logout": void;
     }
@@ -346,6 +735,66 @@ declare global {
         prototype: HTMLOylAuthFormElement;
         new (): HTMLOylAuthFormElement;
     };
+    interface HTMLOylBudgetFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a monthly budget: an expense category, a limit and its currency.
+     */
+    interface HTMLOylBudgetFormElement extends Components.OylBudgetForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylBudgetFormElementEventMap>(type: K, listener: (this: HTMLOylBudgetFormElement, ev: OylBudgetFormCustomEvent<HTMLOylBudgetFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylBudgetFormElementEventMap>(type: K, listener: (this: HTMLOylBudgetFormElement, ev: OylBudgetFormCustomEvent<HTMLOylBudgetFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylBudgetFormElement: {
+        prototype: HTMLOylBudgetFormElement;
+        new (): HTMLOylBudgetFormElement;
+    };
+    interface HTMLOylConsumableFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
+     */
+    interface HTMLOylConsumableFormElement extends Components.OylConsumableForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylConsumableFormElementEventMap>(type: K, listener: (this: HTMLOylConsumableFormElement, ev: OylConsumableFormCustomEvent<HTMLOylConsumableFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylConsumableFormElementEventMap>(type: K, listener: (this: HTMLOylConsumableFormElement, ev: OylConsumableFormCustomEvent<HTMLOylConsumableFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylConsumableFormElement: {
+        prototype: HTMLOylConsumableFormElement;
+        new (): HTMLOylConsumableFormElement;
+    };
+    interface HTMLOylContactFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a contact: name, optional birthday (a yearly occasion) and last-contacted day.
+     */
+    interface HTMLOylContactFormElement extends Components.OylContactForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylContactFormElementEventMap>(type: K, listener: (this: HTMLOylContactFormElement, ev: OylContactFormCustomEvent<HTMLOylContactFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylContactFormElementEventMap>(type: K, listener: (this: HTMLOylContactFormElement, ev: OylContactFormCustomEvent<HTMLOylContactFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylContactFormElement: {
+        prototype: HTMLOylContactFormElement;
+        new (): HTMLOylContactFormElement;
+    };
     interface HTMLOylDayNavElementEventMap {
         "dayChange": DayKey;
     }
@@ -370,6 +819,26 @@ declare global {
         prototype: HTMLOylDayNavElement;
         new (): HTMLOylDayNavElement;
     };
+    interface HTMLOylDocumentFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a document: name, kind and an optional expiry (which feeds the Upcoming feed).
+     */
+    interface HTMLOylDocumentFormElement extends Components.OylDocumentForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylDocumentFormElementEventMap>(type: K, listener: (this: HTMLOylDocumentFormElement, ev: OylDocumentFormCustomEvent<HTMLOylDocumentFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylDocumentFormElementEventMap>(type: K, listener: (this: HTMLOylDocumentFormElement, ev: OylDocumentFormCustomEvent<HTMLOylDocumentFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylDocumentFormElement: {
+        prototype: HTMLOylDocumentFormElement;
+        new (): HTMLOylDocumentFormElement;
+    };
     interface HTMLOylEntryRowElementEventMap {
         "remove": Id;
     }
@@ -391,6 +860,113 @@ declare global {
     var HTMLOylEntryRowElement: {
         prototype: HTMLOylEntryRowElement;
         new (): HTMLOylEntryRowElement;
+    };
+    /**
+     * The month's finances: spent/income/net tiles per currency, the composer, the ledger with
+     * an account filter, then Budgets and Accounts with collapsed add forms. Lists and math are
+     * vanilla's (`periodWindowOf('month', today)`, `budgetStatus`, `accountBalance/Spend`).
+     */
+    interface HTMLOylFinanceElement extends Components.OylFinance, HTMLStencilElement {
+    }
+    var HTMLOylFinanceElement: {
+        prototype: HTMLOylFinanceElement;
+        new (): HTMLOylFinanceElement;
+    };
+    interface HTMLOylGiftIdeaFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a gift idea for a contact. Without contacts it shows a hint instead of the fields.
+     * The form owns `contactId` and re-derives it when the contact list changes (kept when still
+     * present, else the first contact) because `ui-select` syncs its own value silently.
+     */
+    interface HTMLOylGiftIdeaFormElement extends Components.OylGiftIdeaForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylGiftIdeaFormElementEventMap>(type: K, listener: (this: HTMLOylGiftIdeaFormElement, ev: OylGiftIdeaFormCustomEvent<HTMLOylGiftIdeaFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylGiftIdeaFormElementEventMap>(type: K, listener: (this: HTMLOylGiftIdeaFormElement, ev: OylGiftIdeaFormCustomEvent<HTMLOylGiftIdeaFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylGiftIdeaFormElement: {
+        prototype: HTMLOylGiftIdeaFormElement;
+        new (): HTMLOylGiftIdeaFormElement;
+    };
+    interface HTMLOylGoalFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a goal from a metric preset: the preset fixes metric/direction/aggregation and proposes
+     * a period and a unit hint; the user supplies the target, an optional name and may override
+     * the period. The form owns `presetIndex` and `period` (the `ui-select` rule), and re-derives
+     * the period from each newly chosen preset.
+     */
+    interface HTMLOylGoalFormElement extends Components.OylGoalForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylGoalFormElementEventMap>(type: K, listener: (this: HTMLOylGoalFormElement, ev: OylGoalFormCustomEvent<HTMLOylGoalFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylGoalFormElementEventMap>(type: K, listener: (this: HTMLOylGoalFormElement, ev: OylGoalFormCustomEvent<HTMLOylGoalFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylGoalFormElement: {
+        prototype: HTMLOylGoalFormElement;
+        new (): HTMLOylGoalFormElement;
+    };
+    /**
+     * Goals: a summary line, a collapsed "New goal" form, and one `oyl-progress-row` per goal
+     * tracked against the journal. One effect over the goals store and the journal revision
+     * (`progressOf` reads it) mirrors fresh `goals` + `progress` arrays into state; row props
+     * derive in `render()`. The Pause/Resume action follows the goal's open pause, not
+     * `progress.paused`: a same-day resume closes the range inclusively, so the period stays
+     * paused through today while there is nothing left to resume.
+     */
+    interface HTMLOylGoalsElement extends Components.OylGoals, HTMLStencilElement {
+    }
+    var HTMLOylGoalsElement: {
+        prototype: HTMLOylGoalsElement;
+        new (): HTMLOylGoalsElement;
+    };
+    /**
+     * The read-only review of a period: a week/month segment, four tiles with period-over-period
+     * deltas, then goals, top spending, activity and the life-area rollup as plain rows. The period
+     * is a bundle signal read inside the one effect (with today), which calls `review(range)` —
+     * every store the review touches bumps a revision it reads, so the screen follows any change.
+     */
+    interface HTMLOylInsightsElement extends Components.OylInsights, HTMLStencilElement {
+    }
+    var HTMLOylInsightsElement: {
+        prototype: HTMLOylInsightsElement;
+        new (): HTMLOylInsightsElement;
+    };
+    interface HTMLOylItemRowElementEventMap {
+        "remove": string;
+        "act": { act: string; itemId: string };
+    }
+    /**
+     * A generic list row: label + supporting lines | optional mono value | inline Delete →
+     * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
+     * accounts list, and every Vault list. `remove` and `act` carry `itemId`, so a screen keeps
+     * one stable handler per list. An optional secondary `action` (Renew, Log contact) renders
+     * before Delete and emits `act` without touching the confirm.
+     */
+    interface HTMLOylItemRowElement extends Components.OylItemRow, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylItemRowElementEventMap>(type: K, listener: (this: HTMLOylItemRowElement, ev: OylItemRowCustomEvent<HTMLOylItemRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylItemRowElementEventMap>(type: K, listener: (this: HTMLOylItemRowElement, ev: OylItemRowCustomEvent<HTMLOylItemRowElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylItemRowElement: {
+        prototype: HTMLOylItemRowElement;
+        new (): HTMLOylItemRowElement;
     };
     /**
      * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
@@ -442,6 +1018,51 @@ declare global {
         prototype: HTMLOylLoginElement;
         new (): HTMLOylLoginElement;
     };
+    interface HTMLOylMealFormElementEventMap {
+        "logged": void;
+    }
+    /**
+     * The meal composer: log from the shared catalog (optionally a specific product) or an
+     * ad-hoc meal with its own nutrients; servings and a `when` prefilled to the shown day.
+     * Builds the Consumption exactly as vanilla does (product → effective facts, catalog →
+     * snapshot, ad-hoc → given nutrients). Native <form> over form-associated primitives.
+     */
+    interface HTMLOylMealFormElement extends Components.OylMealForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylMealFormElementEventMap>(type: K, listener: (this: HTMLOylMealFormElement, ev: OylMealFormCustomEvent<HTMLOylMealFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylMealFormElementEventMap>(type: K, listener: (this: HTMLOylMealFormElement, ev: OylMealFormCustomEvent<HTMLOylMealFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylMealFormElement: {
+        prototype: HTMLOylMealFormElement;
+        new (): HTMLOylMealFormElement;
+    };
+    interface HTMLOylMealRowElementEventMap {
+        "remove": Id;
+    }
+    /**
+     * One logged meal: label + meta | inline Delete → Yes/No (native buttons, the shared
+     * confirm cluster, so the e2e `inlineConfirm` helper applies). The screen resolves the
+     * label (catalog name / note / "Meal" + servings) because only it sees the catalog.
+     */
+    interface HTMLOylMealRowElement extends Components.OylMealRow, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylMealRowElementEventMap>(type: K, listener: (this: HTMLOylMealRowElement, ev: OylMealRowCustomEvent<HTMLOylMealRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylMealRowElementEventMap>(type: K, listener: (this: HTMLOylMealRowElement, ev: OylMealRowCustomEvent<HTMLOylMealRowElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylMealRowElement: {
+        prototype: HTMLOylMealRowElement;
+        new (): HTMLOylMealRowElement;
+    };
     interface HTMLOylNavElement extends Components.OylNav, HTMLStencilElement {
     }
     var HTMLOylNavElement: {
@@ -453,15 +1074,6 @@ declare global {
     var HTMLOylNotFoundElement: {
         prototype: HTMLOylNotFoundElement;
         new (): HTMLOylNotFoundElement;
-    };
-    /**
-     * Placeholder for a screen the redesign has not reached yet (sub-projects 3…n replace these).
-     */
-    interface HTMLOylNotYetElement extends Components.OylNotYet, HTMLStencilElement {
-    }
-    var HTMLOylNotYetElement: {
-        prototype: HTMLOylNotYetElement;
-        new (): HTMLOylNotYetElement;
     };
     interface HTMLOylNoticeHostElementEventMap {
         "dismiss": void;
@@ -482,6 +1094,17 @@ declare global {
     var HTMLOylNoticeHostElement: {
         prototype: HTMLOylNoticeHostElement;
         new (): HTMLOylNoticeHostElement;
+    };
+    /**
+     * The day-scoped nutrition screen: `oyl-day-nav` (dots on days with meals), five totals
+     * tiles, the meal composer, the day's meals newest first, and the shared consumables
+     * catalog with a collapsed add form. Same lists and totals as vanilla's screen.
+     */
+    interface HTMLOylNutritionElement extends Components.OylNutrition, HTMLStencilElement {
+    }
+    var HTMLOylNutritionElement: {
+        prototype: HTMLOylNutritionElement;
+        new (): HTMLOylNutritionElement;
     };
     interface HTMLOylPlanComposerElementEventMap {
         "added": void;
@@ -542,6 +1165,99 @@ declare global {
         prototype: HTMLOylPlannerElement;
         new (): HTMLOylPlannerElement;
     };
+    interface HTMLOylPossessionFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a possession: name plus optional location, warranty, price and purchase day.
+     */
+    interface HTMLOylPossessionFormElement extends Components.OylPossessionForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylPossessionFormElementEventMap>(type: K, listener: (this: HTMLOylPossessionFormElement, ev: OylPossessionFormCustomEvent<HTMLOylPossessionFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylPossessionFormElementEventMap>(type: K, listener: (this: HTMLOylPossessionFormElement, ev: OylPossessionFormCustomEvent<HTMLOylPossessionFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylPossessionFormElement: {
+        prototype: HTMLOylPossessionFormElement;
+        new (): HTMLOylPossessionFormElement;
+    };
+    interface HTMLOylProfileElementEventMap {
+        "saveProfile": ProfilePatch;
+        "logout": void;
+    }
+    /**
+     * Profile: who is signed in (+ a body summary), the editable profile form, the Google Drive
+     * link, a pointer to Status (connection + backups live there) and Log out. Three signals are
+     * mirrored into state; the form's `value` is derived in the profile mirror — never in render —
+     * so a Google-status change does not hand the form a fresh patch and re-seed it mid-edit.
+     */
+    interface HTMLOylProfileElement extends Components.OylProfile, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylProfileElementEventMap>(type: K, listener: (this: HTMLOylProfileElement, ev: OylProfileCustomEvent<HTMLOylProfileElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylProfileElementEventMap>(type: K, listener: (this: HTMLOylProfileElement, ev: OylProfileCustomEvent<HTMLOylProfileElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylProfileElement: {
+        prototype: HTMLOylProfileElement;
+        new (): HTMLOylProfileElement;
+    };
+    interface HTMLOylProfileFormElementEventMap {
+        "save": ProfilePatch;
+    }
+    /**
+     * The editable profile: timezone (IANA select, or a text field when the platform has no zone
+     * list), units, birthday, location, weight/height in the chosen units, gender with an "Other"
+     * self-describe field. Text fields render `value={seed.x}` from a seed recomputed only when
+     * `value` changes, so a parent re-render never re-applies a value over the user's typing; the
+     * selects are owned as state (the `ui-select` rule). Submit emits vanilla's patch.
+     */
+    interface HTMLOylProfileFormElement extends Components.OylProfileForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylProfileFormElementEventMap>(type: K, listener: (this: HTMLOylProfileFormElement, ev: OylProfileFormCustomEvent<HTMLOylProfileFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylProfileFormElementEventMap>(type: K, listener: (this: HTMLOylProfileFormElement, ev: OylProfileFormCustomEvent<HTMLOylProfileFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylProfileFormElement: {
+        prototype: HTMLOylProfileFormElement;
+        new (): HTMLOylProfileFormElement;
+    };
+    interface HTMLOylProgressRowElementEventMap {
+        "remove": string;
+        "act": { act: string; itemId: string };
+    }
+    /**
+     * One tracked thing (a goal, a budget): name (+ optional met check), a progress bar with a
+     * tone, a status label, an optional secondary action (Pause / Resume) and the inline
+     * Delete → Yes/No confirm. Purely presentational: every prop is a primitive the screen
+     * derives per render, so in-place domain mutations still re-render the row. `act` and
+     * `remove` carry `itemId`, so a screen keeps one stable handler per list.
+     */
+    interface HTMLOylProgressRowElement extends Components.OylProgressRow, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylProgressRowElementEventMap>(type: K, listener: (this: HTMLOylProgressRowElement, ev: OylProgressRowCustomEvent<HTMLOylProgressRowElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylProgressRowElementEventMap>(type: K, listener: (this: HTMLOylProgressRowElement, ev: OylProgressRowCustomEvent<HTMLOylProgressRowElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylProgressRowElement: {
+        prototype: HTMLOylProgressRowElement;
+        new (): HTMLOylProgressRowElement;
+    };
     interface HTMLOylRegisterElementEventMap {
         "authenticated": void;
     }
@@ -593,6 +1309,26 @@ declare global {
         prototype: HTMLOylStatusElement;
         new (): HTMLOylStatusElement;
     };
+    interface HTMLOylSubscriptionFormElementEventMap {
+        "added": void;
+    }
+    /**
+     * Add a subscription: name, amount + currency, cadence, the day it renews on, category.
+     */
+    interface HTMLOylSubscriptionFormElement extends Components.OylSubscriptionForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylSubscriptionFormElementEventMap>(type: K, listener: (this: HTMLOylSubscriptionFormElement, ev: OylSubscriptionFormCustomEvent<HTMLOylSubscriptionFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylSubscriptionFormElementEventMap>(type: K, listener: (this: HTMLOylSubscriptionFormElement, ev: OylSubscriptionFormCustomEvent<HTMLOylSubscriptionFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylSubscriptionFormElement: {
+        prototype: HTMLOylSubscriptionFormElement;
+        new (): HTMLOylSubscriptionFormElement;
+    };
     /**
      * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
      * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
@@ -607,32 +1343,98 @@ declare global {
         prototype: HTMLOylThemePickerElement;
         new (): HTMLOylThemePickerElement;
     };
+    interface HTMLOylTransactionFormElementEventMap {
+        "added": Direction;
+    }
+    /**
+     * The finance composer: an expense or income with amount (+ currency unless an account is
+     * chosen — the account's currency wins), account, category (per direction), date and note.
+     * Vanilla's validation order (date, then amount) precedes the domain constructor. The
+     * composer owns currency/category/account as state: `ui-select` syncs silently when its
+     * options change, so it never trusts the select for a value it was not told about.
+     */
+    interface HTMLOylTransactionFormElement extends Components.OylTransactionForm, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLOylTransactionFormElementEventMap>(type: K, listener: (this: HTMLOylTransactionFormElement, ev: OylTransactionFormCustomEvent<HTMLOylTransactionFormElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLOylTransactionFormElementEventMap>(type: K, listener: (this: HTMLOylTransactionFormElement, ev: OylTransactionFormCustomEvent<HTMLOylTransactionFormElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLOylTransactionFormElement: {
+        prototype: HTMLOylTransactionFormElement;
+        new (): HTMLOylTransactionFormElement;
+    };
+    /**
+     * The vault: an Upcoming feed over a horizon, then one kind at a time (documents,
+     * possessions, subscriptions, contacts — gift ideas under contacts), each with a collapsed
+     * add form and a list of `oyl-item-row`s. Lists and callbacks are vanilla's; the horizon is a
+     * bundle signal so the effect re-computes the feed when it changes.
+     */
+    interface HTMLOylVaultElement extends Components.OylVault, HTMLStencilElement {
+    }
+    var HTMLOylVaultElement: {
+        prototype: HTMLOylVaultElement;
+        new (): HTMLOylVaultElement;
+    };
     interface HTMLElementTagNameMap {
+        "oyl-account-form": HTMLOylAccountFormElement;
         "oyl-account-menu": HTMLOylAccountMenuElement;
         "oyl-app": HTMLOylAppElement;
         "oyl-auth-form": HTMLOylAuthFormElement;
+        "oyl-budget-form": HTMLOylBudgetFormElement;
+        "oyl-consumable-form": HTMLOylConsumableFormElement;
+        "oyl-contact-form": HTMLOylContactFormElement;
         "oyl-day-nav": HTMLOylDayNavElement;
+        "oyl-document-form": HTMLOylDocumentFormElement;
         "oyl-entry-row": HTMLOylEntryRowElement;
+        "oyl-finance": HTMLOylFinanceElement;
+        "oyl-gift-idea-form": HTMLOylGiftIdeaFormElement;
+        "oyl-goal-form": HTMLOylGoalFormElement;
+        "oyl-goals": HTMLOylGoalsElement;
+        "oyl-insights": HTMLOylInsightsElement;
+        "oyl-item-row": HTMLOylItemRowElement;
         "oyl-journal": HTMLOylJournalElement;
         "oyl-log-form": HTMLOylLogFormElement;
         "oyl-login": HTMLOylLoginElement;
+        "oyl-meal-form": HTMLOylMealFormElement;
+        "oyl-meal-row": HTMLOylMealRowElement;
         "oyl-nav": HTMLOylNavElement;
         "oyl-not-found": HTMLOylNotFoundElement;
-        "oyl-not-yet": HTMLOylNotYetElement;
         "oyl-notice-host": HTMLOylNoticeHostElement;
+        "oyl-nutrition": HTMLOylNutritionElement;
         "oyl-plan-composer": HTMLOylPlanComposerElement;
         "oyl-plan-row": HTMLOylPlanRowElement;
         "oyl-planner": HTMLOylPlannerElement;
+        "oyl-possession-form": HTMLOylPossessionFormElement;
+        "oyl-profile": HTMLOylProfileElement;
+        "oyl-profile-form": HTMLOylProfileFormElement;
+        "oyl-progress-row": HTMLOylProgressRowElement;
         "oyl-register": HTMLOylRegisterElement;
         "oyl-router": HTMLOylRouterElement;
         "oyl-shell": HTMLOylShellElement;
         "oyl-status": HTMLOylStatusElement;
+        "oyl-subscription-form": HTMLOylSubscriptionFormElement;
         "oyl-theme-picker": HTMLOylThemePickerElement;
+        "oyl-transaction-form": HTMLOylTransactionFormElement;
+        "oyl-vault": HTMLOylVaultElement;
     }
 }
 declare namespace LocalJSX {
     type OneOf<K extends string, PropT, AttrT = PropT> = { [P in K]: PropT } & { [P in `attr:${K}`]?: never } | { [P in `attr:${K}`]: AttrT } & { [P in K]?: never };
 
+    /**
+     * Add an account: a name and its currency.
+     */
+    interface OylAccountForm {
+        /**
+          * An account was added through the store.
+         */
+        "onAdded"?: (event: OylAccountFormCustomEvent<void>) => void;
+        "store": AccountsWriter;
+    }
     /**
      * Toolbar account menu: Profile link always; Log out when signed in, Sign in when not.
      */
@@ -673,6 +1475,36 @@ declare namespace LocalJSX {
         "onSuccess"?: (event: OylAuthFormCustomEvent<void>) => void;
     }
     /**
+     * Add a monthly budget: an expense category, a limit and its currency.
+     */
+    interface OylBudgetForm {
+        /**
+          * A budget was added through the store.
+         */
+        "onAdded"?: (event: OylBudgetFormCustomEvent<void>) => void;
+        "store": BudgetsWriter;
+    }
+    /**
+     * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
+     */
+    interface OylConsumableForm {
+        /**
+          * A consumable was added through the store.
+         */
+        "onAdded"?: (event: OylConsumableFormCustomEvent<void>) => void;
+        "store": ConsumablesWriter;
+    }
+    /**
+     * Add a contact: name, optional birthday (a yearly occasion) and last-contacted day.
+     */
+    interface OylContactForm {
+        /**
+          * A contact was added through the store.
+         */
+        "onAdded"?: (event: OylContactFormCustomEvent<void>) => void;
+        "store": ContactsWriter;
+    }
+    /**
      * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
      * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
      * region for the screen's announcements. Controlled: the screen owns the day signal and
@@ -694,6 +1526,16 @@ declare namespace LocalJSX {
         "today": DayKey;
     }
     /**
+     * Add a document: name, kind and an optional expiry (which feeds the Upcoming feed).
+     */
+    interface OylDocumentForm {
+        /**
+          * A document was added through the store.
+         */
+        "onAdded"?: (event: OylDocumentFormCustomEvent<void>) => void;
+        "store": DocumentsWriter;
+    }
+    /**
      * One journal entry: time | body | actions. Delete is a two-step inline confirm
      * (Delete → "Delete?" Yes/No) on native buttons — a confirm cluster, like the theme
      * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
@@ -704,6 +1546,113 @@ declare namespace LocalJSX {
           * The user confirmed deletion of this entry.
          */
         "onRemove"?: (event: OylEntryRowCustomEvent<Id>) => void;
+    }
+    /**
+     * The month's finances: spent/income/net tiles per currency, the composer, the ledger with
+     * an account filter, then Budgets and Accounts with collapsed add forms. Lists and math are
+     * vanilla's (`periodWindowOf('month', today)`, `budgetStatus`, `accountBalance/Spend`).
+     */
+    interface OylFinance {
+        "accounts": AccountsStore;
+        "budgets": BudgetsStore;
+        "store": FinanceReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
+    }
+    /**
+     * Add a gift idea for a contact. Without contacts it shows a hint instead of the fields.
+     * The form owns `contactId` and re-derives it when the contact list changes (kept when still
+     * present, else the first contact) because `ui-select` syncs its own value silently.
+     */
+    interface OylGiftIdeaForm {
+        /**
+          * A gift idea was added through the store.
+         */
+        "onAdded"?: (event: OylGiftIdeaFormCustomEvent<void>) => void;
+        "store": GiftIdeasWriter;
+    }
+    /**
+     * Add a goal from a metric preset: the preset fixes metric/direction/aggregation and proposes
+     * a period and a unit hint; the user supplies the target, an optional name and may override
+     * the period. The form owns `presetIndex` and `period` (the `ui-select` rule), and re-derives
+     * the period from each newly chosen preset.
+     */
+    interface OylGoalForm {
+        /**
+          * A goal was added through the store.
+         */
+        "onAdded"?: (event: OylGoalFormCustomEvent<void>) => void;
+        "store": GoalsWriter;
+    }
+    /**
+     * Goals: a summary line, a collapsed "New goal" form, and one `oyl-progress-row` per goal
+     * tracked against the journal. One effect over the goals store and the journal revision
+     * (`progressOf` reads it) mirrors fresh `goals` + `progress` arrays into state; row props
+     * derive in `render()`. The Pause/Resume action follows the goal's open pause, not
+     * `progress.paused`: a same-day resume closes the range inclusively, so the period stays
+     * paused through today while there is nothing left to resume.
+     */
+    interface OylGoals {
+        "journal": GoalsJournal;
+        "store": GoalsStore;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
+    }
+    /**
+     * The read-only review of a period: a week/month segment, four tiles with period-over-period
+     * deltas, then goals, top spending, activity and the life-area rollup as plain rows. The period
+     * is a bundle signal read inside the one effect (with today), which calls `review(range)` —
+     * every store the review touches bumps a revision it reads, so the screen follows any change.
+     */
+    interface OylInsights {
+        /**
+          * `dataState.reviewOn`.
+         */
+        "review": (range: DayRange) => Review;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
+    }
+    /**
+     * A generic list row: label + supporting lines | optional mono value | inline Delete →
+     * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
+     * accounts list, and every Vault list. `remove` and `act` carry `itemId`, so a screen keeps
+     * one stable handler per list. An optional secondary `action` (Renew, Log contact) renders
+     * before Delete and emits `act` without touching the confirm.
+     */
+    interface OylItemRow {
+        /**
+          * An optional secondary action rendered before Delete.
+         */
+        "action"?: RowAction;
+        "itemId": string;
+        "label": string;
+        /**
+          * @default []
+         */
+        "lines"?: readonly (string | null | undefined)[];
+        /**
+          * The secondary action was clicked.
+         */
+        "onAct"?: (event: OylItemRowCustomEvent<{ act: string; itemId: string }>) => void;
+        /**
+          * The user confirmed deletion; detail = `itemId`.
+         */
+        "onRemove"?: (event: OylItemRowCustomEvent<string>) => void;
+        /**
+          * aria-label for the Delete button; defaults to "Delete {label}".
+         */
+        "removeLabel"?: string;
+        "tone"?: ValueTone;
+        /**
+          * Right-aligned mono value (an amount, a balance).
+         */
+        "value"?: string;
     }
     /**
      * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
@@ -741,6 +1690,38 @@ declare namespace LocalJSX {
          */
         "onAuthenticated"?: (event: OylLoginCustomEvent<void>) => void;
     }
+    /**
+     * The meal composer: log from the shared catalog (optionally a specific product) or an
+     * ad-hoc meal with its own nutrients; servings and a `when` prefilled to the shown day.
+     * Builds the Consumption exactly as vanilla does (product → effective facts, catalog →
+     * snapshot, ad-hoc → given nutrients). Native <form> over form-associated primitives.
+     */
+    interface OylMealForm {
+        "consumableProducts"?: ConsumableProductsReader;
+        "consumables": ConsumablesReader;
+        /**
+          * The day new meals default to (the screen's shown day).
+         */
+        "day": DayKey;
+        /**
+          * A meal was logged through the store.
+         */
+        "onLogged"?: (event: OylMealFormCustomEvent<void>) => void;
+        "store": MealWriter;
+    }
+    /**
+     * One logged meal: label + meta | inline Delete → Yes/No (native buttons, the shared
+     * confirm cluster, so the e2e `inlineConfirm` helper applies). The screen resolves the
+     * label (catalog name / note / "Meal" + servings) because only it sees the catalog.
+     */
+    interface OylMealRow {
+        "consumption": Consumption;
+        "label": string;
+        /**
+          * The user confirmed deletion of this meal.
+         */
+        "onRemove"?: (event: OylMealRowCustomEvent<Id>) => void;
+    }
     interface OylNav {
         /**
           * @default 'top'
@@ -755,16 +1736,6 @@ declare namespace LocalJSX {
         "route"?: string;
     }
     /**
-     * Placeholder for a screen the redesign has not reached yet (sub-projects 3…n replace these).
-     */
-    interface OylNotYet {
-        /**
-          * The classic app's URL for this screen; omit to hide the link.
-         */
-        "classicUrl"?: string;
-        "name": string;
-    }
-    /**
      * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
      */
     interface OylNoticeHost {
@@ -773,6 +1744,20 @@ declare namespace LocalJSX {
           * The user dismissed the notice; the host clears the signal.
          */
         "onDismiss"?: (event: OylNoticeHostCustomEvent<void>) => void;
+    }
+    /**
+     * The day-scoped nutrition screen: `oyl-day-nav` (dots on days with meals), five totals
+     * tiles, the meal composer, the day's meals newest first, and the shared consumables
+     * catalog with a collapsed add form. Same lists and totals as vanilla's screen.
+     */
+    interface OylNutrition {
+        "consumableProducts"?: ConsumableProductsReader1;
+        "consumables": ConsumablesStore;
+        "store": NutritionReader;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
     }
     /**
      * The planner composer: a task (title, due, optional repeat) or an appointment (title,
@@ -822,6 +1807,112 @@ declare namespace LocalJSX {
           * @default 'UTC'
          */
         "tz"?: string;
+    }
+    /**
+     * Add a possession: name plus optional location, warranty, price and purchase day.
+     */
+    interface OylPossessionForm {
+        /**
+          * A possession was added through the store.
+         */
+        "onAdded"?: (event: OylPossessionFormCustomEvent<void>) => void;
+        "store": PossessionsWriter;
+    }
+    /**
+     * Profile: who is signed in (+ a body summary), the editable profile form, the Google Drive
+     * link, a pointer to Status (connection + backups live there) and Log out. Three signals are
+     * mirrored into state; the form's `value` is derived in the profile mirror — never in render —
+     * so a Google-status change does not hand the form a fresh patch and re-seed it mid-edit.
+     */
+    interface OylProfile {
+        "google": GoogleLink;
+        /**
+          * The user asked to log out.
+         */
+        "onLogout"?: (event: OylProfileCustomEvent<void>) => void;
+        /**
+          * The user submitted the profile form; detail = the patch.
+         */
+        "onSaveProfile"?: (event: OylProfileCustomEvent<ProfilePatch>) => void;
+        "profile": Signal<User | null>;
+        "session": Signal<AuthSession>;
+        /**
+          * Today as YYYY-MM-DD in the effective timezone (for the age).
+          * @default ''
+         */
+        "today"?: string;
+        /**
+          * Passed through to the form (tests inject a short list).
+         */
+        "zones"?: readonly string[] | null;
+    }
+    /**
+     * The editable profile: timezone (IANA select, or a text field when the platform has no zone
+     * list), units, birthday, location, weight/height in the chosen units, gender with an "Other"
+     * self-describe field. Text fields render `value={seed.x}` from a seed recomputed only when
+     * `value` changes, so a parent re-render never re-applies a value over the user's typing; the
+     * selects are owned as state (the `ui-select` rule). Submit emits vanilla's patch.
+     */
+    interface OylProfileForm {
+        /**
+          * The user submitted; detail = the patch to save.
+         */
+        "onSave"?: (event: OylProfileFormCustomEvent<ProfilePatch>) => void;
+        /**
+          * The current profile's editable slice (`toPatch(user)`), `{}` for none.
+          * @default {}
+         */
+        "value"?: ProfilePatch;
+        /**
+          * IANA zones for the timezone select; `null` → text field. Defaults to the platform list.
+          * @default systemZones()
+         */
+        "zones"?: readonly string[] | null;
+    }
+    /**
+     * One tracked thing (a goal, a budget): name (+ optional met check), a progress bar with a
+     * tone, a status label, an optional secondary action (Pause / Resume) and the inline
+     * Delete → Yes/No confirm. Purely presentational: every prop is a primitive the screen
+     * derives per render, so in-place domain mutations still re-render the row. `act` and
+     * `remove` carry `itemId`, so a screen keeps one stable handler per list.
+     */
+    interface OylProgressRow {
+        /**
+          * An optional secondary action rendered before Delete.
+         */
+        "action"?: RowAction1;
+        "itemId": string;
+        /**
+          * The status line under the bar.
+          * @default ''
+         */
+        "label"?: string;
+        /**
+          * Renders a check after the name.
+         */
+        "met"?: boolean;
+        /**
+          * The heading (user text — rendered verbatim).
+         */
+        "name": string;
+        /**
+          * The secondary action was clicked.
+         */
+        "onAct"?: (event: OylProgressRowCustomEvent<{ act: string; itemId: string }>) => void;
+        /**
+          * The user confirmed deletion; detail = `itemId`.
+         */
+        "onRemove"?: (event: OylProgressRowCustomEvent<string>) => void;
+        /**
+          * 0–1 fill of the bar.
+          * @default 0
+         */
+        "ratio"?: number;
+        /**
+          * aria-label for the Delete button; defaults to "Delete {name}".
+         */
+        "removeLabel"?: string;
+        "tone"?: ProgressTone;
     }
     interface OylRegister {
         "auth": AuthApi1;
@@ -874,6 +1965,16 @@ declare namespace LocalJSX {
         "tick"?: Signal<number>;
     }
     /**
+     * Add a subscription: name, amount + currency, cadence, the day it renews on, category.
+     */
+    interface OylSubscriptionForm {
+        /**
+          * A subscription was added through the store.
+         */
+        "onAdded"?: (event: OylSubscriptionFormCustomEvent<void>) => void;
+        "store": SubscriptionsWriter;
+    }
+    /**
      * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
      * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
      * a System/Light/Dark segmented control. Selection applies instantly and the panel stays open,
@@ -884,6 +1985,38 @@ declare namespace LocalJSX {
     interface OylThemePicker {
         "themeState": ThemeState;
     }
+    /**
+     * The finance composer: an expense or income with amount (+ currency unless an account is
+     * chosen — the account's currency wins), account, category (per direction), date and note.
+     * Vanilla's validation order (date, then amount) precedes the domain constructor. The
+     * composer owns currency/category/account as state: `ui-select` syncs silently when its
+     * options change, so it never trusts the select for a value it was not told about.
+     */
+    interface OylTransactionForm {
+        "accounts": AccountsReader;
+        /**
+          * A transaction was added; detail = its direction.
+         */
+        "onAdded"?: (event: OylTransactionFormCustomEvent<Direction>) => void;
+        "store": TransactionWriter;
+    }
+    /**
+     * The vault: an Upcoming feed over a horizon, then one kind at a time (documents,
+     * possessions, subscriptions, contacts — gift ideas under contacts), each with a collapsed
+     * add form and a list of `oyl-item-row`s. Lists and callbacks are vanilla's; the horizon is a
+     * bundle signal so the effect re-computes the feed when it changes.
+     */
+    interface OylVault {
+        /**
+          * `dataState.renewSubscription`: renews and records the finance expense.
+         */
+        "renew": (id: Id, on: DayKey) => Promise<unknown>;
+        "store": VaultStore;
+        /**
+          * @default 'UTC'
+         */
+        "tz"?: string;
+    }
 
     interface OylAuthFormAttributes {
         "mode": 'login' | 'register';
@@ -891,8 +2024,27 @@ declare namespace LocalJSX {
     interface OylDayNavAttributes {
         "announcement": string;
     }
+    interface OylFinanceAttributes {
+        "tz": string;
+    }
+    interface OylGoalsAttributes {
+        "tz": string;
+    }
+    interface OylInsightsAttributes {
+        "tz": string;
+    }
+    interface OylItemRowAttributes {
+        "itemId": string;
+        "label": string;
+        "value": string;
+        "tone": ValueTone;
+        "removeLabel": string;
+    }
     interface OylJournalAttributes {
         "tz": string;
+    }
+    interface OylMealRowAttributes {
+        "label": string;
     }
     interface OylNavAttributes {
         "orientation": 'top' | 'bottom';
@@ -900,9 +2052,8 @@ declare namespace LocalJSX {
     interface OylNotFoundAttributes {
         "route": string;
     }
-    interface OylNotYetAttributes {
-        "name": string;
-        "classicUrl": string;
+    interface OylNutritionAttributes {
+        "tz": string;
     }
     interface OylPlanComposerAttributes {
         "tz": string;
@@ -910,37 +2061,76 @@ declare namespace LocalJSX {
     interface OylPlannerAttributes {
         "tz": string;
     }
+    interface OylProfileAttributes {
+        "today": string;
+    }
+    interface OylProgressRowAttributes {
+        "itemId": string;
+        "name": string;
+        "met": boolean;
+        "ratio": number;
+        "tone": ProgressTone;
+        "label": string;
+        "removeLabel": string;
+    }
     interface OylShellAttributes {
         "docked": boolean;
     }
+    interface OylVaultAttributes {
+        "tz": string;
+    }
 
     interface IntrinsicElements {
+        "oyl-account-form": OylAccountForm;
         "oyl-account-menu": OylAccountMenu;
         "oyl-app": OylApp;
         "oyl-auth-form": Omit<OylAuthForm, keyof OylAuthFormAttributes> & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes]?: OylAuthForm[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `attr:${K}`]?: OylAuthFormAttributes[K] } & { [K in keyof OylAuthForm & keyof OylAuthFormAttributes as `prop:${K}`]?: OylAuthForm[K] };
+        "oyl-budget-form": OylBudgetForm;
+        "oyl-consumable-form": OylConsumableForm;
+        "oyl-contact-form": OylContactForm;
         "oyl-day-nav": Omit<OylDayNav, keyof OylDayNavAttributes> & { [K in keyof OylDayNav & keyof OylDayNavAttributes]?: OylDayNav[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `attr:${K}`]?: OylDayNavAttributes[K] } & { [K in keyof OylDayNav & keyof OylDayNavAttributes as `prop:${K}`]?: OylDayNav[K] };
+        "oyl-document-form": OylDocumentForm;
         "oyl-entry-row": OylEntryRow;
+        "oyl-finance": Omit<OylFinance, keyof OylFinanceAttributes> & { [K in keyof OylFinance & keyof OylFinanceAttributes]?: OylFinance[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `attr:${K}`]?: OylFinanceAttributes[K] } & { [K in keyof OylFinance & keyof OylFinanceAttributes as `prop:${K}`]?: OylFinance[K] };
+        "oyl-gift-idea-form": OylGiftIdeaForm;
+        "oyl-goal-form": OylGoalForm;
+        "oyl-goals": Omit<OylGoals, keyof OylGoalsAttributes> & { [K in keyof OylGoals & keyof OylGoalsAttributes]?: OylGoals[K] } & { [K in keyof OylGoals & keyof OylGoalsAttributes as `attr:${K}`]?: OylGoalsAttributes[K] } & { [K in keyof OylGoals & keyof OylGoalsAttributes as `prop:${K}`]?: OylGoals[K] };
+        "oyl-insights": Omit<OylInsights, keyof OylInsightsAttributes> & { [K in keyof OylInsights & keyof OylInsightsAttributes]?: OylInsights[K] } & { [K in keyof OylInsights & keyof OylInsightsAttributes as `attr:${K}`]?: OylInsightsAttributes[K] } & { [K in keyof OylInsights & keyof OylInsightsAttributes as `prop:${K}`]?: OylInsights[K] };
+        "oyl-item-row": Omit<OylItemRow, keyof OylItemRowAttributes> & { [K in keyof OylItemRow & keyof OylItemRowAttributes]?: OylItemRow[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `attr:${K}`]?: OylItemRowAttributes[K] } & { [K in keyof OylItemRow & keyof OylItemRowAttributes as `prop:${K}`]?: OylItemRow[K] } & OneOf<"itemId", OylItemRow["itemId"], OylItemRowAttributes["itemId"]> & OneOf<"label", OylItemRow["label"], OylItemRowAttributes["label"]>;
         "oyl-journal": Omit<OylJournal, keyof OylJournalAttributes> & { [K in keyof OylJournal & keyof OylJournalAttributes]?: OylJournal[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `attr:${K}`]?: OylJournalAttributes[K] } & { [K in keyof OylJournal & keyof OylJournalAttributes as `prop:${K}`]?: OylJournal[K] };
         "oyl-log-form": OylLogForm;
         "oyl-login": OylLogin;
+        "oyl-meal-form": OylMealForm;
+        "oyl-meal-row": Omit<OylMealRow, keyof OylMealRowAttributes> & { [K in keyof OylMealRow & keyof OylMealRowAttributes]?: OylMealRow[K] } & { [K in keyof OylMealRow & keyof OylMealRowAttributes as `attr:${K}`]?: OylMealRowAttributes[K] } & { [K in keyof OylMealRow & keyof OylMealRowAttributes as `prop:${K}`]?: OylMealRow[K] } & OneOf<"label", OylMealRow["label"], OylMealRowAttributes["label"]>;
         "oyl-nav": Omit<OylNav, keyof OylNavAttributes> & { [K in keyof OylNav & keyof OylNavAttributes]?: OylNav[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `attr:${K}`]?: OylNavAttributes[K] } & { [K in keyof OylNav & keyof OylNavAttributes as `prop:${K}`]?: OylNav[K] };
         "oyl-not-found": Omit<OylNotFound, keyof OylNotFoundAttributes> & { [K in keyof OylNotFound & keyof OylNotFoundAttributes]?: OylNotFound[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `attr:${K}`]?: OylNotFoundAttributes[K] } & { [K in keyof OylNotFound & keyof OylNotFoundAttributes as `prop:${K}`]?: OylNotFound[K] };
-        "oyl-not-yet": Omit<OylNotYet, keyof OylNotYetAttributes> & { [K in keyof OylNotYet & keyof OylNotYetAttributes]?: OylNotYet[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `attr:${K}`]?: OylNotYetAttributes[K] } & { [K in keyof OylNotYet & keyof OylNotYetAttributes as `prop:${K}`]?: OylNotYet[K] } & OneOf<"name", OylNotYet["name"], OylNotYetAttributes["name"]>;
         "oyl-notice-host": OylNoticeHost;
+        "oyl-nutrition": Omit<OylNutrition, keyof OylNutritionAttributes> & { [K in keyof OylNutrition & keyof OylNutritionAttributes]?: OylNutrition[K] } & { [K in keyof OylNutrition & keyof OylNutritionAttributes as `attr:${K}`]?: OylNutritionAttributes[K] } & { [K in keyof OylNutrition & keyof OylNutritionAttributes as `prop:${K}`]?: OylNutrition[K] };
         "oyl-plan-composer": Omit<OylPlanComposer, keyof OylPlanComposerAttributes> & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes]?: OylPlanComposer[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `attr:${K}`]?: OylPlanComposerAttributes[K] } & { [K in keyof OylPlanComposer & keyof OylPlanComposerAttributes as `prop:${K}`]?: OylPlanComposer[K] };
         "oyl-plan-row": OylPlanRow;
         "oyl-planner": Omit<OylPlanner, keyof OylPlannerAttributes> & { [K in keyof OylPlanner & keyof OylPlannerAttributes]?: OylPlanner[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `attr:${K}`]?: OylPlannerAttributes[K] } & { [K in keyof OylPlanner & keyof OylPlannerAttributes as `prop:${K}`]?: OylPlanner[K] };
+        "oyl-possession-form": OylPossessionForm;
+        "oyl-profile": Omit<OylProfile, keyof OylProfileAttributes> & { [K in keyof OylProfile & keyof OylProfileAttributes]?: OylProfile[K] } & { [K in keyof OylProfile & keyof OylProfileAttributes as `attr:${K}`]?: OylProfileAttributes[K] } & { [K in keyof OylProfile & keyof OylProfileAttributes as `prop:${K}`]?: OylProfile[K] };
+        "oyl-profile-form": OylProfileForm;
+        "oyl-progress-row": Omit<OylProgressRow, keyof OylProgressRowAttributes> & { [K in keyof OylProgressRow & keyof OylProgressRowAttributes]?: OylProgressRow[K] } & { [K in keyof OylProgressRow & keyof OylProgressRowAttributes as `attr:${K}`]?: OylProgressRowAttributes[K] } & { [K in keyof OylProgressRow & keyof OylProgressRowAttributes as `prop:${K}`]?: OylProgressRow[K] } & OneOf<"itemId", OylProgressRow["itemId"], OylProgressRowAttributes["itemId"]> & OneOf<"name", OylProgressRow["name"], OylProgressRowAttributes["name"]>;
         "oyl-register": OylRegister;
         "oyl-router": OylRouter;
         "oyl-shell": Omit<OylShell, keyof OylShellAttributes> & { [K in keyof OylShell & keyof OylShellAttributes]?: OylShell[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `attr:${K}`]?: OylShellAttributes[K] } & { [K in keyof OylShell & keyof OylShellAttributes as `prop:${K}`]?: OylShell[K] };
         "oyl-status": OylStatus;
+        "oyl-subscription-form": OylSubscriptionForm;
         "oyl-theme-picker": OylThemePicker;
+        "oyl-transaction-form": OylTransactionForm;
+        "oyl-vault": Omit<OylVault, keyof OylVaultAttributes> & { [K in keyof OylVault & keyof OylVaultAttributes]?: OylVault[K] } & { [K in keyof OylVault & keyof OylVaultAttributes as `attr:${K}`]?: OylVaultAttributes[K] } & { [K in keyof OylVault & keyof OylVaultAttributes as `prop:${K}`]?: OylVault[K] };
     }
 }
 export { LocalJSX as JSX };
 declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
+            /**
+             * Add an account: a name and its currency.
+             */
+            "oyl-account-form": LocalJSX.IntrinsicElements["oyl-account-form"] & JSXBase.HTMLAttributes<HTMLOylAccountFormElement>;
             /**
              * Toolbar account menu: Profile link always; Log out when signed in, Sign in when not.
              */
@@ -958,6 +2148,18 @@ declare module "@stencil/core" {
              */
             "oyl-auth-form": LocalJSX.IntrinsicElements["oyl-auth-form"] & JSXBase.HTMLAttributes<HTMLOylAuthFormElement>;
             /**
+             * Add a monthly budget: an expense category, a limit and its currency.
+             */
+            "oyl-budget-form": LocalJSX.IntrinsicElements["oyl-budget-form"] & JSXBase.HTMLAttributes<HTMLOylBudgetFormElement>;
+            /**
+             * Add a consumable to the shared catalog: name + per-serving facts (slug derived from the name).
+             */
+            "oyl-consumable-form": LocalJSX.IntrinsicElements["oyl-consumable-form"] & JSXBase.HTMLAttributes<HTMLOylConsumableFormElement>;
+            /**
+             * Add a contact: name, optional birthday (a yearly occasion) and last-contacted day.
+             */
+            "oyl-contact-form": LocalJSX.IntrinsicElements["oyl-contact-form"] & JSXBase.HTMLAttributes<HTMLOylContactFormElement>;
+            /**
              * Day navigation shared by the day-scoped screens (Journal, Planner, …): prev/next around
              * a focusable heading, a 7-day pill strip centred on the shown day, and a polite live
              * region for the screen's announcements. Controlled: the screen owns the day signal and
@@ -966,11 +2168,58 @@ declare module "@stencil/core" {
              */
             "oyl-day-nav": LocalJSX.IntrinsicElements["oyl-day-nav"] & JSXBase.HTMLAttributes<HTMLOylDayNavElement>;
             /**
+             * Add a document: name, kind and an optional expiry (which feeds the Upcoming feed).
+             */
+            "oyl-document-form": LocalJSX.IntrinsicElements["oyl-document-form"] & JSXBase.HTMLAttributes<HTMLOylDocumentFormElement>;
+            /**
              * One journal entry: time | body | actions. Delete is a two-step inline confirm
              * (Delete → "Delete?" Yes/No) on native buttons — a confirm cluster, like the theme
              * picker's radios, so the shared e2e `inlineConfirm` helper's `[data-act]` clicks apply.
              */
             "oyl-entry-row": LocalJSX.IntrinsicElements["oyl-entry-row"] & JSXBase.HTMLAttributes<HTMLOylEntryRowElement>;
+            /**
+             * The month's finances: spent/income/net tiles per currency, the composer, the ledger with
+             * an account filter, then Budgets and Accounts with collapsed add forms. Lists and math are
+             * vanilla's (`periodWindowOf('month', today)`, `budgetStatus`, `accountBalance/Spend`).
+             */
+            "oyl-finance": LocalJSX.IntrinsicElements["oyl-finance"] & JSXBase.HTMLAttributes<HTMLOylFinanceElement>;
+            /**
+             * Add a gift idea for a contact. Without contacts it shows a hint instead of the fields.
+             * The form owns `contactId` and re-derives it when the contact list changes (kept when still
+             * present, else the first contact) because `ui-select` syncs its own value silently.
+             */
+            "oyl-gift-idea-form": LocalJSX.IntrinsicElements["oyl-gift-idea-form"] & JSXBase.HTMLAttributes<HTMLOylGiftIdeaFormElement>;
+            /**
+             * Add a goal from a metric preset: the preset fixes metric/direction/aggregation and proposes
+             * a period and a unit hint; the user supplies the target, an optional name and may override
+             * the period. The form owns `presetIndex` and `period` (the `ui-select` rule), and re-derives
+             * the period from each newly chosen preset.
+             */
+            "oyl-goal-form": LocalJSX.IntrinsicElements["oyl-goal-form"] & JSXBase.HTMLAttributes<HTMLOylGoalFormElement>;
+            /**
+             * Goals: a summary line, a collapsed "New goal" form, and one `oyl-progress-row` per goal
+             * tracked against the journal. One effect over the goals store and the journal revision
+             * (`progressOf` reads it) mirrors fresh `goals` + `progress` arrays into state; row props
+             * derive in `render()`. The Pause/Resume action follows the goal's open pause, not
+             * `progress.paused`: a same-day resume closes the range inclusively, so the period stays
+             * paused through today while there is nothing left to resume.
+             */
+            "oyl-goals": LocalJSX.IntrinsicElements["oyl-goals"] & JSXBase.HTMLAttributes<HTMLOylGoalsElement>;
+            /**
+             * The read-only review of a period: a week/month segment, four tiles with period-over-period
+             * deltas, then goals, top spending, activity and the life-area rollup as plain rows. The period
+             * is a bundle signal read inside the one effect (with today), which calls `review(range)` —
+             * every store the review touches bumps a revision it reads, so the screen follows any change.
+             */
+            "oyl-insights": LocalJSX.IntrinsicElements["oyl-insights"] & JSXBase.HTMLAttributes<HTMLOylInsightsElement>;
+            /**
+             * A generic list row: label + supporting lines | optional mono value | inline Delete →
+             * Yes/No (the shared confirm cluster on native buttons). Used by the ledger and the
+             * accounts list, and every Vault list. `remove` and `act` carry `itemId`, so a screen keeps
+             * one stable handler per list. An optional secondary `action` (Renew, Log contact) renders
+             * before Delete and emits `act` without touching the confirm.
+             */
+            "oyl-item-row": LocalJSX.IntrinsicElements["oyl-item-row"] & JSXBase.HTMLAttributes<HTMLOylItemRowElement>;
             /**
              * The day-scoped journal: `oyl-day-nav`, the composer, and the day's notes and
              * measurements newest first (finance and nutrition rows belong to their own screens).
@@ -984,16 +2233,31 @@ declare module "@stencil/core" {
              */
             "oyl-log-form": LocalJSX.IntrinsicElements["oyl-log-form"] & JSXBase.HTMLAttributes<HTMLOylLogFormElement>;
             "oyl-login": LocalJSX.IntrinsicElements["oyl-login"] & JSXBase.HTMLAttributes<HTMLOylLoginElement>;
+            /**
+             * The meal composer: log from the shared catalog (optionally a specific product) or an
+             * ad-hoc meal with its own nutrients; servings and a `when` prefilled to the shown day.
+             * Builds the Consumption exactly as vanilla does (product → effective facts, catalog →
+             * snapshot, ad-hoc → given nutrients). Native <form> over form-associated primitives.
+             */
+            "oyl-meal-form": LocalJSX.IntrinsicElements["oyl-meal-form"] & JSXBase.HTMLAttributes<HTMLOylMealFormElement>;
+            /**
+             * One logged meal: label + meta | inline Delete → Yes/No (native buttons, the shared
+             * confirm cluster, so the e2e `inlineConfirm` helper applies). The screen resolves the
+             * label (catalog name / note / "Meal" + servings) because only it sees the catalog.
+             */
+            "oyl-meal-row": LocalJSX.IntrinsicElements["oyl-meal-row"] & JSXBase.HTMLAttributes<HTMLOylMealRowElement>;
             "oyl-nav": LocalJSX.IntrinsicElements["oyl-nav"] & JSXBase.HTMLAttributes<HTMLOylNavElement>;
             "oyl-not-found": LocalJSX.IntrinsicElements["oyl-not-found"] & JSXBase.HTMLAttributes<HTMLOylNotFoundElement>;
-            /**
-             * Placeholder for a screen the redesign has not reached yet (sub-projects 3…n replace these).
-             */
-            "oyl-not-yet": LocalJSX.IntrinsicElements["oyl-not-yet"] & JSXBase.HTMLAttributes<HTMLOylNotYetElement>;
             /**
              * The app's single transient notice (boot/sync errors), fixed at the top of the viewport.
              */
             "oyl-notice-host": LocalJSX.IntrinsicElements["oyl-notice-host"] & JSXBase.HTMLAttributes<HTMLOylNoticeHostElement>;
+            /**
+             * The day-scoped nutrition screen: `oyl-day-nav` (dots on days with meals), five totals
+             * tiles, the meal composer, the day's meals newest first, and the shared consumables
+             * catalog with a collapsed add form. Same lists and totals as vanilla's screen.
+             */
+            "oyl-nutrition": LocalJSX.IntrinsicElements["oyl-nutrition"] & JSXBase.HTMLAttributes<HTMLOylNutritionElement>;
             /**
              * The planner composer: a task (title, due, optional repeat) or an appointment (title,
              * start, optional minutes). Due/start default to the shown day (start at 09:00) and
@@ -1014,6 +2278,33 @@ declare module "@stencil/core" {
              * not in a field or radio.
              */
             "oyl-planner": LocalJSX.IntrinsicElements["oyl-planner"] & JSXBase.HTMLAttributes<HTMLOylPlannerElement>;
+            /**
+             * Add a possession: name plus optional location, warranty, price and purchase day.
+             */
+            "oyl-possession-form": LocalJSX.IntrinsicElements["oyl-possession-form"] & JSXBase.HTMLAttributes<HTMLOylPossessionFormElement>;
+            /**
+             * Profile: who is signed in (+ a body summary), the editable profile form, the Google Drive
+             * link, a pointer to Status (connection + backups live there) and Log out. Three signals are
+             * mirrored into state; the form's `value` is derived in the profile mirror — never in render —
+             * so a Google-status change does not hand the form a fresh patch and re-seed it mid-edit.
+             */
+            "oyl-profile": LocalJSX.IntrinsicElements["oyl-profile"] & JSXBase.HTMLAttributes<HTMLOylProfileElement>;
+            /**
+             * The editable profile: timezone (IANA select, or a text field when the platform has no zone
+             * list), units, birthday, location, weight/height in the chosen units, gender with an "Other"
+             * self-describe field. Text fields render `value={seed.x}` from a seed recomputed only when
+             * `value` changes, so a parent re-render never re-applies a value over the user's typing; the
+             * selects are owned as state (the `ui-select` rule). Submit emits vanilla's patch.
+             */
+            "oyl-profile-form": LocalJSX.IntrinsicElements["oyl-profile-form"] & JSXBase.HTMLAttributes<HTMLOylProfileFormElement>;
+            /**
+             * One tracked thing (a goal, a budget): name (+ optional met check), a progress bar with a
+             * tone, a status label, an optional secondary action (Pause / Resume) and the inline
+             * Delete → Yes/No confirm. Purely presentational: every prop is a primitive the screen
+             * derives per render, so in-place domain mutations still re-render the row. `act` and
+             * `remove` carry `itemId`, so a screen keeps one stable handler per list.
+             */
+            "oyl-progress-row": LocalJSX.IntrinsicElements["oyl-progress-row"] & JSXBase.HTMLAttributes<HTMLOylProgressRowElement>;
             "oyl-register": LocalJSX.IntrinsicElements["oyl-register"] & JSXBase.HTMLAttributes<HTMLOylRegisterElement>;
             /**
              * Switches one screen element on the route signal. Screens are created by the `routes`
@@ -1035,6 +2326,10 @@ declare module "@stencil/core" {
              */
             "oyl-status": LocalJSX.IntrinsicElements["oyl-status"] & JSXBase.HTMLAttributes<HTMLOylStatusElement>;
             /**
+             * Add a subscription: name, amount + currency, cadence, the day it renews on, category.
+             */
+            "oyl-subscription-form": LocalJSX.IntrinsicElements["oyl-subscription-form"] & JSXBase.HTMLAttributes<HTMLOylSubscriptionFormElement>;
+            /**
              * Toolbar theme picker (port of vanilla's oyl-theme-toggle UX): a trigger showing the current
              * theme's three color chips + name; a popover with one swatch card per theme (radiogroup) and
              * a System/Light/Dark segmented control. Selection applies instantly and the panel stays open,
@@ -1043,6 +2338,21 @@ declare module "@stencil/core" {
              * radiogroup with roving tabindex and aria-checked, not actions.
              */
             "oyl-theme-picker": LocalJSX.IntrinsicElements["oyl-theme-picker"] & JSXBase.HTMLAttributes<HTMLOylThemePickerElement>;
+            /**
+             * The finance composer: an expense or income with amount (+ currency unless an account is
+             * chosen — the account's currency wins), account, category (per direction), date and note.
+             * Vanilla's validation order (date, then amount) precedes the domain constructor. The
+             * composer owns currency/category/account as state: `ui-select` syncs silently when its
+             * options change, so it never trusts the select for a value it was not told about.
+             */
+            "oyl-transaction-form": LocalJSX.IntrinsicElements["oyl-transaction-form"] & JSXBase.HTMLAttributes<HTMLOylTransactionFormElement>;
+            /**
+             * The vault: an Upcoming feed over a horizon, then one kind at a time (documents,
+             * possessions, subscriptions, contacts — gift ideas under contacts), each with a collapsed
+             * add form and a list of `oyl-item-row`s. Lists and callbacks are vanilla's; the horizon is a
+             * bundle signal so the effect re-computes the feed when it changes.
+             */
+            "oyl-vault": LocalJSX.IntrinsicElements["oyl-vault"] & JSXBase.HTMLAttributes<HTMLOylVaultElement>;
         }
     }
 }

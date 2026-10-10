@@ -1,25 +1,13 @@
-import { now } from '@oyl/all-of-oyl/client'
+import { DayKey } from '@oyl/all-of-oyl'
+import { now, type ProfilePatch } from '@oyl/all-of-oyl/client'
 import type { Routes } from '../components/oyl-router/oyl-router.js'
 import type { Diagnostics } from '../components/oyl-status/oyl-status.js'
 import { NAV_ITEMS } from './nav-items.js'
 import { statusActions } from './data-tools.js'
 import type { App } from './types.js'
 
-/** Redesigned screens arrive one spec at a time; the rest show the placeholder. */
-const NOT_YET: Record<string, string> = {
-  nutrition: 'Nutrition', finance: 'Finance',
-  goals: 'Goals', vault: 'Vault', insights: 'Insights', profile: 'Profile',
-}
-
 /** The route → screen factories for the shell. Screens receive state as properties. */
 export function buildRoutes(app: App, doc: Document): Routes {
-  const classicBase = (doc.querySelector('meta[name="oyl-classic-url"]') as HTMLMetaElement | null)?.content ?? ''
-  const notYet = (route: string) => () => {
-    const el = doc.createElement('oyl-not-yet')
-    el.name = NOT_YET[route] ?? route
-    if (classicBase) el.classicUrl = `${classicBase.replace(/\/$/, '')}/${route}`
-    return el
-  }
   const authPage = (tag: 'oyl-login' | 'oyl-register') => () => {
     const el = doc.createElement(tag)
     el.auth = app.authState
@@ -52,8 +40,66 @@ export function buildRoutes(app: App, doc: Document): Routes {
       el.tz = app.tz
       return el
     },
+    finance: () => {
+      const el = doc.createElement('oyl-finance')
+      el.store = app.dataState.journal
+      el.budgets = app.dataState.budgets
+      el.accounts = app.dataState.accounts
+      el.tz = app.tz
+      return el
+    },
+    vault: () => {
+      const el = doc.createElement('oyl-vault')
+      el.store = app.dataState.vault
+      el.renew = app.dataState.renewSubscription
+      el.tz = app.tz
+      return el
+    },
+    insights: () => {
+      const el = doc.createElement('oyl-insights')
+      el.review = app.dataState.reviewOn
+      el.tz = app.tz
+      return el
+    },
+    profile: () => {
+      const el = doc.createElement('oyl-profile')
+      el.session = app.authState.session
+      el.profile = app.profileStore.profile
+      el.today = DayKey.from(now(), app.tz).value
+      el.google = {
+        connection: app.googleStore.connection,
+        connect: () => { void app.googleStore.connectUrl().then((url) => app.win.location.assign(url)).catch(() => app.noticeState.show('Could not start Google connect — try again.')) },
+        disconnect: () => { void app.googleStore.disconnect().then(() => app.noticeState.show('Google disconnected.')).catch(() => app.noticeState.show('Disconnect failed — try again.')) },
+      }
+      el.addEventListener('saveProfile', (e) => {
+        // Vanilla's rule: the timezone seam is boot-time, so a tz or units change reloads the
+        // screen; otherwise a notice. (A first save always counts as a units change.)
+        const patch = (e as CustomEvent<ProfilePatch>).detail
+        const tzChanged = 'timezone' in patch && patch.timezone !== app.tz
+        const unitsChanged = 'units' in patch && patch.units !== app.profileStore.profile.get()?.units
+        void app.profileStore.save(patch)
+          .then(() => { if (tzChanged || unitsChanged) app.win.location.assign('/profile'); else app.noticeState.show('Profile saved.') })
+          .catch(() => app.noticeState.show('Could not save profile.'))
+      })
+      el.addEventListener('logout', () => app.authState.logout())
+      return el
+    },
+    goals: () => {
+      const el = doc.createElement('oyl-goals')
+      el.store = app.dataState.goals
+      el.journal = app.dataState.journal
+      el.tz = app.tz
+      return el
+    },
+    nutrition: () => {
+      const el = doc.createElement('oyl-nutrition')
+      el.store = app.dataState.journal
+      el.consumables = app.dataState.consumables
+      el.consumableProducts = app.dataState.consumableProducts
+      el.tz = app.tz
+      return el
+    },
   }
-  for (const route of Object.keys(NOT_YET)) routes[route] = notYet(route)
   return routes
 }
 

@@ -1,0 +1,42 @@
+:host {
+  display: block;
+  container-type: inline-size;
+  border-block-start: var(--line-1) solid var(--color-border);
+}
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--space-1) var(--space-3);
+  align-items: start;
+  padding: var(--space-3) 0;
+}
+.body { min-inline-size: 0; }
+.title { color: var(--color-text); overflow-wrap: anywhere; }
+.line { color: var(--color-muted); font-size: var(--step--1); margin-block-start: 0.15rem; overflow-wrap: anywhere; }
+.value { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-text); text-align: end; white-space: nowrap; }
+.value.ok { color: var(--color-ok); }
+.value.warn { color: var(--color-warn); }
+.value.danger { color: var(--color-danger); }
+.actions { display: inline-flex; gap: var(--space-1); align-self: start; }
+button {
+  font: inherit;
+  font-size: var(--step--1);
+  color: inherit;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--radius-1);
+  min-block-size: 2rem;
+  padding: 0 var(--space-2);
+}
+.quiet, .del { color: var(--color-muted); }
+.quiet:hover { color: var(--color-text); background: var(--color-surface-2); }
+.del:hover { color: var(--color-danger); background: var(--color-surface-2); }
+.confirm { display: inline-flex; gap: var(--space-1); align-items: center; font-size: var(--step--1); color: var(--color-danger); }
+.confirm .yes { color: var(--color-on-accent); background: var(--color-danger); font-weight: 500; }
+.confirm .no { color: var(--color-muted); background: var(--color-surface-2); }
+/* Narrow: the value stays on the first line; the actions drop under the body. */
+@container (max-width: 26rem) {
+  .row { grid-template-columns: 1fr auto; }
+  .actions { grid-column: 1 / -1; justify-self: start; }
+}

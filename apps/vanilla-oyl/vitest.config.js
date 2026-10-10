@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     setupFiles: ['./test/setup.js'],
-    include: ['src/**/*.test.js', 'test/**/*.test.js', 'deploy/**/*.test.js', 'scripts/**/*.test.mjs'],
+    include: ['src/**/*.test.js', 'test/**/*.test.js'],
     passWithNoTests: true,
   },
 })

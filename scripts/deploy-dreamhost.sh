@@ -87,8 +87,8 @@ if [[ $DO_API -eq 1 ]]; then
   pnpm php-app build >/dev/null
 fi
 if [[ $DO_WWW -eq 1 ]]; then
-  echo "==> Building the static app (all-of-oyl dist → vendor)"
-  pnpm vanilla build:lib >/dev/null
+  echo "==> Building the Stencil app (all-of-oyl + ui-oyl + www)"
+  pnpm stencil build
 fi
 
 # DH_API_ROOT is exported above, so publish-www also gets it (its root-overlap guard).

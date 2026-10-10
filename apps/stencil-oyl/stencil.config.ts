@@ -33,6 +33,7 @@ export const config: Config = {
       serviceWorker: null,
       baseUrl: '/',
       copy: [
+        { src: 'favicon.svg' },
         { src: join(uiOylDist, 'themes'), dest: 'themes' },
         { src: join(uiOylDist, 'ui-oyl', 'ui-oyl.css'), dest: 'tokens.css' },
       ],

@@ -16,6 +16,7 @@ export interface BootWindow {
   readonly URL: typeof URL
   readonly navigator: { readonly onLine: boolean }
   readonly document: {
+    title: string
     querySelector(sel: string): unknown
     documentElement: { dataset: { theme?: string }; style: { colorScheme: string } }
     addEventListener(type: string, fn: (e: any) => void): void
