@@ -1,7 +1,7 @@
 # Cutover part 1 — Deploy `apps/stencil-oyl` to DreamHost — Design
 
 **Date:** 2026-10-09
-**Status:** reviewed (branch `feat/stencil-oyl-deploy`, stacked on `feat/stencil-oyl-profile`)
+**Status:** implemented on branch feat/stencil-oyl-deploy (stacked on feat/stencil-oyl-profile; plan: `docs/superpowers/plans/2026-10-09-stencil-oyl-deploy.md`). Production swaps on the first master push after merge.
 **Program:** Stencil front-end — sub-project 11 (see `2026-10-06-extract-client-layer-design.md`
 §Program context: rows n+1 Prerender/SEO and n+2 Cutover). Depends on 10 (every screen
 redesigned). Part 2 (sub-project 12) retires `apps/vanilla-oyl`.
@@ -130,3 +130,10 @@ its useful remainder — a real document `<head>` and per-route titles — lands
 | Stale `index.html` referencing hashed chunks that `--delete` removed | `index.html` is `no-cache`; chunks are immutable per hash and a new deploy ships a new set — the usual hashed-asset contract. |
 | The swap removes vanilla with no soak | Decision: straight swap (personal app). Rollback = revert the merge and push (CI redeploys vanilla). |
 | `DH_FIRST_DEPLOY` guard | The root carries `DEPLOYED` from vanilla's deploys, so the guard passes without the flag. |
+
+## Amendments during implementation
+
+1. The pre-build review's findings (`.mjs` modules, tests in camis-php-oyl by relative import, cache-rule order, the `.entry.js` chunks, the dev-build pre-flight, the fake-curl update, favicon placement + `.ico` exclusion, no silenced build, a Report-Only first push) were folded in before any code.
+2. The CLI test (`render-htaccess-cli.test.ts`) uses fixture files for argument validation; `stencil-htaccess.test.ts` renders the committed template against `src/index.html` (byte-identical inline script to the build) and checks the immutable regex against real chunk names.
+3. A dry run of `publish-www.sh` against the real `pnpm stencil build` output (fake ssh/rsync) staged exactly `index.html`, 61 hashed chunks + the four unhashed `build/` files, `themes/`, `tokens.css`, `favicon.svg`, `.htaccess` (one hash), `DEPLOYED` — no maps, no `host.config.json`.
+4. The two `camis-php-oyl` tests that need the sibling `camis` checkout (`cli`, `ir`) cannot run in this sandbox; every other package's tests and the root typecheck are green.
