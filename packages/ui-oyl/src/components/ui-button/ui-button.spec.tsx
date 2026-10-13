@@ -65,4 +65,13 @@ describe('ui-button', () => {
     control(form.querySelector('ui-button')!).dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }))
     expect(requestSubmit).not.toHaveBeenCalled()
   })
+
+  it('forwards the host aria-label to the inner control (an icon-only button keeps its name)', async () => {
+    const { root } = await render(<ui-button aria-label="Dismiss"><span aria-hidden="true">×</span></ui-button>)
+    expect(control(root)).toHaveAttribute('aria-label', 'Dismiss')
+    const link = await render(<ui-button href="/x" aria-label="Next day">›</ui-button>)
+    expect(control(link.root)).toHaveAttribute('aria-label', 'Next day')
+    const plain = await render(<ui-button>Save</ui-button>)
+    expect(control(plain.root)).not.toHaveAttribute('aria-label')
+  })
 })

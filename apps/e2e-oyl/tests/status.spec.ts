@@ -1,98 +1,92 @@
 /**
- * Status screen: diagnostics cards, remote-mode tool gating, and the local-mode data
- * tools (export download, reset with native confirm — exercised via dialog handlers).
+ * Status screen on the stencil shell: diagnostics cards, live counts after a seed (no
+ * reload), tool gating by mode, export download, and the Local-mode reset confirm.
  */
 import { test, expect } from '../lib/fixtures'
-import { primeLocalMode, awaitOutboxDrained, navTo } from '../lib/actions'
+import { act, awaitOutboxDrained, primeLocalMode } from './lib'
 
 test('diagnostics cards render schema/theme/build and per-collection counts', async ({ page, signIn }) => {
   await signIn('/status')
-  const panel = page.locator('oyl-status-panel')
-  await expect(panel).toContainText('schema')
-  await expect(panel).toContainText('theme')
-  await expect(panel).toContainText('build')
-  await expect(panel).toContainText('notes')
-  await expect(panel).toContainText('goals')
+  const panel = page.locator('oyl-status')
+  for (const key of ['schema', 'theme', 'build', 'pending', 'notes', 'goals']) {
+    await expect(panel.locator(`dt:text-is("${key}")`)).toHaveCount(1)
+  }
+  await expect(panel.locator('dt:text-is("notes") + dd')).toHaveText('0')
 })
 
-test('collection counts reflect server data after a write + reload', async ({ page, signIn }) => {
-  await signIn('/journal')
-  const form = page.locator('oyl-log-form')
-  await form.locator('textarea[name="text"]').fill('Count me')
-  await form.locator('button[type="submit"]').click()
-  await expect(page.locator('oyl-entry-row')).toHaveCount(1)
-  await awaitOutboxDrained(page)
+// The demo seed is ~270 sequential PUTs; under parallel workers that outruns the default
+// 30s test budget. Seed-based tests declare theirs.
+const SEED_TIMEOUT = 150_000
+
+test('seeding an empty account raises the counts live and drains the outbox', async ({ page, signIn }) => {
+  test.setTimeout(SEED_TIMEOUT)
+  await signIn('/status')
+  await act(page.locator('oyl-status'), 'seed').click()
+  await awaitOutboxDrained(page, 120_000)
+  await expect(page.locator('oyl-status dt:text-is("notes") + dd')).not.toHaveText('0', { timeout: 15_000 })
+  await expect(page.locator('oyl-status dt:text-is("pending") + dd')).toHaveText('0')
   await page.reload()
-  await navTo(page, 'status')
-  // The counts card renders one dt/dd pair per collection — notes must count 1.
-  await expect(page.locator('oyl-status-panel dt:text-is("notes") + dd')).toHaveText('1')
+  await expect(page.locator('oyl-status dt:text-is("notes") + dd')).not.toHaveText('0')
+})
+
+test('the ?seed query populates an empty account at boot and never duplicates', async ({ page, signIn, user }) => {
+  test.setTimeout(SEED_TIMEOUT)
+  await signIn('/status')
+  await page.goto('/goals?seed')
+  await expect(page.locator('oyl-goals ol.goals oyl-progress-row')).toHaveCount(4, { timeout: 20_000 })
+  await awaitOutboxDrained(page, 120_000)
+  // A second boot with ?seed must not double the data (a non-empty account is left alone).
+  await page.goto('/goals?seed')
+  await expect(page.locator('oyl-goals ol.goals oyl-progress-row')).toHaveCount(4)
+  // And the seeded goals belong to this user server-side.
+  const res = await page.request.get('http://localhost:1341/api/goals', { headers: { Authorization: `Bearer ${user.jwt}` } })
+  const body = (await res.json()) as { data: unknown[] }
+  expect(body.data).toHaveLength(4)
 })
 
 test('remote mode enables the account tools and gates the local reset', async ({ page, signIn }) => {
   await signIn('/status')
-  const panel = page.locator('oyl-status-panel')
-  for (const act of ['seed', 'export', 'import']) {
-    await expect(panel.locator(`button[data-act="${act}"]`)).toBeEnabled()
-  }
-  await expect(panel.locator('button[data-act="reset"]')).toBeDisabled()
-  await expect(panel).toContainText('Reset applies to local data — available in Local mode.')
+  const panel = page.locator('oyl-status')
+  for (const name of ['seed', 'export', 'import']) await expect(act(panel, name)).toBeEnabled()
+  await expect(act(panel, 'reset')).toBeDisabled()
+  await expect(panel.locator('#tools-note')).toHaveText('Reset applies to local data — available in Local mode.')
 })
 
 test('local mode gates the account tools with an explanation', async ({ page }) => {
   await primeLocalMode(page)
   await page.goto('/status')
-  const panel = page.locator('oyl-status-panel')
-  for (const act of ['seed', 'export', 'import']) {
-    await expect(panel.locator(`button[data-act="${act}"]`)).toBeDisabled()
-  }
-  await expect(panel.locator('button[data-act="reset"]')).toBeEnabled()
-  await expect(panel).toContainText('available in Remote mode')
+  const panel = page.locator('oyl-status')
+  for (const name of ['seed', 'export', 'import']) await expect(act(panel, name)).toBeDisabled()
+  await expect(act(panel, 'reset')).toBeEnabled()
+  await expect(panel.locator('#tools-note')).toContainText('available in Remote mode')
 })
 
 test('export downloads a valid backup document of the account', async ({ page, signIn }) => {
-  await signIn('/journal')
-  const form = page.locator('oyl-log-form')
-  await form.locator('textarea[name="text"]').fill('Back me up')
-  await form.locator('button[type="submit"]').click()
-  await expect(page.locator('oyl-entry-row')).toHaveCount(1)
-  await navTo(page, 'status')
-  const panel = page.locator('oyl-status-panel')
+  test.setTimeout(SEED_TIMEOUT)
+  await signIn('/status')
+  await act(page.locator('oyl-status'), 'seed').click()
+  await awaitOutboxDrained(page, 120_000)
   const downloadPromise = page.waitForEvent('download')
-  await panel.locator('button[data-act="export"]').click()
+  await act(page.locator('oyl-status'), 'export').click()
   const download = await downloadPromise
   expect(download.suggestedFilename()).toMatch(/^oyl-backup-\d{4}-\d{2}-\d{2}\.json$/)
-  const stream = await download.createReadStream()
   const chunks: Buffer[] = []
-  for await (const chunk of stream) chunks.push(chunk as Buffer)
-  const doc = JSON.parse(Buffer.concat(chunks).toString('utf8')) as {
-    schemaVersion?: number
-    collections?: Record<string, unknown[]>
-  }
+  for await (const chunk of await download.createReadStream()) chunks.push(chunk as Buffer)
+  const doc = JSON.parse(Buffer.concat(chunks).toString('utf8')) as { schemaVersion?: number; collections?: Record<string, unknown[]> }
   expect(typeof doc.schemaVersion).toBe('number')
-  // The export carries the account's data, not localStorage remnants.
-  expect(doc.collections?.['notes']).toHaveLength(1)
+  expect(doc.collections?.['notes']?.length ?? 0).toBeGreaterThan(0)
 })
 
 test('local mode: reset asks for native confirmation and wipes oyl keys', async ({ page, hygiene }) => {
-  // The post-reset refresh() hits the (token-less) backend → expected auth failures.
   hygiene.allow(/localhost:1341/)
   hygiene.allow(/Failed to load resource/)
   await primeLocalMode(page)
   await page.addInitScript(() => localStorage.setItem('oyl/data/notes', '[{"probe":true}]'))
   await page.goto('/status')
-
-  // Dismissing the confirm leaves data untouched.
   page.once('dialog', (d) => void d.dismiss())
-  await page.locator('oyl-status-panel button[data-act="reset"]').click()
+  await act(page.locator('oyl-status'), 'reset').click()
   expect(await page.evaluate(() => localStorage.getItem('oyl/data/notes'))).not.toBeNull()
-
-  // Accepting erases every oyl/ key.
-  page.once('dialog', (d) => {
-    expect(d.message()).toContain('Erase all local OYL data?')
-    void d.accept()
-  })
-  await page.locator('oyl-status-panel button[data-act="reset"]').click()
-  await expect
-    .poll(async () => page.evaluate(() => localStorage.getItem('oyl/data/notes')))
-    .toBeNull()
+  page.once('dialog', (d) => { expect(d.message()).toContain('Erase all local OYL data?'); void d.accept() })
+  await act(page.locator('oyl-status'), 'reset').click()
+  await expect.poll(async () => page.evaluate(() => localStorage.getItem('oyl/data/notes'))).toBeNull()
 })

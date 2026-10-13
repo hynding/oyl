@@ -2,21 +2,6 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 import { API_URL } from './urls'
 
-/** Navigate via the primary nav (exercises the link interceptor, not page.goto). */
-export async function navTo(page: Page, route: string): Promise<void> {
-  await page.locator(`oyl-nav a[data-route="${route}"]`).click()
-  await expect(page).toHaveURL(`/${route}`)
-}
-
-/** Add a journal note through the composer. */
-export async function addNote(page: Page, text: string, tags?: string): Promise<void> {
-  const form = page.locator('oyl-log-form')
-  await form.locator('button[data-type="note"]').click()
-  await form.locator('textarea[name="text"]').fill(text)
-  if (tags) await form.locator('input[name="tags"]').fill(tags)
-  await form.locator('button[type="submit"]').click()
-}
-
 /** Two-step inline confirm: trigger an action button, then confirm (or cancel) in place. */
 export async function inlineConfirm(scope: Locator, act: string, answer: 'yes' | 'no' = 'yes'): Promise<void> {
   await scope.locator(`[data-act="${act}"]`).click()

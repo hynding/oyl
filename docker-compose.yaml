@@ -34,14 +34,15 @@ services:
       retries: 60
       start_period: 90s
 
-  vanilla:
+  stencil:
     image: oyl-app:dev
     build:
       context: .
       dockerfile: Dockerfile.app
-    command: pnpm vanilla dev
+    # The Stencil dev server (builds all-of-oyl + ui-oyl first); binds 0.0.0.0 by default.
+    command: pnpm stencil dev
     ports:
-      - "8041:8041"
+      - "3344:3344"
     depends_on:
       strapi-app:
         condition: service_started

@@ -4,7 +4,7 @@ import type { RouteWindow } from '../ports.js'
 export type Navigate = (path: string, opts?: { replace?: boolean }) => void
 
 export interface RouteOptions {
-  /** Install app-level link interception (vanilla: delegated anchor clicks); returns its disposer. */
+  /** Install app-level link interception (the app delegates anchor clicks); returns its disposer. */
   interceptLinks?: (navigate: Navigate) => () => void
 }
 

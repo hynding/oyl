@@ -18,7 +18,7 @@ export function googleConfig(): GoogleConfig {
     clientId,
     clientSecret,
     redirectUri: process.env['GOOGLE_REDIRECT_URI'] ?? 'http://localhost:1340/api/google/callback',
-    appUrl: process.env['APP_URL'] ?? 'http://localhost:8041',
+    appUrl: process.env['APP_URL'] ?? 'http://localhost:3344',
     authBaseUrl: process.env['GOOGLE_AUTH_BASE_URL'] ?? 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: process.env['GOOGLE_TOKEN_URL'] ?? 'https://oauth2.googleapis.com/token',
     revokeUrl: process.env['GOOGLE_REVOKE_URL'] ?? 'https://oauth2.googleapis.com/revoke',

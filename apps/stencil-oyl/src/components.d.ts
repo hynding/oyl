@@ -470,9 +470,12 @@ export namespace Components {
         "googleAuth"?: Signal<{ href: string } | null>;
     }
     /**
-     * Switches one screen element on the route signal. Screens are created by the `routes`
-     * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
+     * Mounts the screen for the current route into its own LIGHT DOM (so page-level selectors like
      * `oyl-status h2` reach them). Unknown routes render <oyl-not-found> with the name as text.
+     * Owns one persistent polite live region (sr-only by inline style — no shadow, no stylesheet)
+     * announcing "Navigated to <route>" on every change after the first, and moves focus to the
+     * screen's `h2[tabindex=-1]` — found by walking open shadow roots, since every screen renders
+     * its heading in shadow DOM (day-scoped ones inside `oyl-day-nav`'s) — once the screen is ready.
      */
     interface OylRouter {
         "routeSignal": Signal<string>;
@@ -1276,9 +1279,12 @@ declare global {
         new (): HTMLOylRegisterElement;
     };
     /**
-     * Switches one screen element on the route signal. Screens are created by the `routes`
-     * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
+     * Mounts the screen for the current route into its own LIGHT DOM (so page-level selectors like
      * `oyl-status h2` reach them). Unknown routes render <oyl-not-found> with the name as text.
+     * Owns one persistent polite live region (sr-only by inline style — no shadow, no stylesheet)
+     * announcing "Navigated to <route>" on every change after the first, and moves focus to the
+     * screen's `h2[tabindex=-1]` — found by walking open shadow roots, since every screen renders
+     * its heading in shadow DOM (day-scoped ones inside `oyl-day-nav`'s) — once the screen is ready.
      */
     interface HTMLOylRouterElement extends Components.OylRouter, HTMLStencilElement {
     }
@@ -1923,9 +1929,12 @@ declare namespace LocalJSX {
         "onAuthenticated"?: (event: OylRegisterCustomEvent<void>) => void;
     }
     /**
-     * Switches one screen element on the route signal. Screens are created by the `routes`
-     * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
+     * Mounts the screen for the current route into its own LIGHT DOM (so page-level selectors like
      * `oyl-status h2` reach them). Unknown routes render <oyl-not-found> with the name as text.
+     * Owns one persistent polite live region (sr-only by inline style — no shadow, no stylesheet)
+     * announcing "Navigated to <route>" on every change after the first, and moves focus to the
+     * screen's `h2[tabindex=-1]` — found by walking open shadow roots, since every screen renders
+     * its heading in shadow DOM (day-scoped ones inside `oyl-day-nav`'s) — once the screen is ready.
      */
     interface OylRouter {
         "routeSignal": Signal<string>;
@@ -2307,9 +2316,12 @@ declare module "@stencil/core" {
             "oyl-progress-row": LocalJSX.IntrinsicElements["oyl-progress-row"] & JSXBase.HTMLAttributes<HTMLOylProgressRowElement>;
             "oyl-register": LocalJSX.IntrinsicElements["oyl-register"] & JSXBase.HTMLAttributes<HTMLOylRegisterElement>;
             /**
-             * Switches one screen element on the route signal. Screens are created by the `routes`
-             * factories and placed in the router's LIGHT DOM (so document CSS and e2e selectors like
+             * Mounts the screen for the current route into its own LIGHT DOM (so page-level selectors like
              * `oyl-status h2` reach them). Unknown routes render <oyl-not-found> with the name as text.
+             * Owns one persistent polite live region (sr-only by inline style — no shadow, no stylesheet)
+             * announcing "Navigated to <route>" on every change after the first, and moves focus to the
+             * screen's `h2[tabindex=-1]` — found by walking open shadow roots, since every screen renders
+             * its heading in shadow DOM (day-scoped ones inside `oyl-day-nav`'s) — once the screen is ready.
              */
             "oyl-router": LocalJSX.IntrinsicElements["oyl-router"] & JSXBase.HTMLAttributes<HTMLOylRouterElement>;
             /**

@@ -35,12 +35,16 @@ export class UiButton {
 
   render() {
     const cls = { [this.variant]: true }
+    // The host's aria-label names the real control: an icon-only button (aria-hidden icon) has no
+    // text, and an aria-label on the host alone is invisible to AT walking the shadow tree.
+    const label = this.host.getAttribute('aria-label') ?? undefined
     if (this.href !== undefined) {
       return (
         <a
           class={cls}
           href={this.disabled ? undefined : this.href}
           aria-disabled={this.disabled ? 'true' : undefined}
+          aria-label={label}
           onClick={this.onClick}
         >
           <slot />
@@ -48,7 +52,7 @@ export class UiButton {
       )
     }
     return (
-      <button class={cls} type="button" disabled={this.disabled} onClick={this.onClick}>
+      <button class={cls} type="button" disabled={this.disabled} aria-label={label} onClick={this.onClick}>
         <slot />
       </button>
     )

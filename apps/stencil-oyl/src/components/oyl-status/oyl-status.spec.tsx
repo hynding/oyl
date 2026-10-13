@@ -53,4 +53,26 @@ describe('oyl-status', () => {
     click(sr.querySelector('ui-button[data-act="apply"]')!)
     expect(conn.onApply).toHaveBeenCalledWith('local', 'http://new/api')
   })
+
+  it('rejects a non-http(s) backend URL inline without applying; an empty one clears to the default', async () => {
+    const { signal } = await core()
+    const conn = connection('remote')
+    const { root, waitForChanges } = await render(<oyl-status diagnostics={() => diagnostics} pending={signal(0)} connection={conn} actions={actions()} />)
+    const sr = root.shadowRoot!
+    const url = sr.querySelector('ui-field[name="apiBaseUrl"]') as HTMLElement & { value: string; error?: string }
+    url.value = 'not-a-url'
+    click(sr.querySelector('ui-button[data-act="apply"]')!)
+    await waitForChanges()
+    expect(conn.onApply).not.toHaveBeenCalled()
+    expect(url.error).toBe('Enter a valid http(s) URL.')
+    url.value = 'ftp://x/api'
+    click(sr.querySelector('ui-button[data-act="apply"]')!)
+    await waitForChanges()
+    expect(conn.onApply).not.toHaveBeenCalled()
+    url.value = ''
+    click(sr.querySelector('ui-button[data-act="apply"]')!)
+    await waitForChanges()
+    expect(url.error).toBeUndefined()
+    expect(conn.onApply).toHaveBeenCalledWith('remote', '')
+  })
 })
