@@ -11,8 +11,9 @@ A personal productivity stack for tracking daily activities, goals, and nutritio
 - **`@oyl/camis-php-oyl`** (`apps/camis-php-oyl`) — the same API as `strapi-oyl`, generated as a Laravel app by [camis](https://github.com/hynding/camis) for PHP shared hosting.
 - **`@oyl/e2e-oyl`** (`apps/e2e-oyl`) — Playwright browser suite driving the real app against the real backend.
 - **`@oyl/ocari-oyl`** (`packages/ocari-oyl`) — receipt/document image parsing CLI (OCR + local LLM).
+- **`@oyl/vanilla-oyl`** (`apps/vanilla-oyl`) — the original zero-dependency vanilla-JS app, **frozen legacy** since the Stencil cutover: still runs and is unit-tested, kept for reference (`apps/vanilla-oyl/README.md`).
 
-> The earlier React/Next/Storybook/Strapi/Playwright stack was removed on 2026-06-16 and is preserved on branch `legacy/2026-06-16`. The vanilla-JS app (`apps/vanilla-oyl`) that preceded `stencil-oyl` was retired on 2026-10-09 and is preserved at tag `vanilla-oyl/retired-2026-10-09`.
+> The earlier React/Next/Storybook/Strapi/Playwright stack was removed on 2026-06-16 and is preserved on branch `legacy/2026-06-16`.
 
 ## Quick start
 
@@ -34,6 +35,7 @@ pnpm strapi-app develop   # backend alone, http://localhost:1340
 pnpm stencil dev          # app alone (builds all-of-oyl + ui-oyl first), http://localhost:3344
 pnpm all-of test          # shared lib tests
 pnpm e2e                  # Playwright browser suite (servers auto-start)
+pnpm vanilla dev          # the legacy vanilla-JS app, http://localhost:8041 (backend on :1340)
 ```
 
 Natively the app boots against `http://localhost:1340/api` with no configuration. In Docker the backend is published on 3340, so go to **Status → Connection**, set `http://localhost:3340/api`, **Apply & reload**, then sign in.

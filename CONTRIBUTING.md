@@ -19,10 +19,11 @@ A pnpm workspace monorepo (full member table in `CLAUDE.md`):
 - **`@oyl/strapi-oyl-app`** (`apps/strapi-oyl`) — the Strapi 5 backend;
   **`@oyl/camis-php-oyl`** is the same API generated as a Laravel app for shared hosting.
 - **`@oyl/e2e-oyl`** (`apps/e2e-oyl`) — the Playwright browser suite.
+- **`@oyl/vanilla-oyl`** (`apps/vanilla-oyl`) — the original vanilla-JS app, frozen legacy:
+  still builds, runs and is unit-tested in CI, but no new features land there.
 
 (The earlier React/Next/Storybook/Strapi/Playwright stack was removed on 2026-06-16 and
-lives on branch `legacy/2026-06-16`; the vanilla-JS app was retired on 2026-10-09 and
-lives at tag `vanilla-oyl/retired-2026-10-09`.)
+lives on branch `legacy/2026-06-16`.)
 
 ## Setup
 
@@ -40,6 +41,7 @@ pnpm ui test            # ui-oyl component specs
 pnpm stencil test       # stencil-oyl specs (builds all-of-oyl + ui-oyl first)
 pnpm strapi-app develop # Strapi backend on :1340
 pnpm e2e                # Playwright against the real app + backend (auto-started)
+pnpm vanilla dev|test   # the legacy vanilla-JS app on :8041
 ```
 
 ## Definition of Done

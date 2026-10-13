@@ -14,6 +14,7 @@
     "deploy:dreamhost": "bash scripts/deploy-dreamhost.sh",
     "dev": "node scripts/dev.mjs",
     "dev:fresh": "node scripts/dev.mjs --fresh",
+    "vanilla": "pnpm --filter @oyl/vanilla-oyl",
     "test": "pnpm --filter './packages/*' --filter './apps/*' --if-present test",
     "lint": "pnpm --filter './packages/*' --filter './apps/*' --if-present lint",
     "typecheck": "pnpm --filter './packages/*' --filter './apps/*' --if-present typecheck"

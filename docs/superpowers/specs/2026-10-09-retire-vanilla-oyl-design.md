@@ -1,7 +1,11 @@
 # Cutover part 2 — Retire `apps/vanilla-oyl` — Design
 
+> **Decision change (2026-10-12):** `apps/vanilla-oyl` is **not deleted**. It stays in the repo as a
+> frozen legacy member for reference and learning — see §Amendments 10. Everything else in this
+> spec (the e2e ports, the stencil gaps, the dev stack, docker, defaults, docs) stands.
+
 **Date:** 2026-10-09
-**Status:** implemented on branch `feat/retire-vanilla-oyl` (stacked on `feat/stencil-oyl-deploy`; plan: `docs/superpowers/plans/2026-10-09-retire-vanilla-oyl.md`). Program complete.
+**Status:** implemented on branch `feat/retire-vanilla-oyl` (stacked on `feat/stencil-oyl-deploy`; plan: `docs/superpowers/plans/2026-10-09-retire-vanilla-oyl.md`), amended 2026-10-12 to keep the app as frozen legacy. Program complete.
 **Program:** Stencil front-end — sub-project 12, the last (see
 `2026-10-06-extract-client-layer-design.md` §Program context). Depends on 11 (stencil-oyl is the
 deployed www).
@@ -145,3 +149,12 @@ moment (their OAuth callback lands on 8043) and are deleted in the same sub-proj
    operator check (no Docker in the sandbox).
 9. **`packages/all-of-oyl`'s `dist/` build and `check-no-bare-imports.mjs` stay** (stencil-oyl
    bundles `dist/`); the guard's comment now says why.
+10. **`apps/vanilla-oyl` is kept (2026-10-12).** The owner wants the original app in the tree for
+    learning, so the deletion commit is reversed on top of the branch and the tag is not created.
+    Mode: **frozen but verified** — it remains a workspace member (`pnpm vanilla dev|test|typecheck`
+    work; the unit tests and typecheck run in the root aggregates, so shared-library changes must
+    keep it compiling) but takes no new features, is not deployed, and is out of `pnpm dev`,
+    docker compose and the e2e suite (its specs live on as the ported stencil ones). The backend's
+    CORS default lists 8041 again; `APP_URL` stays stencil's 3344, so a Google sign-in started from
+    vanilla lands on stencil. Its theme copies may drift from ui-oyl's (ui-oyl is the source; the
+    old byte-parity test is not reinstated). `apps/vanilla-oyl/README.md` states all of this.

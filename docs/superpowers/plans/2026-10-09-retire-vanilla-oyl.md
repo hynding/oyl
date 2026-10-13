@@ -57,3 +57,13 @@
 - [x] **Step 2: docs** — README/CONTRIBUTING: stencil-oyl is the front end, commands updated, 8041/8042 gone; CLAUDE.md: "What this is" (seven members), the vanilla row removed, stencil-oyl row trimmed of "replaces vanilla at cutover", ui-oyl row ("themes are the library's — edit them here"), port map (3344 native, e2e app 8043) + dev workflows + tests table rows (e2e: `tests/`, projects `desktop`/`mobile`), the gotchas that only applied to vanilla removed (root-absolute paths, http-server proxy masking, `OylElement` `baseStyles`, vendored dist/importmap, "change a theme in vanilla first"), the Google note → "the e2e backend's `APP_URL` is the app origin (8043); the OAuth journeys run in `tests/google-auth.spec.ts`", `all-of-oyl` row ("`dist/` bundled by stencil-oyl"), `oyl-router` note (announcer + heading focus); the program spec's row 12 → implemented and a closing line; the ui-oyl library spec amendment; this spec → implemented + amendments; plan ticked.
 - [x] **Step 3: final grep** `grep -rn vanilla --exclude-dir=node_modules --exclude-dir=docs --exclude-dir=.git .` → only history comments ("ported from vanilla") remain; the stencil e2e projects green one last time.
 - [x] **Step 4: commit** — `docs: cutover complete — stencil-oyl is the front end`.
+
+## Task 5 (2026-10-12): keep `apps/vanilla-oyl` as frozen legacy
+
+Decision change after the build: the app is kept for learning (spec §Amendments 10).
+
+- [x] **Step 1:** restore `apps/vanilla-oyl` from the pre-deletion commit (`8f08fcb`); root `vanilla` filter shortcut back; `pnpm install` restores the lockfile importer; delete the local tag.
+- [x] **Step 2:** `apps/vanilla-oyl/README.md` (what frozen means), package description, deploy README wording; CORS default lists 8041 again.
+- [x] **Step 3: docs** — README/CONTRIBUTING/CLAUDE.md gain the legacy row/commands (eight members); retire spec amended; program table row 12 reworded; ui-oyl spec amendment 4 reworded.
+- [x] **Step 4: gates** — `pnpm vanilla test|typecheck`, `pnpm vanilla dev` smoke, root typecheck, strapi tests (CORS), e2e untouched.
+- [x] **Step 5: commit** — `chore: keep apps/vanilla-oyl as a frozen legacy app`.
