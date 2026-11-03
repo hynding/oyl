@@ -5,6 +5,9 @@
 import { test, expect } from '../lib/fixtures'
 import { deepText } from './lib'
 
+// Admins: the widest tab bar (all eight tabs, Status included) and every screen.
+test.use({ admin: true })
+
 test('nav docks as a fixed bottom tab bar on mobile (and stays in the header on desktop)', async ({ page, signIn, isMobile }) => {
   await signIn('/')
   const bar = page.locator('oyl-nav ui-nav')

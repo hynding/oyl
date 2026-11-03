@@ -1,5 +1,5 @@
 import type {
-  createAuthState, createDataState, createGoogleStore, createNoticeState, createProfileStore, createRouteState, Signal,
+  createAccessState, createAuthState, createDataState, createGoogleStore, createNoticeState, createProfileStore, createRouteState, Signal,
 } from '@oyl/all-of-oyl/client'
 import type { ThemeState } from './theme.js'
 import type { GlobalLike } from './ports.js'
@@ -54,6 +54,8 @@ export interface App {
   tz: string
   routeState: ReturnType<typeof createRouteState>
   authState: ReturnType<typeof createAuthState>
+  /** The signed-in user's access level (`admin` gates the Status screen). */
+  accessState: ReturnType<typeof createAccessState>
   noticeState: ReturnType<typeof createNoticeState>
   themeState: ThemeState
   dataState: ReturnType<typeof createDataState>

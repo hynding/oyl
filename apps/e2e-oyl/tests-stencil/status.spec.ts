@@ -5,6 +5,9 @@
 import { test, expect } from '../lib/fixtures'
 import { act, awaitOutboxDrained, primeLocalMode } from './lib'
 
+// Status is admin-only: these users are on the e2e backend's admin allowlist.
+test.use({ admin: true })
+
 test('diagnostics cards render schema/theme/build and per-collection counts', async ({ page, signIn }) => {
   await signIn('/status')
   const panel = page.locator('oyl-status')

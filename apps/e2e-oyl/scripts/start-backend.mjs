@@ -36,6 +36,10 @@ process.env.TRANSFER_TOKEN_SALT ??= 'e2e-test'
 process.env.ENCRYPTION_KEY ??= 'e2etest-e2etest-e2etest-e2etest-'
 process.env.CORS_ORIGINS = `${APP_ORIGIN},http://127.0.0.1:8042,${STENCIL_ORIGIN},http://127.0.0.1:8043`
 
+// Admins (the Status screen): every account on this domain — lib/fixtures.ts registers the
+// `admin: true` users there (ADMIN_EMAIL_DOMAIN); everyone else is a plain user.
+process.env.OYL_ADMIN_EMAILS = '@admin.example.com'
+
 // Google OAuth against the fake-google fixture server (started by playwright.config.ts).
 const FAKE_GOOGLE = `http://localhost:${process.env.FAKE_GOOGLE_PORT ?? 1342}`
 process.env.GOOGLE_CLIENT_ID = 'e2e-google-client'

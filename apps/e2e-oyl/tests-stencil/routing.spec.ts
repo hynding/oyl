@@ -19,7 +19,7 @@ test('deep link straight to /profile renders the profile screen', async ({ page,
 })
 
 test('nav clicks are intercepted client-side (no full page reload)', async ({ page, signIn }) => {
-  await signIn('/status')
+  await signIn('/journal')
   const navs = () => page.evaluate(() => performance.getEntriesByType('navigation').length)
   const before = await navs()
   await navTo(page, 'planner')
@@ -28,7 +28,7 @@ test('nav clicks are intercepted client-side (no full page reload)', async ({ pa
 })
 
 test('browser back/forward walk the route history and update the active nav link', async ({ page, signIn }) => {
-  await signIn('/status')
+  await signIn('/journal')
   await navTo(page, 'goals')
   await expect(page).toHaveTitle('Goals · OYL')
   await navTo(page, 'vault')

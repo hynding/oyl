@@ -26,6 +26,8 @@ export class OylProfile {
   @Prop() profile!: Signal<User | null>
   /** Today as YYYY-MM-DD in the effective timezone (for the age). */
   @Prop() today = ''
+  /** Admins get the pointer to the (admin-only) Status screen. */
+  @Prop() admin = false
   @Prop() google!: GoogleLink
   /** Passed through to the form (tests inject a short list). */
   @Prop() zones?: readonly string[] | null
@@ -103,7 +105,7 @@ export class OylProfile {
           <oyl-profile-form value={this.patch} onSave={this.onSave} {...formProps} />
         </ui-card>
         {this.googleCard()}
-        <p class="note">Connection settings and backups live on <a href="/status">Status</a>.</p>
+        {this.admin && <p class="note">Connection settings and backups live on <a href="/status">Status</a>.</p>}
         <div class="logout">
           <ui-button variant="danger" data-act="logout" onClick={this.onLogout}>Log out</ui-button>
         </div>

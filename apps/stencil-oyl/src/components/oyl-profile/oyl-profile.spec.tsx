@@ -7,13 +7,13 @@ const click = (el: Element) => (el.shadowRoot?.querySelector('button, a') ?? el)
 const flush = () => new Promise((r) => setTimeout(r, 0))
 const text = (el: Element | null) => el?.textContent?.trim() ?? ''
 
-async function setup(over: { profile?: User | null; google?: { state: string; email?: string } } = {}) {
+async function setup(over: { profile?: User | null; google?: { state: string; email?: string }; admin?: boolean } = {}) {
   const { signal } = await core()
   const session = signal<{ token: string; user: { username: string; email: string } } | null>({ token: 't', user: { username: 'steve', email: 'steve@example.com' } })
   const profile = signal<User | null>(over.profile ?? null)
   const connection = signal(over.google ?? { state: 'unknown' })
   const google = { connection, connect: vi.fn(), disconnect: vi.fn() }
-  const r = await render(<oyl-profile session={session} profile={profile} today="2026-10-09" google={google as never} zones={['UTC', 'Europe/Paris']} />)
+  const r = await render(<oyl-profile session={session} profile={profile} today="2026-10-09" google={google as never} zones={['UTC', 'Europe/Paris']} admin={over.admin ?? true} />)
   return { ...r, session, profile, connection, google }
 }
 
@@ -28,6 +28,11 @@ describe('oyl-profile', () => {
     expect(q(root, 'a[href="/status"]')).not.toBeNull()
     expect(q(root, 'ui-button[data-act="logout"]')).toHaveAttribute('variant', 'danger')
     expect(q(root, '[data-role="google-drive"]')).toBeNull()
+  })
+
+  it('leaves the Status pointer out for non-admins (Status is admin-only)', async () => {
+    const { root } = await setup({ admin: false })
+    expect(q(root, 'a[href="/status"]')).toBeNull()
   })
 
   it('summarises the body and seeds the form with the profile patch; the patch keeps its identity across unrelated changes', async () => {

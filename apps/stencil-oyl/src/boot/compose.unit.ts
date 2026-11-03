@@ -52,12 +52,13 @@ const remoteSignedOut = () => memoryStorage({ [STORAGE_MODE_KEY]: 'remote', [API
 const remoteSignedIn = () =>
   memoryStorage({ [STORAGE_MODE_KEY]: 'remote', [API_BASE_URL_KEY]: API, [AUTH_KEY]: JSON.stringify({ token: 't', user: { id: 1, username: 'u', email: 'u@x' } }) })
 
-/** A fetch that answers the boot's requests: /bootstrap (empty), /users (profile list), /google/config. */
-function apiFetch(log: string[], bootstrap: Record<string, unknown[]> = {}): typeof fetch {
+/** A fetch that answers the boot's requests: /access, /bootstrap (empty), /users (profile list), /google/config. */
+function apiFetch(log: string[], bootstrap: Record<string, unknown[]> = {}, { admin = true } = {}): typeof fetch {
   return (async (input: RequestInfo | URL) => {
     const url = String(input)
     log.push(url.replace(API, ''))
     const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+    if (url.endsWith('/access')) return json({ admin })
     if (url.endsWith('/bootstrap')) return json({ data: bootstrap })
     if (url.includes('/users')) return json({ data: [], meta: {} })
     if (url.includes('/google/config')) return json({ data: { configured: false } })
@@ -93,6 +94,43 @@ describe('createApp boot order', () => {
     const app = await createApp(win)
     expect(app.routeState.route.get()).toBe('status')
     expect(calls).toContain('replace:/status?x=1')
+  })
+
+  it('asks GET /access before the boot read and exposes the answer', async () => {
+    const log: string[] = []
+    const { win } = fakeWindow('/journal', { storage: remoteSignedIn(), fetch: apiFetch(log) })
+    const app = await createApp(win)
+    expect(log.indexOf('/access')).toBeGreaterThanOrEqual(0)
+    expect(log.indexOf('/access')).toBeLessThan(log.indexOf('/bootstrap'))
+    expect(app.accessState.admin.get()).toBe(true)
+  })
+
+  it('a non-admin reaching /status (deep link or the / default) lands on /journal instead', async () => {
+    for (const path of ['/status', '/']) {
+      const { win, calls } = fakeWindow(path, { storage: remoteSignedIn(), fetch: apiFetch([], {}, { admin: false }) })
+      const app = await createApp(win)
+      await new Promise((r) => setTimeout(r, 0))
+      expect(app.accessState.admin.get()).toBe(false)
+      expect(app.routeState.route.get(), path).toBe('journal')
+      expect(calls.at(-1), path).toBe('replace:/journal')
+    }
+  })
+
+  it('a non-admin navigating to /status later is sent back to /journal', async () => {
+    const { win } = fakeWindow('/planner', { storage: remoteSignedIn(), fetch: apiFetch([], {}, { admin: false }) })
+    const app = await createApp(win)
+    app.routeState.navigate('/status')
+    await new Promise((r) => setTimeout(r, 0)) // effects re-run on a microtask, the redirect on the next
+    expect(app.routeState.route.get()).toBe('journal')
+  })
+
+  it('logging out forgets the admin flag', async () => {
+    const { win } = fakeWindow('/status', { storage: remoteSignedIn(), fetch: apiFetch([]) })
+    const app = await createApp(win)
+    expect(app.accessState.admin.get()).toBe(true)
+    app.authState.logout()
+    await new Promise((r) => setTimeout(r, 0))
+    expect(app.accessState.admin.get()).toBe(false)
   })
 
   it('a dead backend surfaces the reach-failure notice instead of throwing', async () => {

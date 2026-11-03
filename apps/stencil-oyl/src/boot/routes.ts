@@ -66,6 +66,7 @@ export function buildRoutes(app: App, doc: Document): Routes {
       el.session = app.authState.session
       el.profile = app.profileStore.profile
       el.today = DayKey.from(now(), app.tz).value
+      el.admin = app.accessState.admin.get()
       el.google = {
         connection: app.googleStore.connection,
         connect: () => { void app.googleStore.connectUrl().then((url) => app.win.location.assign(url)).catch(() => app.noticeState.show('Could not start Google connect — try again.')) },

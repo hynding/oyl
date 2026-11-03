@@ -24,6 +24,8 @@ const GOAL_ACTIONS = ['find', 'findOne', 'create', 'update', 'delete'].map((a) =
 
 const BOOTSTRAP_ACTIONS = ['api::bootstrap.bootstrap.find']
 
+const ACCESS_ACTIONS = ['api::access.access.find']
+
 const GOOGLE_PUBLIC_ACTIONS = ['config', 'connect', 'callback'].map((a) => `api::google.google.${a}`)
 // `config` is granted to BOTH roles: Strapi's JWT auth strategy does not fall back to the
 // public role's grants when a request carries a Bearer token, so an authenticated client
@@ -69,6 +71,7 @@ export default {
     await grantRoleActions(strapi, 'authenticated', ACTIVITY_SESSION_ACTIONS, 'activity-session')
     await grantRoleActions(strapi, 'authenticated', GOAL_ACTIONS, 'goal')
     await grantRoleActions(strapi, 'authenticated', BOOTSTRAP_ACTIONS, 'bootstrap')
+    await grantRoleActions(strapi, 'authenticated', ACCESS_ACTIONS, 'access')
     await grantRoleActions(strapi, 'public', GOOGLE_PUBLIC_ACTIONS, 'google-public')
     await grantRoleActions(strapi, 'authenticated', GOOGLE_AUTH_ACTIONS, 'google')
   },

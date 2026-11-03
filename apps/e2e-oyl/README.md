@@ -36,6 +36,10 @@ cold start — or run it yourself if the server is already up.
   (`signIn(path)` boots the page signed-in as that user). Personal data is therefore
   isolated; the CATALOG (consumables/activities/products) is shared across tests — always
   assert with unique names, never counts.
+- **Admins**: the `user` fixture is a plain user; `test.use({ admin: true })` registers it on
+  the backends' `OYL_ADMIN_EMAILS` allowlist (`@admin.example.com`, set in
+  `scripts/start-backend.mjs` / `start-php-backend.mjs`). The stencil Status screen is
+  admin-only — a spec that opens `/status` on stencil needs it (vanilla does not gate Status).
 - **Backed vs unbacked**: only notes, consumptions, accounts, transactions, budgets,
   measurements, activity-sessions, and goals are server-backed (`BACKED` in
   `packages/all-of-oyl/src/client/storage/bootstrap.ts`). Assert persistence across `page.reload()`

@@ -114,7 +114,10 @@ and in the GitHub repository's secrets/variables — never in tracked files.
    database, `APP_KEY` (generate one locally with `php artisan key:generate --show` or reuse your dev value),
    and `JWT_SECRET` — **at least 32 bytes** (`openssl rand -base64 48`); firebase/php-jwt
    refuses shorter HS256 keys, so Strapi's default short secret cannot be reused. Give the
-   same value to Strapi for future schema syncs.
+   same value to Strapi for future schema syncs. Set `OYL_ADMIN_EMAILS` to your own address
+   (comma separated; `@domain` admits a whole domain) — only those accounts see the app's
+   Status screen; unset means nobody does. Re-run `php artisan config:cache` after changing it
+   (every publish does).
 5. **Deploy key:** a CI-only keypair; public half in the SSH user's `~/.ssh/authorized_keys`.
    `ssh-keyscan <host>` for the pinned host key.
 6. **GitHub:** secrets `DH_SSH_KEY`, `DH_KNOWN_HOSTS`, `DH_SSH`; variables `DH_WWW_ROOT`,

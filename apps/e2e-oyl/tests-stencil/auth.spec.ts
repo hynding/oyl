@@ -17,7 +17,8 @@ test('register through the UI creates an account and signs in', async ({ page })
   await form.locator('ui-field[name="email"] input').fill(`${name}@example.com`)
   await form.locator('ui-field[name="password"] input').fill('e2e-Password-1')
   await form.locator('ui-button[type="submit"] button').click()
-  await expect(page).toHaveURL('/status')
+  // A new account is not an admin: the Status landing sends it on to the Journal.
+  await expect(page).toHaveURL('/journal')
   await expect(page.locator('oyl-account-menu ui-button[data-act="logout"]')).toBeVisible()
   const stored = await page.evaluate(() => ({ mode: localStorage.getItem('oyl/storage-mode'), auth: localStorage.getItem('oyl/auth') }))
   expect(stored.mode).toBe('remote')
@@ -40,11 +41,11 @@ test('login with the right and the wrong password', async ({ page, request, hygi
   // Right password.
   await form.locator('ui-field[name="password"] input').fill(user.password)
   await form.locator('ui-button[type="submit"] button').click()
-  await expect(page).toHaveURL('/status')
+  await expect(page).toHaveURL('/journal')
 })
 
 test('logout clears the session and lands on /login; the session persists across reload', async ({ page, signIn }) => {
-  await signIn('/status')
+  await signIn('/journal')
   await page.reload()
   await expect(page.locator('oyl-account-menu ui-button[data-act="logout"]')).toBeVisible()
   await page.locator('oyl-account-menu ui-button[data-act="logout"] button').click()

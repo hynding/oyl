@@ -41,9 +41,18 @@ test('gender "Other" reveals the self-describe field', async ({ page, signIn }) 
   await expect(form(page).locator('ui-field[name="genderOther"] input')).toBeVisible()
 })
 
-test('the profile points at Status for connection and backups', async ({ page, signIn }) => {
+test.describe('as an admin', () => {
+  test.use({ admin: true })
+  test('the profile points at Status for connection and backups', async ({ page, signIn }) => {
+    await signIn('/profile')
+    await expect(page.locator('oyl-profile a[href="/status"]')).toBeVisible()
+  })
+})
+
+test('a non-admin profile has no pointer to the admin-only Status screen', async ({ page, signIn }) => {
   await signIn('/profile')
-  await expect(page.locator('oyl-profile a[href="/status"]')).toBeVisible()
+  await expect.poll(() => deepText(page.locator('oyl-profile'))).toContain('Log out')
+  await expect(page.locator('oyl-profile a[href="/status"]')).toHaveCount(0)
 })
 
 test('the Google Drive card offers to connect when the backend has Google configured', async ({ page, signIn }) => {
