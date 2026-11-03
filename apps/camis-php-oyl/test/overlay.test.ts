@@ -18,6 +18,8 @@ const product = resolve(
   "app/Http/Controllers/Api/ConsumableProductApiController.php",
 )
 const money = resolve(OVERLAY, "app/Support/OylMoney.php")
+const admins = resolve(OVERLAY, "app/Support/OylAdmins.php")
+const oylConfig = resolve(OVERLAY, "config/oyl.php")
 const txController = resolve(
   OVERLAY,
   "app/Http/Controllers/Api/TransactionApiController.php",
@@ -105,8 +107,31 @@ const ownersLiteral = (src: string): Map<string, string> => {
 const ir = JSON.parse(readFileSync(resolve(PKG, "camis.json"), "utf8")) as Ir
 
 describe("overlay PHP", () => {
+  it.skipIf(!hasPhp())("OylAdmins matches strapi-oyl's isAdminEmail on the same cases", async () => {
+    const { isAdminEmail } = await import("../../strapi-oyl/src/utils/admins.js")
+    const cases: Array<[string | null, string | null]> = [
+      ["STEVE@example.com", "steve@example.com"],
+      ["someone@example.com", "steve@example.com"],
+      ["a@admin.test", "@admin.test"],
+      ["a@sub.admin.test", "@admin.test"],
+      ["a@notadmin.test", "@admin.test"],
+      ["steve@example.com", null],
+      [null, "steve@example.com"],
+      ["", "@"],
+      ["x@y.dev", " other@z.dev, ,X@Y.DEV "],
+    ]
+    const script = `require ${JSON.stringify(admins)}; echo json_encode(array_map(fn ($c) => App\\Support\\OylAdmins::isAdmin($c[0], $c[1]), json_decode($argv[1], true)));`
+    const php = JSON.parse(execFileSync("php", ["-r", script, JSON.stringify(cases)], { encoding: "utf8" }))
+    expect(php).toEqual(cases.map(([email, raw]) => isAdminEmail(email, raw)))
+  })
+  it("/access is JWT-guarded and reads the allowlist through config (survives config:cache)", () => {
+    const src = readFileSync(routes, "utf8")
+    expect(src).toMatch(/Route::middleware\(StrapiJwtGuard::class\)->get\('\/access'/)
+    expect(src).toContain("config('oyl.admin_emails'")
+    expect(readFileSync(oylConfig, "utf8")).toContain("env('OYL_ADMIN_EMAILS'")
+  })
   it.skipIf(!hasPhp())("lints", () => {
-    for (const f of [routes, product, money, txController, budgetController])
+    for (const f of [routes, product, money, admins, oylConfig, txController, budgetController])
       expect(execFileSync("php", ["-l", f], { encoding: "utf8" })).toContain(
         "No syntax errors",
       )

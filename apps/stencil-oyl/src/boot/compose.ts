@@ -1,7 +1,7 @@
 import { createApiClient, DayKey, entitiesByKind } from '@oyl/all-of-oyl'
 import {
   signal, effect,
-  createRouteState, createDataState, createAuthState, googleErrorMessage, createGoogleStore,
+  createRouteState, createDataState, createAuthState, createAccessState, googleErrorMessage, createGoogleStore,
   createNoticeState, createBrowserConnectivity, makeRepositories, createProfileStore, resolveTimezone,
   shouldRedirectToLogin, tzNeedsReload, seedAccount,
   isOylKey, SETTINGS_KEY, AUTH_KEY, TZ_RELOADED_KEY, OUTBOX_KEY,
@@ -11,6 +11,7 @@ import {
 import { createThemeApplier, createThemeState } from './theme.js'
 import { interceptLinks } from './link-interceptor.js'
 import { titleFor } from './titles.js'
+import { adminRedirect } from './admin-routes.js'
 import { browserDataPorts, type GlobalLike } from './ports.js'
 import type { App, BootDeps, BootWindow } from './types.js'
 
@@ -38,6 +39,9 @@ export async function createApp(win: BootWindow, deps: BootDeps = {}): Promise<A
   const apiBase = getApiBaseUrl(storage, host, metaBase)
   const apiDefault = defaultApiBaseUrl(host, metaBase)
   const authState = createAuthState(storage, { baseUrl: apiBase, fetch })
+  const accessState = createAccessState(storage, {
+    baseUrl: apiBase, fetch, getToken: authState.getToken, userId: () => authState.session.get()?.user.id ?? null,
+  })
   const noticeState = createNoticeState()
   const mode = getStorageMode(storage, host)
 
@@ -106,6 +110,8 @@ export async function createApp(win: BootWindow, deps: BootDeps = {}): Promise<A
 
   const hasSession = !!authState.session.get()
   if (hasSession) {
+    // Before the admin guard below reads it: who may see the Status screen.
+    await accessState.load()
     try {
       await dataState.refresh()
       bump()
@@ -144,6 +150,7 @@ export async function createApp(win: BootWindow, deps: BootDeps = {}): Promise<A
   effect(() => {
     const signedIn = !!authState.session.get()
     if (signedIn && !wasSignedIn) flushAndRefresh()
+    if (!signedIn && wasSignedIn) accessState.clear()
     wasSignedIn = signedIn
     if (shouldRedirectToLogin(mode, authState.session.get(), routeState.route.get())) {
       // Deferred: this effect deliberately tracks the route (it guards every navigation),
@@ -152,6 +159,18 @@ export async function createApp(win: BootWindow, deps: BootDeps = {}): Promise<A
         if (shouldRedirectToLogin(mode, authState.session.get(), routeState.route.get())) {
           routeState.navigate('/login', { replace: true })
         }
+      })
+    }
+  })
+
+  // Admin-only screens (Status): a signed-in non-admin reaching one — a deep link, the `/`
+  // default, the post-login landing — is sent to the Journal instead. Same deferral as above.
+  effect(() => {
+    const leaveTo = () => adminRedirect(routeState.route.get(), { signedIn: !!authState.session.get(), admin: accessState.admin.get() })
+    if (leaveTo()) {
+      queueMicrotask(() => {
+        const target = leaveTo()
+        if (target) routeState.navigate(target, { replace: true })
       })
     }
   })
@@ -184,7 +203,7 @@ export async function createApp(win: BootWindow, deps: BootDeps = {}): Promise<A
 
   return {
     win, storage, mode, apiBase, apiDefault, tz,
-    routeState, authState, noticeState, themeState, dataState, profileStore, googleStore, googleLoginHref, refreshTick,
+    routeState, authState, accessState, noticeState, themeState, dataState, profileStore, googleStore, googleLoginHref, refreshTick,
     flush: flushAndRefresh,
     flushAndRefresh: flushThenRefresh,
     connection: {

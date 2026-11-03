@@ -16,8 +16,8 @@ test('a dead backend at boot surfaces the reach-failure notice, not a crash', as
     localStorage.setItem('oyl/api-base-url', 'http://localhost:1399/api')
     localStorage.setItem('oyl/auth', auth)
   }, [JSON.stringify({ token: user.jwt, user: { id: user.id, username: user.username, email: user.email } })] as const)
-  await page.goto('/status')
-  await expect(page.locator('oyl-status h2').first()).toHaveText('Status')
+  await page.goto('/journal')
+  await expect(page.locator('oyl-journal')).toBeVisible()
   await expect.poll(() => deepText(page.locator('oyl-notice-host'))).toContain("Couldn't reach the backend")
 })
 

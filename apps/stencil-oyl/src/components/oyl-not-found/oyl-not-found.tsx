@@ -10,7 +10,7 @@ export class OylNotFound {
         <p>
           There is no screen at <code>/{this.route}</code>.
         </p>
-        <ui-button href="/status" slot="footer">Go to Status</ui-button>
+        <ui-button href="/journal" slot="footer">Go to Journal</ui-button>
       </ui-card>
     )
   }

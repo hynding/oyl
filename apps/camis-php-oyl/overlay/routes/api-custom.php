@@ -28,6 +28,7 @@ use App\Models\Goal;
 use App\Models\Measurement;
 use App\Models\Note;
 use App\Models\Transaction;
+use App\Support\OylAdmins;
 use App\Support\OylMoney;
 use App\Support\StrapiComponents;
 use Illuminate\Database\Eloquent\Model;
@@ -118,6 +119,14 @@ Route::middleware(StrapiJwtGuard::class)->get('/bootstrap', function (Request $r
 
     return response()->json(['data' => $data, 'meta' => []]);
 });
+
+/**
+ * The signed-in user's access level (mirrors apps/strapi-oyl/src/api/access): `{ admin }` from
+ * the OYL_ADMIN_EMAILS allowlist. The app shows the Status screen to admins only.
+ */
+Route::middleware(StrapiJwtGuard::class)->get('/access', fn (Request $request) => response()->json([
+    'admin' => OylAdmins::isAdmin($request->user()?->email, (string) config('oyl.admin_emails', '')),
+]));
 
 /** Pre-auth probe from the client; Google OAuth is not part of this backend. */
 Route::get('/google/config', fn () => response()->json(['configured' => false]));

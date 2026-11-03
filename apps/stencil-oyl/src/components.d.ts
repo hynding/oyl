@@ -310,6 +310,10 @@ export namespace Components {
     }
     interface OylNav {
         /**
+          * Whether the user is an admin; admin-only screens (Status) are hidden otherwise.
+         */
+        "adminSignal"?: Signal<boolean>;
+        /**
           * @default 'top'
          */
         "orientation": 'top' | 'bottom';
@@ -396,6 +400,11 @@ export namespace Components {
      * so a Google-status change does not hand the form a fresh patch and re-seed it mid-edit.
      */
     interface OylProfile {
+        /**
+          * Admins get the pointer to the (admin-only) Status screen.
+          * @default false
+         */
+        "admin": boolean;
         "google": GoogleLink;
         "profile": Signal<User | null>;
         "session": Signal<AuthSession>;
@@ -1724,6 +1733,10 @@ declare namespace LocalJSX {
     }
     interface OylNav {
         /**
+          * Whether the user is an admin; admin-only screens (Status) are hidden otherwise.
+         */
+        "adminSignal"?: Signal<boolean>;
+        /**
           * @default 'top'
          */
         "orientation"?: 'top' | 'bottom';
@@ -1825,6 +1838,11 @@ declare namespace LocalJSX {
      * so a Google-status change does not hand the form a fresh patch and re-seed it mid-edit.
      */
     interface OylProfile {
+        /**
+          * Admins get the pointer to the (admin-only) Status screen.
+          * @default false
+         */
+        "admin"?: boolean;
         "google": GoogleLink;
         /**
           * The user asked to log out.
@@ -2063,6 +2081,7 @@ declare namespace LocalJSX {
     }
     interface OylProfileAttributes {
         "today": string;
+        "admin": boolean;
     }
     interface OylProgressRowAttributes {
         "itemId": string;

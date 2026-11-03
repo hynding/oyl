@@ -58,7 +58,7 @@ export class OylApp {
         <oyl-shell docked={this.docked}>
           <oyl-theme-picker slot="toolbar" themeState={app.themeState} />
           <oyl-account-menu slot="toolbar" session={app.authState.session} onLogout={() => app.authState.logout()} />
-          <oyl-nav slot="nav" routeSignal={app.routeState.route} orientation={this.docked ? 'bottom' : 'top'} />
+          <oyl-nav slot="nav" routeSignal={app.routeState.route} adminSignal={app.accessState.admin} orientation={this.docked ? 'bottom' : 'top'} />
           <oyl-router slot="main" routeSignal={app.routeState.route} routes={this.routes} />
         </oyl-shell>
       </div>

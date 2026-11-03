@@ -6,7 +6,9 @@
  *   explicitly allowed it via `hygiene.allow(/pattern/)` (for intentional negative paths,
  *   e.g. a wrong-password login expecting a 400). This is the standing guarantee that the
  *   app runs clean; new features inherit it for free.
- * - `user`: a freshly registered backend account (unique per test) for data isolation.
+ * - `user`: a freshly registered backend account (unique per test) for data isolation. A plain
+ *   user by default; `test.use({ admin: true })` registers it as an admin (the Status screen
+ *   is admin-only).
  * - `signIn`: seeds localStorage (remote mode, e2e backend URL, JWT session) before the
  *   first navigation, so the page boots signed-in exactly like a returning user.
  */
@@ -30,11 +32,14 @@ export type Hygiene = {
 
 let userSeq = 0
 
-/** Register a unique user against the e2e backend. */
-export async function registerUser(request: APIRequestContext): Promise<TestUser> {
+/** The e2e backends' OYL_ADMIN_EMAILS is `@<this>` (scripts/start-backend.mjs, start-php-backend.mjs). */
+export const ADMIN_EMAIL_DOMAIN = 'admin.example.com'
+
+/** Register a unique user against the e2e backend (`admin` puts it on the admin allowlist). */
+export async function registerUser(request: APIRequestContext, { admin = false }: { admin?: boolean } = {}): Promise<TestUser> {
   const unique = `${Date.now().toString(36)}${(userSeq++).toString(36)}${Math.random().toString(36).slice(2, 6)}`
   const username = `e2e_${unique}`
-  const email = `${username}@example.com`
+  const email = `${username}@${admin ? ADMIN_EMAIL_DOMAIN : 'example.com'}`
   const password = 'e2e-Password-1'
   const post = () => request.post(`${API_URL}/auth/local/register`, { data: { username, email, password } })
   // Under load the backend occasionally drops a fresh connection before answering (ECONNRESET
@@ -73,11 +78,15 @@ export async function primeRemoteSignedOut(page: Page): Promise<void> {
 }
 
 export const test = base.extend<{
+  /** Option: register the `user` fixture as an admin (`test.use({ admin: true })`). */
+  admin: boolean
   hygiene: Hygiene
   user: TestUser
   /** Navigate signed-in (remote mode against the e2e backend) and wait for the shell. */
   signIn: (path?: string) => Promise<void>
 }>({
+  admin: [false, { option: true }],
+
   hygiene: [
     async ({ page }, use) => {
       const violations: string[] = []
@@ -116,8 +125,8 @@ export const test = base.extend<{
     { auto: true },
   ],
 
-  user: async ({ request }, use) => {
-    await use(await registerUser(request))
+  user: async ({ request, admin }, use) => {
+    await use(await registerUser(request, { admin }))
   },
 
   signIn: async ({ page, user }, use) => {

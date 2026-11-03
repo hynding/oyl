@@ -7,4 +7,9 @@ describe('oyl-not-found', () => {
     expect(root).toHaveTextContent('<i>nope</i>')
     expect(root.shadowRoot!.querySelector('i')).toBeNull()
   })
+
+  it('offers the way back to the Journal (every signed-in user can open it)', async () => {
+    const { root } = await render(<oyl-not-found route="nope" />)
+    expect((root.shadowRoot!.querySelector('ui-button') as HTMLElement & { href?: string }).href).toBe('/journal')
+  })
 })

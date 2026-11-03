@@ -4,6 +4,9 @@
  */
 import { test, expect, primeRemoteSignedOut } from '../lib/fixtures'
 
+// The admin landing (Status + all eight tabs); the non-admin one is admin.spec.ts.
+test.use({ admin: true })
+
 test('signed-in boot lands on /status with the full shell', async ({ page, signIn }) => {
   await signIn('/')
   await expect(page).toHaveURL('/status')

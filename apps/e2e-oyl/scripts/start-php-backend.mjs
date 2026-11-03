@@ -102,6 +102,8 @@ const env = {
   DB_DATABASE: DB,
   JWT_SECRET,
   CAMIS_EMAIL_CONFIRMATION: 'false',
+  // Same admin allowlist start-backend.mjs gives strapi-oyl (lib/fixtures.ts ADMIN_EMAIL_DOMAIN).
+  OYL_ADMIN_EMAILS: '@admin.example.com',
   // No Laravel-owned tables in the shared database.
   CACHE_STORE: 'file',
   SESSION_DRIVER: 'array',
