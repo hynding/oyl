@@ -2,8 +2,8 @@
 
 /*
  * Structural tokens — shared by every component. Color tokens live in themes/<name>.css.
- * The first block is carried over from apps/vanilla-oyl/styles/tokens.css verbatim so both
- * apps share one theme contract while they run side by side.
+ * The first block is the structural contract the app's screens were designed against;
+ * the second adds the library's own additions (control size, pill radius, line heights, motion).
  */
 @layer tokens {
   :root {

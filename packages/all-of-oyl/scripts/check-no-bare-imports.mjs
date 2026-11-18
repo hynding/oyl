@@ -1,6 +1,7 @@
 // Fails if any emitted dist/ file imports a bare specifier (anything not starting
-// with './' or '../'). The app's importmap has two entries (root + /format) and relies on every
-// internal import being relative; a stray bare import (e.g. 'rrule') would break it.
+// with './' or '../'). dist/ is the zero-dependency browser build that stencil-oyl bundles
+// through its Rollup resolver; a stray bare import (e.g. 'rrule') would mean a dependency leaked
+// into the domain core (or break any importmap consumer).
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 

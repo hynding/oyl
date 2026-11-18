@@ -11,7 +11,7 @@ OYL ("Organize Your Life") — personal productivity stack (journal, planner, nu
 | `@oyl/all-of-oyl` | `packages/all-of-oyl` | Shared zero-dep TS domain core + `/format` + `/client` (shared client state). **Single source of truth.** |
 | `@oyl/ui-oyl` | `packages/ui-oyl` | Domain-agnostic Stencil component library (`ui-*` tags), tokens, themes |
 | `@oyl/stencil-oyl` | `apps/stencil-oyl` | **The deployed front end** (shell + every screen; `oyl-*` tags) |
-| `@oyl/vanilla-oyl` | `apps/vanilla-oyl` | Previous front end; not deployed, retired at cutover part 2 |
+| `@oyl/vanilla-oyl` | `apps/vanilla-oyl` | **Legacy, frozen** since the 2026-10-09 cutover — kept for reference; not deployed, not in `pnpm dev`/docker/e2e, but its test + typecheck still run in CI |
 | `@oyl/strapi-oyl-app` | `apps/strapi-oyl` | Strapi 5 backend — owns the DB schema and roles |
 | `@oyl/camis-php-oyl` | `apps/camis-php-oyl` | camis-generated Laravel backend: same API, same DB — **the production API** |
 | `@oyl/e2e-oyl` | `apps/e2e-oyl` | Playwright e2e against the real backend |
@@ -29,21 +29,23 @@ Production: DreamHost — www = stencil-oyl, api = camis-php-oyl. `.github/workf
 - **Status is admin-only on stencil-oyl.** Admins = backend `OYL_ADMIN_EMAILS` (exact addresses or `@domain`; unset = nobody) via `GET /api/access` → `{ admin }`. Implemented in both backends — keep the two matchers in step. UI gating only. e2e: `test.use({ admin: true })`.
 - **Timezone seam:** `client/stores/profile.ts` + `resolveTimezone(profile, browserTz)` at boot → `createDataState` and every screen's `view.tz`; tz/units changes save + reload.
 - **Entry kinds split across screens:** Journal shows notes/measurements only; `transaction` → Finance, `consumption` → Nutrition.
-- **Google sign-in + Drive is server-brokered** (backend owns OAuth + tokens; scope `drive.file`; callback → single `APP_URL`, session handed back as `#google=<jwt>`). Unset `GOOGLE_CLIENT_ID`/`SECRET` hides it entirely.
+- **Google sign-in + Drive is server-brokered** (backend owns OAuth + tokens; scope `drive.file`; callback → single `APP_URL`, session handed back as `#google=<jwt>`). `APP_URL` is stencil-oyl's origin. Unset `GOOGLE_CLIENT_ID`/`SECRET` hides it entirely.
 
 ## Commands (repo root)
 
 ```bash
-pnpm dev | dev:watch | dev:fresh   # backend :1340 + vanilla :8041 (watch: rebuild all-of-oyl; fresh: wipe SQLite)
-pnpm dev:stencil                   # backend :1340 + stencil-oyl :3344
+pnpm dev | dev:fresh               # backend :1340 + stencil-oyl dev server :3344 (fresh: wipe SQLite first)
 pnpm all-of|ui|stencil|vanilla|strapi-app|php-app <script>   # filter shortcuts
 pnpm e2e                           # Playwright, all servers auto-start; use --workers=4 on this machine
 E2E_BACKEND=php pnpm e2e           # same suite against the PHP backend
 pnpm test | lint | typecheck       # every package (--if-present); does NOT build all-of-oyl dist first
 pnpm deploy:dreamhost              # manual deploy of HEAD (OYL_DH_* in untracked .env; --dry-run, --only www|api)
+docker compose up -d --build postgres strapi-app stencil   # composed stack: app :3344, backend :3340
 ```
 
-Ports — native: strapi 1340, vanilla 8041, stencil 3344, ui showcase 3443. e2e: vanilla 8042, stencil 8043, backend 1341, fake Google 1342. Docker: strapi 3340, vanilla 8041, postgres 5441.
+Docker: the backend is on 3340, so at `http://localhost:3344` set Status → Connection to `http://localhost:3340/api` (needs an admin account) and Apply & reload. Postgres DB `oyl_app` (an old `database-data-oyl` volume needs `docker compose down -v` once).
+
+Ports — native: strapi 1340, stencil 3344, ui showcase 3443, legacy vanilla 8041. e2e: app 8043, backend 1341, fake Google 1342. Docker: strapi 3340, stencil 3344, postgres 5441.
 
 ## Definition of Done — run for what you changed
 
@@ -52,7 +54,7 @@ Ports — native: strapi 1340, vanilla 8041, stencil 3344, ui showcase 3443. e2e
 | `packages/all-of-oyl/src` | `pnpm all-of test` · `pnpm all-of typecheck:src` · `pnpm --filter @oyl/all-of-oyl exec tsc --noEmit` · `pnpm all-of build` — plus the tests of affected apps |
 | `packages/ui-oyl` | `pnpm ui test` · `pnpm ui typecheck` |
 | `apps/stencil-oyl` | `pnpm stencil test` · `pnpm stencil typecheck` |
-| `apps/vanilla-oyl` | `pnpm vanilla test` · `pnpm vanilla typecheck` |
+| `apps/vanilla-oyl` (frozen — only to keep it green after a shared-lib change) | `pnpm vanilla test` · `pnpm vanilla typecheck` |
 | `apps/strapi-oyl` | `pnpm strapi-app build` first, then `pnpm --filter @oyl/strapi-oyl-app test` · `… exec tsc --noEmit` |
 | `apps/camis-php-oyl` | `pnpm php-app test` · `pnpm php-app typecheck` |
 | any UI- or API-facing change | `pnpm e2e --workers=4` (new screen/feature/route ⇒ new or extended spec; see `apps/e2e-oyl/README.md`) |

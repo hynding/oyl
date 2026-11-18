@@ -32,6 +32,7 @@ export class OylStatus {
 
   @State() snapshot: Diagnostics | null = null
   @State() pendingCount = 0
+  @State() urlError: string | undefined
   private stops: Array<() => void> = []
 
   connectedCallback() {
@@ -48,6 +49,9 @@ export class OylStatus {
     const sr = this.host.shadowRoot!
     const mode = (sr.querySelector('select[name="mode"]') as HTMLSelectElement).value as StorageMode
     const url = (sr.querySelector('ui-field[name="apiBaseUrl"]') as HTMLElement & { value: string }).value
+    // Vanilla's rule: an http(s) URL, or empty (clears the stored override → the default).
+    if (!isHttpUrl(url)) { this.urlError = 'Enter a valid http(s) URL.'; return }
+    this.urlError = undefined
     this.connection.onApply(mode, url)
   }
 
@@ -74,7 +78,7 @@ export class OylStatus {
                 <option value="local" selected={!remote}>Local</option>
               </select>
             </label>
-            <ui-field label="Backend URL" name="apiBaseUrl" value={this.connection.apiBaseUrl} hint={`Default: ${this.connection.defaultApiBaseUrl}`} />
+            <ui-field label="Backend URL" name="apiBaseUrl" value={this.connection.apiBaseUrl} hint={`Default: ${this.connection.defaultApiBaseUrl}`} error={this.urlError} />
           </div>
           <ui-button slot="footer" variant="primary" data-act="apply" onClick={this.apply}>Apply &amp; reload</ui-button>
         </ui-card>
@@ -104,6 +108,12 @@ export class OylStatus {
       </div>
     )
   }
+}
+
+/** Empty (→ default) or an absolute http(s) URL. */
+function isHttpUrl(url: string): boolean {
+  if (url.trim() === '') return true
+  try { const u = new URL(url); return u.protocol === 'http:' || u.protocol === 'https:' } catch { return false }
 }
 
 function fmtBytes(n: number): string {

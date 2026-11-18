@@ -8,7 +8,7 @@ The workspace single source of truth (journal/planner/vault/goals/insights/shari
 - `/format` → `src/format/`: shared DOM-free formatters (`formatMoney`/`formatNutrients`/day+cadence helpers, `formatWeight(kg, units)`, `formatHeight(cm, units)`, `age(birthday, today)` — dates `YYYY-MM-DD`). Never duplicate these app-side.
 - `/client` → `src/client/`: shared client state layer — signals core `signal`/`computed`/`effect`, domain stores, bootstrap/outbox/flusher wiring (`makeRepositories`, `createDataState`), auth/route session state, seed/backup serialization. Browser globals arrive via `src/client/ports.ts`. Never re-exported from the root barrel; never deep-imported (`@oyl/all-of-oyl/client/...`) — two reactive cores = screens silently stop updating.
 
-Consumers: stencil-oyl bundles `dist/`; vanilla-oyl loads `dist/` via importmap + vendored copy (`pnpm vanilla build:lib`); strapi-oyl and typecheckers use TS source.
+Consumers: stencil-oyl bundles `dist/`; frozen vanilla-oyl still loads it via importmap + vendored copy (`pnpm vanilla build:lib`) and its gates still run — keep it compiling; strapi-oyl and typecheckers use TS source.
 
 ## Key modules
 
@@ -28,7 +28,7 @@ Status-screen tools (both apps) are account-scoped: Load demo data / Download ba
 
 - `src/` is `"type": "module"` + NodeNext: relative imports need explicit `.js` extensions. Strict TS with `noUnusedLocals`/`noUnusedParameters`.
 - **Anything touching Web/DOM globals is injected via a minimal interface** (the browser build tsconfig has NO DOM lib). Examples: `FetchFn`, `StorageLike`, `src/client/ports.ts`.
-- `scripts/check-no-bare-imports.mjs` fails the build if `dist/` gains a bare-specifier import (would break vanilla's importmap).
+- `scripts/check-no-bare-imports.mjs` fails the build if `dist/` gains a bare-specifier import (a dependency leaked into the zero-dep core).
 - `rrule` ships CJS default-export: `import rrule from 'rrule'; rrule.rrulestr(...)` (named `rrulestr` is undefined on some resolvers).
 - Kind manifest + Strapi schema parity is enforced in tests.
 
@@ -37,4 +37,4 @@ Status-screen tools (both apps) are account-scoped: Load demo data / Download ba
 - `pnpm all-of test` (vitest)
 - `pnpm all-of typecheck:src` (strict DOM-free gate) and `pnpm --filter @oyl/all-of-oyl exec tsc --noEmit` (full, DOM lib)
 - `pnpm all-of build` (DOM-safety + bare-import gate)
-- Then rebuild consumers: stencil-oyl scripts do it; a running vanilla server needs `pnpm vanilla build:lib`.
+- Then: `pnpm stencil test` (its scripts rebuild `dist/`), and `pnpm vanilla test`/`typecheck` (frozen, but in CI).

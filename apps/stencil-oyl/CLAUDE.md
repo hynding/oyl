@@ -1,6 +1,6 @@
-# stencil-oyl — the deployed front end
+# stencil-oyl — the front end
 
-Stencil app that replaced vanilla-oyl as the DreamHost www target (cutover part 1; part 2 retires vanilla). Program: `docs/superpowers/specs/2026-10-06-extract-client-layer-design.md` §Program context; shell spec `2026-10-07-stencil-oyl-shell-design.md`.
+The Stencil app; the DreamHost www target since the 2026-10-09 cutover (vanilla-oyl is frozen legacy). Program: `docs/superpowers/specs/2026-10-06-extract-client-layer-design.md` §Program context; shell spec `2026-10-07-stencil-oyl-shell-design.md`.
 
 ## Shape
 
@@ -41,7 +41,7 @@ DreamHost Apache. CI runs `pnpm stencil build`; `scripts/dreamhost/publish-www.s
 
 - `pnpm stencil test` — builds, then Vitest projects `spec` (components, `environment: 'stencil'`/happy-dom), `dom` (pure browser modules, plain happy-dom), `unit` (node: boot order with fakes, guards).
 - `pnpm stencil typecheck`.
-- e2e: `apps/e2e-oyl/tests-stencil/` — `pnpm e2e --project stencil-desktop --project stencil-mobile`.
+- e2e: `apps/e2e-oyl/tests/` — `pnpm e2e --workers=4` (projects `desktop`/`mobile`).
 
 ## Gotchas
 
@@ -56,5 +56,5 @@ DreamHost Apache. CI runs `pnpm stencil build`; `scripts/dreamhost/publish-www.s
 - Discriminate entries/plans on `.kind`, never `instanceof` (the bundle's domain classes and a test's are different copies).
 - `flush()` returns at once mid-drain by design, so "drained" is observed through the outbox size (`flushAndRefresh`).
 - Clicks in specs go to a `ui-button`'s inner control, as a user's do.
-- e2e text assertions on shadow hosts use `deepText()` from `tests-stencil/lib.ts` (Playwright's `textContent` stops at shadow roots) — and a `deepText` read right after a `toHaveCount` must `expect.poll`, because the host exists before its shadow root has rendered.
-- Google OAuth callback redirects to the single `APP_URL` (vanilla's origin in e2e), so stencil e2e covers only the Profile card's state; OAuth journeys stay on vanilla's `tests/google-auth.spec.ts` until cutover moves `APP_URL`.
+- e2e text assertions on shadow hosts use `deepText()` from `apps/e2e-oyl/tests/lib.ts` (Playwright's `textContent` stops at shadow roots) — and a `deepText` read right after a `toHaveCount` must `expect.poll`, because the host exists before its shadow root has rendered.
+- Google OAuth callback redirects to the single backend `APP_URL` (this app's origin); journeys in `apps/e2e-oyl/tests/google-auth.spec.ts`. A Google-created account is a plain user (lands on `/journal`).

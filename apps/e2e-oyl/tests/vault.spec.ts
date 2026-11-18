@@ -1,14 +1,14 @@
 /**
- * Vault screen: all four composer types, the Upcoming horizon, subscription renew →
- * finance expense (the cross-store orchestration in dataState.renewSubscription),
- * gift-idea ↔ contact dependency, and deletes.
+ * Vault screen on the stencil shell: the four kinds one at a time, the Upcoming horizon,
+ * subscription renew → finance expense (dataState.renewSubscription), the gift-idea ↔ contact
+ * dependency, and deletes.
  *
- * NOTE: vault collections (documents/possessions/subscriptions/contacts/giftIdeas) have
- * no Strapi backend yet — in-session assertions only (see planner.spec.ts note). The
- * renew-created Transaction IS backed.
+ * NOTE: vault collections have no Strapi backend yet — in-session assertions only. The
+ * renew-created Transaction IS backed (asserted on the Finance ledger).
  */
 import { test, expect } from '../lib/fixtures'
-import { inlineConfirm, navTo } from '../lib/actions'
+import { inlineConfirm } from '../lib/actions'
+import { addContact, addDocument, addSubscription, deepText, navTo, vaultKind } from './lib'
 
 function isoDaysFromToday(days: number): string {
   const d = new Date()
@@ -16,114 +16,101 @@ function isoDaysFromToday(days: number): string {
   const p = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
+const vaultText = (page: import('@playwright/test').Page) => deepText(page.locator('oyl-vault'))
 
-test('empty states for every vault section', async ({ page, signIn }) => {
+test('empty states for upcoming and every kind', async ({ page, signIn }) => {
   await signIn('/vault')
-  const vault = page.locator('oyl-vault')
-  await expect(vault).toContainText('Nothing coming up in the next 90 days.')
-  await expect(vault).toContainText('No documents yet.')
-  await expect(vault).toContainText('No possessions yet.')
-  await expect(vault).toContainText('No subscriptions yet.')
-  await expect(vault).toContainText('No contacts yet.')
-  await expect(vault).toContainText('No gift ideas yet.')
+  await expect.poll(() => vaultText(page)).toContain('Nothing coming up in the next 90 days.')
+  expect(await vaultText(page)).toContain('No documents yet.')
+  for (const [kind, text] of [['possessions', 'No possessions yet.'], ['subscriptions', 'No subscriptions yet.'], ['contacts', 'No contacts yet.']] as const) {
+    await page.locator(`oyl-vault ui-segment [data-value="${kind}"]`).click()
+    await expect.poll(() => vaultText(page)).toContain(text)
+  }
+  expect(await vaultText(page)).toContain('No gift ideas yet.')
+  expect(await deepText(page.locator('oyl-gift-idea-form'))).toContain('Add a contact first.')
 })
 
 test('a document with an expiry lands in Documents and Upcoming', async ({ page, signIn }) => {
   await signIn('/vault')
-  const composer = page.locator('oyl-vault-composer')
-  await composer.locator('button[data-type="document"]').click()
-  await composer.locator('input[name="name"]').fill('Passport')
-  await composer.locator('input[name="kind"]').fill('id')
-  await composer.locator('input[name="expiresOn"]').fill(isoDaysFromToday(30))
-  await composer.locator('button[type="submit"]').click()
-  await expect(page.locator('oyl-vault')).not.toContainText('No documents yet.')
-  await expect(page.locator('oyl-vault')).toContainText('Passport')
-  await expect(page.locator('oyl-vault ol.upcoming-list li')).toHaveCount(1)
+  await addDocument(page, 'Passport', 'id', isoDaysFromToday(30))
+  const row = page.locator('oyl-vault ol.documents oyl-item-row')
+  await expect(row).toHaveCount(1)
+  await expect.poll(() => deepText(row)).toContain('Passport')
+  await expect(page.locator('oyl-vault ol.upcoming li')).toHaveCount(1)
+  await expect.poll(() => deepText(page.locator('oyl-vault ol.upcoming li'))).toContain('Passport')
 })
 
 test('a possession stores price and location', async ({ page, signIn }) => {
   await signIn('/vault')
-  const composer = page.locator('oyl-vault-composer')
-  await composer.locator('button[data-type="possession"]').click()
-  await composer.locator('input[name="name"]').fill('Laptop')
-  await composer.locator('input[name="location"]').fill('Desk')
-  await composer.locator('input[name="amount"]').fill('999.99')
-  await composer.locator('button[type="submit"]').click()
-  await expect(page.locator('oyl-vault')).toContainText('Laptop')
-  await expect(page.locator('oyl-vault')).not.toContainText('No possessions yet.')
+  await vaultKind(page, 'possessions')
+  const form = page.locator('oyl-possession-form')
+  await form.locator('ui-field[name="name"] input').fill('Laptop')
+  await form.locator('ui-field[name="location"] input').fill('Desk')
+  await form.locator('ui-field[name="amount"] input').fill('999.99')
+  await form.locator('ui-button[type="submit"] button').click()
+  const row = page.locator('oyl-vault ol.possessions oyl-item-row')
+  await expect(row).toHaveCount(1)
+  await expect.poll(() => deepText(row)).toContain('Laptop')
+  const text = await deepText(row)
+  expect(text).toContain('Desk')
+  expect(text).toContain('$999.99')
 })
 
 test('renewing a subscription records a finance expense (cross-store)', async ({ page, signIn }) => {
   await signIn('/vault')
-  const composer = page.locator('oyl-vault-composer')
-  await composer.locator('button[data-type="subscription"]').click()
-  await composer.locator('input[name="name"]').fill('StreamFlix')
-  await composer.locator('input[name="amount"]').fill('9.99')
-  await composer.locator('input[name="anchor"]').fill(isoDaysFromToday(0))
-  await composer.locator('select[name="category"]').selectOption('entertainment')
-  await composer.locator('button[type="submit"]').click()
-  const sub = page.locator('oyl-subscription-row')
-  await expect(sub).toContainText('StreamFlix')
-
+  await addSubscription(page, 'StreamFlix', '9.99', isoDaysFromToday(0), { category: 'entertainment' })
+  const sub = page.locator('oyl-vault ol.subscriptions oyl-item-row')
+  await expect(sub).toHaveCount(1)
+  await expect.poll(() => deepText(sub)).toContain('StreamFlix')
+  expect(await deepText(page.locator('oyl-vault .monthly-total'))).toContain('9.99')
   await sub.locator('[data-act="renew"]').click()
-  // The confirmation is announced from the vault's live region.
-  await expect(page.locator('oyl-vault')).toContainText('Renewed — expense recorded')
-
-  // The renewal charge shows up in this month's finance ledger.
+  await expect.poll(() => vaultText(page)).toContain('Renewed — expense recorded')
   await navTo(page, 'finance')
-  const ledger = page.locator('oyl-finance ol.ledger oyl-vault-item')
+  const ledger = page.locator('oyl-finance ol.ledger oyl-item-row')
   await expect(ledger).toHaveCount(1)
-  await expect(ledger).toContainText('entertainment')
-  await expect(ledger).toContainText('9.99')
+  await expect.poll(() => deepText(ledger)).toContain('entertainment')
+  const text = await deepText(ledger)
+  expect(text).toContain('9.99')
 })
 
 test('the Upcoming horizon select changes the window', async ({ page, signIn }) => {
   await signIn('/vault')
-  const composer = page.locator('oyl-vault-composer')
-  await composer.locator('button[data-type="subscription"]').click()
-  await composer.locator('input[name="name"]').fill('Annual thing')
-  await composer.locator('input[name="amount"]').fill('50')
-  await composer.locator('input[name="cadenceN"]').fill('1')
-  await composer.locator('select[name="cadenceUnit"]').selectOption('years')
-  await composer.locator('input[name="anchor"]').fill(isoDaysFromToday(60))
-  await composer.locator('button[type="submit"]').click()
-  // Renews in ~60 days: inside the default 90-day horizon…
-  await expect(page.locator('oyl-vault ol.upcoming-list li')).toHaveCount(1)
-  // …but outside a 30-day horizon.
-  await page.locator('oyl-vault select[aria-label="Horizon"]').selectOption({ label: 'Next 30 days' })
-  await expect(page.locator('oyl-vault')).toContainText('Nothing coming up in the next 30 days.')
+  await addSubscription(page, 'Annual thing', '50', isoDaysFromToday(60), { unit: 'years' })
+  await expect(page.locator('oyl-vault ol.upcoming li')).toHaveCount(1)
+  await page.locator('oyl-vault ui-select[name="horizon"] select').selectOption({ label: 'Next 30 days' })
+  await expect.poll(() => vaultText(page)).toContain('Nothing coming up in the next 30 days.')
+  await page.locator('oyl-vault ui-select[name="horizon"] select').selectOption({ label: 'Next year' })
+  await expect(page.locator('oyl-vault ol.upcoming li')).toHaveCount(1)
 })
 
 test('gift ideas require a contact first, then attach to one', async ({ page, signIn }) => {
   await signIn('/vault')
-  // No contacts yet → the gift form offers a hint instead of a select.
-  await expect(page.locator('oyl-gift-idea-form')).toContainText('Add a contact first.')
-
-  const composer = page.locator('oyl-vault-composer')
-  await composer.locator('button[data-type="contact"]').click()
-  await composer.locator('input[name="name"]').fill('Alex Friend')
-  await composer.locator('button[type="submit"]').click()
-  await expect(page.locator('oyl-contact-row')).toContainText('Alex Friend')
-
+  await page.locator('oyl-vault ui-segment [data-value="contacts"]').click()
+  await expect.poll(() => deepText(page.locator('oyl-gift-idea-form'))).toContain('Add a contact first.')
+  await addContact(page, 'Alex Friend')
+  await expect(page.locator('oyl-vault ol.contacts oyl-item-row')).toHaveCount(1)
   const giftForm = page.locator('oyl-gift-idea-form')
-  await giftForm.locator('input[name="giftText"]').fill('Fancy teapot')
-  await giftForm.locator('select[name="giftContact"]').selectOption({ label: 'Alex Friend' })
-  await giftForm.locator('button').last().click()
-  await expect(page.locator('oyl-vault')).toContainText('Fancy teapot')
-  await expect(page.locator('oyl-vault')).not.toContainText('No gift ideas yet.')
+  await giftForm.locator('ui-field[name="giftText"] input').fill('Fancy teapot')
+  await giftForm.locator('ui-select[name="giftContact"] select').selectOption({ label: 'Alex Friend' })
+  await giftForm.locator('ui-button[type="submit"] button').click()
+  const gift = page.locator('oyl-vault ol.gifts oyl-item-row')
+  await expect(gift).toHaveCount(1)
+  await expect.poll(() => deepText(gift)).toContain('Fancy teapot')
+  const text = await deepText(gift)
+  expect(text).toContain('For Alex Friend')
 })
 
 test('contact log-contact and delete flows', async ({ page, signIn }) => {
   await signIn('/vault')
-  const composer = page.locator('oyl-vault-composer')
-  await composer.locator('button[data-type="contact"]').click()
-  await composer.locator('input[name="name"]').fill('Sam Doe')
-  await composer.locator('button[type="submit"]').click()
-  const contact = page.locator('oyl-contact-row')
-  await expect(contact).toContainText('Sam Doe')
+  await addContact(page, 'Sam Doe')
+  const contact = page.locator('oyl-vault ol.contacts oyl-item-row')
+  await expect(contact).toHaveCount(1)
+  await expect.poll(() => deepText(contact)).toContain('Never contacted')
   await contact.locator('[data-act="log"]').click()
-  // Delete with inline confirm.
+  await expect.poll(() => deepText(contact)).toContain('Last contacted today')
+  await inlineConfirm(contact, 'delete', 'no')
+  await expect(contact).toHaveCount(1)
   await inlineConfirm(contact, 'delete', 'yes')
-  await expect(page.locator('oyl-contact-row')).toHaveCount(0)
-  await expect(page.locator('oyl-vault')).toContainText('No contacts yet.')
+  await expect(page.locator('oyl-vault ol.contacts oyl-item-row')).toHaveCount(0)
+  await expect.poll(() => vaultText(page)).toContain('No contacts yet.')
 })

@@ -1,8 +1,8 @@
 /**
- * Stencil-shell helpers. Playwright CSS pierces open shadow roots, so most vanilla selectors
- * carry over with these renames: oyl-status-panel → oyl-status, oyl-theme-toggle →
- * oyl-theme-picker, `button[data-act]` → `ui-button[data-act]`, nav anchors live in
- * `oyl-nav ui-nav a`. Form inputs sit inside ui-field: `ui-field[name=…] input`.
+ * App helpers for the specs. Playwright CSS pierces open shadow roots; the conventions:
+ * `ui-button[data-act=…] button` for actions, nav anchors in `oyl-nav ui-nav a`, form inputs
+ * inside their primitives (`ui-field[name=…] input`, `ui-select[name=…] select`), and
+ * `deepText()` for text on shadow hosts (Playwright's textContent stops at shadow roots).
  */
 import { expect, type Locator, type Page } from '@playwright/test'
 export { awaitOutboxDrained, primeLocalMode } from '../lib/actions'

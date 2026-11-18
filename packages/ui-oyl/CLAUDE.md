@@ -5,7 +5,7 @@ Spec: `docs/superpowers/specs/2026-10-07-ui-oyl-library-design.md`. **Tag prefix
 ## Contents
 
 - Tokens `src/global/tokens.css`: vanilla's structural tokens + `--size-control` 44px, `--radius-pill`, `--line-1/2`, motion.
-- 8 themes **byte-copied from `apps/vanilla-oyl/styles/themes/`** — a unit test fails on drift until cutover. Change a theme in vanilla first.
+- 8 themes in `src/global/themes/` — **the source of truth** since the cutover (apps consume `@oyl/ui-oyl/themes/<name>.css`; `themes.unit.ts` checks the set and color tokens). vanilla's copies may drift.
 - Primitives:
   - `ui-button` (form-associated submit)
   - `ui-field` (label+input+hint/error, `uiInput`/`uiChange`, form-associated value; `name`/`type`/`disabled` reflected)
