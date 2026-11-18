@@ -9,4 +9,5 @@ Conventions (hygiene allowances, per-test users, unique catalog names, backed-vs
 - Shadow-host text: `deepText()` from `tests/lib.ts`; poll it (`expect.poll`) right after a `toHaveCount`.
 - Run with `--workers=4` on this machine (default parallelism saturates it → hangs/ECONNRESET). `PW_CHROMIUM_PATH=<binary>` uses a preinstalled Chromium.
 - Stale servers: after strapi `src/` changes, `pnpm strapi-app build` + kill :1341; the app server runs `pnpm stencil build` only on a cold start — after changing all-of-oyl, ui-oyl or the app, kill :8043.
+- `E2E_BACKEND=php`: `laravel/` is a local generated build that the e2e script only checks exists — after overlay changes run `pnpm php-app build` first, or new routes 404 and the hygiene fixture fails nearly every test.
 - `pnpm --filter @oyl/e2e-oyl typecheck`.
