@@ -200,7 +200,7 @@ if (FRESH) {
 
 // --- build the shared lib before serving anything ----------------------------
 // index.html's importmap points at /vendor/all-of-oyl/index.js. Serving before this lands
-// would return the SPA fallback HTML for that path instead of the module (see CLAUDE.md).
+// would return the SPA fallback HTML for that path instead of the module (see apps/vanilla-oyl/CLAUDE.md).
 if (!STENCIL) {
   console.log('Building @oyl/all-of-oyl and vendoring it into apps/vanilla-oyl/vendor …')
   if (spawnSync('pnpm', ['vanilla', 'build:lib'], { cwd: ROOT, stdio: 'inherit' }).status !== 0) {
