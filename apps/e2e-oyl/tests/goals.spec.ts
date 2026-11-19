@@ -1,52 +1,51 @@
 /**
- * Goals screen: create from presets, pause/resume, delete with inline confirm, and
- * server persistence (goals ARE backed — round-trip asserted via reload).
+ * Stencil Goals screen: create from presets, the summary line, pause/resume, delete with
+ * inline confirm, and server persistence (goals ARE backed — round-trip asserted via reload).
  */
 import { test, expect } from '../lib/fixtures'
 import { awaitOutboxDrained, inlineConfirm } from '../lib/actions'
+import { addGoal, deepText } from './lib'
 
-test('empty state', async ({ page, signIn }) => {
+const row = (page: import('@playwright/test').Page) => page.locator('oyl-goals ol.goals oyl-progress-row')
+
+test('empty state has no summary', async ({ page, signIn }) => {
   await signIn('/goals')
-  await expect(page.locator('oyl-goals')).toContainText('No goals yet.')
+  await expect.poll(() => deepText(page.locator('oyl-goals'))).toContain('No goals yet.')
+  await expect(page.locator('oyl-goals [data-role="summary"]')).toHaveCount(0)
 })
 
 test('a goal round-trips through the backend and can pause/resume', async ({ page, signIn }) => {
   await signIn('/goals')
-  const composer = page.locator('oyl-goal-composer')
-  await composer.locator('select[name="preset"]').selectOption({ label: 'Sleep (hours)' })
-  await composer.locator('input[name="name"]').fill('Sleep more')
-  await composer.locator('input[name="target"]').fill('7.5')
-  await composer.locator('select[name="period"]').selectOption('day')
-  await composer.locator('button[type="submit"]').click()
+  await addGoal(page, { preset: 'Sleep (hours)', name: 'Sleep more', target: '7.5', period: 'day' })
+  await expect(row(page)).toHaveCount(1)
+  await expect.poll(() => deepText(row(page))).toContain('Sleep more')
+  expect(await deepText(row(page))).toContain('No data this period')
+  await expect.poll(() => deepText(page.locator('oyl-goals [data-role="summary"]'))).toBe('0 of 1 met today')
 
-  const row = page.locator('oyl-goal-row')
-  await expect(row).toHaveCount(1)
-  await expect(row).toContainText('Sleep more')
+  // Pause flips the action to Resume and the summary counts it. (Domain semantics: a same-day
+  // resume closes the pause range inclusively, so the goal stays paused through today.)
+  await row(page).locator('[data-act="pause"]').click()
+  await expect(row(page).locator('[data-act="resume"]')).toBeVisible()
+  await expect.poll(() => deepText(row(page))).toContain('Paused')
+  await expect.poll(() => deepText(page.locator('oyl-goals [data-role="summary"]'))).toBe('0 of 1 met today · 1 paused')
 
-  // Pause flips the action to Resume. (Domain semantics: a same-day resume closes the
-  // pause range inclusively, so the goal stays paused — and shows Resume — through today.)
-  await row.locator('[data-act="pause"]').click()
-  await expect(row.locator('[data-act="resume"]')).toBeVisible()
-
-  // Persisted server-side, including the pause (decimal target exercises step=any e2e).
+  // Persisted server-side, including the pause (decimal target exercises the number field e2e).
   await awaitOutboxDrained(page)
   await page.reload()
-  await expect(page.locator('oyl-goal-row')).toContainText('Sleep more')
-  await expect(page.locator('oyl-goal-row [data-act="resume"]')).toBeVisible()
+  await expect(row(page)).toHaveCount(1)
+  await expect.poll(() => deepText(row(page))).toContain('Sleep more')
+  await expect(row(page).locator('[data-act="resume"]')).toBeVisible()
 })
 
 test('deleting a goal requires inline confirmation and persists', async ({ page, signIn }) => {
   await signIn('/goals')
-  const composer = page.locator('oyl-goal-composer')
-  await composer.locator('input[name="target"]').fill('8')
-  await composer.locator('button[type="submit"]').click()
-  const row = page.locator('oyl-goal-row')
-  await expect(row).toHaveCount(1)
-  await inlineConfirm(row, 'delete', 'no')
-  await expect(page.locator('oyl-goal-row')).toHaveCount(1)
-  await inlineConfirm(row, 'delete', 'yes')
-  await expect(page.locator('oyl-goal-row')).toHaveCount(0)
+  await addGoal(page, { target: '8' })
+  await expect(row(page)).toHaveCount(1)
+  await inlineConfirm(row(page), 'delete', 'no')
+  await expect(row(page)).toHaveCount(1)
+  await inlineConfirm(row(page), 'delete', 'yes')
+  await expect(row(page)).toHaveCount(0)
   await awaitOutboxDrained(page)
   await page.reload()
-  await expect(page.locator('oyl-goals')).toContainText('No goals yet.')
+  await expect.poll(() => deepText(page.locator('oyl-goals'))).toContain('No goals yet.')
 })

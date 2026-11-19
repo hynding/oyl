@@ -73,11 +73,15 @@ describe('theme catalog', () => {
       }
     }
   })
-  it('matches vanilla catalog previews (the themes are shared)', async () => {
-    const { readFileSync } = await import('node:fs')
+  it('registers exactly the ui-oyl theme files, and every preview colour is the theme file\'s own', async () => {
+    const { readdirSync, readFileSync } = await import('node:fs')
     const { join } = await import('node:path')
-    const vanilla = readFileSync(join(import.meta.dirname, '..', '..', '..', 'vanilla-oyl', 'src', 'theme', 'theme-catalog.js'), 'utf8')
-    for (const theme of THEMES) for (const c of Object.values(THEME_CATALOG[theme].preview)) expect(vanilla, theme).toContain(c)
+    const dir = join(import.meta.dirname, '..', '..', '..', '..', 'packages', 'ui-oyl', 'src', 'global', 'themes')
+    expect([...THEMES].sort()).toEqual(readdirSync(dir).filter((f) => f.endsWith('.css')).map((f) => f.replace(/\.css$/, '')).sort())
+    for (const theme of THEMES) {
+      const css = readFileSync(join(dir, `${theme}.css`), 'utf8')
+      for (const c of Object.values(THEME_CATALOG[theme].preview)) expect(css, theme).toContain(c)
+    }
   })
 })
 

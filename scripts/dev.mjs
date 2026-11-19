@@ -1,17 +1,16 @@
 #!/usr/bin/env node
 /**
- * Run the full local stack: strapi-oyl (:1340) + vanilla-oyl (:8041).
+ * Run the full local stack: strapi-oyl (:1340) + the app (apps/stencil-oyl dev server, :3344).
  *
  * Mirrors the webServer pair in apps/e2e-oyl/playwright.config.ts, but for interactive
  * dev: native ports (which DEFAULT_API_BASE_URL and the dev CORS allowlist already expect),
  * the committed .env + SQLite db rather than a throwaway one, and prefixed interleaved logs.
+ * The Stencil dev server builds all-of-oyl + ui-oyl first and then watches on its own.
  *
  *   pnpm dev            start both, wait for health, print URLs
- *   pnpm dev --watch    also rebuild + revendor @oyl/all-of-oyl when its src/ changes
  *   pnpm dev --fresh    delete apps/strapi-oyl/.tmp/data.db first
- *   pnpm dev --stencil  serve apps/stencil-oyl (Stencil dev server, :3344) instead of vanilla
  *
- * Deliberately NOT on the e2e ports (1341/8042): Playwright sets reuseExistingServer,
+ * Deliberately NOT on the e2e ports (1341/8043): Playwright sets reuseExistingServer,
  * so a shared port would make `pnpm e2e` silently reuse this stack and write test users
  * into the dev database.
  */
@@ -23,27 +22,21 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const STRAPI_DIR = path.join(ROOT, 'apps', 'strapi-oyl')
-const LIB_SRC = path.join(ROOT, 'packages', 'all-of-oyl', 'src')
 const API_PORT = 1340
+const APP_PORT = 3344
 const flags = new Set(process.argv.slice(2))
-const STENCIL = flags.has('--stencil')
-const APP_PORT = STENCIL ? 3344 : 8041
 
-const USAGE = `Usage: pnpm dev [--watch] [--fresh] [--stencil]
+const USAGE = `Usage: pnpm dev [--fresh]
 
-  --watch    rebuild + revendor @oyl/all-of-oyl whenever its src/ changes (vanilla only;
-             the Stencil dev server watches on its own)
-  --fresh    delete apps/strapi-oyl/.tmp/data.db before starting
-  --stencil  serve apps/stencil-oyl on :3344 instead of apps/vanilla-oyl on :8041`
+  --fresh    delete apps/strapi-oyl/.tmp/data.db before starting`
 
 if (flags.has('--help') || flags.has('-h')) {
   console.log(USAGE)
   process.exit(0)
 }
-const WATCH = flags.has('--watch')
 const FRESH = flags.has('--fresh')
 
-const unknown = [...flags].filter((f) => !['--watch', '--fresh', '--stencil'].includes(f))
+const unknown = [...flags].filter((f) => !['--fresh'].includes(f))
 if (unknown.length) {
   console.error(`Unknown option(s): ${unknown.join(', ')}\n\n${USAGE}`)
   process.exit(1)
@@ -90,11 +83,11 @@ async function assertPortFree(port, label) {
   const pid = portHolder(port)
   const free = !pid && (await canBind('0.0.0.0', port)) && (await canBind('127.0.0.1', port))
   if (free) return
-  // Compose publishes 8041 for the app but 3340 (not 1340) for the backend, so only the
+  // Compose publishes 3344 for the app but 3340 (not 1340) for the backend, so only the
   // app port can collide with the composed stack; 1340 is always a stray native process.
   const hint =
     port === APP_PORT
-      ? 'The composed `vanilla` service binds 8041 too — check `docker compose ps`.'
+      ? 'The composed `stencil` service binds 3344 too — check `docker compose ps`.'
       : 'Most likely a stray `strapi develop` from an earlier session.'
   console.error(
     `\nPort ${port} (${label}) is already in use${pid ? ` by pid ${pid}` : ''}.\n` +
@@ -189,7 +182,7 @@ if (!fs.existsSync(path.join(STRAPI_DIR, '.env'))) {
   process.exit(1)
 }
 await assertPortFree(API_PORT, 'strapi-oyl')
-await assertPortFree(APP_PORT, STENCIL ? 'stencil-oyl' : 'vanilla-oyl')
+await assertPortFree(APP_PORT, 'stencil-oyl')
 
 if (FRESH) {
   for (const suffix of ['', '-journal', '-wal', '-shm']) {
@@ -198,85 +191,11 @@ if (FRESH) {
   console.log('Wiped apps/strapi-oyl/.tmp/data.db — Strapi will re-bootstrap roles + permissions.')
 }
 
-// --- build the shared lib before serving anything ----------------------------
-// index.html's importmap points at /vendor/all-of-oyl/index.js. Serving before this lands
-// would return the SPA fallback HTML for that path instead of the module (see CLAUDE.md).
-if (!STENCIL) {
-  console.log('Building @oyl/all-of-oyl and vendoring it into apps/vanilla-oyl/vendor …')
-  if (spawnSync('pnpm', ['vanilla', 'build:lib'], { cwd: ROOT, stdio: 'inherit' }).status !== 0) {
-    console.error('build:lib failed — fix the build before starting the stack.')
-    process.exit(1)
-  }
-}
-
 // --- start -------------------------------------------------------------------
 run('api', 'pnpm', ['--filter', '@oyl/strapi-oyl-app', 'develop'])
-if (STENCIL) {
-  // `pnpm stencil dev` builds all-of-oyl + ui-oyl first, then watches + serves on :3344
-  // (the Stencil dev server does its own SPA fallback).
-  run('app', 'pnpm', ['--filter', '@oyl/stencil-oyl', 'dev'])
-} else {
-  run('app', 'pnpm', [
-    '--filter', '@oyl/vanilla-oyl', 'exec',
-    'http-server', '.',
-    '-p', String(APP_PORT),
-    '-c-1',
-    '--proxy', `http://localhost:${APP_PORT}?`,
-    '--silent',
-  ])
-}
-
-/**
- * Rebuild + revendor the shared lib. Async on purpose: spawnSync would block the event loop
- * for the whole build, stalling the api/app log pumps and delaying Ctrl-C. Not detached and
- * not tracked in `children` — a build interrupted mid-write would leave a partial vendor/
- * copy, so we let an in-flight one finish rather than signalling it on shutdown.
- */
-function rebuildLib() {
-  return new Promise((resolve) => {
-    const proc = spawn('pnpm', ['vanilla', 'build:lib'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] })
-    let out = ''
-    for (const stream of [proc.stdout, proc.stderr]) {
-      stream.setEncoding('utf8')
-      stream.on('data', (chunk) => {
-        out += chunk
-      })
-    }
-    proc.on('error', (err) => resolve({ ok: false, out: String(err) }))
-    proc.on('exit', (code) => resolve({ ok: code === 0, out }))
-  })
-}
-
-if (WATCH && !STENCIL) {
-  let timer = null
-  let building = false
-  let dirty = false
-
-  /** @param {string} file */
-  async function buildOnce(file) {
-    // Coalesce: edits landing during a build queue exactly one follow-up rebuild, so the
-    // vendored copy always ends up reflecting the final state of src/.
-    if (building) {
-      dirty = true
-      return
-    }
-    building = true
-    log('lib', `change in ${file} — rebuilding\n`)
-    const { ok, out } = await rebuildLib()
-    building = false
-    log('lib', ok ? 'rebuilt — reload the browser\n' : `rebuild FAILED\n${out}`)
-    if (dirty) {
-      dirty = false
-      void buildOnce('changes during the last build')
-    }
-  }
-
-  fs.watch(LIB_SRC, { recursive: true }, (_event, file) => {
-    if (!file || file.endsWith('.test.ts')) return
-    clearTimeout(timer)
-    timer = setTimeout(() => void buildOnce(file), 200)
-  })
-}
+// `pnpm stencil dev` builds all-of-oyl + ui-oyl first, then watches + serves on :3344
+// (the Stencil dev server does its own SPA fallback).
+run('app', 'pnpm', ['--filter', '@oyl/stencil-oyl', 'dev'])
 
 /**
  * Park forever and let shutdown()'s timer own the exit. Calling process.exit() here instead
@@ -286,7 +205,7 @@ if (WATCH && !STENCIL) {
 const park = () => new Promise(() => {})
 
 if (!(await waitFor(`http://localhost:${API_PORT}/_health`, 'strapi-oyl'))) await park()
-if (!(await waitFor(`http://localhost:${APP_PORT}/`, STENCIL ? 'stencil-oyl' : 'vanilla-oyl'))) await park()
+if (!(await waitFor(`http://localhost:${APP_PORT}/`, 'stencil-oyl'))) await park()
 
 console.log(`
   OYL stack is up.
@@ -295,7 +214,6 @@ console.log(`
     api     http://localhost:${API_PORT}/api
     admin   http://localhost:${API_PORT}/admin
 
-  ${WATCH ? 'Watching packages/all-of-oyl/src — edits rebuild the vendored lib.' : 'Run with --watch to rebuild the shared lib on change.'}
   New here? Register an account at http://localhost:${APP_PORT}/register.
 
   Ctrl-C stops both.
