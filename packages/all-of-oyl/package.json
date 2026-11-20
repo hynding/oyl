@@ -24,7 +24,7 @@
   "devDependencies": {
     "@types/node": "^20",
     "typescript": "^5",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12"
   },
   "dependencies": {
     "rrule": "^2.8.1"
