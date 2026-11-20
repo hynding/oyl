@@ -13,13 +13,13 @@
   },
   "dependencies": {
     "@oyl/all-of-oyl": "workspace:*",
-    "onnxruntime-node": "^1.27.0",
+    "onnxruntime-node": "^1.31.1",
     "ppu-paddle-ocr": "^6.2.0"
   },
   "devDependencies": {
     "@types/node": "^20",
     "tsx": "^4.19.0",
     "typescript": "^5",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12"
   }
 }
