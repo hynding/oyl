@@ -14,6 +14,10 @@ export default defineVitestConfig({
       },
       {
         // Component specs against the dev lazy-loader build (see vitest-setup.ts).
+        // `extends: true` inherits the root config's oxc JSX settings (classic `h`) that
+        // defineVitestConfig sets; inline projects don't inherit them otherwise, and Vite ≥8.3
+        // then falls back to the React automatic runtime (`react/jsx-dev-runtime` not found).
+        extends: true,
         test: {
           name: 'spec',
           include: ['src/**/*.spec.tsx'],
